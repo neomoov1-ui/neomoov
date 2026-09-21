@@ -8,6 +8,6 @@ Dépôt privé du Groupe NSK Inc. Monorepo de la plateforme Neomoov : API, worke
 - Décisions : `docs/decisions.md`
 - Règles pour Claude Code : `CLAUDE.md`
 
-État : étape 0 faite le 22 septembre 2026. Étape suivante : prompt 01, initialisation du monorepo.
+État : étape 0 faite le 22 septembre 2026. Monorepo amorcé et moteur de tarification écrit (`packages/domain`, 70 tests). Étape suivante : prompt 01, le reste du monorepo.
 
 Niveau interne : ce dépôt ne devient jamais public.
