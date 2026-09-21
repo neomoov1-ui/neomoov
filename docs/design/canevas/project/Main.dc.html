@@ -8,10 +8,11 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
 button{font-family:inherit}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
 </style>
 </helmet>
 <div style="width: 1440px; height: 1180px; box-sizing: border-box; padding: 56px 64px; display: flex; flex-direction: column; gap: 40px; background: #F4F7FB;">
@@ -19,12 +20,12 @@ button{font-family:inherit}
 <div style="display: flex; justify-content: space-between; align-items: flex-end;">
 <div style="display: flex; flex-direction: column; gap: 8px;">
 <div style="display: flex; align-items: center; gap: 12px;">
-<div style="width: 44px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #0B3D91 0%, #1F6FBF 55%, #3DBE6B 100%);"></div>
-<div style="font-size: 40px; font-weight: 800; letter-spacing: -1px; color: #0B3D91;">neomoov</div>
+<div style="width: 44px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #0B5FB5 0%, #1485E0 55%, #6CC04A 100%);"></div>
+<div style="font-size: 40px; font-weight: 800; letter-spacing: -1px; color: #2C3A4A; font-style: italic;">neomoov</div>
 </div>
 <div style="font-size: 18px; color: #4A5A70;">Avancez vers demain. Fondations du design des applications, version 1.</div>
 </div>
-<div style="font-size: 14px; color: #4A5A70; max-width: 420px; text-align: right;">Logo provisoire. Il sera remplacé par le logo vectoriel officiel dès sa réception.</div>
+<div style="font-size: 14px; color: #4A5A70; max-width: 420px; text-align: right;">Emplacement du logo. Couleurs relevées à l&#39;œil sur la planche de marque : à ajuster dès réception des fichiers du logo.</div>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px;">
@@ -42,62 +43,62 @@ button{font-family:inherit}
 </sc-for>
 </div>
 <div style="display: flex; flex-direction: column; gap: 8px;">
-<div style="height: 14px; border-radius: 7px; background: linear-gradient(90deg, #0B3D91 0%, #1F6FBF 55%, #3DBE6B 100%);"></div>
+<div style="height: 14px; border-radius: 7px; background: linear-gradient(90deg, #0B5FB5 0%, #1485E0 55%, #6CC04A 100%);"></div>
 <div style="font-size: 13px; color: #4A5A70;">Dégradé de marque : réservé aux accents (logo, progression, anneau de sélection). Jamais sous du texte blanc, le vert ne donne pas un contraste suffisant.</div>
 </div>
 </div>
 
 <div style="background: #FFFFFF; border: 1px solid #DCE3EC; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
-<div style="font-size: 22px; font-weight: 700;">Typographie, Inter</div>
+<div style="font-size: 22px; font-weight: 700;">Typographie : Montserrat et Nunito</div>
 <div style="font-size: 44px; font-weight: 800; letter-spacing: -1px; line-height: 1.05;">31,56 $</div>
-<div style="font-size: 13px; color: #4A5A70;">Montant, 44 px, graisse 800</div>
+<div style="font-size: 13px; color: #4A5A70;">Montant : Montserrat, 44 px, graisse 800</div>
 <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1;">Où allez-vous ?</div>
-<div style="font-size: 13px; color: #4A5A70;">Titre de page, 32 px, graisse 800</div>
+<div style="font-size: 13px; color: #4A5A70;">Titre de page : Montserrat, 32 px, graisse 800</div>
 <div style="font-size: 20px; font-weight: 700;">Courses planifiées</div>
-<div style="font-size: 13px; color: #4A5A70;">Titre de section, 20 px, graisse 700</div>
+<div style="font-size: 13px; color: #4A5A70;">Titre de section : Montserrat, 20 px, graisse 700</div>
 <div style="font-size: 16px; line-height: 1.5;">Prix fixe, tout compris. Aucune majoration de pointe.</div>
-<div style="font-size: 13px; color: #4A5A70;">Texte courant, 16 px. Secondaire 14 px en gris #4A5A70. Rien sous 13 px.</div>
+<div style="font-size: 13px; color: #4A5A70;">Texte courant : Nunito, 16 px. Secondaire 14 px en gris #4A5A70. Rien sous 13 px.</div>
 <div style="font-size: 14px; color: #4A5A70;">Formats du Québec : 12,35 $, 5 h 45, lundi 14 septembre, 8,2 km.</div>
 </div>
 
 <div style="background: #FFFFFF; border: 1px solid #DCE3EC; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 18px;">
 <div style="font-size: 22px; font-weight: 700;">Boutons et états</div>
 <div style="display: flex; gap: 16px; align-items: center;">
-<button type="button" style="flex-grow: 1; height: 56px; border: 0; border-radius: 14px; background: #0B3D91; color: #FFFFFF; font-size: 17px; font-weight: 700;">Confirmer la course</button>
-<button type="button" style="flex-grow: 1; height: 56px; border: 1.5px solid #0B3D91; border-radius: 14px; background: #FFFFFF; color: #0B3D91; font-size: 17px; font-weight: 700;">Planifier</button>
+<button type="button" style="flex-grow: 1; height: 56px; border: 0; border-radius: 14px; background: #0B5FB5; color: #FFFFFF; font-size: 17px; font-weight: 700;">Confirmer la course</button>
+<button type="button" style="flex-grow: 1; height: 56px; border: 1.5px solid #0B5FB5; border-radius: 14px; background: #FFFFFF; color: #0B5FB5; font-size: 17px; font-weight: 700;">Planifier</button>
 </div>
 <div style="display: flex; gap: 16px; align-items: center;">
-<button type="button" style="flex-grow: 1; height: 56px; border: 0; border-radius: 14px; background: #3DBE6B; color: #06240F; font-size: 17px; font-weight: 700;">Passer en ligne</button>
+<button type="button" style="flex-grow: 1; height: 56px; border: 0; border-radius: 14px; background: #6CC04A; color: #16260C; font-size: 17px; font-weight: 700;">Passer en ligne</button>
 <button type="button" style="flex-grow: 1; height: 56px; border: 0; border-radius: 14px; background: #C62828; color: #FFFFFF; font-size: 17px; font-weight: 700;">SOS</button>
 </div>
-<div style="height: 60px; border-radius: 16px; background: #E4EEFB; display: flex; align-items: center; padding: 4px; box-sizing: border-box; gap: 16px;">
-<div style="width: 64px; height: 52px; border-radius: 13px; background: #0B3D91; display: flex; align-items: center; justify-content: center;">
+<div style="height: 60px; border-radius: 16px; background: #E3F1FC; display: flex; align-items: center; padding: 4px; box-sizing: border-box; gap: 16px;">
+<div style="width: 64px; height: 52px; border-radius: 13px; background: #0B5FB5; display: flex; align-items: center; justify-content: center;">
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
 </div>
-<div style="font-size: 17px; font-weight: 700; color: #0B3D91;">Glisser pour commencer la course</div>
+<div style="font-size: 17px; font-weight: 700; color: #0B5FB5;">Glisser pour commencer la course</div>
 </div>
 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-<span style="padding: 6px 12px; border-radius: 999px; background: #E3F6EA; color: #14602F; font-size: 14px; font-weight: 600;">Approuvé</span>
+<span style="padding: 6px 12px; border-radius: 999px; background: #EAF6E1; color: #2F6B14; font-size: 14px; font-weight: 600;">Approuvé</span>
 <span style="padding: 6px 12px; border-radius: 999px; background: #FFF1D6; color: #7A4B00; font-size: 14px; font-weight: 600;">En attente</span>
-<span style="padding: 6px 12px; border-radius: 999px; background: #E4EEFB; color: #0B3D91; font-size: 14px; font-weight: 600;">Nouveau</span>
+<span style="padding: 6px 12px; border-radius: 999px; background: #E3F1FC; color: #0B5FB5; font-size: 14px; font-weight: 600;">Nouveau</span>
 <span style="padding: 6px 12px; border-radius: 999px; background: #FDE7E7; color: #9B1C1C; font-size: 14px; font-weight: 600;">Action requise</span>
-<span style="padding: 6px 12px; border-radius: 999px; background: #0B3D91; color: #FFFFFF; font-size: 14px; font-weight: 600;">Modèle garanti</span>
+<span style="padding: 6px 12px; border-radius: 999px; background: #0B5FB5; color: #FFFFFF; font-size: 14px; font-weight: 600;">Modèle garanti</span>
 </div>
 <div style="font-size: 13px; color: #4A5A70;">Une seule action principale par écran, pleine largeur, en bas. Cibles tactiles de 44 px au minimum, 56 px pour le chauffeur.</div>
 </div>
 
-<div style="background: #071426; border: 1px solid #1E3554; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 16px; color: #F2F6FB;">
+<div style="background: #10171F; border: 1px solid #2F3E50; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 16px; color: #F3F6F9;">
 <div style="font-size: 22px; font-weight: 700;">Mode sombre, conduite de nuit</div>
-<div style="background: #0E2038; border: 1px solid #1E3554; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+<div style="background: #1B2633; border: 1px solid #2F3E50; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
 <div style="display: flex; justify-content: space-between; align-items: center;">
-<div style="font-size: 15px; color: #A9B8CC;">Revenus du jour</div>
-<span style="padding: 5px 10px; border-radius: 999px; background: #12351F; color: #7BE0A0; font-size: 13px; font-weight: 600;">En ligne</span>
+<div style="font-size: 15px; color: #AAB6C4;">Revenus du jour</div>
+<span style="padding: 5px 10px; border-radius: 999px; background: #21361A; color: #A5E07F; font-size: 13px; font-weight: 600;">En ligne</span>
 </div>
 <div style="font-size: 40px; font-weight: 800; letter-spacing: -1px;">248,60 $</div>
-<div style="height: 8px; border-radius: 4px; background: #1E3554;"><div style="width: 62%; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #1F6FBF 0%, #3DBE6B 100%);"></div></div>
-<div style="font-size: 14px; color: #A9B8CC;">Pack Élite : 38 courses restantes sur 100</div>
+<div style="height: 8px; border-radius: 4px; background: #2F3E50;"><div style="width: 62%; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #1485E0 0%, #6CC04A 100%);"></div></div>
+<div style="font-size: 14px; color: #AAB6C4;">Pack Élite : 38 courses restantes sur 100</div>
 </div>
-<div style="font-size: 13px; color: #A9B8CC;">Fond #071426, surface #0E2038, filet #1E3554, texte #F2F6FB, secondaire #A9B8CC. Bascule automatique selon l'heure, réglable dans le profil.</div>
+<div style="font-size: 13px; color: #AAB6C4;">Fond #10171F, surface #1B2633, filet #2F3E50, texte #F3F6F9, secondaire #AAB6C4. Bascule automatique selon l'heure, réglable dans le profil.</div>
 </div>
 
 </div>
@@ -107,10 +108,10 @@ button{font-family:inherit}
 class Component extends DCLogic {
 renderVals() {
 return { colors: [
-{ name: 'Bleu profond', hex: '#0B3D91', use: 'Action principale, titres de marque' },
-{ name: 'Bleu', hex: '#1F6FBF', use: 'Liens, graphiques, trajet' },
-{ name: 'Vert', hex: '#3DBE6B', use: 'En ligne, prise en charge, succès' },
-{ name: 'Encre', hex: '#0A1B33', use: 'Texte courant' },
+{ name: 'Bleu électrique foncé', hex: '#0B5FB5', use: 'Action principale, texte blanc lisible' },
+{ name: 'Bleu électrique', hex: '#1485E0', use: 'Liens, graphiques, trajet' },
+{ name: 'Vert lime', hex: '#6CC04A', use: 'En ligne, prise en charge, succès' },
+{ name: 'Gris anthracite', hex: '#2C3A4A', use: 'Texte, mot-symbole' },
 { name: 'Gris texte', hex: '#4A5A70', use: 'Texte secondaire' },
 { name: 'Filet', hex: '#DCE3EC', use: 'Bordures, séparateurs' },
 { name: 'Fond', hex: '#F4F7FB', use: 'Fond des écrans' },

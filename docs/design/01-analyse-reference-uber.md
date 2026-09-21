@@ -145,7 +145,7 @@ Réservations à l'avance proposées aux chauffeurs : 16,65 $ pour 11,1 km vers 
 | Carte d'abord | L'accueil du chauffeur est une carte plein écran. Le reste vit dans une feuille qui monte du bas | Identique pour le chauffeur et pour la réservation du client |
 | Une action par écran | Un seul bouton principal, pleine largeur, en bas | Identique. Bouton en dégradé bleu vers vert pour l'action principale |
 | Cinq onglets | Accueil, Découvrir, Revenus, Boîte de réception, Menu | Chauffeur : Accueil, Courses planifiées, Revenus, Messages, Menu. Client : Accueil, Réservations, Historique, Assistance, Profil |
-| Titres très grands | Titre de page en très gros, gras, aligné à gauche. Montants en très gros | Identique, avec Inter |
+| Titres très grands | Titre de page en très gros, gras, aligné à gauche. Montants en très gros | Identique, en Montserrat |
 | Lignes de liste | Pictogramme, titre, description grise, chevron. Séparateurs fins | Identique |
 | Cartes | Coins arrondis de 12 à 16 px, bordure fine, peu d'ombre | Identique |
 | Pastilles d'état | Vert « Approuvé », ambre « En attente », bleu « Nouveau » | Identique, mêmes trois couleurs sémantiques |
@@ -159,7 +159,7 @@ Réservations à l'avance proposées aux chauffeurs : 16,65 $ pour 11,1 km vers 
 
 ### 2.2 Ce que Neomoov fait autrement
 
-- Identité propre : bleu profond `#0B3D91`, bleu `#1F6FBF`, vert `#3DBE6B`, dégradé bleu vers vert pour les accents, fond sombre pour les écrans d'accueil, Inter, logo « neomoov », signature « Avancez vers demain. ».
+- Identité propre : bleu électrique foncé `#0B5FB5`, bleu électrique `#1485E0`, vert lime `#6CC04A`, gris anthracite `#2C3A4A`, dégradé bleu vers vert pour les accents, fond sombre pour les écrans d'accueil, titres en Montserrat Bold et textes en Nunito, logo « neomoov », signature « Avancez vers demain. ».
 - Le prix est affiché tout compris, avec un détail dépliable (tarif, frais de service, redevance, taxes, suppléments). Uber affiche un prix barré et une promotion : Neomoov n'utilise pas ce procédé.
 - Le modèle garanti du véhicule apparaît au choix de la catégorie.
 - La transparence est un argument : l'écran de répartition du prix montre « Commission Neomoov : 0,00 $ ».

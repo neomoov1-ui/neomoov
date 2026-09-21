@@ -24,26 +24,26 @@ et les chauffeurs ne paient aucune commission (ils achètent des packs de course
 Signature : « Avancez vers demain. »
 
 IDENTITÉ
-- Couleurs : bleu profond #0B3D91 (action principale, marque), bleu #1F6FBF
-  (liens, graphiques, trajet), vert #3DBE6B (en ligne, prise en charge, succès),
-  encre #0A1B33 (texte), gris #4A5A70 (texte secondaire), filet #DCE3EC,
+- Couleurs : bleu électrique foncé #0B5FB5 (action principale), bleu électrique #1485E0
+  (liens, graphiques, trajet), vert lime #6CC04A (en ligne, prise en charge, succès),
+  gris anthracite #2C3A4A (texte, mot-symbole), gris #4A5A70 (texte secondaire), filet #DCE3EC,
   fond #F4F7FB, alerte #C62828 (SOS, destination, erreur).
-- États : approuvé #E3F6EA sur #14602F, en attente #FFF1D6 sur #7A4B00,
-  nouveau #E4EEFB sur #0B3D91, action requise #FDE7E7 sur #9B1C1C.
-- Dégradé bleu profond vers bleu vers vert : accents seulement (logo, barres de
+- États : approuvé #EAF6E1 sur #2F6B14, en attente #FFF1D6 sur #7A4B00,
+  nouveau #E3F1FC sur #0B5FB5, action requise #FDE7E7 sur #9B1C1C.
+- Dégradé bleu électrique vers vert lime : accents seulement (logo, barres de
   progression, anneau de sélection). Jamais sous du texte blanc.
-- Mode sombre : fond #071426, surface #0E2038, filet #1E3554, texte #F2F6FB,
-  secondaire #A9B8CC. Écrans d'accueil en sombre.
-- Typographie : Inter. Montants 44 px graisse 800, titre de page 32 px graisse
+- Mode sombre : fond #10171F, surface #1B2633, filet #2F3E50, texte #F3F6F9,
+  secondaire #AAB6C4. Écrans d'accueil en sombre.
+- Typographie : Montserrat Bold pour les titres, les montants et les boutons, Nunito pour les textes. Montants 44 px graisse 800, titre de page 32 px graisse
   800, section 20 px graisse 700, texte 16 px, secondaire 14 px, rien sous 13 px.
-- Logo : mot « neomoov » en minuscules. Utiliser le logo fourni s'il est joint,
+- Logo : symbole en ruban formant un N (vert lime en haut, bleu électrique en bas), puis le mot « neomoov » en minuscules, gras italique, gris anthracite. Utiliser le logo fourni s'il est joint,
   sinon un emplacement provisoire.
 
 PRINCIPES D'ERGONOMIE
 - Carte d'abord : la carte occupe le haut de l'écran, le contenu vit dans une
   feuille à coins arrondis (22 px) qui monte du bas.
 - Une seule action principale par écran : bouton pleine largeur en bas,
-  56 px de haut, rayon 14 px, fond #0B3D91, texte blanc.
+  56 px de haut, rayon 14 px, fond #0B5FB5, texte blanc.
 - Début et fin de course : bouton à glisser, jamais un simple appui.
 - Offre de course : le bouton « Accepter » se remplit pendant le compte à rebours.
 - Listes : pictogramme, titre, description grise, chevron, séparateur fin.

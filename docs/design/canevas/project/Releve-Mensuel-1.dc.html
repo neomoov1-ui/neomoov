@@ -8,17 +8,18 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#0A1B33}
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#2C3A4A}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
 </style>
 </helmet>
-<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; color: #0A1B33;">
+<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; color: #2C3A4A;">
 
-<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B3D91; padding-bottom: 14px;">
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B5FB5; padding-bottom: 14px;">
 <div style="display: flex; align-items: center; gap: 10px;">
-<div style="width: 30px; height: 9px; border-radius: 5px; background: linear-gradient(90deg, #0B3D91 0%, #1F6FBF 55%, #3DBE6B 100%);"></div>
-<span style="font-size: 26px; font-weight: 800; letter-spacing: -0.6px; color: #0B3D91;">neomoov</span>
+<div style="width: 30px; height: 9px; border-radius: 5px; background: linear-gradient(90deg, #0B5FB5 0%, #1485E0 55%, #6CC04A 100%);"></div>
+<span style="font-size: 26px; font-weight: 800; letter-spacing: -0.6px; color: #2C3A4A; font-style: italic;">neomoov</span>
 </div>
 <span style="padding: 4px 12px; border: 1.5px solid #4A5A70; border-radius: 999px; font-size: 13px; font-weight: 700; color: #4A5A70; letter-spacing: 1px;">SPÉCIMEN</span>
 </div>
@@ -64,9 +65,9 @@ body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFF
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":1056}}'>
 class Component extends DCLogic {
 renderVals() {
-var thin = '1px solid #B8C2CF', thick = '2px solid #0A1B33';
-function row(label, value) { return { label: label, value: value, weight: 500, color: '#0A1B33', rule: thin }; }
-function total(label, value) { return { label: label, value: value, weight: 800, color: '#0A1B33', rule: thick }; }
+var thin = '1px solid #B8C2CF', thick = '2px solid #2C3A4A';
+function row(label, value) { return { label: label, value: value, weight: 500, color: '#2C3A4A', rule: thin }; }
+function total(label, value) { return { label: label, value: value, weight: 800, color: '#2C3A4A', rule: thick }; }
 return {
 gross: [
 row('Tarifs des courses', '6 480,40 $'),
@@ -82,7 +83,7 @@ billed: [
 row('Packs : 2 packs Élite et 1 pack Pro', '437,00 $'),
 row('TPS payée à Neomoov', '21,85 $'),
 row('TVQ payée à Neomoov', '43,59 $'),
-{ label: 'Commission Neomoov sur vos courses', value: '0,00 $', weight: 700, color: '#14602F', rule: thin },
+{ label: 'Commission Neomoov sur vos courses', value: '0,00 $', weight: 700, color: '#2F6B14', rule: thin },
 total('Total facturé par Neomoov', '502,44 $')
 ]
 };

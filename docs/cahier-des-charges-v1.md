@@ -567,7 +567,7 @@ Les autres agents (publicité, contenu, diffusion, prospection, répartition pr�
 
 ## 6. Spécifications par application
 
-Chaque écran est décrit par son contenu, ses actions et ses critères d'acceptation. Les textes sont en français (Québec) et en anglais via i18n ; aucune chaîne codée en dur. La charte : bleu profond `#0B3D91`, bleu `#1F6FBF`, vert `#3DBE6B`, dégradé bleu vers vert pour les accents, fond sombre pour les écrans d'accueil, typographie sans empattement (Inter ou équivalent système), logo « neomoov » et signature « Avancez vers demain. ».
+Chaque écran est décrit par son contenu, ses actions et ses critères d'acceptation. Les textes sont en français (Québec) et en anglais via i18n ; aucune chaîne codée en dur. La charte (planche de marque du fondateur, 22 septembre 2026) : bleu électrique `#1485E0`, bleu électrique foncé `#0B5FB5` pour les actions sous texte blanc, vert lime `#6CC04A`, gris anthracite `#2C3A4A`, blanc ; dégradé bleu vers vert pour les accents ; fond sombre pour les écrans d'accueil ; titres en Montserrat Bold, textes en Nunito ; logo « neomoov » (symbole en ruban formant un N, mot en gras italique) et signature « Avancez vers demain. ». Valeurs hexadécimales relevées à l'œil, à confirmer sur les fichiers du logo.
 
 ### 6.1 Application client (mobile-client)
 

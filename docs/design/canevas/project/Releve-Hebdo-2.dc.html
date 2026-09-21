@@ -8,15 +8,16 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#0A1B33}
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#2C3A4A}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
 </style>
 </helmet>
-<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; color: #0A1B33;">
+<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; color: #2C3A4A;">
 
-<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B3D91; padding-bottom: 14px;">
-<span style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #0B3D91;">neomoov</span>
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B5FB5; padding-bottom: 14px;">
+<span style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #2C3A4A; font-style: italic;">neomoov</span>
 <span style="font-size: 14px; color: #4A5A70;">Relevé hebdomadaire · 14 au 20 septembre 2026</span>
 </div>
 
@@ -66,9 +67,9 @@ body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFF
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":1056}}'>
 class Component extends DCLogic {
 renderVals() {
-var thin = '1px solid #B8C2CF', thick = '2px solid #0A1B33';
-function row(label, value) { return { label: label, value: value, weight: 500, color: '#0A1B33', rule: thin }; }
-function total(label, value) { return { label: label, value: value, weight: 800, color: '#0A1B33', rule: thick }; }
+var thin = '1px solid #B8C2CF', thick = '2px solid #2C3A4A';
+function row(label, value) { return { label: label, value: value, weight: 500, color: '#2C3A4A', rule: thin }; }
+function total(label, value) { return { label: label, value: value, weight: 800, color: '#2C3A4A', rule: thick }; }
 return {
 credits: [
 row('Tarifs des courses payées par la plateforme, 56 courses', '1 412,60 $'),
@@ -76,7 +77,7 @@ row('TPS et TVQ perçues sur ces tarifs, qui vous reviennent', '211,54 $'),
 row('Pourboires, à vous en totalité', '96,00 $'),
 row('Compensations de promotions', '18,00 $'),
 row('Péages remboursés', '9,80 $'),
-{ label: 'Commission Neomoov sur vos courses', value: '0,00 $', weight: 700, color: '#14602F', rule: thin },
+{ label: 'Commission Neomoov sur vos courses', value: '0,00 $', weight: 700, color: '#2F6B14', rule: thin },
 total('Total de vos crédits', '1 747,94 $')
 ],
 debits: [

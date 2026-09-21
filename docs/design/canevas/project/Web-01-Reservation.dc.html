@@ -8,23 +8,24 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#071426;color:#0A1B33}
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#10171F;color:#2C3A4A}
 button,input{font-family:inherit}
-a{color:#0B3D91}a:hover{color:#072C6B}
+a{color:#0B5FB5}a:hover{color:#084A8F}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
 </style>
 </helmet>
-<div style="width: 1280px; height: 860px; box-sizing: border-box; display: flex; flex-direction: column; background: #071426; color: #F2F6FB; overflow: hidden;">
+<div style="width: 1280px; height: 860px; box-sizing: border-box; display: flex; flex-direction: column; background: #10171F; color: #F3F6F9; overflow: hidden;">
 
 <header style="height: 76px; flex-shrink: 0; padding: 0 56px; display: flex; align-items: center; justify-content: space-between;">
 <div style="display: flex; align-items: center; gap: 12px;">
-<div style="width: 34px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1F6FBF 0%, #3DBE6B 100%);"></div>
-<span style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">neomoov</span>
+<div style="width: 34px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1485E0 0%, #6CC04A 100%);"></div>
+<span style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px; font-style: italic;">neomoov</span>
 </div>
-<div style="display: flex; align-items: center; gap: 24px; font-size: 15px; color: #A9B8CC;">
+<div style="display: flex; align-items: center; gap: 24px; font-size: 15px; color: #AAB6C4;">
 <span>Assistance 24 h sur 24 : [VOTRE NUMÉRO]</span>
-<button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #1E3554; border-radius: 999px; background: transparent; color: #F2F6FB; font-size: 14px; font-weight: 600;">FR · EN</button>
+<button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #2F3E50; border-radius: 999px; background: transparent; color: #F3F6F9; font-size: 14px; font-weight: 600;">FR · EN</button>
 </div>
 </header>
 
@@ -32,45 +33,45 @@ a{color:#0B3D91}a:hover{color:#072C6B}
 
 <div style="display: flex; flex-direction: column; gap: 22px;">
 <h1 style="margin: 0; font-size: 60px; font-weight: 800; letter-spacing: -2px; line-height: 1.02; text-wrap: balance;">Réservez. Le prix affiché est le prix payé.</h1>
-<p style="margin: 0; font-size: 19px; line-height: 1.5; color: #A9B8CC; max-width: 540px;">Véhicule 100 % électrique, modèle garanti, chauffeur confirmé. Aucune majoration de pointe, de jour comme de nuit.</p>
+<p style="margin: 0; font-size: 19px; line-height: 1.5; color: #AAB6C4; max-width: 540px;">Véhicule 100 % électrique, modèle garanti, chauffeur confirmé. Aucune majoration de pointe, de jour comme de nuit.</p>
 <div style="display: flex; flex-direction: column; gap: 12px;">
 <sc-for list="{{points}}" as="p" hint-placeholder-count="3">
 <div style="display: flex; align-items: center; gap: 12px; font-size: 17px;">
-<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3DBE6B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6CC04A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
 <span>{{p}}</span>
 </div>
 </sc-for>
 </div>
 </div>
 
-<form style="background: #FFFFFF; color: #0A1B33; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
+<form style="background: #FFFFFF; color: #2C3A4A; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px;">
 <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.3px;">Votre course</div>
 
 <div style="display: flex; flex-direction: column; gap: 6px;">
 <label for="from" style="font-size: 14px; font-weight: 600; color: #4A5A70;">Prise en charge</label>
-<input id="from" type="text" value="Gare Centrale, Montréal" style="height: 52px; box-sizing: border-box; border: 1px solid #DCE3EC; border-radius: 12px; padding: 0 14px; font-size: 16px; color: #0A1B33;">
+<input id="from" type="text" value="Gare Centrale, Montréal" style="height: 52px; box-sizing: border-box; border: 1px solid #DCE3EC; border-radius: 12px; padding: 0 14px; font-size: 16px; color: #2C3A4A;">
 </div>
 <div style="display: flex; flex-direction: column; gap: 6px;">
 <label for="to" style="font-size: 14px; font-weight: 600; color: #4A5A70;">Destination</label>
-<input id="to" type="text" value="Aéroport Montréal-Trudeau (YUL)" style="height: 52px; box-sizing: border-box; border: 1px solid #DCE3EC; border-radius: 12px; padding: 0 14px; font-size: 16px; color: #0A1B33;">
+<input id="to" type="text" value="Aéroport Montréal-Trudeau (YUL)" style="height: 52px; box-sizing: border-box; border: 1px solid #DCE3EC; border-radius: 12px; padding: 0 14px; font-size: 16px; color: #2C3A4A;">
 </div>
 <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
 <div style="display: flex; flex-direction: column; gap: 6px;">
 <label for="date" style="font-size: 14px; font-weight: 600; color: #4A5A70;">Date</label>
-<input id="date" type="text" value="Mercredi 23 septembre" style="height: 52px; box-sizing: border-box; border: 1px solid #DCE3EC; border-radius: 12px; padding: 0 14px; font-size: 16px; color: #0A1B33;">
+<input id="date" type="text" value="Mercredi 23 septembre" style="height: 52px; box-sizing: border-box; border: 1px solid #DCE3EC; border-radius: 12px; padding: 0 14px; font-size: 16px; color: #2C3A4A;">
 </div>
 <div style="display: flex; flex-direction: column; gap: 6px;">
 <label for="time" style="font-size: 14px; font-weight: 600; color: #4A5A70;">Heure</label>
-<input id="time" type="text" value="5 h 45" style="height: 52px; box-sizing: border-box; border: 1px solid #DCE3EC; border-radius: 12px; padding: 0 14px; font-size: 16px; color: #0A1B33;">
+<input id="time" type="text" value="5 h 45" style="height: 52px; box-sizing: border-box; border: 1px solid #DCE3EC; border-radius: 12px; padding: 0 14px; font-size: 16px; color: #2C3A4A;">
 </div>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
 <sc-for list="{{cats}}" as="c" hint-placeholder-count="3">
 <button type="button" style="box-sizing: border-box; height: 84px; border: {{c.border}}; border-radius: 14px; background: {{c.bg}}; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: 0 12px; text-align: left;">
-<span style="font-size: 15px; font-weight: 700; color: #0A1B33;">{{c.name}}</span>
+<span style="font-size: 15px; font-weight: 700; color: #2C3A4A;">{{c.name}}</span>
 <span style="font-size: 13px; color: #4A5A70;">{{c.model}}</span>
-<span style="font-size: 17px; font-weight: 800; color: #0A1B33;">{{c.price}}</span>
+<span style="font-size: 17px; font-weight: 800; color: #2C3A4A;">{{c.price}}</span>
 </button>
 </sc-for>
 </div>
@@ -83,7 +84,7 @@ a{color:#0B3D91}a:hover{color:#072C6B}
 <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.8px;">55,00 $</span>
 </div>
 
-<button type="button" style="height: 58px; border: 0; border-radius: 14px; background: #0B3D91; color: #FFFFFF; font-size: 18px; font-weight: 700;">Continuer : vérifier mon numéro</button>
+<button type="button" style="height: 58px; border: 0; border-radius: 14px; background: #0B5FB5; color: #FFFFFF; font-size: 18px; font-weight: 700;">Continuer : vérifier mon numéro</button>
 <div style="font-size: 13px; color: #4A5A70; text-align: center;">Paiement par carte ou directement au chauffeur. Modification possible jusqu'à 30 minutes avant le départ.</div>
 </form>
 
@@ -96,7 +97,7 @@ renderVals() {
 return {
 points: ['Suivi de la course par lien, sans créer de compte', 'Reçu et facture conformes envoyés par courriel', 'Wi-Fi, chargeurs et eau à bord'],
 cats: [
-{ name: 'Neo Premium', model: 'Tesla Model 3', price: '55,00 $', border: '2px solid #0B3D91', bg: '#F4F8FE' },
+{ name: 'Neo Premium', model: 'Tesla Model 3', price: '55,00 $', border: '2px solid #0B5FB5', bg: '#F4F8FE' },
 { name: 'Neo Prestige', model: 'Tesla Model S', price: '69,00 $', border: '1px solid #DCE3EC', bg: '#FFFFFF' },
 { name: 'Neo XL', model: 'Kia EV9', price: '75,00 $', border: '1px solid #DCE3EC', bg: '#FFFFFF' }
 ]

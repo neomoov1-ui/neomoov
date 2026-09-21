@@ -8,18 +8,19 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
 button{font-family:inherit}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; color: #0A1B33; overflow: hidden;">
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; color: #2C3A4A; overflow: hidden;">
 
 <div style="flex-grow: 1; padding: 60px 20px 0 20px; display: flex; flex-direction: column; gap: 14px;">
 <div style="display: flex; justify-content: space-between; align-items: center;">
 <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.6px;">Revenus</div>
-<button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #DCE3EC; border-radius: 999px; background: #FFFFFF; font-size: 14px; font-weight: 600; color: #0A1B33;">14 au 20 sept.</button>
+<button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #DCE3EC; border-radius: 999px; background: #FFFFFF; font-size: 14px; font-weight: 600; color: #2C3A4A;">14 au 20 sept.</button>
 </div>
 
 <div style="display: flex; flex-direction: column; gap: 2px;">
@@ -50,8 +51,8 @@ button{font-family:inherit}
 </div>
 
 <div style="display: flex; flex-direction: column; gap: 8px;">
-<button type="button" style="height: 52px; border: 0; border-radius: 14px; background: #0B3D91; color: #FFFFFF; font-size: 16px; font-weight: 700;">Voir le relevé hebdomadaire (PDF)</button>
-<button type="button" style="height: 48px; border: 0; background: transparent; color: #0B3D91; font-size: 15px; font-weight: 600;">Où va l'argent payé par mes clients ?</button>
+<button type="button" style="height: 52px; border: 0; border-radius: 14px; background: #0B5FB5; color: #FFFFFF; font-size: 16px; font-weight: 700;">Voir le relevé hebdomadaire (PDF)</button>
+<button type="button" style="height: 48px; border: 0; background: transparent; color: #0B5FB5; font-size: 15px; font-weight: 600;">Où va l'argent payé par mes clients ?</button>
 </div>
 </div>
 
@@ -69,16 +70,16 @@ button{font-family:inherit}
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
 renderVals() {
-var on = '#0B3D91', off = '#4A5A70';
+var on = '#0B5FB5', off = '#4A5A70';
 var raw = [['Lun', 248], ['Mar', 221], ['Mer', 196], ['Jeu', 262], ['Ven', 284], ['Sam', 301], ['Dim', 155.8]];
 var rule = '1px solid #EEF2F7';
 return {
-days: raw.map(function (r) { var sel = r[0] === 'Sam'; return { label: r[0], h: Math.round(r[1] / 301 * 112) + 'px', bg: sel ? '#0B3D91' : '#BFD7F2', weight: sel ? 700 : 500, color: sel ? '#0B3D91' : '#4A5A70' }; }),
+days: raw.map(function (r) { var sel = r[0] === 'Sam'; return { label: r[0], h: Math.round(r[1] / 301 * 112) + 'px', bg: sel ? '#0B5FB5' : '#BFDDF6', weight: sel ? 700 : 500, color: sel ? '#0B5FB5' : '#4A5A70' }; }),
 lines: [
-{ label: 'Tarifs des courses', value: '1 553,80 $', color: '#0A1B33', weight: 500, rule: rule },
-{ label: 'Pourboires', value: '96,00 $', color: '#0A1B33', weight: 500, rule: rule },
-{ label: 'Compensations de promotions', value: '18,00 $', color: '#0A1B33', weight: 500, rule: rule },
-{ label: 'Commission Neomoov', value: '0,00 $', color: '#14602F', weight: 700, rule: rule },
+{ label: 'Tarifs des courses', value: '1 553,80 $', color: '#2C3A4A', weight: 500, rule: rule },
+{ label: 'Pourboires', value: '96,00 $', color: '#2C3A4A', weight: 500, rule: rule },
+{ label: 'Compensations de promotions', value: '18,00 $', color: '#2C3A4A', weight: 500, rule: rule },
+{ label: 'Commission Neomoov', value: '0,00 $', color: '#2F6B14', weight: 700, rule: rule },
 { label: 'Pack Élite, facturé vendredi', value: '169,00 $ + taxes', color: '#4A5A70', weight: 500, rule: '0' }
 ],
 tabs: [

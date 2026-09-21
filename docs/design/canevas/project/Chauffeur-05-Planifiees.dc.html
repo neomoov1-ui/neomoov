@@ -8,19 +8,20 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
 button{font-family:inherit}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F4F7FB; color: #0A1B33; overflow: hidden;">
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F4F7FB; color: #2C3A4A; overflow: hidden;">
 
 <div style="background: #FFFFFF; padding: 60px 20px 12px 20px; display: flex; flex-direction: column; gap: 14px; border-bottom: 1px solid #DCE3EC;">
 <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.6px;">Courses planifiées</div>
 <div style="display: flex; gap: 8px;">
-<button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: #0A1B33; color: #FFFFFF; font-size: 14px; font-weight: 700;">Disponibles · 6</button>
-<button type="button" style="height: 44px; padding: 0 16px; border: 1px solid #DCE3EC; border-radius: 999px; background: #FFFFFF; color: #0A1B33; font-size: 14px; font-weight: 600;">Mes réservations · 2</button>
+<button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: #2C3A4A; color: #FFFFFF; font-size: 14px; font-weight: 700;">Disponibles · 6</button>
+<button type="button" style="height: 44px; padding: 0 16px; border: 1px solid #DCE3EC; border-radius: 999px; background: #FFFFFF; color: #2C3A4A; font-size: 14px; font-weight: 600;">Mes réservations · 2</button>
 </div>
 <div style="display: flex; gap: 4px;">
 <sc-for list="{{week}}" as="d" hint-placeholder-count="7">
@@ -34,7 +35,7 @@ button{font-family:inherit}
 
 <div style="flex-grow: 1; padding: 14px 16px 0 16px; display: flex; flex-direction: column; gap: 12px;">
 
-<div style="border-radius: 14px; background: #E4EEFB; padding: 12px 14px; font-size: 14px; line-height: 1.45; color: #0B3D91;">Soyez en ligne 30 minutes avant. Annulation sans effet jusqu'à 60 minutes avant. 5 minutes d'attente comprises.</div>
+<div style="border-radius: 14px; background: #E3F1FC; padding: 12px 14px; font-size: 14px; line-height: 1.45; color: #0B5FB5;">Soyez en ligne 30 minutes avant. Annulation sans effet jusqu'à 60 minutes avant. 5 minutes d'attente comprises.</div>
 
 <sc-for list="{{rides}}" as="r" hint-placeholder-count="3">
 <div style="background: #FFFFFF; border: 1px solid #DCE3EC; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
@@ -46,10 +47,10 @@ button{font-family:inherit}
 <span style="font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">{{r.price}}</span>
 <span style="font-size: 14px; color: #4A5A70;">{{r.meta}}</span>
 </div>
-<div style="font-size: 15px; color: #0A1B33;">{{r.route}}</div>
+<div style="font-size: 15px; color: #2C3A4A;">{{r.route}}</div>
 <div style="display: flex; gap: 8px;">
 <button type="button" style="flex-grow: 1; height: 48px; border: 0; border-radius: 12px; background: {{r.ctaBg}}; color: {{r.ctaColor}}; font-size: 15px; font-weight: 700;">{{r.cta}}</button>
-<button type="button" style="height: 48px; padding: 0 18px; border: 1px solid #DCE3EC; border-radius: 12px; background: #FFFFFF; color: #0A1B33; font-size: 15px; font-weight: 600;">Détails</button>
+<button type="button" style="height: 48px; padding: 0 18px; border: 1px solid #DCE3EC; border-radius: 12px; background: #FFFFFF; color: #2C3A4A; font-size: 15px; font-weight: 600;">Détails</button>
 </div>
 </div>
 </sc-for>
@@ -69,13 +70,13 @@ button{font-family:inherit}
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
 renderVals() {
-var on = '#0B3D91', off = '#4A5A70';
+var on = '#0B5FB5', off = '#4A5A70';
 var days = [['LUN', 21], ['MAR', 22], ['MER', 23], ['JEU', 24], ['VEN', 25], ['SAM', 26], ['DIM', 27]];
 return {
-week: days.map(function (d) { var sel = d[1] === 22; return { day: d[0], num: d[1], color: sel ? on : off, weight: sel ? 800 : 600, rule: sel ? '3px solid #0B3D91' : '3px solid transparent' }; }),
+week: days.map(function (d) { var sel = d[1] === 22; return { day: d[0], num: d[1], color: sel ? on : off, weight: sel ? 800 : 600, rule: sel ? '3px solid #0B5FB5' : '3px solid transparent' }; }),
 rides: [
-{ time: '5 h 45', pill: 'Forfait aéroport', pillBg: '#E4EEFB', pillColor: '#0B3D91', price: '44,94 $', meta: 'Neo Premium · 11 km · 13 min', route: 'LaSalle vers l’aéroport Montréal-Trudeau (YUL)', cta: 'Réserver cette course', ctaBg: '#0B3D91', ctaColor: '#FFFFFF' },
-{ time: '7 h 30', pill: 'Nouveau', pillBg: '#E3F6EA', pillColor: '#14602F', price: '62,31 $', meta: 'Neo XL · 18,7 km · 26 min', route: 'Anjou vers Outremont', cta: 'Réserver cette course', ctaBg: '#0B3D91', ctaColor: '#FFFFFF' }
+{ time: '5 h 45', pill: 'Forfait aéroport', pillBg: '#E3F1FC', pillColor: '#0B5FB5', price: '44,94 $', meta: 'Neo Premium · 11 km · 13 min', route: 'LaSalle vers l’aéroport Montréal-Trudeau (YUL)', cta: 'Réserver cette course', ctaBg: '#0B5FB5', ctaColor: '#FFFFFF' },
+{ time: '7 h 30', pill: 'Nouveau', pillBg: '#EAF6E1', pillColor: '#2F6B14', price: '62,31 $', meta: 'Neo XL · 18,7 km · 26 min', route: 'Anjou vers Outremont', cta: 'Réserver cette course', ctaBg: '#0B5FB5', ctaColor: '#FFFFFF' }
 ],
 tabs: [
 { label: 'Accueil', color: off, weight: 500, icon: 'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z' },
