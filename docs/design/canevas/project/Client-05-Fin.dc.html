@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Client, fin de course, pourboire et évaluation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 64px 20px 24px 20px; display: flex; flex-direction: column; gap: 18px; background: #FFFFFF; color: #0A1B33;">
+
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<div style="font-size: 15px; color: #4A5A70;">Vous êtes arrivé · Neo Premium</div>
+<div style="font-size: 44px; font-weight: 800; letter-spacing: -1.2px; line-height: 1.05;">31,56 $</div>
+<div style="font-size: 14px; color: #14602F; font-weight: 600;">Identique au prix annoncé. Reçu et facture envoyés par courriel.</div>
+</div>
+
+<div style="border: 1px solid #DCE3EC; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; background: #F4F7FB;">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="5">
+<div style="display: flex; justify-content: space-between; font-size: 14px; color: #4A5A70;"><span>{{l.label}}</span><span style="color: #0A1B33;">{{l.value}}</span></div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<div style="font-size: 18px; font-weight: 700;">Un pourboire pour Samuel ?</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;">
+<sc-for list="{{tips}}" as="t" hint-placeholder-count="4">
+<button type="button" style="height: 52px; border: {{t.border}}; border-radius: 14px; background: {{t.bg}}; color: {{t.color}}; font-size: 16px; font-weight: 700;">{{t.label}}</button>
+</sc-for>
+</div>
+<div style="font-size: 13px; color: #4A5A70;">Le pourboire revient au chauffeur en totalité.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<div style="font-size: 18px; font-weight: 700;">Comment s'est passée la course ?</div>
+<div style="display: flex; gap: 6px;">
+<sc-for list="{{stars}}" as="s" hint-placeholder-count="5">
+<button type="button" aria-label="{{s.label}}" style="width: 48px; height: 48px; border: 0; background: transparent; padding: 0; display: flex; align-items: center; justify-content: center;">
+<svg width="36" height="36" viewBox="0 0 24 24" fill="{{s.fill}}" stroke="#0B3D91" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+<sc-for list="{{tags}}" as="g" hint-placeholder-count="4">
+<button type="button" style="height: 44px; padding: 0 14px; border: {{g.border}}; border-radius: 999px; background: {{g.bg}}; color: #0A1B33; font-size: 14px; font-weight: 600;">{{g.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<button type="button" style="height: 56px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; gap: 12px; padding: 0 14px; text-align: left;">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg>
+<span style="flex-grow: 1; font-size: 15px; font-weight: 600; color: #0A1B33;">Ajouter Samuel à mes chauffeurs favoris</span>
+</button>
+
+<div style="flex-grow: 1;"></div>
+<button type="button" style="height: 56px; border: 0; border-radius: 14px; background: #0B3D91; color: #FFFFFF; font-size: 17px; font-weight: 700;">Envoyer</button>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+var sel = { border: '2px solid #0B3D91', bg: '#F4F8FE' }, un = { border: '1px solid #DCE3EC', bg: '#FFFFFF' };
+return {
+lines: [
+{ label: 'Tarif de la course', value: '24,55 $' },
+{ label: 'Frais de service', value: '2,00 $' },
+{ label: 'Redevance gouvernementale', value: '0,90 $' },
+{ label: 'TPS et TVQ', value: '4,11 $' }
+],
+tips: [
+{ label: '2 $', border: un.border, bg: un.bg, color: '#0A1B33' },
+{ label: '4 $', border: sel.border, bg: sel.bg, color: '#0B3D91' },
+{ label: '6 $', border: un.border, bg: un.bg, color: '#0A1B33' },
+{ label: 'Autre', border: un.border, bg: un.bg, color: '#0A1B33' }
+],
+stars: [1, 2, 3, 4, 5].map(function (n) { return { label: n + ' sur 5', fill: '#0B3D91' }; }),
+tags: [
+{ label: 'Conduite douce', border: sel.border, bg: sel.bg },
+{ label: 'Véhicule impeccable', border: sel.border, bg: sel.bg },
+{ label: 'Ponctuel', border: un.border, bg: un.bg },
+{ label: 'Préférences respectées', border: un.border, bg: un.bg }
+]
+};
+}
+}
+</script>
+</body>
+</html>

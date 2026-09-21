@@ -1,0 +1,40 @@
+# Secrets
+.env
+.env.*
+*.env
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+credentials.json
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# Dépendances, builds, caches
+node_modules/
+.pnpm-store/
+dist/
+build/
+out/
+.next/
+.expo/
+.vercel/
+.turbo/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# Système, éditeurs, journaux
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.swp
+*.log
+logs/
+.claude/settings.local.json

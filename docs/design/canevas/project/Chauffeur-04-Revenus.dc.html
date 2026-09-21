@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Chauffeur, revenus de la semaine</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; color: #0A1B33; overflow: hidden;">
+
+<div style="flex-grow: 1; padding: 60px 20px 0 20px; display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<div style="font-size: 32px; font-weight: 800; letter-spacing: -0.6px;">Revenus</div>
+<button type="button" style="height: 44px; padding: 0 14px; border: 1px solid #DCE3EC; border-radius: 999px; background: #FFFFFF; font-size: 14px; font-weight: 600; color: #0A1B33;">14 au 20 sept.</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 2px;">
+<div style="font-size: 46px; font-weight: 800; letter-spacing: -1.4px; line-height: 1.05;">1 667,80 $</div>
+<div style="font-size: 14px; color: #4A5A70;">62 courses · 41 h 20 en ligne · 29 h 45 au volant</div>
+</div>
+
+<div style="height: 124px; display: flex; align-items: flex-end; gap: 10px; border-bottom: 1px solid #DCE3EC; padding-bottom: 0;">
+<sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 124px;">
+<div style="width: 100%; height: {{d.h}}; border-radius: 6px 6px 0 0; background: {{d.bg}};"></div>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; gap: 10px; margin-top: -8px;">
+<sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+<span style="flex: 1 1 0; text-align: center; font-size: 13px; font-weight: {{d.weight}}; color: {{d.color}};">{{d.label}}</span>
+</sc-for>
+</div>
+
+<div style="border: 1px solid #DCE3EC; border-radius: 16px; padding: 4px 16px; display: flex; flex-direction: column;">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="5">
+<div style="display: flex; justify-content: space-between; align-items: center; min-height: 46px; border-bottom: {{l.rule}}; font-size: 15px;">
+<span style="color: {{l.color}}; font-weight: {{l.weight}};">{{l.label}}</span>
+<span style="color: {{l.color}}; font-weight: 700;">{{l.value}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<button type="button" style="height: 52px; border: 0; border-radius: 14px; background: #0B3D91; color: #FFFFFF; font-size: 16px; font-weight: 700;">Voir le relevé hebdomadaire (PDF)</button>
+<button type="button" style="height: 48px; border: 0; background: transparent; color: #0B3D91; font-size: 15px; font-weight: 600;">Où va l'argent payé par mes clients ?</button>
+</div>
+</div>
+
+<div style="height: 76px; flex-shrink: 0; border-top: 1px solid #DCE3EC; background: #FFFFFF; display: flex; align-items: stretch; padding: 0 6px;">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<button type="button" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: {{t.color}};">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{t.color}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg>
+<span style="font-size: 12px; font-weight: {{t.weight}};">{{t.label}}</span>
+</button>
+</sc-for>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+var on = '#0B3D91', off = '#4A5A70';
+var raw = [['Lun', 248], ['Mar', 221], ['Mer', 196], ['Jeu', 262], ['Ven', 284], ['Sam', 301], ['Dim', 155.8]];
+var rule = '1px solid #EEF2F7';
+return {
+days: raw.map(function (r) { var sel = r[0] === 'Sam'; return { label: r[0], h: Math.round(r[1] / 301 * 112) + 'px', bg: sel ? '#0B3D91' : '#BFD7F2', weight: sel ? 700 : 500, color: sel ? '#0B3D91' : '#4A5A70' }; }),
+lines: [
+{ label: 'Tarifs des courses', value: '1 553,80 $', color: '#0A1B33', weight: 500, rule: rule },
+{ label: 'Pourboires', value: '96,00 $', color: '#0A1B33', weight: 500, rule: rule },
+{ label: 'Compensations de promotions', value: '18,00 $', color: '#0A1B33', weight: 500, rule: rule },
+{ label: 'Commission Neomoov', value: '0,00 $', color: '#14602F', weight: 700, rule: rule },
+{ label: 'Pack Élite, facturé vendredi', value: '169,00 $ + taxes', color: '#4A5A70', weight: 500, rule: '0' }
+],
+tabs: [
+{ label: 'Accueil', color: off, weight: 500, icon: 'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z' },
+{ label: 'Planifiées', color: off, weight: 500, icon: 'M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z' },
+{ label: 'Revenus', color: on, weight: 700, icon: 'M3 7h18v12H3zM3 11h18M16 15h2' },
+{ label: 'Messages', color: off, weight: 500, icon: 'M4 5h16v11H9l-5 4z' },
+{ label: 'Menu', color: off, weight: 500, icon: 'M4 7h16M4 12h16M4 17h16' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

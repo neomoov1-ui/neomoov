@@ -1,0 +1,59 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-09-22T04:50:00Z" },
+  "title": "Neomoov : design des applications",
+  "launch": { "view": "canvas", "page": "fondations" },
+  "pages": [
+    { "id": "fondations", "name": "Fondations" },
+    { "id": "client", "name": "Application client" },
+    { "id": "chauffeur", "name": "Application chauffeur" },
+    { "id": "hub", "name": "My Hub" },
+    { "id": "web", "name": "Réservation web" },
+    { "id": "releve-hebdo", "name": "Relevé hebdomadaire" },
+    { "id": "releve-mensuel", "name": "Récapitulatif mensuel" }
+  ],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1180, "title": "Fondations : couleurs, typographie, composants", "page": "fondations" },
+
+    "Client-01-Accueil.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "1. Accueil et connexion", "page": "client", "radius": 28 },
+    "Client-02-Carte.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "2. Carte et destination", "page": "client", "radius": 28 },
+    "Client-03-Categories.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "3. Catégorie et prix tout compris", "page": "client", "radius": 28 },
+    "Client-04-Suivi.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "4. Chauffeur attribué et suivi", "page": "client", "radius": 28 },
+    "Client-05-Fin.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "5. Fin de course, pourboire, évaluation", "page": "client", "radius": 28 },
+
+    "Chauffeur-01-Accueil.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "1. Accueil, en ligne", "page": "chauffeur", "radius": 28 },
+    "Chauffeur-02-Offre.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "2. Offre de course", "page": "chauffeur", "radius": 28 },
+    "Chauffeur-03-Course.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "3. Arrivé, attente du client", "page": "chauffeur", "radius": 28 },
+    "Chauffeur-04-Revenus.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "4. Revenus de la semaine", "page": "chauffeur", "radius": 28 },
+    "Chauffeur-05-Planifiees.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "5. Courses planifiées", "page": "chauffeur", "radius": 28 },
+    "Chauffeur-06-Packs.dc.html": { "x": 2350, "y": 0, "w": 390, "h": 844, "title": "6. Packs", "page": "chauffeur", "radius": 28 },
+    "Chauffeur-07-Documents.dc.html": { "x": 2820, "y": 0, "w": 390, "h": 844, "title": "7. Documents, passage en ligne bloqué", "page": "chauffeur", "radius": 28 },
+
+    "Hub-01-TableauDeBord.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "My Hub : tableau de bord en temps réel", "page": "hub" },
+
+    "Web-01-Reservation.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 860, "title": "Réservation web publique", "page": "web" },
+
+    "Releve-Hebdo-1.dc.html": { "x": 0, "y": 0, "w": 816, "h": 1056, "title": "Relevé hebdomadaire, page 1", "page": "releve-hebdo", "paper": "letter" },
+    "Releve-Hebdo-2.dc.html": { "x": 896, "y": 0, "w": 816, "h": 1056, "title": "Relevé hebdomadaire, page 2", "page": "releve-hebdo", "paper": "letter" },
+    "Releve-Hebdo-3.dc.html": { "x": 1792, "y": 0, "w": 816, "h": 1056, "title": "Relevé hebdomadaire, page 3", "page": "releve-hebdo", "paper": "letter" },
+
+    "Releve-Mensuel-1.dc.html": { "x": 0, "y": 0, "w": 816, "h": 1056, "title": "Récapitulatif mensuel, page 1", "page": "releve-mensuel", "paper": "letter" },
+    "Releve-Mensuel-2.dc.html": { "x": 896, "y": 0, "w": 816, "h": 1056, "title": "Récapitulatif mensuel, page 2", "page": "releve-mensuel", "paper": "letter" }
+  },
+  "order": [
+    "Main.dc.html",
+    "Client-01-Accueil.dc.html", "Client-02-Carte.dc.html", "Client-03-Categories.dc.html", "Client-04-Suivi.dc.html", "Client-05-Fin.dc.html",
+    "Chauffeur-01-Accueil.dc.html", "Chauffeur-02-Offre.dc.html", "Chauffeur-03-Course.dc.html", "Chauffeur-04-Revenus.dc.html", "Chauffeur-05-Planifiees.dc.html", "Chauffeur-06-Packs.dc.html", "Chauffeur-07-Documents.dc.html",
+    "Hub-01-TableauDeBord.dc.html",
+    "Web-01-Reservation.dc.html",
+    "Releve-Hebdo-1.dc.html", "Releve-Hebdo-2.dc.html", "Releve-Hebdo-3.dc.html",
+    "Releve-Mensuel-1.dc.html", "Releve-Mensuel-2.dc.html"
+  ],
+  "notes": {
+    "t-client": { "x": 0, "y": -300, "text": "Application client : de la connexion à l'évaluation", "kind": "title1", "maxW": 2270, "page": "client" },
+    "t-chauffeur": { "x": 0, "y": -300, "text": "Application chauffeur : une journée de travail", "kind": "title1", "maxW": 3210, "page": "chauffeur" },
+    "t-hebdo": { "x": 0, "y": -300, "text": "Relevé hebdomadaire envoyé au chauffeur (spécimen)", "kind": "title1", "maxW": 2608, "page": "releve-hebdo" },
+    "t-mensuel": { "x": 0, "y": -300, "text": "Récapitulatif mensuel (spécimen)", "kind": "title1", "maxW": 1712, "page": "releve-mensuel" }
+  },
+  "designSystems": []
+}

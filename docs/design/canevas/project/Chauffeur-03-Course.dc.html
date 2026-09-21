@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Chauffeur, arrivé et attente du client</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; color: #0A1B33; overflow: hidden;">
+
+<div style="position: relative; height: 330px; flex-shrink: 0;">
+<svg viewBox="0 0 390 330" width="390" height="330" aria-hidden="true" style="display: block;">
+<rect width="390" height="330" fill="#E8EEF6"></rect>
+<g fill="#DDE5EF">
+<rect x="20" y="150" width="130" height="70" rx="6"></rect><rect x="240" y="150" width="130" height="70" rx="6"></rect><rect x="20" y="250" width="130" height="70" rx="6"></rect><rect x="240" y="250" width="130" height="70" rx="6"></rect>
+</g>
+<path d="M195 -10 V340" stroke="#FFFFFF" stroke-width="56" fill="none"></path>
+<path d="M-10 235 H400" stroke="#FFFFFF" stroke-width="18" fill="none"></path>
+<circle cx="195" cy="232" r="40" fill="#3DBE6B" fill-opacity="0.18"></circle>
+<circle cx="195" cy="232" r="13" fill="#0B3D91" stroke="#FFFFFF" stroke-width="4"></circle>
+<circle cx="232" cy="206" r="11" fill="#3DBE6B" stroke="#FFFFFF" stroke-width="3"></circle>
+</svg>
+<div style="position: absolute; left: 12px; right: 12px; top: 52px; border-radius: 16px; background: #0A1B33; color: #FFFFFF; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #3DBE6B; flex-shrink: 0;"></span>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+<span style="font-size: 17px; font-weight: 700;">Prise en charge</span>
+<span style="font-size: 15px; color: #C9D6E6;">Rue Sherbrooke Ouest, près de l'entrée principale</span>
+</div>
+</div>
+</div>
+
+<div style="flex-grow: 1; margin-top: -20px; border-radius: 22px 22px 0 0; background: #FFFFFF; box-shadow: 0 -6px 20px rgba(10,27,51,0.10); padding: 14px 20px 24px 20px; display: flex; flex-direction: column; gap: 16px; position: relative;">
+
+<div style="display: flex; gap: 6px;">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 6px;">
+<div style="height: 5px; border-radius: 3px; background: {{s.bar}};"></div>
+<span style="font-size: 13px; font-weight: {{s.weight}}; color: {{s.color}};">{{s.label}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end;">
+<div style="display: flex; flex-direction: column; gap: 2px;">
+<span style="font-size: 15px; color: #4A5A70;">En attente de</span>
+<span style="font-size: 34px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.05;">Camille</span>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+<span style="font-size: 34px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.05;">1:36</span>
+<span style="font-size: 13px; color: #4A5A70;">sur 5:00 gratuites</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<div style="display: flex; gap: 4px;">
+<div style="flex: 5 1 0; height: 8px; border-radius: 4px; background: #E4EEFB;"><div style="width: 32%; height: 8px; border-radius: 4px; background: #1F6FBF;"></div></div>
+<div style="flex: 3 1 0; height: 8px; border-radius: 4px; background: #E3F6EA;"></div>
+</div>
+<span style="font-size: 14px; color: #4A5A70;">Après 5 minutes, l'attente vous est payée 0,50 $ par minute.</span>
+</div>
+
+<div style="display: flex; gap: 10px;">
+<button type="button" style="flex: 1 1 0; height: 56px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; color: #0A1B33; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"></path></svg>
+Appeler
+</button>
+<button type="button" style="flex: 1 1 0; height: 56px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; color: #0A1B33; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg>
+Je suis là
+</button>
+<button type="button" aria-label="SOS" style="width: 72px; height: 56px; border: 0; border-radius: 14px; background: #C62828; color: #FFFFFF; font-size: 16px; font-weight: 800;">SOS</button>
+</div>
+
+<button type="button" style="height: 44px; border: 0; background: transparent; color: #0B3D91; font-size: 15px; font-weight: 600; text-align: left; padding: 0;">Signaler un problème : client introuvable, trop de passagers, autre</button>
+
+<div style="flex-grow: 1;"></div>
+
+<div style="height: 68px; border-radius: 18px; background: #E4EEFB; display: flex; align-items: center; padding: 5px; box-sizing: border-box; gap: 16px;">
+<div style="width: 76px; height: 58px; border-radius: 14px; background: #0B3D91; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</div>
+<span style="font-size: 18px; font-weight: 700; color: #0B3D91;">Glisser : client à bord</span>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return { steps: [
+{ label: 'En route', bar: '#3DBE6B', color: '#14602F', weight: 600 },
+{ label: 'Arrivé', bar: '#0B3D91', color: '#0B3D91', weight: 700 },
+{ label: 'À bord', bar: '#DCE3EC', color: '#4A5A70', weight: 500 },
+{ label: 'Terminé', bar: '#DCE3EC', color: '#4A5A70', weight: 500 }
+] };
+}
+}
+</script>
+</body>
+</html>

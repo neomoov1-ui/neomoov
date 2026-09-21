@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Relevé hebdomadaire du chauffeur, page 1, récapitulatif</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#0A1B33}
+</style>
+</helmet>
+<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 22px; background: #FFFFFF; color: #0A1B33;">
+
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B3D91; padding-bottom: 14px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<div style="width: 30px; height: 9px; border-radius: 5px; background: linear-gradient(90deg, #0B3D91 0%, #1F6FBF 55%, #3DBE6B 100%);"></div>
+<span style="font-size: 26px; font-weight: 800; letter-spacing: -0.6px; color: #0B3D91;">neomoov</span>
+</div>
+<span style="padding: 4px 12px; border: 1.5px solid #4A5A70; border-radius: 999px; font-size: 13px; font-weight: 700; color: #4A5A70; letter-spacing: 1px;">SPÉCIMEN</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h1 style="margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.8px;">Relevé hebdomadaire</h1>
+<div style="font-size: 16px; line-height: 1.5; color: #4A5A70;">Du lundi 14 septembre 2026, 0 h 00, au dimanche 20 septembre 2026, 23 h 59. Émis le vendredi 25 septembre 2026.</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 24px; font-size: 14px;">
+<sc-for list="{{ident}}" as="i" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; gap: 1px;">
+<span style="color: #4A5A70;">{{i.label}}</span>
+<span style="font-size: 16px; font-weight: 600;">{{i.value}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; border-bottom: 1px solid #B8C2CF; font-size: 16px;">
+<span style="font-weight: {{r.weight}};">{{r.label}}</span>
+<span style="font-weight: 700; text-align: right;">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="border: 2px solid #0B3D91; border-radius: 14px; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center;">
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<span style="font-size: 16px; color: #4A5A70;">Versé sur votre compte le vendredi 25 septembre</span>
+<span style="font-size: 16px; font-weight: 700; color: #14602F;">Commission Neomoov sur vos courses : 0,00 $</span>
+</div>
+<span style="font-size: 38px; font-weight: 800; letter-spacing: -1px;">1 540,43 $</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700;">Votre semaine en bref</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+<div style="border: 1px solid #B8C2CF; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;">
+<span style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">{{s.value}}</span>
+<span style="font-size: 13px; color: #4A5A70;">{{s.label}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="flex-grow: 1;"></div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #4A5A70; border-top: 1px solid #B8C2CF; padding-top: 10px;">
+<span>Samuel Tremblay · Relevé NM-R-2026-38-00417</span>
+<span>Page 1 de 3</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":1056}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+ident: [
+{ label: 'Chauffeur', value: 'Samuel Tremblay' },
+{ label: 'Téléphone', value: '514 555 0142' },
+{ label: 'Courriel', value: 'samuel@exemple.ca' },
+{ label: 'Numéro de TPS', value: '000000000 RT0001' },
+{ label: 'Numéro de TVQ', value: '0000000000 TQ0001' },
+{ label: 'Relevé', value: 'NM-R-2026-38-00417' }
+],
+rows: [
+{ label: 'Solde de départ, lundi 14 septembre', value: '0,00 $', weight: 500 },
+{ label: 'Vos crédits (détail en page 2)', value: '1 747,94 $', weight: 500 },
+{ label: 'Vos débits (détail en page 2)', value: '− 213,51 $', weight: 500 },
+{ label: 'Événements des semaines précédentes : pourboire tardif', value: '6,00 $', weight: 500 },
+{ label: 'Versement du vendredi 25 septembre, par virement', value: '− 1 540,43 $', weight: 500 },
+{ label: 'Solde final', value: '0,00 $', weight: 700 }
+],
+stats: [
+{ value: '62', label: 'courses terminées' },
+{ value: '41 h 20', label: 'en ligne, dont 29 h 45 au volant' },
+{ value: '37,59 $', label: 'de tarifs par heure en ligne' },
+{ value: '25,06 $', label: 'de tarif moyen par course' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

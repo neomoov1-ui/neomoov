@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Récapitulatif mensuel du chauffeur, page 2, taxes et kilométrage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#0A1B33}
+</style>
+</helmet>
+<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; color: #0A1B33;">
+
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B3D91; padding-bottom: 14px;">
+<span style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #0B3D91;">neomoov</span>
+<span style="font-size: 14px; color: #4A5A70;">Récapitulatif mensuel · septembre 2026</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h2 style="margin: 0; font-size: 20px; font-weight: 800;">Perçu auprès de vos clients pour des tiers</h2>
+<div style="font-size: 14px; color: #4A5A70;">Ces montants ne sont pas vos revenus. Ils reviennent à Neomoov et au gouvernement.</div>
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{third}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 34px; border-bottom: {{r.rule}}; font-size: 16px;">
+<span style="font-weight: {{r.weight}};">{{r.label}}</span>
+<span style="font-weight: 700; white-space: nowrap;">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h2 style="margin: 0; font-size: 20px; font-weight: 800;">Pour votre déclaration de TPS et de TVQ</h2>
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{taxes}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 34px; border-bottom: {{r.rule}}; font-size: 16px;">
+<span style="font-weight: {{r.weight}};">{{r.label}}</span>
+<span style="font-weight: 700; white-space: nowrap;">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+<div style="font-size: 14px; color: #4A5A70;">Vos numéros : TPS 000000000 RT0001 · TVQ 0000000000 TQ0001</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h2 style="margin: 0; font-size: 20px; font-weight: 800;">Kilométrage, pour vos déductions</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+<div style="border: 1px solid #B8C2CF; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;">
+<span style="font-size: 24px; font-weight: 800;">2 410 km</span>
+<span style="font-size: 14px; color: #4A5A70;">parcourus en course</span>
+</div>
+<div style="border: 1px solid #B8C2CF; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;">
+<span style="font-size: 24px; font-weight: 800;">3 580 km</span>
+<span style="font-size: 14px; color: #4A5A70;">parcourus en ligne</span>
+</div>
+</div>
+</div>
+
+<div style="font-size: 14px; line-height: 1.5; color: #4A5A70;">Ce récapitulatif est fourni à titre d'information. Il ne reflète pas votre situation fiscale personnelle et ne constitue pas un conseil fiscal. Consultez votre comptable ou Revenu Québec pour connaître vos obligations.</div>
+
+<div style="flex-grow: 1;"></div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #4A5A70; border-top: 1px solid #B8C2CF; padding-top: 10px;">
+<span>Samuel Tremblay · Récapitulatif NM-M-2026-09-00417</span>
+<span>Page 2 de 2</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":1056}}'>
+class Component extends DCLogic {
+renderVals() {
+var thin = '1px solid #B8C2CF', thick = '2px solid #0A1B33';
+function row(label, value) { return { label: label, value: value, weight: 500, rule: thin }; }
+function total(label, value) { return { label: label, value: value, weight: 800, rule: thick }; }
+return {
+third: [
+row('Frais de service Neomoov', '524,00 $'),
+row('Redevance gouvernementale', '235,80 $'),
+row('TPS et TVQ sur ces deux montants', '113,78 $'),
+total('Total perçu pour des tiers', '873,58 $')
+],
+taxes: [
+row('Vos fournitures, hors taxes : tarifs des courses', '6 480,40 $'),
+row('TPS perçue sur vos tarifs', '324,02 $'),
+row('TVQ perçue sur vos tarifs', '646,42 $'),
+row('TPS payée à Neomoov sur vos packs', '21,85 $'),
+row('TVQ payée à Neomoov sur vos packs', '43,59 $')
+]
+};
+}
+}
+</script>
+</body>
+</html>

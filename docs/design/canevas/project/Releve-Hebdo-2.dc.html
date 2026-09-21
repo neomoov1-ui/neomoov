@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Relevé hebdomadaire du chauffeur, page 2, crédits et débits</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#0A1B33}
+</style>
+</helmet>
+<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; color: #0A1B33;">
+
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B3D91; padding-bottom: 14px;">
+<span style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #0B3D91;">neomoov</span>
+<span style="font-size: 14px; color: #4A5A70;">Relevé hebdomadaire · 14 au 20 septembre 2026</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h2 style="margin: 0; font-size: 22px; font-weight: 800;">Détail de vos crédits</h2>
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{credits}}" as="r" hint-placeholder-count="7">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 36px; border-bottom: {{r.rule}}; font-size: 16px;">
+<span style="font-weight: {{r.weight}}; color: {{r.color}};">{{r.label}}</span>
+<span style="font-weight: 700; color: {{r.color}}; white-space: nowrap;">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h2 style="margin: 0; font-size: 22px; font-weight: 800;">Détail de vos débits</h2>
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{debits}}" as="r" hint-placeholder-count="7">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 36px; border-bottom: {{r.rule}}; font-size: 16px;">
+<span style="font-weight: {{r.weight}}; color: {{r.color}};">{{r.label}}</span>
+<span style="font-weight: 700; color: {{r.color}}; white-space: nowrap;">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+<div style="border: 1px solid #B8C2CF; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;">
+<span style="font-size: 16px; font-weight: 700;">Votre pack</span>
+<span style="font-size: 14px; line-height: 1.5; color: #4A5A70;">Pack Élite activé le 14 septembre, valide jusqu'au 9 octobre. 62 courses faites cette semaine, 38 restantes sur 100. Renouvellement automatique activé.</span>
+</div>
+<div style="border: 1px solid #B8C2CF; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;">
+<span style="font-size: 16px; font-weight: 700;">Payé directement par vos clients</span>
+<span style="font-size: 14px; line-height: 1.5; color: #4A5A70;">6 courses réglées en espèces ou par Interac, pour information. Ces montants sont déjà entre vos mains : seuls les frais de service, la redevance et leurs taxes sont portés à vos débits.</span>
+</div>
+</div>
+
+<div style="flex-grow: 1;"></div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #4A5A70; border-top: 1px solid #B8C2CF; padding-top: 10px;">
+<span>Samuel Tremblay · Relevé NM-R-2026-38-00417</span>
+<span>Page 2 de 3</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":1056}}'>
+class Component extends DCLogic {
+renderVals() {
+var thin = '1px solid #B8C2CF', thick = '2px solid #0A1B33';
+function row(label, value) { return { label: label, value: value, weight: 500, color: '#0A1B33', rule: thin }; }
+function total(label, value) { return { label: label, value: value, weight: 800, color: '#0A1B33', rule: thick }; }
+return {
+credits: [
+row('Tarifs des courses payées par la plateforme, 56 courses', '1 412,60 $'),
+row('TPS et TVQ perçues sur ces tarifs, qui vous reviennent', '211,54 $'),
+row('Pourboires, à vous en totalité', '96,00 $'),
+row('Compensations de promotions', '18,00 $'),
+row('Péages remboursés', '9,80 $'),
+{ label: 'Commission Neomoov sur vos courses', value: '0,00 $', weight: 700, color: '#14602F', rule: thin },
+total('Total de vos crédits', '1 747,94 $')
+],
+debits: [
+row('Pack Élite, 100 courses', '169,00 $'),
+row('TPS sur le pack', '8,45 $'),
+row('TVQ sur le pack', '16,86 $'),
+row('Frais de service perçus en direct, 6 courses', '12,00 $'),
+row('Redevances perçues en direct, 6 courses', '5,40 $'),
+row('Taxes sur les frais de service perçus en direct', '1,80 $'),
+total('Total de vos débits', '213,51 $')
+]
+};
+}
+}
+</script>
+</body>
+</html>

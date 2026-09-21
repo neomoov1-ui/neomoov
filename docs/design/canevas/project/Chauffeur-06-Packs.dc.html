@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Chauffeur, packs de courses</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 60px 16px 20px 16px; display: flex; flex-direction: column; gap: 12px; background: #F4F7FB; color: #0A1B33;">
+
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px;">
+<div style="font-size: 32px; font-weight: 800; letter-spacing: -0.6px;">Packs</div>
+<div style="font-size: 15px; color: #4A5A70;">Zéro commission sur vos courses. Vous payez seulement votre pack, sur le relevé du vendredi, jamais d'avance.</div>
+</div>
+
+<div style="border-radius: 18px; background: #0B3D91; color: #FFFFFF; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<span style="font-size: 18px; font-weight: 800;">Pack Élite, actif</span>
+<span style="font-size: 14px; color: #D6E4F7;">expire le 9 octobre</span>
+</div>
+<div style="height: 10px; border-radius: 5px; background: rgba(255,255,255,0.22);"><div style="width: 62%; height: 10px; border-radius: 5px; background: #3DBE6B;"></div></div>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<span style="font-size: 15px; font-weight: 600;">38 courses restantes sur 100</span>
+<span style="font-size: 14px; color: #D6E4F7;">Renouvellement automatique activé</span>
+</div>
+</div>
+
+<sc-for list="{{packs}}" as="p" hint-placeholder-count="5">
+<button type="button" style="box-sizing: border-box; min-height: 84px; border: {{p.border}}; border-radius: 16px; background: #FFFFFF; display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left;">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+<div style="display: flex; align-items: center; gap: 8px;">
+<span style="font-size: 17px; font-weight: 700; color: #0A1B33;">{{p.name}}</span>
+<sc-if value="{{p.hasTag}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 3px 9px; border-radius: 999px; background: {{p.tagBg}}; color: {{p.tagColor}}; font-size: 12px; font-weight: 600;">{{p.tag}}</span>
+</sc-if>
+</div>
+<span style="font-size: 14px; color: #4A5A70;">{{p.detail}}</span>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+<span style="font-size: 20px; font-weight: 800; color: #0A1B33; white-space: nowrap;">{{p.price}}</span>
+<span style="font-size: 13px; color: #4A5A70; white-space: nowrap;">{{p.unit}}</span>
+</div>
+</button>
+</sc-for>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+var plain = '1px solid #DCE3EC';
+return { packs: [
+{ name: 'Découverte', detail: '10 courses · 4 semaines', price: '29 $', unit: '2,90 $ par course', border: plain, hasTag: true, tag: 'Offert aux 100 premiers', tagBg: '#E3F6EA', tagColor: '#14602F' },
+{ name: 'Essentiel', detail: '25 courses · 4 semaines', price: '59 $', unit: '2,36 $ par course', border: plain, hasTag: false, tag: '', tagBg: '#FFFFFF', tagColor: '#0A1B33' },
+{ name: 'Pro', detail: '50 courses · 4 semaines', price: '99 $', unit: '1,98 $ par course', border: plain, hasTag: true, tag: 'Le plus choisi', tagBg: '#E4EEFB', tagColor: '#0B3D91' },
+{ name: 'Élite', detail: '100 courses · 4 semaines', price: '169 $', unit: '1,69 $ par course', border: '2px solid #0B3D91', hasTag: true, tag: 'Votre pack', tagBg: '#E4EEFB', tagColor: '#0B3D91' },
+{ name: 'Illimité', detail: 'Sans limite · priorité VIP, aéroport, entreprises', price: '199 $', unit: 'par semaine', border: plain, hasTag: false, tag: '', tagBg: '#FFFFFF', tagColor: '#0A1B33' }
+] };
+}
+}
+</script>
+</body>
+</html>

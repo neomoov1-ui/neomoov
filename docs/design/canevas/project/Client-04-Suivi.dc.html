@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Client, chauffeur attribué et suivi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; color: #0A1B33; overflow: hidden;">
+
+<div style="position: relative; height: 372px; flex-shrink: 0;">
+<svg viewBox="0 0 390 372" width="390" height="372" aria-hidden="true" style="display: block;">
+<rect width="390" height="372" fill="#E8EEF6"></rect>
+<rect x="30" y="40" width="96" height="70" rx="10" fill="#D5EBD9"></rect>
+<g stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" fill="none">
+<path d="M-10 130 H400"></path><path d="M-10 250 H400"></path><path d="M150 -10 V380"></path><path d="M290 -10 V380"></path><path d="M-10 330 L400 60"></path>
+</g>
+<g stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" fill="none">
+<path d="M-10 190 H400"></path><path d="M220 -10 V380"></path><path d="M70 -10 V380"></path>
+</g>
+<path d="M290 70 V130 H150 V250" stroke="#1F6FBF" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="1 10"></path>
+<circle cx="150" cy="250" r="30" fill="#3DBE6B" fill-opacity="0.18"></circle>
+<circle cx="150" cy="250" r="10" fill="#3DBE6B" stroke="#FFFFFF" stroke-width="4"></circle>
+<g transform="translate(274 54)">
+<rect width="32" height="32" rx="16" fill="#0B3D91" stroke="#FFFFFF" stroke-width="3"></rect>
+<path d="M9 19v-3l2-1 2-4h6l3 4 2 1v3" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+</g>
+</svg>
+<button type="button" aria-label="Partager mon trajet" style="position: absolute; right: 16px; top: 56px; height: 48px; padding: 0 16px; border: 0; border-radius: 24px; background: #FFFFFF; box-shadow: 0 2px 10px rgba(10,27,51,0.18); display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: #0A1B33;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A1B33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6"></path></svg>
+Partager
+</button>
+</div>
+
+<div style="flex-grow: 1; margin-top: -20px; border-radius: 22px 22px 0 0; background: #FFFFFF; box-shadow: 0 -6px 20px rgba(10,27,51,0.10); padding: 12px 20px 0 20px; display: flex; flex-direction: column; gap: 16px; position: relative;">
+<div style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: #DCE3EC;"></div>
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end;">
+<div style="display: flex; flex-direction: column; gap: 2px;">
+<div style="font-size: 15px; color: #4A5A70;">Samuel arrive dans</div>
+<div style="font-size: 40px; font-weight: 800; letter-spacing: -1px; line-height: 1;">4 min</div>
+</div>
+<span style="padding: 6px 12px; border-radius: 999px; background: #0B3D91; color: #FFFFFF; font-size: 13px; font-weight: 600;">Modèle garanti</span>
+</div>
+
+<div style="border: 1px solid #DCE3EC; border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 14px;">
+<div style="width: 56px; height: 56px; border-radius: 28px; background: #E4EEFB; color: #0B3D91; font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">ST</div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+<div style="display: flex; align-items: center; gap: 8px;">
+<span style="font-size: 18px; font-weight: 700;">Samuel T.</span>
+<span style="display: flex; align-items: center; gap: 3px; font-size: 14px; font-weight: 600; color: #0A1B33;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="#0B3D91" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+4,96
+</span>
+</div>
+<div style="font-size: 14px; color: #4A5A70;">Tesla Model 3, blanche · français, anglais</div>
+</div>
+<div style="padding: 8px 10px; border-radius: 10px; background: #0A1B33; color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1px; white-space: nowrap;">N52 KTB</div>
+</div>
+
+<div style="display: flex; gap: 10px;">
+<button type="button" style="flex: 1 1 0; height: 52px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; color: #0A1B33; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"></path></svg>
+Appeler
+</button>
+<button type="button" style="flex: 1 1 0; height: 52px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; color: #0A1B33; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg>
+Message
+</button>
+</div>
+<div style="font-size: 13px; color: #4A5A70;">Votre numéro reste masqué. Le chauffeur connaît vos préférences : trajet calme, 21 °C.</div>
+
+<div style="flex-grow: 1;"></div>
+</div>
+
+<div style="flex-shrink: 0; padding: 10px 20px 24px 20px; background: #FFFFFF; border-top: 1px solid #EEF2F7; display: flex; align-items: center; gap: 12px;">
+<button type="button" style="height: 52px; padding: 0 22px; border: 0; border-radius: 14px; background: #C62828; color: #FFFFFF; font-size: 16px; font-weight: 800;">SOS</button>
+<button type="button" style="flex-grow: 1; height: 52px; border: 0; background: transparent; color: #0A1B33; font-size: 15px; font-weight: 600; text-align: right;">Annuler sans frais, encore 1 min 40 s</button>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

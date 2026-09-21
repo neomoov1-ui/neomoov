@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Chauffeur, documents et échéances</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 60px 16px 20px 16px; display: flex; flex-direction: column; gap: 14px; background: #FFFFFF; color: #0A1B33;">
+
+<div style="font-size: 32px; font-weight: 800; letter-spacing: -0.6px; padding: 0 4px;">Documents</div>
+
+<div style="border-radius: 18px; background: #FDE7E7; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9B1C1C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3zM12 10v4M12 17h.01"></path></svg>
+<span style="font-size: 18px; font-weight: 800; color: #9B1C1C;">Impossible de passer en ligne</span>
+</div>
+<div style="font-size: 15px; line-height: 1.45; color: #5C1414;">Assurance du véhicule : le nom inscrit ne correspond pas à votre profil. Envoyez la carte d'assurance à votre nom, ou écrivez-nous pour expliquer la différence.</div>
+<div style="display: flex; gap: 8px;">
+<button type="button" style="flex: 1 1 0; height: 52px; border: 0; border-radius: 14px; background: #9B1C1C; color: #FFFFFF; font-size: 15px; font-weight: 700;">Prendre une photo</button>
+<button type="button" style="flex: 1 1 0; height: 52px; border: 1.5px solid #9B1C1C; border-radius: 14px; background: transparent; color: #9B1C1C; font-size: 15px; font-weight: 700;">Téléverser</button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="8">
+<button type="button" style="min-height: 57px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 12px; padding: 0 4px; text-align: left;">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+<span style="font-size: 16px; font-weight: 600; color: #0A1B33;">{{d.name}}</span>
+<span style="font-size: 13px; color: #4A5A70;">{{d.sub}}</span>
+</div>
+<span style="padding: 5px 10px; border-radius: 999px; background: {{d.bg}}; color: {{d.color}}; font-size: 13px; font-weight: 600; white-space: nowrap;">{{d.status}}</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button>
+</sc-for>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+var ok = { bg: '#E3F6EA', color: '#14602F' }, wait = { bg: '#FFF1D6', color: '#7A4B00' }, bad = { bg: '#FDE7E7', color: '#9B1C1C' };
+function row(name, sub, status, s) { return { name: name, sub: sub, status: status, bg: s.bg, color: s.color }; }
+return { docs: [
+row('Assurance du véhicule', 'Nom différent du profil', 'Action requise', bad),
+row('Vérification mécanique', 'Envoyée le 19 septembre', 'En attente', wait),
+row('Inspection Neomoov', 'À refaire d’ici 23 jours', 'Bientôt échue', wait),
+row('Permis de conduire', 'Valide jusqu’au 14 mars 2029', 'Approuvé', ok),
+row('Autorisation de chauffeur', 'Chauffeur autorisé, SAAQ', 'Approuvé', ok),
+row('Vérification des antécédents', 'Faite le 6 février 2026', 'Approuvé', ok),
+row('Immatriculation', 'Tesla Model 3 · N52 KTB', 'Approuvé', ok),
+row('Attestation de formation', 'Modules et quiz réussis', 'Approuvé', ok)
+] };
+}
+}
+</script>
+</body>
+</html>

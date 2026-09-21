@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Relevé hebdomadaire du chauffeur, page 3, journal des transactions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#0A1B33}
+</style>
+</helmet>
+<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 16px; background: #FFFFFF; color: #0A1B33;">
+
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B3D91; padding-bottom: 14px;">
+<span style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #0B3D91;">neomoov</span>
+<span style="font-size: 14px; color: #4A5A70;">Relevé hebdomadaire · 14 au 20 septembre 2026</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<h2 style="margin: 0; font-size: 22px; font-weight: 800;">Journal des transactions</h2>
+<div style="font-size: 16px; color: #4A5A70;">Lundi 14 septembre 2026. Chaque ligne renvoie à sa course ou à son pack dans l'application.</div>
+</div>
+
+<div style="display: flex; flex-direction: column;">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 36px; border-bottom: 2px solid #0A1B33; font-size: 14px; font-weight: 700;">
+<span style="width: 64px;">Heure</span>
+<span style="flex-grow: 1;">Événement</span>
+<span style="width: 88px; text-align: right;">Crédit</span>
+<span style="width: 88px; text-align: right;">Débit</span>
+<span style="width: 92px; text-align: right;">Solde</span>
+</div>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 50px; border-bottom: 1px solid #B8C2CF; font-size: 15px;">
+<span style="width: 64px; color: #4A5A70;">{{r.time}}</span>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;">
+<span style="font-weight: 600;">{{r.event}}</span>
+<span style="font-size: 13px; color: #4A5A70;">{{r.ref}}</span>
+</div>
+<span style="width: 88px; text-align: right;">{{r.credit}}</span>
+<span style="width: 88px; text-align: right;">{{r.debit}}</span>
+<span style="width: 92px; text-align: right; font-weight: 700;">{{r.balance}}</span>
+</div>
+</sc-for>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 44px; border-bottom: 2px solid #0A1B33; font-size: 15px; font-weight: 800;">
+<span style="flex-grow: 1;">Sous-total du lundi 14 septembre</span>
+<span style="width: 88px; text-align: right;">200,29 $</span>
+<span style="width: 88px; text-align: right;">200,71 $</span>
+<span style="width: 92px; text-align: right;">&#8722; 0,42 $</span>
+</div>
+</div>
+
+<div style="font-size: 14px; line-height: 1.5; color: #4A5A70;">Le crédit d'une course comprend son tarif et son pourboire. Les taxes perçues pour votre compte figurent au détail des crédits, en page 2. Les jours suivants se présentent de la même façon, avec un sous-total par jour.</div>
+
+<div style="flex-grow: 1;"></div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #4A5A70; border-top: 1px solid #B8C2CF; padding-top: 10px;">
+<span>Samuel Tremblay · Relevé NM-R-2026-38-00417</span>
+<span>Page 3 de 3</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":1056}}'>
+class Component extends DCLogic {
+renderVals() {
+var m = '− ';
+return { rows: [
+{ time: '7 h 12', event: 'Neo Premium · carte · pourboire 4,00 $', ref: 'Course NM-260914-0012', credit: '28,55 $', debit: '', balance: '28,55 $' },
+{ time: '7 h 58', event: 'Neo Premium · carte', ref: 'Course NM-260914-0019', credit: '18,30 $', debit: '', balance: '46,85 $' },
+{ time: '8 h 41', event: 'Forfait aéroport · carte · pourboire 8,00 $', ref: 'Course NM-260914-0027', credit: '52,94 $', debit: '', balance: '99,79 $' },
+{ time: '9 h 50', event: 'Neo Premium · espèces, frais et redevance dus', ref: 'Course NM-260914-0041', credit: '', debit: '3,20 $', balance: '96,59 $' },
+{ time: '11 h 05', event: 'Neo XL · carte · pourboire 5,00 $', ref: 'Course NM-260914-0058', credit: '38,30 $', debit: '', balance: '134,89 $' },
+{ time: '12 h 30', event: 'Pack Élite activé, taxes comprises', ref: 'Pack NM-P-2026-04417', credit: '', debit: '194,31 $', balance: m + '59,42 $' },
+{ time: '13 h 15', event: 'Neo Premium · carte', ref: 'Course NM-260914-0066', credit: '15,85 $', debit: '', balance: m + '43,57 $' },
+{ time: '14 h 02', event: 'Péage remboursé', ref: 'Course NM-260914-0066', credit: '9,80 $', debit: '', balance: m + '33,77 $' },
+{ time: '15 h 20', event: 'Neo Prestige · carte · pourboire 6,00 $', ref: 'Course NM-260914-0079', credit: '36,55 $', debit: '', balance: '2,78 $' },
+{ time: '16 h 45', event: 'Neo Premium · Interac, frais et redevance dus', ref: 'Course NM-260914-0085', credit: '', debit: '3,20 $', balance: m + '0,42 $' }
+] };
+}
+}
+</script>
+</body>
+</html>

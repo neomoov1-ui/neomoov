@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Récapitulatif mensuel du chauffeur, page 1</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#0A1B33}
+</style>
+</helmet>
+<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; color: #0A1B33;">
+
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B3D91; padding-bottom: 14px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<div style="width: 30px; height: 9px; border-radius: 5px; background: linear-gradient(90deg, #0B3D91 0%, #1F6FBF 55%, #3DBE6B 100%);"></div>
+<span style="font-size: 26px; font-weight: 800; letter-spacing: -0.6px; color: #0B3D91;">neomoov</span>
+</div>
+<span style="padding: 4px 12px; border: 1.5px solid #4A5A70; border-radius: 999px; font-size: 13px; font-weight: 700; color: #4A5A70; letter-spacing: 1px;">SPÉCIMEN</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h1 style="margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.8px;">Récapitulatif mensuel</h1>
+<div style="font-size: 16px; line-height: 1.5; color: #4A5A70;">Septembre 2026 · Samuel Tremblay · 262 courses. Ce document n'est ni une facture ni un document fiscal officiel.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h2 style="margin: 0; font-size: 20px; font-weight: 800;">Ce que vos clients ont payé</h2>
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{gross}}" as="r" hint-placeholder-count="8">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 34px; border-bottom: {{r.rule}}; font-size: 16px;">
+<span style="font-weight: {{r.weight}};">{{r.label}}</span>
+<span style="font-weight: 700; white-space: nowrap;">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h2 style="margin: 0; font-size: 20px; font-weight: 800;">Ce que Neomoov vous a facturé</h2>
+<div style="display: flex; flex-direction: column;">
+<sc-for list="{{billed}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 34px; border-bottom: {{r.rule}}; font-size: 16px;">
+<span style="font-weight: {{r.weight}}; color: {{r.color}};">{{r.label}}</span>
+<span style="font-weight: 700; color: {{r.color}}; white-space: nowrap;">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+<div style="font-size: 14px; color: #4A5A70;">Groupe NSK Inc. · TPS [NUMÉRO DE TPS] · TVQ [NUMÉRO DE TVQ]</div>
+</div>
+
+<div style="flex-grow: 1;"></div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #4A5A70; border-top: 1px solid #B8C2CF; padding-top: 10px;">
+<span>Samuel Tremblay · Récapitulatif NM-M-2026-09-00417</span>
+<span>Page 1 de 2</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":1056}}'>
+class Component extends DCLogic {
+renderVals() {
+var thin = '1px solid #B8C2CF', thick = '2px solid #0A1B33';
+function row(label, value) { return { label: label, value: value, weight: 500, color: '#0A1B33', rule: thin }; }
+function total(label, value) { return { label: label, value: value, weight: 800, color: '#0A1B33', rule: thick }; }
+return {
+gross: [
+row('Tarifs des courses', '6 480,40 $'),
+row('Frais de service Neomoov, 2,00 $ par course', '524,00 $'),
+row('Redevance gouvernementale, 0,90 $ par course', '235,80 $'),
+row('Péages', '39,20 $'),
+row('Pourboires', '402,00 $'),
+row('TPS perçue', '362,01 $'),
+row('TVQ perçue', '722,21 $'),
+total('Total payé par vos clients', '8 765,62 $')
+],
+billed: [
+row('Packs : 2 packs Élite et 1 pack Pro', '437,00 $'),
+row('TPS payée à Neomoov', '21,85 $'),
+row('TVQ payée à Neomoov', '43,59 $'),
+{ label: 'Commission Neomoov sur vos courses', value: '0,00 $', weight: 700, color: '#14602F', rule: thin },
+total('Total facturé par Neomoov', '502,44 $')
+]
+};
+}
+}
+</script>
+</body>
+</html>

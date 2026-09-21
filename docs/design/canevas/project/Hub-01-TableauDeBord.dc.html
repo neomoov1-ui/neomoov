@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>My Hub, tableau de bord en temps réel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#0A1B33}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; background: #F4F7FB; color: #0A1B33; overflow: hidden;">
+
+<nav aria-label="Modules" style="width: 232px; flex-shrink: 0; background: #071426; color: #F2F6FB; padding: 24px 14px; display: flex; flex-direction: column; gap: 4px;">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 10px 20px 10px;">
+<div style="width: 28px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #1F6FBF 0%, #3DBE6B 100%);"></div>
+<span style="font-size: 20px; font-weight: 800; letter-spacing: -0.4px;">neomoov</span>
+<span style="font-size: 13px; color: #A9B8CC;">My Hub</span>
+</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="12">
+<button type="button" style="height: 44px; border: 0; border-radius: 10px; background: {{n.bg}}; color: {{n.color}}; font-size: 15px; font-weight: {{n.weight}}; text-align: left; padding: 0 12px;">{{n.label}}</button>
+</sc-for>
+</nav>
+
+<div style="flex-grow: 1; min-width: 0; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;">
+
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<div style="display: flex; flex-direction: column; gap: 2px;">
+<div style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Tableau de bord</div>
+<div style="font-size: 14px; color: #4A5A70;">Montréal · mardi 22 septembre 2026, 8 h 42 · mis à jour il y a 3 s</div>
+</div>
+<div style="display: flex; gap: 10px; align-items: center;">
+<button type="button" style="height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: #0B3D91; color: #FFFFFF; font-size: 15px; font-weight: 700;">Créer une course</button>
+<div style="width: 44px; height: 44px; border-radius: 22px; background: #E4EEFB; color: #0B3D91; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center;">YC</div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px;">
+<sc-for list="{{kpis}}" as="k" hint-placeholder-count="5">
+<div style="background: #FFFFFF; border: 1px solid #DCE3EC; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 6px;">
+<span style="font-size: 14px; color: #4A5A70;">{{k.label}}</span>
+<span style="font-size: 30px; font-weight: 800; letter-spacing: -0.6px; color: {{k.color}};">{{k.value}}</span>
+<span style="font-size: 13px; color: #4A5A70;">{{k.sub}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="flex-grow: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px;">
+
+<div style="background: #FFFFFF; border: 1px solid #DCE3EC; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;">
+<div style="padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #EEF2F7;">
+<span style="font-size: 17px; font-weight: 700;">Flotte en direct</span>
+<div style="display: flex; gap: 14px; font-size: 13px; color: #4A5A70;">
+<span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 5px; background: #3DBE6B;"></span>Libre</span>
+<span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 5px; background: #0B3D91;"></span>En course</span>
+<span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 5px; background: #C62828;"></span>Alerte</span>
+</div>
+</div>
+<svg viewBox="0 0 720 470" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="display: block; flex-grow: 1;">
+<rect width="720" height="470" fill="#E8EEF6"></rect>
+<path d="M-10 400 C120 350 260 430 420 380 S640 300 730 330 V480 H-10Z" fill="#CFE3F7"></path>
+<rect x="470" y="60" width="150" height="100" rx="12" fill="#D5EBD9"></rect>
+<g stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" fill="none">
+<path d="M-10 120 H730"></path><path d="M-10 260 H730"></path><path d="M120 -10 V400"></path><path d="M320 -10 V420"></path><path d="M540 -10 V380"></path><path d="M-10 40 L730 340"></path>
+</g>
+<g stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none">
+<path d="M-10 190 H730"></path><path d="M220 -10 V420"></path><path d="M430 -10 V400"></path><path d="M640 -10 V360"></path>
+</g>
+<g stroke="#FFFFFF" stroke-width="3">
+<circle cx="120" cy="120" r="9" fill="#3DBE6B"></circle><circle cx="220" cy="190" r="9" fill="#0B3D91"></circle><circle cx="320" cy="260" r="9" fill="#0B3D91"></circle><circle cx="430" cy="120" r="9" fill="#3DBE6B"></circle><circle cx="540" cy="260" r="9" fill="#0B3D91"></circle><circle cx="640" cy="190" r="9" fill="#3DBE6B"></circle><circle cx="270" cy="90" r="9" fill="#3DBE6B"></circle><circle cx="380" cy="190" r="9" fill="#0B3D91"></circle><circle cx="170" cy="260" r="9" fill="#3DBE6B"></circle><circle cx="590" cy="120" r="9" fill="#0B3D91"></circle>
+</g>
+<circle cx="480" cy="300" r="22" fill="#C62828" fill-opacity="0.2"></circle>
+<circle cx="480" cy="300" r="10" fill="#C62828" stroke="#FFFFFF" stroke-width="3"></circle>
+</svg>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 14px; min-height: 0;">
+<div style="background: #FFFFFF; border: 1px solid #DCE3EC; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;">
+<span style="font-size: 17px; font-weight: 700;">Alertes à traiter</span>
+<sc-for list="{{alerts}}" as="a" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; border-top: 1px solid #EEF2F7;">
+<span style="padding: 4px 10px; border-radius: 999px; background: {{a.bg}}; color: {{a.color}}; font-size: 12px; font-weight: 700; white-space: nowrap;">{{a.kind}}</span>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;">
+<span style="font-size: 14px; font-weight: 600;">{{a.title}}</span>
+<span style="font-size: 13px; color: #4A5A70;">{{a.sub}}</span>
+</div>
+<button type="button" style="height: 36px; padding: 0 12px; border: 1px solid #DCE3EC; border-radius: 10px; background: #FFFFFF; color: #0B3D91; font-size: 13px; font-weight: 700;">Ouvrir</button>
+</div>
+</sc-for>
+</div>
+
+<div style="flex-grow: 1; background: #FFFFFF; border: 1px solid #DCE3EC; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+<span style="font-size: 17px; font-weight: 700;">Courses en cours, par état</span>
+<sc-for list="{{states}}" as="s" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 12px;">
+<span style="width: 148px; font-size: 14px; color: #0A1B33;">{{s.label}}</span>
+<div style="flex-grow: 1; height: 10px; border-radius: 5px; background: #EEF2F7;"><div style="width: {{s.w}}; height: 10px; border-radius: 5px; background: {{s.color}};"></div></div>
+<span style="width: 28px; text-align: right; font-size: 14px; font-weight: 700;">{{s.n}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+var items = ['Tableau de bord', 'Répartition', 'Chauffeurs', 'Véhicules', 'Clients', 'Tarifs et zones', 'Packs et règlements', 'Promotions', 'Facturation et taxes', 'Incidents et sécurité', 'Agents IA', 'Rapports', 'Paramètres'];
+return {
+nav: items.map(function (l, i) { return { label: l, bg: i === 0 ? '#0E2038' : 'transparent', color: i === 0 ? '#FFFFFF' : '#A9B8CC', weight: i === 0 ? 700 : 500 }; }),
+kpis: [
+{ label: 'Courses en cours', value: '14', sub: '3 en approche, 11 à bord', color: '#0A1B33' },
+{ label: 'Chauffeurs en ligne', value: '37', sub: '23 libres', color: '#0A1B33' },
+{ label: 'Attribution médiane', value: '2,1 s', sub: 'Cible : moins de 3 s', color: '#14602F' },
+{ label: 'Planifiées non confirmées', value: '2', sub: 'Départ dans moins de 60 min', color: '#7A4B00' },
+{ label: 'Courses aujourd’hui', value: '186', sub: 'Note moyenne 4,93', color: '#0A1B33' }
+],
+alerts: [
+{ kind: 'SOS', bg: '#FDE7E7', color: '#9B1C1C', title: 'Course NM-260922-0187, client', sub: 'Déclenché il y a 40 s, boulevard Saint-Laurent' },
+{ kind: 'Sans chauffeur', bg: '#FFF1D6', color: '#7A4B00', title: 'Neo XL, Anjou vers YUL', sub: '2 vagues sans réponse, 1 min 50 s' },
+{ kind: 'Planifiée', bg: '#FFF1D6', color: '#7A4B00', title: '9 h 30, Westmount vers Gare Centrale', sub: 'Chauffeur non confirmé' },
+{ kind: 'Document', bg: '#E4EEFB', color: '#0B3D91', title: '3 dossiers chauffeurs à valider', sub: 'Le plus ancien attend depuis 5 h' }
+],
+states: [
+{ label: 'Recherche de chauffeur', n: 2, w: '14%', color: '#7A4B00' },
+{ label: 'Chauffeur en route', n: 3, w: '21%', color: '#1F6FBF' },
+{ label: 'Arrivé, en attente', n: 1, w: '7%', color: '#1F6FBF' },
+{ label: 'Client à bord', n: 11, w: '79%', color: '#0B3D91' },
+{ label: 'Paiement en cours', n: 1, w: '7%', color: '#3DBE6B' }
+]
+};
+}
+}
+</script>
+</body>
+</html>
