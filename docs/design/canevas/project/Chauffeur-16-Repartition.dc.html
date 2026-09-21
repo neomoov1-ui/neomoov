@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Chauffeur, où va l'argent payé par mes clients</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
+button,input{font-family:inherit}
+a{color:#0B5FB5}a:hover{color:#084A8F}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 60px 20px 24px 20px; display: flex; flex-direction: column; gap: 14px; background: #FFFFFF; color: #2C3A4A; overflow: hidden;">
+<div style="display: flex; align-items: center; gap: 12px;"><button type="button" aria-label="Retour" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #F4F7FB; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2C3A4A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div style="font-size: 20px; font-weight: 700;">Où va l'argent ?</div></div>
+<div style="font-size: 15px; line-height: 1.45; color: #4A5A70;">Exemple : une course Neo Premium payée 31,56 $ par la cliente.</div>
+<div style="display: flex; align-items: center; gap: 20px;"><svg width="140" height="140" viewBox="0 0 140 140" aria-hidden="true"><circle cx="70" cy="70" r="54" fill="none" stroke="#0B5FB5" stroke-width="20" stroke-dasharray="264.6 339.29" stroke-dashoffset="0.0" transform="rotate(-90 70 70)"></circle><circle cx="70" cy="70" r="54" fill="none" stroke="#6CC04A" stroke-width="20" stroke-dasharray="20.4 339.29" stroke-dashoffset="-264.6" transform="rotate(-90 70 70)"></circle><circle cx="70" cy="70" r="54" fill="none" stroke="#7A4B00" stroke-width="20" stroke-dasharray="10.2 339.29" stroke-dashoffset="-285.0" transform="rotate(-90 70 70)"></circle><circle cx="70" cy="70" r="54" fill="none" stroke="#9AA7B8" stroke-width="20" stroke-dasharray="44.1 339.29" stroke-dashoffset="-295.2" transform="rotate(-90 70 70)"></circle></svg><div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 40px; font-weight: 800; letter-spacing: -1px; color: #0B5FB5;">78 %</span><span style="font-size: 15px; color: #4A5A70;">du paiement vous revient</span></div></div>
+<div style="display: flex; flex-direction: column;"><div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-bottom: 1px solid #EEF2F7; font-size: 15px;"><span style="width: 12px; height: 12px; border-radius: 6px; background: #0B5FB5; flex-shrink: 0;"></span><span style="flex-grow: 1;">Vous : le tarif de la course</span><span style="font-weight: 700;">24,55 $</span></div><div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-bottom: 1px solid #EEF2F7; font-size: 15px;"><span style="width: 12px; height: 12px; border-radius: 6px; background: #6CC04A; flex-shrink: 0;"></span><span style="flex-grow: 1;">Frais de service Neomoov</span><span style="font-weight: 700;">2,00 $</span></div><div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-bottom: 1px solid #EEF2F7; font-size: 15px;"><span style="width: 12px; height: 12px; border-radius: 6px; background: #7A4B00; flex-shrink: 0;"></span><span style="flex-grow: 1;">Redevance gouvernementale</span><span style="font-weight: 700;">0,90 $</span></div><div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-bottom: 1px solid #EEF2F7; font-size: 15px;"><span style="width: 12px; height: 12px; border-radius: 6px; background: #9AA7B8; flex-shrink: 0;"></span><span style="flex-grow: 1;">TPS et TVQ</span><span style="font-weight: 700;">4,11 $</span></div></div>
+<div style="background: #EAF6E1; border: 0; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 4px;"><span style="font-size: 17px; font-weight: 800; color: #2F6B14;">Commission Neomoov : 0,00 $</span><div style="font-size: 14px; line-height: 1.45; color: #4A5A70;">Votre seul coût envers Neomoov est votre pack : 1,69 $ par course avec le Pack Élite.</div></div>
+<div style="font-size: 14px; line-height: 1.45; color: #4A5A70;">Le pourboire s'ajoute et vous revient en totalité.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

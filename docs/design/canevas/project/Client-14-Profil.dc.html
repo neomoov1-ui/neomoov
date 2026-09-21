@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Client, profil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
+button,input{font-family:inherit}
+a{color:#0B5FB5}a:hover{color:#084A8F}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 0; display: flex; flex-direction: column; gap: 0px; background: #FFFFFF; color: #2C3A4A; overflow: hidden;">
+<div style="flex-grow: 1; padding: 60px 20px 0 20px; display: flex; flex-direction: column; gap: 8px;">
+<div style="display: flex; align-items: center; gap: 14px;"><div style="width: 60px; height: 60px; border-radius: 30px; background: #E3F1FC; color: #0B5FB5; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">CR</div><div style="display: flex; flex-direction: column; gap: 2px;"><div style="font-size: 24px; font-weight: 800;">Camille R.</div><span style="font-size: 14px; color: #4A5A70;">514 555 0142 · français</span></div></div>
+<div style="display: flex; flex-direction: column;"><button type="button" style="min-height: 58px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #E3F1FC; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Chauffeurs favoris et préférences</span><span style="font-size: 14px; color: #4A5A70;">Samuel T. · trajet calme, 21 °C</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 58px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #E3F1FC; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path></svg></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Lieux enregistrés</span><span style="font-size: 14px; color: #4A5A70;">Domicile, travail</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 58px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #E3F1FC; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"></path></svg></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Modes de paiement</span><span style="font-size: 14px; color: #4A5A70;">Visa •••• 4242</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 58px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #E3F1FC; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0"></path></svg></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Crédits et parrainage</span><span style="font-size: 14px; color: #4A5A70;">Votre code : CAMILLE-7Q</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 58px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #E3F1FC; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4"></path></svg></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Notifications</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 58px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #E3F1FC; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3"></path></svg></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Confidentialité et consentements</span><span style="font-size: 14px; color: #4A5A70;">Consulter, corriger ou récupérer mes renseignements</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 58px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #E3F1FC; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"></path></svg></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #9B1C1C;">Supprimer mon compte</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button></div>
+</div>
+<div style="height: 76px; flex-shrink: 0; border-top: 1px solid #DCE3EC; background: #FFFFFF; display: flex; align-items: stretch; padding: 0 6px;">
+<button type="button" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4A5A70;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span style="font-size: 12px; font-weight: 500;">Accueil</span></button>
+<button type="button" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4A5A70;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"></path></svg><span style="font-size: 12px; font-weight: 500;">Réservations</span></button>
+<button type="button" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4A5A70;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"></path></svg><span style="font-size: 12px; font-weight: 500;">Historique</span></button>
+<button type="button" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #4A5A70;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg><span style="font-size: 12px; font-weight: 500;">Assistance</span></button>
+<button type="button" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #0B5FB5;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"></path></svg><span style="font-size: 12px; font-weight: 700;">Profil</span></button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

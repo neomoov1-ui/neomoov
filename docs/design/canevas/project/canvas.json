@@ -1,59 +1,586 @@
 {
   "v": 3,
-  "createdOnFiles": { "v": 1, "at": "2026-09-22T04:50:00Z" },
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-22T04:50:00Z"
+  },
   "title": "Neomoov : design des applications",
-  "launch": { "view": "canvas", "page": "fondations" },
+  "launch": {
+    "view": "canvas",
+    "page": "fondations"
+  },
   "pages": [
-    { "id": "fondations", "name": "Fondations" },
-    { "id": "client", "name": "Application client" },
-    { "id": "chauffeur", "name": "Application chauffeur" },
-    { "id": "hub", "name": "My Hub" },
-    { "id": "web", "name": "Réservation web" },
-    { "id": "releve-hebdo", "name": "Relevé hebdomadaire" },
-    { "id": "releve-mensuel", "name": "Récapitulatif mensuel" }
+    {
+      "id": "fondations",
+      "name": "Fondations"
+    },
+    {
+      "id": "client",
+      "name": "Application client"
+    },
+    {
+      "id": "chauffeur",
+      "name": "Application chauffeur"
+    },
+    {
+      "id": "hub",
+      "name": "My Hub"
+    },
+    {
+      "id": "web",
+      "name": "Réservation web"
+    },
+    {
+      "id": "releve-hebdo",
+      "name": "Relevé hebdomadaire"
+    },
+    {
+      "id": "releve-mensuel",
+      "name": "Récapitulatif mensuel"
+    },
+    {
+      "id": "documents",
+      "name": "Courriel et facture"
+    }
   ],
   "boards": {
-    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1180, "title": "Fondations : couleurs, typographie, composants", "page": "fondations" },
-
-    "Client-01-Accueil.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "1. Accueil et connexion", "page": "client", "radius": 28 },
-    "Client-02-Carte.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "2. Carte et destination", "page": "client", "radius": 28 },
-    "Client-03-Categories.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "3. Catégorie et prix tout compris", "page": "client", "radius": 28 },
-    "Client-04-Suivi.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "4. Chauffeur attribué et suivi", "page": "client", "radius": 28 },
-    "Client-05-Fin.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "5. Fin de course, pourboire, évaluation", "page": "client", "radius": 28 },
-
-    "Chauffeur-01-Accueil.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "1. Accueil, en ligne", "page": "chauffeur", "radius": 28 },
-    "Chauffeur-02-Offre.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "2. Offre de course", "page": "chauffeur", "radius": 28 },
-    "Chauffeur-03-Course.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "3. Arrivé, attente du client", "page": "chauffeur", "radius": 28 },
-    "Chauffeur-04-Revenus.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "4. Revenus de la semaine", "page": "chauffeur", "radius": 28 },
-    "Chauffeur-05-Planifiees.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "5. Courses planifiées", "page": "chauffeur", "radius": 28 },
-    "Chauffeur-06-Packs.dc.html": { "x": 2350, "y": 0, "w": 390, "h": 844, "title": "6. Packs", "page": "chauffeur", "radius": 28 },
-    "Chauffeur-07-Documents.dc.html": { "x": 2820, "y": 0, "w": 390, "h": 844, "title": "7. Documents, passage en ligne bloqué", "page": "chauffeur", "radius": 28 },
-
-    "Hub-01-TableauDeBord.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "My Hub : tableau de bord en temps réel", "page": "hub" },
-
-    "Web-01-Reservation.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 860, "title": "Réservation web publique", "page": "web" },
-
-    "Releve-Hebdo-1.dc.html": { "x": 0, "y": 0, "w": 816, "h": 1056, "title": "Relevé hebdomadaire, page 1", "page": "releve-hebdo", "paper": "letter" },
-    "Releve-Hebdo-2.dc.html": { "x": 896, "y": 0, "w": 816, "h": 1056, "title": "Relevé hebdomadaire, page 2", "page": "releve-hebdo", "paper": "letter" },
-    "Releve-Hebdo-3.dc.html": { "x": 1792, "y": 0, "w": 816, "h": 1056, "title": "Relevé hebdomadaire, page 3", "page": "releve-hebdo", "paper": "letter" },
-
-    "Releve-Mensuel-1.dc.html": { "x": 0, "y": 0, "w": 816, "h": 1056, "title": "Récapitulatif mensuel, page 1", "page": "releve-mensuel", "paper": "letter" },
-    "Releve-Mensuel-2.dc.html": { "x": 896, "y": 0, "w": 816, "h": 1056, "title": "Récapitulatif mensuel, page 2", "page": "releve-mensuel", "paper": "letter" }
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1180,
+      "title": "Fondations : couleurs, typographie, composants",
+      "page": "fondations"
+    },
+    "Client-01-Accueil.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "1. Accueil et connexion",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-02-Carte.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "2. Carte et destination",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-03-Categories.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "3. Catégorie et prix tout compris",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-04-Suivi.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "4. Chauffeur attribué et suivi",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-05-Fin.dc.html": {
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "5. Fin de course, pourboire, évaluation",
+      "page": "client",
+      "radius": 28
+    },
+    "Chauffeur-01-Accueil.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "1. Accueil, en ligne",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-02-Offre.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "2. Offre de course",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-03-Course.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "3. Arrivé, attente du client",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-04-Revenus.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "4. Revenus de la semaine",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-05-Planifiees.dc.html": {
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "5. Courses planifiées",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-06-Packs.dc.html": {
+      "x": 2350,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "6. Packs",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-07-Documents.dc.html": {
+      "x": 2820,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "7. Documents, passage en ligne bloqué",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Hub-01-TableauDeBord.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "My Hub : tableau de bord en temps réel",
+      "page": "hub"
+    },
+    "Web-01-Reservation.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 860,
+      "title": "Réservation web publique",
+      "page": "web"
+    },
+    "Releve-Hebdo-1.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 816,
+      "h": 1056,
+      "title": "Relevé hebdomadaire, page 1",
+      "page": "releve-hebdo",
+      "paper": "letter"
+    },
+    "Releve-Hebdo-2.dc.html": {
+      "x": 896,
+      "y": 0,
+      "w": 816,
+      "h": 1056,
+      "title": "Relevé hebdomadaire, page 2",
+      "page": "releve-hebdo",
+      "paper": "letter"
+    },
+    "Releve-Hebdo-3.dc.html": {
+      "x": 1792,
+      "y": 0,
+      "w": 816,
+      "h": 1056,
+      "title": "Relevé hebdomadaire, page 3",
+      "page": "releve-hebdo",
+      "paper": "letter"
+    },
+    "Releve-Mensuel-1.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 816,
+      "h": 1056,
+      "title": "Récapitulatif mensuel, page 1",
+      "page": "releve-mensuel",
+      "paper": "letter"
+    },
+    "Releve-Mensuel-2.dc.html": {
+      "x": 896,
+      "y": 0,
+      "w": 816,
+      "h": 1056,
+      "title": "Récapitulatif mensuel, page 2",
+      "page": "releve-mensuel",
+      "paper": "letter"
+    },
+    "Client-06-Code.dc.html": {
+      "x": 2350,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "6. Code reçu par texto",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-07-Consentements.dc.html": {
+      "x": 2820,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "7. Consentements",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-08-Options.dc.html": {
+      "x": 0,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "8. Options de la course",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-09-Paiement.dc.html": {
+      "x": 470,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "9. Mode de paiement",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-10-Recherche.dc.html": {
+      "x": 940,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "10. Recherche de chauffeur",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-11-EnCourse.dc.html": {
+      "x": 1410,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "11. En course",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-12-Reservations.dc.html": {
+      "x": 1880,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "12. Réservations planifiées",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-13-Historique.dc.html": {
+      "x": 2350,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "13. Historique et reçus",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-14-Profil.dc.html": {
+      "x": 2820,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "14. Profil",
+      "page": "client",
+      "radius": 28
+    },
+    "Client-15-Assistance.dc.html": {
+      "x": 0,
+      "y": 1928,
+      "w": 390,
+      "h": 844,
+      "title": "15. Assistance",
+      "page": "client",
+      "radius": 28
+    },
+    "Chauffeur-08-HorsLigne.dc.html": {
+      "x": 0,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "8. Accueil, hors ligne",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-09-Inscription.dc.html": {
+      "x": 470,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "9. Inscription, documents",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-10-Formation.dc.html": {
+      "x": 940,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "10. Formation",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-11-EnRoute.dc.html": {
+      "x": 1410,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "11. En route vers le client",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-12-ABord.dc.html": {
+      "x": 1880,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "12. Client à bord",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-13-FinDeCourse.dc.html": {
+      "x": 2350,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "13. Fin de course, paiement en espèces",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-14-Signaler.dc.html": {
+      "x": 2820,
+      "y": 964,
+      "w": 390,
+      "h": 844,
+      "title": "14. Signaler un problème",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-15-DetailCourse.dc.html": {
+      "x": 0,
+      "y": 1928,
+      "w": 390,
+      "h": 844,
+      "title": "15. Détail d'une course",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-16-Repartition.dc.html": {
+      "x": 470,
+      "y": 1928,
+      "w": 390,
+      "h": 844,
+      "title": "16. Où va l'argent payé par mes clients",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-17-MesReservations.dc.html": {
+      "x": 940,
+      "y": 1928,
+      "w": 390,
+      "h": 844,
+      "title": "17. Mes réservations",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-18-TableauConduite.dc.html": {
+      "x": 1410,
+      "y": 1928,
+      "w": 390,
+      "h": 844,
+      "title": "18. Tableau de conduite",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-19-Securite.dc.html": {
+      "x": 1880,
+      "y": 1928,
+      "w": 390,
+      "h": 844,
+      "title": "19. Sécurité et assistance",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Chauffeur-20-PreuveDeCourse.dc.html": {
+      "x": 2350,
+      "y": 1928,
+      "w": 390,
+      "h": 844,
+      "title": "20. Preuve de course (proposition à arbitrer)",
+      "page": "chauffeur",
+      "radius": 28
+    },
+    "Hub-02-Repartition.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "My Hub : répartition et panneau opérateur",
+      "page": "hub"
+    },
+    "Hub-03-FicheChauffeur.dc.html": {
+      "x": 0,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "My Hub : fiche d'un chauffeur",
+      "page": "hub"
+    },
+    "Hub-04-TarifsZones.dc.html": {
+      "x": 1520,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "My Hub : tarifs et zones",
+      "page": "hub"
+    },
+    "Hub-05-Reglements.dc.html": {
+      "x": 0,
+      "y": 2040,
+      "w": 1440,
+      "h": 900,
+      "title": "My Hub : packs et règlements",
+      "page": "hub"
+    },
+    "Web-02-Suivi.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Suivi par lien, sans compte (mobile)",
+      "page": "web",
+      "radius": 28
+    },
+    "Web-03-Chauffeurs.dc.html": {
+      "x": 0,
+      "y": 980,
+      "w": 1280,
+      "h": 860,
+      "title": "Inscription des chauffeurs",
+      "page": "web"
+    },
+    "Doc-01-CourrielVendredi.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 640,
+      "h": 900,
+      "title": "Courriel du vendredi",
+      "page": "documents"
+    },
+    "Doc-02-FactureClient.dc.html": {
+      "x": 720,
+      "y": 0,
+      "w": 816,
+      "h": 1056,
+      "title": "Facture remise au client (spécimen)",
+      "page": "documents",
+      "paper": "letter"
+    }
   },
   "order": [
     "Main.dc.html",
-    "Client-01-Accueil.dc.html", "Client-02-Carte.dc.html", "Client-03-Categories.dc.html", "Client-04-Suivi.dc.html", "Client-05-Fin.dc.html",
-    "Chauffeur-01-Accueil.dc.html", "Chauffeur-02-Offre.dc.html", "Chauffeur-03-Course.dc.html", "Chauffeur-04-Revenus.dc.html", "Chauffeur-05-Planifiees.dc.html", "Chauffeur-06-Packs.dc.html", "Chauffeur-07-Documents.dc.html",
+    "Client-01-Accueil.dc.html",
+    "Client-02-Carte.dc.html",
+    "Client-03-Categories.dc.html",
+    "Client-04-Suivi.dc.html",
+    "Client-05-Fin.dc.html",
+    "Chauffeur-01-Accueil.dc.html",
+    "Chauffeur-02-Offre.dc.html",
+    "Chauffeur-03-Course.dc.html",
+    "Chauffeur-04-Revenus.dc.html",
+    "Chauffeur-05-Planifiees.dc.html",
+    "Chauffeur-06-Packs.dc.html",
+    "Chauffeur-07-Documents.dc.html",
     "Hub-01-TableauDeBord.dc.html",
     "Web-01-Reservation.dc.html",
-    "Releve-Hebdo-1.dc.html", "Releve-Hebdo-2.dc.html", "Releve-Hebdo-3.dc.html",
-    "Releve-Mensuel-1.dc.html", "Releve-Mensuel-2.dc.html"
+    "Releve-Hebdo-1.dc.html",
+    "Releve-Hebdo-2.dc.html",
+    "Releve-Hebdo-3.dc.html",
+    "Releve-Mensuel-1.dc.html",
+    "Releve-Mensuel-2.dc.html",
+    "Client-06-Code.dc.html",
+    "Client-07-Consentements.dc.html",
+    "Client-08-Options.dc.html",
+    "Client-09-Paiement.dc.html",
+    "Client-10-Recherche.dc.html",
+    "Client-11-EnCourse.dc.html",
+    "Client-12-Reservations.dc.html",
+    "Client-13-Historique.dc.html",
+    "Client-14-Profil.dc.html",
+    "Client-15-Assistance.dc.html",
+    "Chauffeur-08-HorsLigne.dc.html",
+    "Chauffeur-09-Inscription.dc.html",
+    "Chauffeur-10-Formation.dc.html",
+    "Chauffeur-11-EnRoute.dc.html",
+    "Chauffeur-12-ABord.dc.html",
+    "Chauffeur-13-FinDeCourse.dc.html",
+    "Chauffeur-14-Signaler.dc.html",
+    "Chauffeur-15-DetailCourse.dc.html",
+    "Chauffeur-16-Repartition.dc.html",
+    "Chauffeur-17-MesReservations.dc.html",
+    "Chauffeur-18-TableauConduite.dc.html",
+    "Chauffeur-19-Securite.dc.html",
+    "Chauffeur-20-PreuveDeCourse.dc.html",
+    "Hub-02-Repartition.dc.html",
+    "Hub-03-FicheChauffeur.dc.html",
+    "Hub-04-TarifsZones.dc.html",
+    "Hub-05-Reglements.dc.html",
+    "Web-02-Suivi.dc.html",
+    "Web-03-Chauffeurs.dc.html",
+    "Doc-01-CourrielVendredi.dc.html",
+    "Doc-02-FactureClient.dc.html"
   ],
   "notes": {
-    "t-client": { "x": 0, "y": -300, "text": "Application client : de la connexion à l'évaluation", "kind": "title1", "maxW": 2270, "page": "client" },
-    "t-chauffeur": { "x": 0, "y": -300, "text": "Application chauffeur : une journée de travail", "kind": "title1", "maxW": 3210, "page": "chauffeur" },
-    "t-hebdo": { "x": 0, "y": -300, "text": "Relevé hebdomadaire envoyé au chauffeur (spécimen)", "kind": "title1", "maxW": 2608, "page": "releve-hebdo" },
-    "t-mensuel": { "x": 0, "y": -300, "text": "Récapitulatif mensuel (spécimen)", "kind": "title1", "maxW": 1712, "page": "releve-mensuel" }
+    "t-client": {
+      "x": 0,
+      "y": -300,
+      "text": "Application client : de la connexion à l'évaluation",
+      "kind": "title1",
+      "maxW": 2270,
+      "page": "client"
+    },
+    "t-chauffeur": {
+      "x": 0,
+      "y": -300,
+      "text": "Application chauffeur : une journée de travail",
+      "kind": "title1",
+      "maxW": 3210,
+      "page": "chauffeur"
+    },
+    "t-hebdo": {
+      "x": 0,
+      "y": -300,
+      "text": "Relevé hebdomadaire envoyé au chauffeur (spécimen)",
+      "kind": "title1",
+      "maxW": 2608,
+      "page": "releve-hebdo"
+    },
+    "t-mensuel": {
+      "x": 0,
+      "y": -300,
+      "text": "Récapitulatif mensuel (spécimen)",
+      "kind": "title1",
+      "maxW": 1712,
+      "page": "releve-mensuel"
+    }
   },
   "designSystems": []
 }

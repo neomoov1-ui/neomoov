@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Chauffeur, signaler un problème</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
+button,input{font-family:inherit}
+a{color:#0B5FB5}a:hover{color:#084A8F}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 60px 20px 24px 20px; display: flex; flex-direction: column; gap: 10px; background: #FFFFFF; color: #2C3A4A; overflow: hidden;">
+<div style="display: flex; align-items: center; gap: 12px;"><button type="button" aria-label="Retour" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #F4F7FB; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2C3A4A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div style="font-size: 20px; font-weight: 700;">Signaler un problème</div></div>
+<div style="font-size: 15px; line-height: 1.45; color: #4A5A70;">Choisissez ce qui décrit le mieux la situation. Un opérateur est prévenu quand il le faut.</div>
+<div style="display: flex; flex-direction: column;"><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Client introuvable</span><span style="font-size: 14px; color: #4A5A70;">Après 5 minutes et deux tentatives de contact</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Aucun endroit où s'arrêter</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Trop de passagers</span><span style="font-size: 14px; color: #4A5A70;">Plus de places que la catégorie réservée</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Bagages trop volumineux</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Mineur non accompagné</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Pas de siège d'enfant</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Comportement du client</span><span style="font-size: 14px; color: #4A5A70;">Un opérateur vous rappelle</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Problème de véhicule</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button><button type="button" style="min-height: 60px; border: 0; border-bottom: 1px solid #EEF2F7; background: transparent; display: flex; align-items: center; gap: 14px; text-align: left; padding: 6px 0;">
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Autre</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5A70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Client, code reçu par texto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
+button,input{font-family:inherit}
+a{color:#0B5FB5}a:hover{color:#084A8F}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 60px 20px 24px 20px; display: flex; flex-direction: column; gap: 22px; background: #FFFFFF; color: #2C3A4A; overflow: hidden;">
+<div style="display: flex; align-items: center; gap: 12px;"><button type="button" aria-label="Retour" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #F4F7FB; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2C3A4A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div style="font-size: 20px; font-weight: 700;"></div></div>
+<div style="font-size: 32px; font-weight: 800; letter-spacing: -0.6px; line-height: 1.1;">Entrez votre code</div>
+<div style="font-size: 16px; line-height: 1.45; color: #4A5A70;">Nous l'avons envoyé par texto au 514 555 0142.</div>
+<div style="display: flex; gap: 8px;"><div style="flex: 1 1 0; height: 64px; border-radius: 14px; border: 1px solid #DCE3EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800;">4</div><div style="flex: 1 1 0; height: 64px; border-radius: 14px; border: 1px solid #DCE3EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800;">8</div><div style="flex: 1 1 0; height: 64px; border-radius: 14px; border: 1px solid #DCE3EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800;">1</div><div style="flex: 1 1 0; height: 64px; border-radius: 14px; border: 2px solid #0B5FB5; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800;"></div><div style="flex: 1 1 0; height: 64px; border-radius: 14px; border: 1px solid #DCE3EC; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800;"></div><div style="flex: 1 1 0; height: 64px; border-radius: 14px; border: 1px solid #DCE3EC; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800;"></div></div>
+<div style="font-size: 15px; line-height: 1.45; color: #4A5A70;">Vous pourrez demander un nouveau code dans 0:42.</div>
+<div style="flex-grow: 1;"></div>
+<button type="button" style=" height: 56px; border: 0; background: #0B5FB5; color: #FFFFFF; border-radius: 14px; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px;">Vérifier</button>
+<button type="button" style=" height: 48px; border: 0; background: transparent; color: #0B5FB5; border-radius: 14px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px;">Modifier mon numéro</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Facture d'une course remise au client</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#FFFFFF;color:#2C3A4A}
+button,input{font-family:inherit}
+a{color:#0B5FB5}a:hover{color:#084A8F}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 816px; height: 1056px; box-sizing: border-box; padding: 60px 72px 48px 72px; display: flex; flex-direction: column; gap: 20px; background: #FFFFFF; color: #2C3A4A; overflow: hidden;">
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0B5FB5; padding-bottom: 14px;"><div style="display: flex; align-items: center; gap: 10px;"><div style="width: 34px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #0B5FB5 0%, #1485E0 55%, #6CC04A 100%);"></div><span style="font-size: 26px; font-weight: 800; font-style: italic; letter-spacing: -0.4px; color: #2C3A4A;">neomoov</span></div><span style="padding: 4px 12px; border: 1.5px solid #4A5A70; border-radius: 999px; font-size: 13px; font-weight: 700; color: #4A5A70; letter-spacing: 1px;">SPÉCIMEN</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px;"><h1 style="margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.8px;">Facture</h1><div style="font-size: 16px; color: #4A5A70;">N° NM-F-2026-000187 · mardi 22 septembre 2026, 9 h 24 · payée par carte Visa •••• 4242</div></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; font-size: 15px; line-height: 1.5;"><div><div style="font-weight: 700;">Transport fourni par</div>Samuel Tremblay, chauffeur autorisé<br>TPS 000000000 RT0001<br>TVQ 0000000000 TQ0001</div><div><div style="font-weight: 700;">Cliente</div>Camille R.<br>Rue Sherbrooke Ouest vers Avenue du Parc<br>Neo Premium · 8,0 km · 18 min</div></div>
+<div style="display: flex; flex-direction: column;"><div style="display: flex; justify-content: space-between; min-height: 34px; align-items: center; border-bottom: 1px solid #B8C2CF; font-size: 16px;"><span style="font-weight: 500;">Tarif de la course (chauffeur)</span><span style="font-weight: 700;">24,55 $</span></div><div style="display: flex; justify-content: space-between; min-height: 34px; align-items: center; border-bottom: 1px solid #B8C2CF; font-size: 16px;"><span style="font-weight: 500;">Frais de service (Neomoov)</span><span style="font-weight: 700;">2,00 $</span></div><div style="display: flex; justify-content: space-between; min-height: 34px; align-items: center; border-bottom: 1px solid #B8C2CF; font-size: 16px;"><span style="font-weight: 500;">Redevance gouvernementale</span><span style="font-weight: 700;">0,90 $</span></div><div style="display: flex; justify-content: space-between; min-height: 34px; align-items: center; border-bottom: 1px solid #B8C2CF; font-size: 16px;"><span style="font-weight: 500;">TPS, 5 %</span><span style="font-weight: 700;">1,37 $</span></div><div style="display: flex; justify-content: space-between; min-height: 34px; align-items: center; border-bottom: 1px solid #B8C2CF; font-size: 16px;"><span style="font-weight: 500;">TVQ, 9,975 %</span><span style="font-weight: 700;">2,74 $</span></div><div style="display: flex; justify-content: space-between; min-height: 34px; align-items: center; border-bottom: 2px solid #2C3A4A; font-size: 16px;"><span style="font-weight: 800;">Total payé</span><span style="font-weight: 700;">31,56 $</span></div><div style="display: flex; justify-content: space-between; min-height: 34px; align-items: center; border-bottom: 1px solid #B8C2CF; font-size: 16px;"><span style="font-weight: 500;">Pourboire, remis au chauffeur en totalité</span><span style="font-weight: 700;">4,00 $</span></div></div>
+<div style="display: flex; gap: 20px; align-items: center; border: 1px solid #B8C2CF; border-radius: 12px; padding: 16px;"><div style="width: 96px; height: 96px; border: 2px dashed #4A5A70; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #4A5A70; text-align: center; flex-shrink: 0;">Code QR de la transaction</div><div style="font-size: 14px; line-height: 1.5; color: #4A5A70;">Facture transmise à Revenu Québec par un système d'enregistrement des ventes certifié. Numéro de transaction : [NUMÉRO SEV]. Frais de service facturés par Groupe NSK Inc., TPS [NUMÉRO], TVQ [NUMÉRO].</div></div>
+<div style="flex-grow: 1;"></div>
+<div style="display: flex; justify-content: space-between; font-size: 13px; color: #4A5A70; border-top: 1px solid #B8C2CF; padding-top: 10px;"><span>Neomoov · Avancez vers demain.</span><span>Page 1 de 1</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":816,"height":1056}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

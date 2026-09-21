@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>Client, mode de paiement</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
+button,input{font-family:inherit}
+a{color:#0B5FB5}a:hover{color:#084A8F}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 60px 20px 24px 20px; display: flex; flex-direction: column; gap: 10px; background: #FFFFFF; color: #2C3A4A; overflow: hidden;">
+<div style="display: flex; align-items: center; gap: 12px;"><button type="button" aria-label="Retour" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #F4F7FB; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2C3A4A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div style="font-size: 20px; font-weight: 700;">Mode de paiement</div></div>
+<button type="button" style="min-height: 64px; border: 2px solid #0B5FB5; border-radius: 14px; background: #F4F8FE; display: flex; align-items: center; gap: 14px; padding: 0 14px; text-align: left;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"></path></svg><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Visa •••• 4242</span><span style="font-size: 14px; color: #4A5A70;">Carte enregistrée</span></div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></button>
+<button type="button" style="min-height: 64px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; gap: 14px; padding: 0 14px; text-align: left;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"></path></svg><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Apple Pay</span><span style="font-size: 14px; color: #4A5A70;">Paiement dans l'application</span></div></button>
+<button type="button" style="min-height: 64px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; gap: 14px; padding: 0 14px; text-align: left;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"></path></svg><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Google Pay</span><span style="font-size: 14px; color: #4A5A70;">Paiement dans l'application</span></div></button>
+<button type="button" style="min-height: 64px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; gap: 14px; padding: 0 14px; text-align: left;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"></path></svg><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Interac au chauffeur</span><span style="font-size: 14px; color: #4A5A70;">Virement à la fin de la course</span></div></button>
+<button type="button" style="min-height: 64px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; gap: 14px; padding: 0 14px; text-align: left;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"></path></svg><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Espèces</span><span style="font-size: 14px; color: #4A5A70;">Payées au chauffeur</span></div></button>
+<button type="button" style="min-height: 64px; border: 1px solid #DCE3EC; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; gap: 14px; padding: 0 14px; text-align: left;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v12H3zM3 10h18M7 15h3"></path></svg><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600; color: #2C3A4A;">Terminal du chauffeur</span><span style="font-size: 14px; color: #4A5A70;">Carte présentée à bord</span></div></button>
+<div style="font-size: 14px; line-height: 1.45; color: #4A5A70;">Seuls les modes acceptés par les chauffeurs de votre secteur sont affichés. Le prix et la facture sont les mêmes, quel que soit le mode.</div>
+<div style="flex-grow: 1;"></div>
+<button type="button" style=" height: 56px; border: 1.5px solid #0B5FB5; background: #FFFFFF; color: #0B5FB5; border-radius: 14px; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B5FB5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Ajouter une carte</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
