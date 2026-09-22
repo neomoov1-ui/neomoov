@@ -19,6 +19,9 @@ Mettre en place le monorepo complet, vide de logique métier mais prêt à recev
 9. `docs/architecture.md` (résumé de la section 3 avec l'arborescence réelle), `docs/decisions.md` (vide, avec le format d'entrée : date, décision, motif, alternatives), `docs/runbooks/README.md`.
 10. Un test unitaire et un test d'intégration de démonstration par application pour vérifier l'outillage.
 
+## Adaptation du 22 septembre 2026 (décision du fondateur)
+La base de développement est hébergée : PostgreSQL et PostGIS chez Supabase (région ca-central-1), Redis chez Railway. Les valeurs sont dans `.env` (`DATABASE_URL` par le session pooler de Supabase, `REDIS_URL`). Crée quand même `infra/docker-compose.yml` pour l’intégration continue et pour un poste qui aurait Docker, mais aucune commande de développement ne doit exiger Docker : `pnpm db:migrate`, `pnpm db:seed` et `pnpm dev` travaillent sur la base hébergée. Les tests d’intégration lisent `TEST_DATABASE_URL` (un schéma dédié de la même base en local, les services Docker dans l’intégration continue). Le paquet `packages/domain` existe déjà avec trois moteurs testés : ne le réécris pas, branche-le.
+
 ## Contraintes
 - Aucune logique métier dans cette étape.
 - Toutes les versions de dépendances sont épinglées dans `package.json` (pas de plages larges).
