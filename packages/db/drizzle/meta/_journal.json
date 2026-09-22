@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790085060906,
+      "tag": "0000_schema-initial",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790085347806,
+      "tag": "0001_postgis-triggers-partitions",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,3 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Scripts d'installation autorisés (pnpm 12 les bloque par défaut).
+allowBuilds:
+  esbuild: true
+
+# Politique d'âge minimal des versions : dotenv 18.0.2 est trop récent pour la politique par défaut, il est exclu.
+minimumReleaseAgeExclude:
+  - dotenv@18.0.2
+

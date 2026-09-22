@@ -30,3 +30,12 @@ Sortie des commandes de base, liste des tables créées (`\dt`), plan d'exécuti
 
 ## Fin de l'étape
 `/code-review`, corrections, `docs/decisions.md` (choix de partitionnement, précision des géométries, format des montants), commit « Étape 2 : schéma de données, migrations, seeds et domaine partagé ».
+
+## Adaptation du 22 septembre 2026 : ce qui est déjà fait
+
+Les tâches 1 à 4 ont été réalisées en avance, hors ligne, avant la création de la base Supabase :
+- Le schéma est dans **`packages/db/src/schema/`** (paquet partagé par l'API et le worker), pas dans `apps/api/src/db/`. Voir `packages/db/README.md` et `docs/decisions.md`.
+- Migrations `drizzle/0000_schema-initial.sql` et `drizzle/0001_postgis-triggers-partitions.sql`, inverses dans `drizzle/down/`, scripts `pnpm db:generate|migrate|rollback|reset|seed` à la racine.
+- Données de départ dans `packages/db/src/seed/`. Domaine partagé (énumérations, machine à états, schémas Zod) dans `packages/domain`, 197 tests.
+
+**Reste à faire dans cette étape**, dès que `DATABASE_URL` est renseignée : exécuter `pnpm db:migrate && pnpm db:seed` deux fois de suite, `pnpm db:rollback` puis `pnpm db:migrate`, corriger ce que la vraie base révèle, puis la tâche 5 (dépôts par entité et tests d'intégration, requête « chauffeurs à moins de 2 km » avec plan d'exécution via `drivers_within`). Ne pas réécrire ce qui existe.
