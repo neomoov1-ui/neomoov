@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<title>My Hub, connexion à deux facteurs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,800&amp;family=Nunito:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Nunito,"Segoe UI",system-ui,sans-serif;background:#F4F7FB;color:#2C3A4A}
+button,input{font-family:inherit}
+a{color:#0B5FB5}a:hover{color:#084A8F}
+[style*="font-weight: 800"],[style*="font-weight: 700"],h1,h2{font-family:Montserrat,"Segoe UI",system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; padding: 0; display: flex; flex-direction: column; gap: 0px; background: #F4F7FB; color: #2C3A4A; overflow: hidden;">
+<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;"><div style="width: 460px; background: #FFFFFF; border-radius: 22px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 30px 60px rgba(4,20,40,0.35);">
+<div style="display: flex; align-items: center; gap: 10px;"><div style="width: 32px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #0B5FB5 0%, #1485E0 55%, #6CC04A 100%);"></div><span style="font-size: 24px; font-weight: 800; font-style: italic; letter-spacing: -0.4px; color: #2C3A4A;">neomoov</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px;"><div style="font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Vérification en deux étapes</div><div style="font-size: 15px; line-height: 1.45; color: #4A5A70;">Entrez le code à six chiffres de votre application d'authentification pour ouvrir My Hub.</div></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #F4F7FB; font-size: 14px;"><div style="width: 36px; height: 36px; border-radius: 18px; background: #E3F1FC; color: #0B5FB5; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">CF</div><div style="display: flex; flex-direction: column;"><span style="font-weight: 700;">fondateur@neomoov.net</span><span style="color: #4A5A70; font-size: 13px;">Administrateur · mot de passe accepté</span></div><span style="flex-grow: 1;"></span><a href="#changer" style="font-size: 13px; font-weight: 600;">Changer</a></div>
+<div style="display: flex; gap: 8px;"><div style="flex: 1 1 0; height: 60px; border-radius: 12px; border: 1px solid #DCE3EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;">7</div><div style="flex: 1 1 0; height: 60px; border-radius: 12px; border: 1px solid #DCE3EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;">3</div><div style="flex: 1 1 0; height: 60px; border-radius: 12px; border: 1px solid #DCE3EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;">9</div><div style="flex: 1 1 0; height: 60px; border-radius: 12px; border: 2px solid #0B5FB5; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;"></div><div style="flex: 1 1 0; height: 60px; border-radius: 12px; border: 1px solid #DCE3EC; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;"></div><div style="flex: 1 1 0; height: 60px; border-radius: 12px; border: 1px solid #DCE3EC; background: #F4F7FB; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;"></div></div>
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px;"><span style="width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid #DCE3EC; background: #FFFFFF; display: inline-block;"></span>Faire confiance à cet ordinateur pendant 30 jours</label>
+<button type="button" style=" height: 56px; border: 0; background: #0B5FB5; color: #FFFFFF; border-radius: 14px; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px;">Ouvrir My Hub</button>
+<div style="display: flex; justify-content: space-between; font-size: 13px;"><a href="#cle">Utiliser une clé de sécurité</a><a href="#secours">Code de secours</a></div>
+<div style="font-size: 12px; line-height: 1.45; color: #4A5A70;">Cinq tentatives, puis blocage 15 minutes. Chaque connexion est journalisée avec l'adresse et l'appareil.</div>
+</div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
