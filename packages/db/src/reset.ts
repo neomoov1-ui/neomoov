@@ -3,7 +3,7 @@
  * Refusé si l'URL ne contient pas « dev », « test » ou « localhost », pour ne jamais toucher une base de production.
  */
 
-import 'dotenv/config';
+import './env.js';
 import { sql } from 'drizzle-orm';
 import { createDatabase, databaseUrlFromEnv } from './index.js';
 

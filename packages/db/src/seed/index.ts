@@ -3,7 +3,7 @@
  * rien n'est écrasé, les données réelles ne sont jamais touchées. Peut être relancé autant de fois que nécessaire.
  */
 
-import 'dotenv/config';
+import '../env.js';
 import { eq, sql } from 'drizzle-orm';
 import { createDatabase, databaseUrlFromEnv, type Database } from '../index.js';
 import * as s from '../schema/index.js';

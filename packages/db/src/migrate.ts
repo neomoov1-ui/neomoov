@@ -1,6 +1,6 @@
 /** pnpm db:migrate : applique les migrations de ./drizzle dans l'ordre, une seule fois chacune. */
 
-import 'dotenv/config';
+import './env.js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { createDatabase, databaseUrlFromEnv } from './index.js';
 

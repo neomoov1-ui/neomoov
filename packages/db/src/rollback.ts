@@ -4,7 +4,7 @@
  * dans `drizzle/down/NNNN_nom.sql`. Le journal de Drizzle (`drizzle.__drizzle_migrations`) est mis à jour en conséquence.
  */
 
-import 'dotenv/config';
+import './env.js';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
