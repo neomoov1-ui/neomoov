@@ -2,9 +2,9 @@
 
 **Groupe NSK Inc.** · Montréal (Québec), Canada
 
-**Version 1.0** · 21 septembre 2026
+**Version 1.1** · 23 septembre 2026 (version 1.0 du 21 septembre, amendée des décisions D31 à D47 du fondateur ; les amendements aux prompts sont en partie C)
 
-**Niveau du document : INTERNE [I].** Dérivé du document de référence Neomoov v1.0 (sections 6, 7, 8, 9 et 17). Ne sort jamais du Groupe NSK Inc.
+**Niveau du document : INTERNE [I].** Dérivé du document de référence Neomoov v1.1 (sections 6, 7, 8, 9 et 17). Ne sort jamais du Groupe NSK Inc.
 
 Ce cahier des charges est un plan étape par étape. Chaque étape a un objectif, des livrables, des critères d'acceptation, des vérifications et un prompt exact à donner à Claude Code (modèle Claude Fable 5.1). Les prompts sont regroupés dans la partie B et livrés aussi en fichiers séparés dans le dossier `prompts/`.
 
@@ -40,7 +40,7 @@ Construire la plateforme Neomoov : une API et un moteur de traitement, deux appl
 ### 1.2 Sources
 
 - Document de référence Neomoov v1.0 : section 6 (offres et tarification), section 7 (catalogue des services), section 8 (plateforme technologique), section 9 (agents IA), section 17 (feuille de route), section 18.4 (Loi 25), section 4.4 (cadre réglementaire).
-- Décisions d'arbitrage D4 à D11, D19 à D23 du 21 septembre 2026.
+- Décisions d'arbitrage D4 à D11, D19 à D23 du 21 septembre 2026, D25 à D30 du 22 septembre, D31 à D47 du 23 septembre 2026 (retours du fondateur : préavis de 2 heures, prix tout compris avec péages et trafic, vérification concurrentielle, négociation à 70 % avec contre-offre, deux options de paiement et paiement échelonné, commodités, préférences et sélection du véhicule, clientèle du chauffeur, entretien IA des candidats, répartition manuelle, enregistrement vidéo, programmes professionnels, lots de courses, slogan, photos réelles uniquement).
 
 ### 1.3 Résultats attendus
 
@@ -58,10 +58,10 @@ Construire la plateforme Neomoov : une API et un moteur de traitement, deux appl
 
 | Version | Contenu | Échéance |
 |---|---|---|
-| **V1 (sprint de 14 jours)** | Tout ce qui est marqué V1 dans les sections 7.2, 7.3 et 7.4 du document de référence : application client complète, application chauffeur complète, My Hub avec répartition et panneau opérateur, réservation web, paiements, packs, règlement hebdomadaire, facturation avec adaptateur SEV en mode simulé, promotions, favoris, notifications, assistance IA texte, agent vocal de base, conformité documents, Loi 25 | 5 octobre 2026, bêta fermée |
-| **V1.1** | Négociation encadrée activée (après avis juridique), vérification faciale (après déclaration), agents IA complets, adaptateur SEV certifié, hébergement canadien | Octobre à décembre 2026 |
-| **V2** | Portail et application partenaires, comptes entreprises, abonnements clients, paiement communautaire, partage de course, réservation intelligente, Neomoov Kids et Santé, flotte R-LuxeEV dans My Hub, IF | 2027 |
-| **V3** | Portail et application investisseurs, Invest-EV | T4 2027 |
+| **V1 (sprint de 14 jours)** | Tout ce qui est marqué V1 dans les sections 7.2, 7.3 et 7.4 du document de référence : application client complète (réservation au moins 2 heures à l'avance, sélection du véhicule, commodités et demandes spéciales, deux options de paiement, « Mes chauffeurs »), application chauffeur complète (« Mes clients », modes de paiement acceptés), My Hub avec répartition automatique et manuelle et panneau opérateur, réservation web, paiements, packs, règlement hebdomadaire, facturation avec adaptateur SEV en mode simulé, promotions, favoris avec repli, notifications, assistance IA texte, agent vocal de base, conformité documents, Loi 25. Pas de course immédiate en V1 (drapeau `FEATURE_IMMEDIATE_RIDES` désactivé) | 5 octobre 2026, bêta fermée |
+| **V1.1** | Négociation encadrée activée (après avis juridique ; 70 % à 100 %, contre-offre au-dessus du prix affiché sous réserve de l'avis), lots de courses récurrentes, paiement échelonné par partenaire (courses de plus de 150 $), entretien vocal des candidats par agent IA, vérification faciale (après déclaration), agents IA complets, adaptateur SEV certifié, hébergement canadien, course immédiate si la densité de chauffeurs le permet | Octobre à décembre 2026 |
+| **V2** | Portail et application partenaires, comptes entreprises, abonnements clients, programme Gestion de flotte puis Compagnies de taxi, enregistrement audio et vidéo à bord, paiement communautaire, partage de course, réservation intelligente, Neomoov Kids et Santé, flotte R-LuxeEV dans My Hub, IF | 2027 |
+| **V3** | Portail et application investisseurs, Invest-EV, pilote de marque blanche | T4 2027 |
 
 Le code de V1 est conçu pour accueillir V1.1, V2 et V3 sans refonte : les entités partenaires, comptes entreprises et investisseurs existent dans le modèle de données dès V1, même si leurs écrans arrivent plus tard.
 
@@ -355,7 +355,7 @@ Toutes les règles de cette section sont implémentées dans `packages/domain` s
 
 ### 5.1 Tarification
 
-**Entrées :** catégorie, itinéraire (distance en mètres et durée en secondes fournies par l'API Routes, avec trafic), heure de prise en charge, zones d'origine et de destination, options (Flex, Priorité, chauffeur favori, siège enfant, bagages, arrêts), code promo, crédits disponibles.
+**Entrées :** catégorie, itinéraire (distance en mètres et durée en secondes fournies par l'API Routes avec le trafic prévu à l'heure de prise en charge demandée, paramètre `departureTime` ; c'est la « vérification du niveau de trafic à l'heure prévue » de D33, qui se traduit par une durée, donc un prix, calculés avant l'affichage et jamais modifiés après), péages sur l'itinéraire (montant réel renvoyé par l'API Routes, `tollInfo`, ajouté comme ligne « Péages » dans le prix affiché), heure de prise en charge (au moins 2 heures après la demande, D32), zones d'origine et de destination, options (Flex, Priorité, chauffeur favori, siège enfant, aide aux bagages, arrêts), code promo, crédits disponibles.
 
 **Calcul du tarif chauffeur :**
 
@@ -380,7 +380,9 @@ total_affiché = sous_total + TPS + TVQ
 
 Arrondi au cent à chaque ligne ; le total est la somme des lignes arrondies. Devise CAD. Un devis est valable 5 minutes ; à la demande de course, le devis est figé (prix maximal consenti). L'attente au-delà de 5 minutes sur place est facturée 0,50 $ par minute, ajoutée à la fin de course dans la limite du prix maximal consenti augmenté de l'attente, cette dernière étant annoncée dans les conditions affichées.
 
-**Règle d'affichage :** le client voit toujours le détail (tarif, frais de service, redevance, taxes, suppléments) avant de confirmer. Aucune majoration dynamique liée à la demande n'existe dans le code : il n'y a pas de multiplicateur de pointe.
+**Règle d'affichage :** le client voit toujours le détail (tarif, frais de service, péages, redevance, taxes, suppléments) avant de confirmer. Aucune majoration dynamique liée à la demande n'existe dans le code : il n'y a pas de multiplicateur de pointe. Le trafic n'agit que par la durée estimée à l'heure prévue.
+
+**Vérification concurrentielle automatique (D33) :** aucune API d'Uber ou de Lyft n'est appelée (interdit par leurs conditions d'utilisation et API d'estimation retirée). Table `competitor_benchmarks` (catégorie, zone d'origine, zone de destination, plage horaire, `uber_price_cents`, `lyft_price_cents`, `observed_at`, source) alimentée depuis My Hub par les relevés hebdomadaires du fondateur et des opérateurs sur des trajets témoins. À chaque devis, `benchmarkCheck(quote, benchmarks)` (fonction pure de `packages/domain`) cherche la référence la plus proche (mêmes zones et plage horaire, moins de 14 jours) ; si le prix Neomoov dépasse `référence × (1 − marge)` (marge `pricing.benchmark_margin_ppm`, 50 000 ppm soit 5 % par défaut), une ligne « Remise d'alignement » réduit les frais de service de Neomoov jusqu'à 0 (le tarif chauffeur n'est jamais réduit) et un événement `benchmark_exceeded` est journalisé pour la direction (alerte quotidienne). Sans référence proche, aucun ajustement. Cette règle est interne : aucun message public ne compare les prix.
 
 **Promotions :** appliquées sur le tarif chauffeur pour les remises en pourcentage et les courses offertes ; Neomoov compense le chauffeur à 100 % du tarif normal sur son relevé (le chauffeur ne finance jamais une promotion). Les crédits du client s'appliquent au total affiché.
 
@@ -408,13 +410,14 @@ Arrondi au cent à chaque ligne ; le total est la somme des lignes arrondies. De
 
 Chaque transition est enregistrée dans `ride_events` avec l'acteur, et publiée en temps réel aux parties concernées.
 
-### 5.3 Réservation planifiée
+### 5.3 Réservation avec préavis (toutes les courses en V1) et réservation planifiée
 
-- Création jusqu'à 30 jours à l'avance, au minimum 30 minutes avant l'heure demandée. Numéro de vol optionnel : l'heure de prise en charge est ajustée sur l'arrivée réelle du vol (API de suivi de vol en V2 ; en V1, rappel manuel de l'opérateur).
-- Autorisation de paiement créée à l'attribution (au plus tard 60 minutes avant), pas à la réservation.
-- Attribution : 60 minutes avant l'heure, offre aux chauffeurs ayant activé « courses planifiées », priorité au chauffeur favori s'il est disponible. Confirmation obligatoire du chauffeur ; sans confirmation à 30 minutes, réattribution et alerte à l'opérateur.
-- Le client reçoit : confirmation immédiate, rappel la veille, confirmation du chauffeur (nom, véhicule, plaque) dès l'attribution, notification au départ du chauffeur.
-- Négociation encadrée désactivée pour les courses planifiées.
+- **Préavis minimal de 2 heures (D32) :** en V1, toute course est réservée au moins 2 heures avant l'heure de prise en charge (`rides.min_lead_seconds` = 7200) et jusqu'à 30 jours à l'avance. L'application ne propose pas « maintenant » (drapeau `FEATURE_IMMEDIATE_RIDES` désactivé ; quand il sera activé, le préavis minimal descendra à la valeur `rides.immediate_min_lead_seconds`). Un devis dont l'heure de prise en charge est trop proche est refusé avec le code `LEAD_TIME_TOO_SHORT` et le message « Réservez au moins 2 heures à l'avance ».
+- Numéro de vol optionnel : l'heure de prise en charge est ajustée sur l'arrivée réelle du vol (API de suivi de vol en V2 ; en V1, rappel manuel de l'opérateur).
+- Autorisation de paiement (prépaiement, D35) créée à la réservation pour le prix maximal consenti ; pour le paiement au chauffeur après la course, aucune autorisation, mais un moyen de paiement de secours peut être demandé pour les frais d'annulation.
+- Attribution : dès la réservation, offre aux chauffeurs disponibles sur le créneau (fenêtre de 10 minutes, négociation comprise si activée), priorité au chauffeur favori s'il est disponible, sinon à un autre favori du client, sinon au score. Confirmation obligatoire du chauffeur ; attribution confirmée au plus tard 90 minutes avant l'heure ; sans confirmation à 60 minutes, réattribution et alerte à l'opérateur, qui peut attribuer manuellement.
+- Le client reçoit : confirmation immédiate, rappel la veille pour les courses à plus de 24 heures, confirmation du chauffeur (nom, véhicule, plaque) dès l'attribution, notification au départ du chauffeur.
+- Négociation encadrée : activée pour les réservations standard (V1.1), désactivée pour les forfaits aéroport, les comptes entreprises, les lots de courses et Neo Limo.
 
 ### 5.4 Répartition
 
@@ -442,18 +445,25 @@ score = 0,55 × ETA_minutes + 0,20 × (5 − note) × 4 + 0,15 × pénalité_éq
 
 ### 5.5 Négociation encadrée (drapeau `FEATURE_NEGOTIATION`, désactivé en V1, activé en V1.1 après avis juridique)
 
-1. Le client voit le prix fixe tout compris P et son détail. Il peut accepter P ou proposer P' avec un curseur borné entre 0,85 × P et P (arrondi au dollar).
-2. La demande diffusée aux cinq meilleurs candidats indique P' et le prix maximal consenti P. Fenêtre de 60 secondes.
-3. Chaque chauffeur peut accepter P', contre-proposer une seule fois une valeur entre P' et P, ou décliner. Les offres arrivent au client en temps réel ; il en choisit une, ou annule.
-4. Sans acceptation à la fin de la fenêtre, l'application propose au client l'attribution immédiate au prix P (mode fixe).
-5. Le prix final ne dépasse jamais P. La séquence garantit que le prix maximal a été consenti par écrit avant que les chauffeurs soient informés.
-6. Désactivée pour : courses planifiées, comptes entreprises, forfaits aéroport, Neo Limo. Test comparatif pendant la bêta (répartition aléatoire 50/50 des clients éligibles) avec mesure du taux de prise en charge et du prix moyen.
+Principe public (D34, document de référence 6.3) : « Un prix juste, affiché d'avance. Si vous souhaitez proposer un autre prix, le chauffeur peut l'accepter ou vous faire une contre-proposition. Le chauffeur peut aussi faire une offre au-dessus du prix affiché, car une situation exceptionnelle qui échappe à notre système peut justifier une augmentation ; vous restez libre de la refuser. »
+
+1. Le client voit le prix fixe tout compris P et son détail. Il peut accepter P ou proposer P' avec un curseur borné entre 0,70 × P et P (arrondi au dollar ; borne `pricing.negotiation_floor_ppm` = 700 000).
+2. La demande diffusée aux cinq meilleurs candidats indique P' et le prix maximal consenti P. Fenêtre de 10 minutes (réservations avec préavis).
+3. Chaque chauffeur peut accepter P', contre-proposer une seule fois une valeur entre P' et P, ou décliner. Il peut aussi, en choisissant un motif (`exceptional_reason` : conditions routières, événement, détour imposé, autre avec texte), proposer une valeur P'' supérieure à P, plafonnée à `pricing.negotiation_ceiling_ppm` (1 300 000, soit 130 % de P, réglable). Les offres arrivent au client en temps réel ; il en choisit une, ou annule.
+4. Sans acceptation à la fin de la fenêtre, l'application propose au client l'attribution au prix P (mode fixe).
+5. Le prix final est P, P' ou une contre-proposition comprise entre P' et P, consentie par écrit avant l'information des chauffeurs. Une offre P'' au-dessus de P n'est jamais appliquée sans une acceptation explicite du client (écran dédié, prix maximal mis à jour, horodatage et texte exact conservés dans `ride_events`). Cette voie est protégée par un second drapeau `FEATURE_NEGOTIATION_ABOVE_MAX`, désactivé tant que l'avis juridique n'a pas confirmé sa conformité à la règle du prix maximal consenti (loi T-11.2). Repli si l'avis est défavorable : le chauffeur signale un surcoût exceptionnel, validé par l'opérateur dans la limite du prix maximal consenti augmenté des suppléments annoncés.
+6. Désactivée pour : comptes entreprises, forfaits aéroport, lots de courses, Neo Limo. Test comparatif pendant la bêta (répartition aléatoire 50/50 des clients éligibles) avec mesure du taux de prise en charge et du prix moyen.
 
 ### 5.6 Paiements
 
-**Modes :** carte dans l'application (par défaut), Apple Pay, Google Pay, Interac (virement au chauffeur), espèces, terminal du chauffeur. Le chauffeur déclare les modes qu'il accepte ; l'application n'affiche au client que les modes compatibles avec les chauffeurs de la zone (au minimum carte dans l'application, toujours accepté).
+**Deux possibilités au choix du client à la commande (D35) :**
 
-**Carte dans l'application :** à la demande de course, un PaymentIntent Stripe à capture différée est créé pour le prix maximal consenti (plus 15 % de marge pour l'attente et les arrêts, plafonnée à 20 $). À la fin de course, capture du montant final (jamais supérieur à l'autorisation). Le pourboire est proposé après la course et débité par un paiement hors session sur la méthode enregistrée. Une méthode de paiement est enregistrée via un SetupIntent au premier ajout. Les échecs de capture déclenchent une nouvelle tentative, puis un ticket agent et un blocage des nouvelles courses jusqu'à régularisation.
+1. **Prépayer sa course en entier, avant la course :** carte bancaire dans l'application (par défaut), Apple Pay et Google Pay (via Stripe, domaine et certificat Apple Pay enregistrés), virement Interac (référence de virement générée, rapprochement automatique par courriel de notification Interac ou saisie de l'opérateur), ou, pour les courses de plus de 150 $ (`payments.installment_min_cents` = 15 000), **paiement échelonné** par le lien d'un partenaire de paiement (adaptateur `InstallmentProvider` : `createPlan(amount, customer)` renvoie une URL de paiement, webhook de confirmation ; implémentation simulée en V1, fournisseur choisi en V1.1 parmi Affirm Canada, Sezzle, Klarna). La course n'est confirmée qu'une fois le prépaiement autorisé ou le plan échelonné accepté.
+2. **Payer plus tard, à la fin de la course, directement au chauffeur :** espèces ou terminal du chauffeur. Le client choisit ce mode à la réservation ; l'application le lui propose seulement si des chauffeurs de la zone acceptent ce mode.
+
+Le chauffeur déclare les modes qu'il accepte ; l'application n'affiche au client que les modes compatibles avec les chauffeurs de la zone (le prépaiement par carte est toujours accepté). Le mode choisi est transmis avec la demande et le chauffeur ne voit que des demandes compatibles avec ses modes. Les lots de courses (section 5.18) se paient en entier à la commande ou après chaque course.
+
+**Prépaiement par carte :** à la réservation, un PaymentIntent Stripe à capture différée est créé pour le prix maximal consenti (plus 15 % de marge pour l'attente et les arrêts, plafonnée à 20 $). À la fin de course, capture du montant final (jamais supérieur à l'autorisation). Le pourboire est proposé après la course et débité par un paiement hors session sur la méthode enregistrée. Une méthode de paiement est enregistrée via un SetupIntent au premier ajout. Les échecs de capture déclenchent une nouvelle tentative, puis un ticket agent et un blocage des nouvelles courses jusqu'à régularisation.
 
 **Paiement direct au chauffeur (espèces, Interac, terminal) :** le chauffeur confirme le montant reçu à la fin de course ; la course est marquée `paid_direct` ; les frais de service, la redevance et les taxes sont enregistrés comme collectés par le chauffeur et inscrits à son relevé hebdomadaire. Le client reçoit le même reçu et la même facture certifiée.
 
@@ -497,8 +507,10 @@ Net positif : transfert Stripe Connect le vendredi. Net négatif : prélèvement
 
 ### 5.10 Chauffeur favori et préférences
 
-- Le client peut marquer un chauffeur comme favori après une course notée 4 ou plus. À la demande, il peut cocher « mon chauffeur favori » (+ 3,00 $) ; s'il est disponible, il a la priorité absolue ; sinon le client est prévenu et choisit de continuer sans supplément.
-- Les préférences (silence ou discussion, musique, température, langue, aide aux bagages) sont transmises au chauffeur avec la demande et affichées sur sa fiche de course.
+- Le client peut marquer un chauffeur comme favori après une course notée 4 ou plus ; ses favoris forment la liste « Mes chauffeurs » de son espace (D38). À la demande, il peut choisir « mon chauffeur favori » (+ 3,00 $) et désigner lequel ; s'il est disponible à la date et à l'heure, il a la priorité absolue ; sinon le système propose automatiquement un autre chauffeur favori du client, puis un chauffeur par défaut, et le client est prévenu et choisit de continuer sans supplément (D37).
+- Réciproquement, chaque chauffeur voit dans « Mes clients » (D38) la liste des clients qui l'ont mis en favori ou qui l'ont redemandé, avec la priorité sur leurs courses : la clientèle qu'il se constitue lui appartient (table `client_driver_links` : client, chauffeur, `favorite_since`, `rides_count`, `last_ride_at`, visible des deux côtés).
+- **Sélection précise du véhicule (D37) :** à la réservation, après la catégorie, le client voit les véhicules réellement disponibles sur le créneau (modèle, couleur, année, photo, chauffeur et note) et peut en choisir un ; la garantie modèle s'applique à ce véhicule (ou à un rang supérieur). En V1, la liste vient des chauffeurs ayant déclaré leurs disponibilités sur le créneau ; sans choix, le système attribue.
+- **Préférences et commodités (D36, D37) :** ambiance (silence ou discussion), genre de musique, température souhaitée, langue souhaitée du chauffeur, aide aux bagages avec nombre et taille, siège enfant, accessibilité (mobilité réduite), plus un champ libre « demandes spéciales ». Enregistrées dans le profil, modifiables à chaque réservation, transmises au chauffeur avec la demande et affichées sur sa fiche de course. Les commodités incluses par défaut dans tous les véhicules (eau, chargeurs, Wi-Fi, parapluies) sont rappelées à l'écran de confirmation avec le message « Choisissez toutes les commodités de votre voyage, et indiquez-nous vos demandes spéciales » (D45).
 
 ### 5.11 Évaluations, incidents et sanctions graduées
 
@@ -509,6 +521,8 @@ Net positif : transfert Stripe Connect le vendredi. Net négatif : prélèvement
 ### 5.12 Documents et conformité des chauffeurs et véhicules
 
 Types et échéances : permis de classe 5 (date d'expiration), attestation de formation, vérification des antécédents (renouvellement selon la loi), assurance (expiration), immatriculation, vérification mécanique (échéance calculée : à 4 ans ou 80 000 km, puis annuelle ou 60 000 km), numéros TPS et TVQ, photo de profil, inspection Neomoov trimestrielle. Rappels automatiques à J-30, J-7 et J-1 ; à l'échéance, suspension automatique jusqu'au dépôt du nouveau document ; vérification par l'agent recrutement (extraction des dates, cohérence des noms) puis validation humaine en V1.
+
+**Entretien par appel avec un agent IA (D39, V1.1) :** après le dépôt des documents, l'agent vocal (même infrastructure que le centre d'appels, section 5.16) appelle le candidat à l'heure qu'il a choisie : présentation, questions en français puis en anglais, expérience du transport de personnes, connaissance de Montréal et de l'aéroport, disponibilités, attentes. Sortie structurée (`interview_results` : niveau de français et d'anglais sur 4 niveaux, années d'expérience, disponibilités, points d'attention, transcription) proposée à la validation humaine avec le dossier documentaire. Les critères de recrutement fondés sur les exigences de qualité Neomoov (document de référence 7.3) sont codés dans `recruitment_criteria` (critère, obligatoire ou atout, seuil) et l'agent produit un score et une recommandation, jamais une décision.
 
 ### 5.13 Facturation certifiée, redevance et taxes
 
@@ -563,6 +577,31 @@ Canaux : push (par défaut), SMS (secours et tiers), courriel (documents), Whats
 Les autres agents (publicité, contenu, diffusion, prospection, répartition prédictive, qualité, conformité, investisseurs) sont livrés en V1.1 sur la même infrastructure : un agent = une définition (prompt système, outils, mode, modèle, effort, seuils) enregistrée dans `agents`, un déclencheur (événement, file ou planification), une exécution journalisée dans `agent_runs`.
 
 **Sécurité des agents :** un agent n'a accès qu'aux outils déclarés ; chaque outil vérifie les droits et les plafonds ; les données renvoyées aux modèles sont minimisées (pas de numéros de carte, pas de documents complets) ; les instructions provenant des utilisateurs (messages, documents) sont traitées comme des données, jamais comme des instructions ; tout appel est journalisé.
+
+### 5.17 Enregistrement audio et vidéo à bord (D41, V2)
+
+- Activation à la demande du client ou du chauffeur avant la course (mode sécurité) ; consentement explicite des deux parties enregistré (`recording_consents`), signalétique à bord, rappel à l'écran au début de la course.
+- Capture par l'application chauffeur (audio, et vidéo par la caméra du téléphone ou une caméra embarquée compatible) ; chiffrement sur l'appareil, téléversement chiffré vers le stockage canadien (Cloudflare R2, région CA), aucun accès depuis les applications.
+- Conservation 30 jours puis suppression automatique (`retention_jobs`), sauf incident déclaré (conservation le temps du traitement) ; accès réservé au rôle `admin` avec journalisation et motif ; export possible à la demande d'une autorité selon la loi.
+- Évaluation des facteurs relatifs à la vie privée mise à jour avant la mise en service ; mention dans la politique de confidentialité (faite sur le site le 23 septembre 2026).
+
+### 5.18 Lots de courses récurrentes (D43, V1.1)
+
+- Le client crée une série (`ride_series`) : trajet aller et, au choix, retour ; jours de la semaine ; heures ; date de début et de fin ou nombre de courses ; catégorie et préférences. Chaque occurrence devient une course planifiée ordinaire, créée 30 jours à l'avance au plus, avec le même prix garanti (tarif de la série figé à la création, revalidé si la grille change de plus de 10 %).
+- Paiement au choix : en entier à la commande (prépaiement de la série, un PaymentIntent capturé immédiatement, crédit consommé course par course) ou après chaque course (chaque occurrence suit le mode choisi, section 5.6).
+- Chauffeur favori prioritaire sur toute la série ; le client peut modifier ou annuler une occurrence (règles d'annulation ordinaires) ou la série entière (remboursement du non consommé).
+- Sur le site, les formules Navette et Pack 10 trajets renvoient à ce mécanisme ; les prix ne sont pas publiés.
+
+### 5.19 Programmes professionnels : organisations (D42)
+
+- Dès la V1, le modèle de données est multi-organisations : table `organizations` (`type` : `neomoov`, `fleet`, `taxi_company`, `white_label`), colonne `organization_id` sur `drivers`, `vehicles`, `rides`, `statements`, `settings` (portée organisation) ; l'organisation `neomoov` est la seule utilisée en V1.
+- **Gestion de flotte (V2, T2 2027)**, référence fonctionnelle : programme Flotte d'Uber (Fleet Hub : documents, chauffeurs et véhicules en un seul endroit, carte en direct, revenus totaux et par course, coordonnées bancaires et versements ; deux modèles, loyer fixe du véhicule ou pourcentage des courses). Neomoov : rôle `fleet_manager`, rattachement des chauffeurs (invitation acceptée par le chauffeur, qui garde son compte et sa clientèle), véhicules de la flotte, règle de partage choisie par le gestionnaire et acceptée par le chauffeur (loyer hebdomadaire fixe ou pourcentage du tarif, appliqué sur le relevé du chauffeur au profit de l'organisation), relevé et versement hebdomadaires à l'organisation, répartition interne (le gestionnaire peut affecter une course reçue par l'organisation à l'un de ses chauffeurs), rapports.
+- **Compagnies de taxi (V2, T3 2027)** : organisation `taxi_company` avec ses chauffeurs et véhicules déjà autorisés (statut CTQ conservé), panneau opérateur de la compagnie limité à son organisation, réception des courses Neomoov selon les mêmes règles, facturation et relevés par compagnie.
+- **Marque blanche (V3, pilote T4 2027)** : organisation `white_label` avec ses propres applications (nom, logo, couleurs, magasins), tarifs, zones, agents IA et facturation de licence ; isolation stricte des données par `organization_id` ; documentation d'exploitation dédiée. Portée par Kardinal Labs.
+
+### 5.20 Visuels des applications (D46)
+
+Aucune illustration dessinée dans les applications ni sur le site : les écrans d'accueil, d'attente et de catégories utilisent des photos réelles (véhicules de luxe de dernière génération, clients souriants) ou des captures réelles de l'application, avec les crédits dans `docs/design/credits-photos.md`. Les icônes d'interface (navigation, actions) restent des pictogrammes standards.
 ---
 
 ## 6. Spécifications par application
@@ -573,26 +612,27 @@ Chaque écran est décrit par son contenu, ses actions et ses critères d'accept
 
 | Écran | Contenu et actions | Critères d'acceptation |
 |---|---|---|
-| Accueil et connexion | Logo, promesse, connexion par téléphone (code SMS), Apple, Google ; courriel optionnel ; choix de langue | Un nouvel utilisateur crée son compte en moins de 60 secondes ; Sign in with Apple présent sur iOS |
-| Consentements | Conditions, politique de confidentialité, consentements distincts (localisation, marketing) | Aucune finalité cochée par défaut sauf celles nécessaires au service ; versions enregistrées |
-| Carte et réservation | Carte centrée, position détectée, champ destination avec autocomplétion, lieux enregistrés, réservation « maintenant » ou « planifier » | Position obtenue en moins de 2 secondes ; adresses trouvées avec Places |
-| Choix de catégorie et prix | Liste Neo Premium, Prestige, XL (Limo en V2) avec modèle garanti, places, temps d'arrivée estimé, prix total affiché ; détail du prix dépliable (tarif, frais, redevance, taxes, suppléments) ; options : Flex, Priorité, chauffeur favori, siège enfant, bagages, arrêts, réservation pour un tiers, préférences | Le prix affiché est identique au centime à celui de l'API ; les options recalculent le prix immédiatement |
-| Négociation (V1.1) | Curseur borné, envoi de la proposition, offres des chauffeurs en temps réel, choix ou annulation | Jamais de prix supérieur au maximal ; fenêtre de 60 secondes visible |
-| Mode de paiement | Carte enregistrée, Apple Pay, Google Pay, Interac, espèces, terminal ; ajout de carte (Stripe) | Seuls les modes compatibles sont affichés ; ajout de carte sans quitter l'application |
+| Accueil et connexion | Logo, slogan commercial « Neomoov, une application conçue par le client pour les chauffeurs » (D44), photo réelle en fond (D46), connexion par téléphone (code SMS), Apple, Google ; courriel optionnel ; choix de langue | Un nouvel utilisateur crée son compte en moins de 60 secondes ; Sign in with Apple présent sur iOS |
+| Consentements | Conditions, politique de confidentialité, consentements distincts (localisation, marketing, enregistrement à bord en V2) | Aucune finalité cochée par défaut sauf celles nécessaires au service ; versions enregistrées |
+| Carte et réservation (écran 1 sur 3) | Carte centrée, adresse de départ détectée et modifiable, champ destination avec autocomplétion et adresse détectée, lieux enregistrés, date et heure de prise en charge (au moins 2 heures après, jusqu'à 30 jours ; « maintenant » absent en V1, D32), numéro de vol | Position obtenue en moins de 2 secondes ; adresses trouvées avec Places ; heure trop proche refusée avec le message « Réservez au moins 2 heures à l'avance » |
+| Catégorie, véhicule et prix (écran 2 sur 3) | Liste Neo Premium, Prestige, XL (Limo en V2) avec modèle garanti, places, prix total affiché ; véhicules disponibles sur le créneau à choisir précisément (photo, modèle, chauffeur, note, D37) ; détail du prix dépliable (tarif, frais, péages, redevance, taxes, suppléments) ; options : Flex, Priorité, chauffeur favori (choix parmi « Mes chauffeurs », repli automatique expliqué), siège enfant, aide aux bagages (nombre et taille), arrêts, réservation pour un tiers | Le prix affiché est identique au centime à celui de l'API ; les options recalculent le prix immédiatement |
+| Commodités et confirmation (écran 3 sur 3) | Message « Choisissez toutes les commodités de votre voyage, et indiquez-nous vos demandes spéciales » ; ambiance, musique, température, langue du chauffeur, accessibilité, demandes spéciales ; rappel des commodités incluses (eau, chargeurs, Wi-Fi, parapluie) ; mode de paiement ; récapitulatif et confirmation | Trois écrans au plus entre la carte et la confirmation ; préférences pré-remplies depuis le profil |
+| Négociation (V1.1) | Curseur borné (70 % à 100 %), envoi de la proposition, offres des chauffeurs en temps réel, contre-offre au-dessus du prix affiché présentée à part avec son motif et acceptation explicite (drapeau dédié), choix ou annulation | Jamais de prix supérieur au maximal consenti sans nouvelle acceptation écrite ; fenêtre de 10 minutes visible |
+| Mode de paiement | Deux choix (D35) : prépayer (carte enregistrée, Apple Pay, Google Pay, Interac ; échelonné au-delà de 150 $ en V1.1) ou payer le chauffeur après la course (espèces, terminal) ; ajout de carte (Stripe) | Seuls les modes compatibles sont affichés ; ajout de carte sans quitter l'application |
 | Recherche de chauffeur | Animation, temps écoulé, annulation gratuite | Attribution affichée en moins de 3 secondes après acceptation |
 | Chauffeur attribué et suivi | Photo, nom, note, véhicule (modèle, couleur, plaque), temps d'arrivée, position en temps réel, appel et message masqués, partage du trajet, bouton d'urgence, annulation (avec frais annoncés) | Position mise à jour toutes les 2 à 5 secondes ; lien de partage fonctionnel sans compte |
 | En course | Trajet, temps restant, arrêts, bouton d'urgence, préférences rappelées | Le trajet affiché suit la trace réelle |
 | Fin de course | Prix final détaillé, pourboire (montants suggérés et libre), évaluation avec étiquettes, ajouter aux favoris, reçu envoyé | Pourboire débité en moins de 10 secondes ; reçu reçu par courriel |
 | Réservations planifiées | Liste, création (date, heure, vol), détail, modification jusqu'à 30 minutes avant, annulation | Rappels reçus J-1 et à l'attribution |
 | Historique et reçus | Courses, factures PDF, export | Facture conforme téléchargeable |
-| Profil et préférences | Identité, langue, préférences de confort, lieux enregistrés, favoris, méthodes de paiement, crédits, code de parrainage, consentements, exercice des droits (accès, suppression), notifications | Suppression de compte disponible dans l'application (exigence des magasins) |
+| Profil et préférences | Identité, langue, préférences de confort et commodités, lieux enregistrés, « Mes chauffeurs » (liste des chauffeurs favoris, D38), méthodes de paiement, crédits, code de parrainage, lots de courses (V1.1), consentements, exercice des droits (accès, suppression), notifications | Suppression de compte disponible dans l'application (exigence des magasins) |
 | Assistance | Conversation avec l'agent relation client, escalade humaine, FAQ, numéro de téléphone | Réponse initiale en moins de 5 secondes ; escalade visible |
 
 ### 6.2 Application chauffeur (mobile-driver)
 
 | Écran | Contenu et actions | Critères d'acceptation |
 |---|---|---|
-| Inscription | Téléphone, identité, type de qualification (autorisé SAAQ ou inscrit), numéros TPS et TVQ, véhicule, téléversement des documents avec appareil photo, suivi du statut de chaque document | Un chauffeur complète son dossier en moins de 15 minutes ; chaque document a un statut visible |
+| Inscription | Téléphone, identité, type de qualification (autorisé SAAQ ou inscrit), numéros TPS et TVQ, langues parlées, expérience, véhicule et équipement d'accueil, téléversement des documents avec appareil photo, suivi du statut de chaque document, prise de rendez-vous pour l'entretien téléphonique avec l'agent IA (V1.1, D39) | Un chauffeur complète son dossier en moins de 15 minutes ; chaque document a un statut visible |
 | Formation | Modules vidéo, quiz, attestation | Impossible de passer en ligne sans attestation |
 | Compte Stripe Connect | Parcours d'inscription Express intégré (webview), statut | Versements possibles dès la validation |
 | Modes de paiement acceptés | Cases : carte via application (obligatoire), espèces, Interac, terminal | Reflété dans les options du client |
@@ -602,7 +642,7 @@ Chaque écran est décrit par son contenu, ses actions et ses critères d'accept
 | Fin de course | Montant, mode de paiement, confirmation du montant reçu si paiement direct, évaluation du client | Facture générée automatiquement |
 | Packs | Packs disponibles, activation, renouvellement automatique, historique | Facturation au relevé, jamais d'avance |
 | Revenus et relevés | Jour, semaine, courses, pourboires, relevé hebdomadaire détaillé, PDF, statut du versement | Chaque ligne du relevé renvoie à sa course ou à son pack |
-| Clients fidèles | Liste des clients qui redemandent, priorité | Cohérent avec les favoris côté client |
+| Mes clients (D38) | Liste des clients qui l'ont mis en favori ou le redemandent, courses par client, priorité sur leurs demandes : la clientèle constituée appartient au chauffeur | Cohérent avec « Mes chauffeurs » côté client |
 | Courses planifiées | Disponibles, réservées, rappels | Confirmation obligatoire |
 | Tableau de conduite | Ponctualité, note, annulations, conduite, suggestions | Mis à jour quotidiennement |
 | Documents et échéances | Liste, dates, téléversement, rappels | Suspension automatique visible avec la marche à suivre |
@@ -843,7 +883,9 @@ Comptes ouverts et clés disponibles dans `.env` : Stripe (mode test), Google Ma
 |---|---|
 | V1.1 (octobre à décembre 2026) | Activation de la négociation encadrée après avis juridique ; vérification faciale après déclaration ; agents publicité, contenu, diffusion, prospection, qualité, conformité ; adaptateur du SEV certifié choisi ; migration vers l'hébergement canadien ; suivi des vols ; file aéroport |
 | V2 (2027) | Portail et application partenaires ; comptes entreprises ; abonnements clients ; paiement communautaire ; partage de course ; réservation intelligente ; Neomoov Kids et Santé ; flotte R-LuxeEV dans My Hub ; IF ; webhooks sortants ; arrondi solidaire |
-| V3 (T4 2027) | Portail et application investisseurs ; Invest-EV ; multi-villes ; licence en marque blanche |
+| V3 (T4 2027) | Portail et application investisseurs ; Invest-EV ; multi-villes ; pilote de marque blanche (section 5.19) |
+
+Les amendements v1.1 aux prompts (préavis, péages et trafic, vérification concurrentielle, négociation, paiements, préférences, « Mes clients », entretien IA, organisations, visuels) sont regroupés en partie C, à lire avec chaque prompt concerné.
 
 ---
 
@@ -1505,3 +1547,79 @@ Lis `CLAUDE.md`, `docs/decisions.md`, `docs/cahier-des-charges-v1.md` en entier.
 7. **Écarts et risques.** Termine par une liste ordonnée des écarts restants, chacun avec sa gravité, son effort estimé et sa recommandation (corriger avant la bêta, corriger avant le lancement commercial, reporter en V1.1).
 
 Le rapport est en français, factuel, sans complaisance. Si la V1 n'est pas prête pour la bêta, dis-le en première ligne avec la raison principale.
+
+
+---
+
+# Partie C. Amendements v1.1 aux prompts (23 septembre 2026)
+
+Décisions du fondateur D31 à D47 (document de référence v1.1, section 0.5). Ces amendements s'appliquent en plus des prompts 00 à 17 ; en cas de contradiction, l'amendement l'emporte. Lis ce fichier avec chaque prompt concerné avant de commencer une étape.
+
+## Règles transversales
+
+- **Préavis de 2 heures (D32).** En V1, toute course est réservée au moins 2 heures avant l'heure de prise en charge et jusqu'à 30 jours à l'avance. Réglage `rides.min_lead_seconds` = 7200. Aucune course « maintenant » : drapeau `FEATURE_IMMEDIATE_RIDES` désactivé, code d'erreur `LEAD_TIME_TOO_SHORT`, message « Réservez au moins 2 heures à l'avance ». Les textes d'interface ne parlent jamais de « course immédiate » en V1.
+- **Slogan commercial (D44).** « Neomoov, une application conçue par le client pour les chauffeurs. » sur l'écran d'accueil des deux applications et dans les courriels de bienvenue.
+- **Visuels (D46).** Aucune illustration dessinée : photos réelles (voitures de luxe de dernière génération, clients souriants) ou captures réelles de l'application. Crédits dans `docs/design/credits-photos.md`. Les pictogrammes d'interface (navigation, actions) restent permis.
+- **Organisations (D42).** Table `organizations` et colonne `organization_id` sur `drivers`, `vehicles`, `rides`, `statements` et `settings` dès le schéma (prompt 02), organisation `neomoov` seule utilisée en V1.
+
+## Prompt 02 (schéma) : tables et colonnes à ajouter
+
+`organizations`, `organization_id` (voir ci-dessus) ; `client_driver_links` (client, chauffeur, `favorite_since`, `rides_count`, `last_ride_at`) ; `ride_series` (lots de courses récurrentes, V1.1 : trajet, jours, heures, début, fin, mode de paiement, prix figé) ; `competitor_benchmarks` (catégorie, zones, plage horaire, prix Uber et Lyft en cents, `observed_at`, source) ; `interview_results` (candidat, niveaux de français et d'anglais, expérience, disponibilités, points d'attention, transcription) ; `recruitment_criteria` (critère, obligatoire ou atout, seuil) ; `recording_consents` et `recordings` (V2, structure seulement) ; `installment_plans` (V1.1) ; colonnes `preferences` étendues sur `clients` (ambiance, musique, température, langue du chauffeur, aide aux bagages avec nombre et taille, siège enfant, accessibilité, demandes spéciales) ; `payment_choice` sur `rides` (`prepaid`, `pay_driver_after`) et `installment_provider_ref` ; colonne `tolls_cents` dans les lignes de devis. Données de départ : `rides.min_lead_seconds` 7200, `pricing.negotiation_floor_ppm` 700 000, `pricing.negotiation_ceiling_ppm` 1 300 000, `pricing.benchmark_margin_ppm` 50 000, `payments.installment_min_cents` 15 000, drapeaux `FEATURE_IMMEDIATE_RIDES`, `FEATURE_NEGOTIATION_ABOVE_MAX`, `FEATURE_INSTALLMENTS`, `FEATURE_RIDE_SERIES` désactivés.
+
+## Prompt 04 (tarification)
+
+- Ligne « Péages » : montant réel renvoyé par l'API Routes (`tollInfo`) ajouté au sous-total avant taxes ; `tollsCents` en entrée du moteur, ligne `tolls` dans le devis, jamais dans le tarif chauffeur.
+- Trafic : la durée vient de l'API Routes avec `departureTime` = heure de prise en charge demandée (`trafficAware`). Aucun multiplicateur : le trafic n'agit que par la durée.
+- `benchmarkCheck(quote, benchmarks, marginPpm)` : fonction pure ; référence la plus proche (mêmes zones et plage horaire, moins de 14 jours) ; si le prix Neomoov dépasse `référence × (1 − marge)`, ligne « Remise d'alignement » qui réduit les frais de service jusqu'à 0, jamais le tarif chauffeur ; événement `benchmark_exceeded`. Sans référence, aucun ajustement. Tests : avec et sans référence, référence périmée, plancher atteint.
+- Garde `LEAD_TIME_TOO_SHORT` dans le devis.
+
+## Prompt 05 (courses) et prompt 06 (répartition et négociation)
+
+- Réservation avec préavis : offres aux chauffeurs disponibles sur le créneau dès la réservation, fenêtre de 10 minutes, attribution confirmée au plus tard 90 minutes avant, réattribution à 60 minutes, attribution manuelle par l'opérateur toujours possible (D40).
+- Chauffeur favori : priorité absolue s'il est disponible ; sinon repli automatique sur un autre favori du client (`client_driver_links`), sinon score ; le client est prévenu (D37).
+- Sélection précise du véhicule : le devis renvoie la liste des véhicules disponibles sur le créneau (modèle, couleur, année, photo, chauffeur, note) ; le choix du client restreint l'offre à ce chauffeur d'abord, puis à la catégorie (garantie modèle).
+- Négociation (drapeau `FEATURE_NEGOTIATION`) : curseur borné à `pricing.negotiation_floor_ppm` (70 %) ; contre-proposition du chauffeur entre P' et P ; offre au-dessus de P (jusqu'à `pricing.negotiation_ceiling_ppm`) seulement si `FEATURE_NEGOTIATION_ABOVE_MAX` est actif, avec motif obligatoire et acceptation écrite du client conservée dans `ride_events` (texte exact, horodatage). Fenêtre de 10 minutes.
+- Mode de paiement transmis avec la demande ; un chauffeur ne reçoit que des demandes compatibles avec les modes qu'il accepte.
+
+## Prompt 07 (paiements)
+
+- Deux choix à la réservation (D35) : `prepaid` (carte, Apple Pay, Google Pay par Stripe ; Interac avec référence et rapprochement) ou `pay_driver_after` (espèces, terminal). Prépaiement autorisé à la réservation pour le prix maximal consenti.
+- Adaptateur `InstallmentProvider` (`createPlan`, webhook) avec implémentation simulée ; proposé seulement si le total dépasse `payments.installment_min_cents` et si `FEATURE_INSTALLMENTS` est actif.
+- Lots de courses (V1.1) : prépaiement de la série capturé à la commande et consommé course par course, ou paiement après chaque course.
+
+## Prompt 08 (packs, promotions, favoris)
+
+- « Mes chauffeurs » côté client et « Mes clients » côté chauffeur, alimentés par `client_driver_links` (D38) ; endpoints de lecture des deux côtés ; le chauffeur voit le nombre de courses par client, jamais les coordonnées complètes sans course en cours.
+- Préférences étendues (D37) enregistrées dans le profil et copiées sur chaque course.
+
+## Prompt 10 (application client)
+
+- Parcours en trois écrans : (1) départ détecté, destination détectée, date et heure (au moins 2 heures après), vol ; (2) catégorie, véhicule précis, prix détaillé (avec péages), options ; (3) commodités et demandes spéciales avec le message « Choisissez toutes les commodités de votre voyage, et indiquez-nous vos demandes spéciales », rappel des commodités incluses (eau, chargeurs, Wi-Fi, parapluie), mode de paiement, récapitulatif, confirmation.
+- Écran d'accueil : slogan commercial, photo réelle en fond. Profil : « Mes chauffeurs ». Négociation : offre au-dessus du prix affiché présentée à part avec son motif et acceptation explicite.
+
+## Prompt 11 (application chauffeur)
+
+- Inscription : langues parlées, expérience, équipement d'accueil du véhicule (eau, chargeurs, Wi-Fi, parapluies), rendez-vous pour l'entretien téléphonique (V1.1).
+- Écran « Mes clients » (D38). Modes de paiement acceptés : espèces et terminal en plus du prépaiement. Offre de course : mode de paiement du client, préférences complètes, motif obligatoire pour une contre-offre au-dessus du prix affiché (V1.1).
+
+## Prompt 12 (My Hub et réservation web)
+
+- Répartition : attribution manuelle depuis le tableau des courses, files d'attente par créneau et par zone, réattribution (D40).
+- Module « Veille prix » : saisie des relevés Uber et Lyft sur les trajets témoins (`competitor_benchmarks`), historique, alertes `benchmark_exceeded`.
+- Module « Recrutement » : dossier documentaire, résultat d'entretien (V1.1), critères et score, validation humaine.
+- Réservation web publique : mêmes règles (préavis, commodités, deux modes de paiement) que l'application.
+
+## Prompt 13 (notifications, agents, vocal)
+
+- Agent recrutement : entretien par appel avec le candidat (V1.1) sur l'infrastructure Vapi : français puis anglais, expérience, Montréal et aéroport, disponibilités ; sortie structurée `interview_results` ; recommandation, jamais décision.
+- Notifications : rappel « au moins 2 heures à l'avance » dans les réponses de l'agent vocal et du chat quand un client demande une course trop proche, avec proposition du prochain créneau possible.
+
+## Prompt 14 (conformité)
+
+- Consentement distinct « enregistrement audio et vidéo à bord » (V2) prévu dans le modèle et dans la politique de confidentialité ; conservation 30 jours ; stockage canadien chiffré.
+- Journal des acceptations écrites de prix (négociation) conservé 7 ans avec les factures.
+
+## Prompts 16 et 17
+
+- Bêta : vérifier le parcours complet avec préavis de 2 heures, les deux modes de paiement, le repli du chauffeur favori et l'absence de toute illustration dessinée dans les écrans.
+- Revue finale : contrôler que les drapeaux `FEATURE_IMMEDIATE_RIDES`, `FEATURE_NEGOTIATION_ABOVE_MAX`, `FEATURE_INSTALLMENTS` et `FEATURE_RIDE_SERIES` sont désactivés en production de test et documentés.

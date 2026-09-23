@@ -1,0 +1,138 @@
+{
+  "cadillac-escalade-iq.jpg": {
+    "vehicule": "Cadillac Escalade IQ",
+    "usage": "Neo XL (carte), fond de bannière, bandeau des pages",
+    "source": "Wikimedia Commons",
+    "fichier": "25 Cadillac Escalade IQ Luxury 1.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:25_Cadillac_Escalade_IQ_Luxury_1.jpg",
+    "auteur": "HJUdall",
+    "licence": "CC0",
+    "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "tailleOriginale": "4128x3096",
+    "copieLocale": "largeur 1800, recadrée et assombrie selon l'usage"
+  },
+  "tesla-model-y.jpg": {
+    "vehicule": "Tesla Model Y 2026",
+    "usage": "Neo Premium (carte)",
+    "source": "Wikimedia Commons",
+    "fichier": "26 Tesla Model Y Long Range.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:26_Tesla_Model_Y_Long_Range.jpg",
+    "auteur": "HJUdall",
+    "licence": "CC0",
+    "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "tailleOriginale": "4128x3096",
+    "copieLocale": "largeur 1800, recadrée et assombrie selon l'usage"
+  },
+  "mercedes-eqs.jpg": {
+    "vehicule": "Mercedes-Benz EQS 2025",
+    "usage": "Neo Prestige (carte)",
+    "source": "Wikimedia Commons",
+    "fichier": "Mercedes-Benz EQS 500 4MATIC Electric Art (V 297, Facelift) – f1 11102025.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_EQS_500_4MATIC_Electric_Art_(V_297,_Facelift)_%E2%80%93_f1_11102025.jpg",
+    "auteur": "© M 93",
+    "licence": "CC BY-SA 3.0 de",
+    "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en",
+    "tailleOriginale": "4080x2403",
+    "copieLocale": "largeur 1800, recadrée et assombrie selon l'usage"
+  },
+  "voyageuse-aeroport.jpg": {
+    "sujet": "Carte Aéroport : voyageuse avec valise au téléphone",
+    "usage": "Carte Aéroport : voyageuse avec valise au téléphone",
+    "source": "Pexels",
+    "id": 3885589,
+    "page": "https://www.pexels.com/photo/3885589/",
+    "auteur": "voir la page Pexels",
+    "licence": "Pexels License (usage commercial permis, attribution non requise)",
+    "licenceUrl": "https://www.pexels.com/license/",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  },
+  "femme-affaires-portable.jpg": {
+    "sujet": "Carte Entreprises : femme d'affaires avec portable sur la banquette",
+    "usage": "Carte Entreprises : femme d'affaires avec portable sur la banquette",
+    "source": "Pexels",
+    "id": 5717042,
+    "page": "https://www.pexels.com/photo/5717042/",
+    "auteur": "voir la page Pexels",
+    "licence": "Pexels License (usage commercial permis, attribution non requise)",
+    "licenceUrl": "https://www.pexels.com/license/",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  },
+  "chauffeur-ouvre-porte.jpg": {
+    "sujet": "Carte Chauffeurs : chauffeur en costume ouvrant la porte à une cliente",
+    "usage": "Carte Chauffeurs : chauffeur en costume ouvrant la porte à une cliente",
+    "source": "Pexels",
+    "id": 18183694,
+    "page": "https://www.pexels.com/photo/18183694/",
+    "auteur": "voir la page Pexels",
+    "licence": "Pexels License (usage commercial permis, attribution non requise)",
+    "licenceUrl": "https://www.pexels.com/license/",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  },
+  "client-souriant.jpg": {
+    "sujet": "Carte Programmes d'affiliation : client souriant sur la banquette d'un VUS",
+    "usage": "Carte Programmes d'affiliation : client souriant sur la banquette d'un VUS",
+    "source": "Pexels",
+    "id": 23669533,
+    "page": "https://www.pexels.com/photo/23669533/",
+    "auteur": "voir la page Pexels",
+    "licence": "Pexels License (usage commercial permis, attribution non requise)",
+    "licenceUrl": "https://www.pexels.com/license/",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  },
+  "cliente-souriante.jpg": {
+    "sujet": "Carte Pack 10 trajets : cliente souriante en voiture",
+    "usage": "Carte Pack 10 trajets : cliente souriante en voiture",
+    "source": "Pexels",
+    "id": 15795029,
+    "page": "https://www.pexels.com/photo/15795029/",
+    "auteur": "voir la page Pexels",
+    "licence": "Pexels License (usage commercial permis, attribution non requise)",
+    "licenceUrl": "https://www.pexels.com/license/",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  },
+  "cliente-telephone.jpg": {
+    "sujet": "Carte Navette : cliente souriante au téléphone sur la banquette",
+    "usage": "Carte Navette : cliente souriante au téléphone sur la banquette",
+    "source": "Pexels",
+    "id": 5717582,
+    "page": "https://www.pexels.com/photo/5717582/",
+    "auteur": "voir la page Pexels",
+    "licence": "Pexels License (usage commercial permis, attribution non requise)",
+    "licenceUrl": "https://www.pexels.com/license/",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  },
+  "passagere-elegante.jpg": {
+    "sujet": "Carte Privilège : passagère élégante sur la banquette d'une voiture de luxe",
+    "usage": "Carte Privilège : passagère élégante sur la banquette d'une voiture de luxe",
+    "source": "Pexels",
+    "id": 5717060,
+    "page": "https://www.pexels.com/photo/5717060/",
+    "auteur": "voir la page Pexels",
+    "licence": "Pexels License (usage commercial permis, attribution non requise)",
+    "licenceUrl": "https://www.pexels.com/license/",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  },
+  "femme-affaires-telephone.jpg": {
+    "sujet": "Accueil, section Réservez comme vous voulez : cliente au téléphone",
+    "usage": "Accueil, section Réservez comme vous voulez : cliente au téléphone",
+    "source": "Pexels",
+    "id": 7222315,
+    "page": "https://www.pexels.com/photo/7222315/",
+    "auteur": "voir la page Pexels",
+    "licence": "Pexels License (usage commercial permis, attribution non requise)",
+    "licenceUrl": "https://www.pexels.com/license/",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  },
+  "cadillac-escalade-iq-2026.jpg": {
+    "vehicule": "Cadillac Escalade IQ 2026",
+    "usage": "Carte Courses en ville",
+    "source": "Wikimedia Commons",
+    "fichier": "2026 Cadillac Escalade IQ 1000E4, Front left, 03-01-2026.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:2026_Cadillac_Escalade_IQ_1000E4,_Front_left,_03-01-2026.jpg",
+    "auteur": "2000chevymontecarlo",
+    "licence": "Public domain",
+    "licenceUrl": "",
+    "tailleOriginale": "5712x4284",
+    "copieLocale": "largeur 1800, recadrée en 4:3"
+  }
+}
