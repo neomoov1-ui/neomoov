@@ -39,9 +39,9 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
 
 | N° | Compte | Lien | Coût | Ce qu'il faut pour l'ouvrir | Ce que j'attends |
 |---|---|---|---|---|---|
-| 1 | **Supabase** (base PostgreSQL et PostGIS, région Canada central) | https://supabase.com/dashboard/sign-up | Gratuit, puis 25 $ US par mois avant le lancement | Compte `neomoov1@gmail.com` (ou GitHub neomoov1), organisation « Neomoov », projet `neomoov-dev`, région **Canada (Central)**, mot de passe généré et rangé | `DATABASE_URL` = adresse « Session pooler » avec le mot de passe, dans `.env`. Marche à suivre détaillée donnée le 23 septembre. **Sans elle, aucune étape de code ne peut avancer** |
-| 2 | **GitHub** : dépôt `neomoov` privé sous le compte neomoov1, puis invitation | https://github.com/new puis Settings, Collaborators | Gratuit | Compte existant | Invitation acceptée par `paulemileverges-star` ; je pousse les 3 commits en attente |
-| 3 | **Railway** : projet `neomoov` avec un service Redis | https://railway.com (compte existant) | 5 à 20 $ par mois | Compte existant | `REDIS_URL` dans `.env` (ou une invitation au projet, je crée le service) |
+| 1 | **Supabase** (base PostgreSQL et PostGIS, région Canada central) | https://supabase.com/dashboard/sign-up | Gratuit, puis 25 $ US par mois avant le lancement | **Fait le 24 septembre 2026** : projet `neomoov-dev`, région Canada (Central), `DATABASE_URL` dans `.env`, migrations et données de départ appliquées | Plus tard : projet de staging puis de production (plan Pro) |
+| 2 | **GitHub** : dépôt `neomoov` privé sous le compte neomoov1 | https://github.com/neomoov1-ui/neomoov | Gratuit | **Fait** : dépôt existant, commits poussés le 24 septembre | Rien |
+| 3 | **LWS, VPS KVM** (serveurs de Neomoov, décision D48) | https://www.lws.fr/vps-kvm.php (compte LWS existant) | 20 à 70 € HT par mois pour la bêta | Formule **VPS KVM** (accès root, gabarit Docker), au moins 4 vCore, 8 Go, 150 Go NVMe, Ubuntu 24.04 ; pas de VPS à panneau ni d'hébergement mutualisé | L'adresse IP du serveur et le mot de passe root déposés dans `C:\Users\PC\cles-neomoov\lws-vps.txt` (jamais dans le dépôt) ; j'installe Docker, la clé SSH et le pare-feu, puis je remplace le mot de passe par la clé. Redis tourne sur ce serveur : plus besoin de Railway |
 | 4 | **Google Maps Platform** : projet `neomoov` | https://console.cloud.google.com/google/maps-apis/start | Crédit mensuel gratuit puis à l'usage | Compte Google `neomoov1@gmail.com`, carte de crédit, alerte de budget à 50 $ | Activer Routes API (avec péages et trafic), Places API (New), Geocoding API, Maps SDK Android et iOS ; trois clés restreintes : `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY` |
 | 5 | **Apple Developer Program**, organisation | Vérifier le D-U-N-S : https://developer.apple.com/enroll/duns-lookup/ puis https://developer.apple.com/programs/enroll/ | 99 $ US par an | D-U-N-S, site web (neomoov.net), courriel au nom du domaine (`contact@neomoov.net`), téléphone | Compte validé (quelques jours à deux semaines, Apple appelle parfois). Ensuite : clé d'API App Store Connect (`.p8`, identifiant de clé, identifiant d'émetteur) dans `C:\Users\PC\cles-neomoov\` |
 | 6 | **Google Play Console**, organisation | https://play.google.com/console/signup | 25 $ US une fois | D-U-N-S, pièce d'identité, site web | Compte vérifié ; ensuite un compte de service (JSON) pour les envois automatiques |
@@ -56,7 +56,7 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
 | 10 | **Cloudflare** | https://dash.cloudflare.com/sign-up | 0 à 20 $ par mois | Transférer le DNS de `neomoov.net` (LWS) vers Cloudflare, ou me donner l'accès DNS de LWS | R2 activé : `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (documents des chauffeurs ; plus tard enregistrements audio et vidéo) |
 | 11 | **Courriels de la société** sur `neomoov.net` | Panel LWS, rubrique Emails | Compris | Boîtes ou redirections `contact@` (existe), `assistance@`, `comptes@` vers `neomoov1@gmail.com` | Rien d'autre |
 | 12 | **Expo** : organisation « neomoov » | https://expo.dev, Réglages, Access tokens | 0 à 99 $ US par mois | Compte existant | `EXPO_TOKEN` (jeton de l'organisation) dans `.env` |
-| 13 | **Vercel** : équipe ou projet « neomoov » | https://vercel.com (compte existant) | Gratuit au départ | Compte existant | Rien tout de suite (je déploie avec la CLI connectée) |
+| 13 | **Vercel** et **Railway** | Comptes existants | Gratuit au départ | Rien : solution de secours seulement, le web et Redis tournent sur le VPS LWS | Rien |
 
 ### Bloc 3. Avant l'étape 11 (notifications, agents, vocal)
 
@@ -77,7 +77,7 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
 | **Courtier d'assurance** | Responsabilité civile commerciale, couverture des courses, flotte, cyber | Devis maintenant |
 | **Fournisseur de SEV certifié** (facturation obligatoire) | Sans lui, aucune course facturable légalement | Choix en octobre 2026 |
 | **Partenaire de paiement échelonné** (Affirm Canada, Sezzle ou Klarna) | Courses de plus de 150 $ payées en plusieurs fois (D35) | Novembre 2026 |
-| **AWS ou Google Cloud, région de Montréal** | Hébergement canadien de production | Avant le lancement |
+| **Région canadienne** (OVHcloud Beauharnois, AWS ou Google Cloud Montréal) | Seulement si tu décides, avec l'avocat, de rapatrier les serveurs applicatifs au Canada plutôt que de conserver LWS avec l'évaluation Loi 25 (section 10.3 du cahier des charges) | Décision avant le lancement |
 | **QuickBooks en ligne**, **PandaDoc ou DocuSign**, **CRM** (HubSpot ou Brevo), **Canva Pro** | Comptabilité, signatures, prospection, visuels | T4 2026 |
 | **Comptes publicitaires** (Google Ads, Meta, TikTok, LinkedIn), **Google Business Profile**, **LinkedIn** (page) | Marketing et agents IA | T4 2026 |
 | **Séance photo** (photographe, clients et chauffeurs consentants) | Remplacer les photos de banque d'images par de vraies photos Neomoov (D46) | Avant le lancement |

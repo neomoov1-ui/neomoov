@@ -225,9 +225,9 @@ WordPress --API publique limitée-------> |
 
 | Environnement | Usage | Données |
 |---|---|---|
-| Local | Développement, tests | Docker Compose, données de démonstration, fournisseurs simulés |
-| Staging | Bêta fermée, tests de charge, validation des magasins | Clés de test des fournisseurs (Stripe test, Telnyx test), données de bêta |
-| Production | Version 0 de captation puis lancement commercial | Clés réelles, sauvegardes, surveillance |
+| Local | Développement, tests | Base Supabase `neomoov-dev` (Canada central, migrée le 24 septembre 2026) ou Docker Compose ; données de démonstration ; fournisseurs simulés |
+| Staging | Bêta fermée, tests de charge, validation des magasins | VPS KVM LWS (D48) avec Docker Compose ; clés de test des fournisseurs (Stripe test, Telnyx test) ; base Supabase de staging |
+| Production | Version 0 de captation puis lancement commercial | VPS LWS gamme PRO (ou région canadienne selon la décision de résidence, section 10.3) ; clés réelles, sauvegardes, surveillance |
 
 ### 3.6 Variables d'environnement (noms seulement, valeurs dans `.env`)
 
@@ -812,15 +812,21 @@ Le code compile sans avertissement ; lint et formatage passent ; les tests de l'
 
 ### 10.1 Intégration et déploiement continus
 
-GitHub Actions : à chaque poussée, lint, types, tests unitaires et d'intégration (avec services Docker), construction ; sur `main`, déploiement automatique de l'API et du worker sur Railway (staging), du web sur Vercel (staging) ; déploiement en production par déclenchement manuel après validation ; builds mobiles EAS déclenchés par étiquette de version ; migrations exécutées avant le démarrage des nouvelles instances avec verrou.
+GitHub Actions : à chaque poussée, lint, types, tests unitaires et d'intégration (avec services Docker), construction des images Docker (`api`, `worker`, `web`) publiées dans le registre GitHub (GHCR) ; sur `main`, déploiement automatique sur le VPS de staging par SSH (`docker compose pull` puis `up -d`, migrations avec verrou avant le démarrage des nouvelles instances) ; déploiement en production par déclenchement manuel après validation ; builds mobiles EAS déclenchés par étiquette de version.
 
-### 10.2 Hébergement V1
+### 10.2 Hébergement V1 : VPS KVM chez LWS (D48, 24 septembre 2026)
 
-Railway : service `api` (2 instances minimum), service `worker`, base PostgreSQL avec l'image `postgis/postgis:16-3.4` et volume persistant, Redis ; variables d'environnement par service ; domaine `api.neomoov.net`. Vercel : `apps/web` sur `hub.neomoov.net` (My Hub) et `reserver.neomoov.net` (réservation). Stockage objet Cloudflare R2. EAS pour les builds et les mises à jour à la volée des applications (correctifs sans passage par les magasins, pour le JavaScript seulement).
+Le fondateur héberge les serveurs chez LWS. Formule : **VPS KVM** (accès root, gabarit Docker, trois instantanés), au moins 4 vCore, 8 Go de mémoire et 150 Go NVMe pour la bêta ; gamme PRO au lancement. Ni hébergement mutualisé ni VPS à panneau (ISPConfig, Hestia), qui ne conviennent pas à Node.js.
 
-### 10.3 Migration vers l'hébergement canadien (avant le lancement commercial, hors sprint)
+- Système Ubuntu 24.04 LTS, Docker et Docker Compose, pare-feu (22, 80, 443), mises à jour de sécurité automatiques, accès SSH par clé seulement (clé de Claude déposée par le fondateur), sauvegardes LWS quotidiennes plus instantané avant chaque déploiement.
+- `infra/compose.prod.yml` : services `caddy` (reverse proxy, certificats TLS automatiques pour `api.neomoov.net`, `hub.neomoov.net`, `reserver.neomoov.net`), `api` (2 réplicas), `worker`, `web` (Next.js), `redis` (volume persistant, persistance AOF) ; variables d'environnement dans `/opt/neomoov/.env` (jamais dans le dépôt) ; journaux centralisés vers Better Stack.
+- Base de données : Supabase, projet `neomoov-dev` (Canada central) pour le développement, projet de staging puis de production (plan Pro, sauvegardes et restauration à un instant donné). Le VPS ne fait pas tourner PostgreSQL : les données personnelles restent au Canada (section 10.3).
+- Stockage objet Cloudflare R2 (région canadienne) ; EAS pour les builds et les mises à jour à la volée des applications (JavaScript seulement).
+- Latence Montréal-Paris d'environ 80 à 100 ms : acceptable pour l'API et le suivi en temps réel (positions toutes les 5 secondes) ; à mesurer pendant la bêta.
 
-Conteneurs sur AWS région Canada (Montréal) ou Google Cloud Montréal, base de données gérée avec restauration à un instant donné, Redis géré, stockage objet régional, sauvegardes inter-régions chiffrées ; plan de migration documenté à l'étape 16 ; bascule avec fenêtre de maintenance annoncée.
+### 10.3 Résidence des données et décision avant le lancement commercial (hors sprint)
+
+Tous les centres de données de LWS sont en France (Paris, certifiés ISO 27001 et HDS). La base de données et les documents des chauffeurs restent au Canada ; les serveurs applicatifs en France traitent des renseignements personnels en transit et en mémoire. Avant le lancement commercial, le fondateur décide, avec l'avocat : (a) conserver LWS avec une évaluation des facteurs relatifs à la vie privée, des clauses contractuelles et une mention dans la politique de confidentialité (Loi 25) ; ou (b) rapatrier les serveurs applicatifs dans une région canadienne (OVHcloud Beauharnois près de Montréal, AWS ca-central-1 ou Google Cloud Montréal). Le déploiement par Docker Compose rend la bascule mécanique : mêmes images, même fichier de composition, plan de migration documenté à l'étape 16, bascule avec fenêtre de maintenance annoncée.
 
 ### 10.4 Exploitation
 
@@ -1618,6 +1624,13 @@ Décisions du fondateur D31 à D47 (document de référence v1.1, section 0.5). 
 
 - Consentement distinct « enregistrement audio et vidéo à bord » (V2) prévu dans le modèle et dans la politique de confidentialité ; conservation 30 jours ; stockage canadien chiffré.
 - Journal des acceptations écrites de prix (négociation) conservé 7 ans avec les factures.
+
+## Prompt 01 (monorepo, infra) et prompt 16 (déploiement) : serveurs chez LWS (D48, 24 septembre 2026)
+
+- Base de développement : Supabase `neomoov-dev` (Canada central), migrée et semée le 24 septembre 2026 ; `DATABASE_URL` dans le `.env` de la racine ; les scripts de `packages/db` chargent ce `.env` (`src/env.ts`) et exigent TLS hors localhost.
+- Hébergement V1 : VPS KVM chez LWS (Ubuntu 24.04, Docker, Compose, Caddy). Écrire `infra/compose.prod.yml` (caddy, api ×2, worker, web, redis), `infra/Caddyfile`, `infra/deploy.sh` (SSH : `docker compose pull`, migrations avec verrou, `up -d`, vérification de santé, retour arrière sur l'image précédente en cas d'échec) et le manuel `docs/runbooks/deploiement-lws.md`. Images publiées sur GHCR par GitHub Actions. Aucun PostgreSQL sur le VPS.
+- Railway et Vercel ne sont plus la cible ; les garder seulement comme secours documenté.
+- Résidence des données : voir la section 10.3 du cahier des charges ; prévoir dès maintenant que `compose.prod.yml` fonctionne à l'identique sur un hôte canadien.
 
 ## Prompts 16 et 17
 

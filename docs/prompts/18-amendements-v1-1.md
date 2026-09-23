@@ -66,6 +66,13 @@ Décisions du fondateur D31 à D47 (document de référence v1.1, section 0.5). 
 - Consentement distinct « enregistrement audio et vidéo à bord » (V2) prévu dans le modèle et dans la politique de confidentialité ; conservation 30 jours ; stockage canadien chiffré.
 - Journal des acceptations écrites de prix (négociation) conservé 7 ans avec les factures.
 
+## Prompt 01 (monorepo, infra) et prompt 16 (déploiement) : serveurs chez LWS (D48, 24 septembre 2026)
+
+- Base de développement : Supabase `neomoov-dev` (Canada central), migrée et semée le 24 septembre 2026 ; `DATABASE_URL` dans le `.env` de la racine ; les scripts de `packages/db` chargent ce `.env` (`src/env.ts`) et exigent TLS hors localhost.
+- Hébergement V1 : VPS KVM chez LWS (Ubuntu 24.04, Docker, Compose, Caddy). Écrire `infra/compose.prod.yml` (caddy, api ×2, worker, web, redis), `infra/Caddyfile`, `infra/deploy.sh` (SSH : `docker compose pull`, migrations avec verrou, `up -d`, vérification de santé, retour arrière sur l'image précédente en cas d'échec) et le manuel `docs/runbooks/deploiement-lws.md`. Images publiées sur GHCR par GitHub Actions. Aucun PostgreSQL sur le VPS.
+- Railway et Vercel ne sont plus la cible ; les garder seulement comme secours documenté.
+- Résidence des données : voir la section 10.3 du cahier des charges ; prévoir dès maintenant que `compose.prod.yml` fonctionne à l'identique sur un hôte canadien.
+
 ## Prompts 16 et 17
 
 - Bêta : vérifier le parcours complet avec préavis de 2 heures, les deux modes de paiement, le repli du chauffeur favori et l'absence de toute illustration dessinée dans les écrans.
