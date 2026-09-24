@@ -1,6 +1,6 @@
 # Neomoov. Les 14 comptes externes à créer, dans l'ordre
 
-Version 1.2, 24 septembre 2026 (v1.1 du 23 septembre, v1.0 du 22 septembre). Niveau interne. Dérivé de la section 8.5 du document de référence v1.1, du cahier des charges v1.1 (décision D48, serveurs chez LWS) et de la configuration du dépôt (`apps/api/src/config/env.ts`, `apps/*/app.json`, `eas.json`).
+Version 1.3, 24 septembre 2026 au soir (v1.2 le même jour, v1.1 du 23 septembre, v1.0 du 22 septembre) : décisions D49 (Supabase Storage) et D50 (nouveau compte Twilio) prises par le fondateur. Niveau interne. Dérivé de la section 8.5 du document de référence v1.1, du cahier des charges v1.1 (décision D48, serveurs chez LWS) et de la configuration du dépôt (`apps/api/src/config/env.ts`, `apps/*/app.json`, `eas.json`).
 
 Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.**, avec l'adresse **`neomoov1@gmail.com`** (décision du 22 septembre 2026). Les clés vont dans **`C:\Users\PC\code\neomoov\.env`**, sous le nom de variable indiqué, jamais dans une conversation, un courriel ou un document. Les fichiers (`.p8`, JSON, mot de passe du serveur) vont dans **`C:\Users\PC\cles-neomoov\`**, jamais dans le dépôt.
 
@@ -97,14 +97,15 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
 - **À faire avant le lancement (mode réel) :** activation du compte : NEQ, adresse, compte bancaire, pièce d'identité du dirigeant, description de l'activité.
 - **Ce que j'attends :** `STRIPE_SECRET_KEY` et `STRIPE_PUBLISHABLE_KEY` (test) dans `.env`. `STRIPE_WEBHOOK_SECRET` vient plus tard : je crée le point de réception quand l'API est en ligne et je te dis où lire la valeur.
 
-## 7. Expo
+## 7. Expo : nouveau compte au nom de Neomoov (choix du fondateur, 24 septembre 2026)
 
-- **Lien :** https://expo.dev (compte existant, celui de Taxi Sylvain)
-- **Coût :** gratuit (30 compilations par mois avec file d'attente) ; forfait Production à 99 $ US par mois seulement si les compilations deviennent trop lentes
+- **Lien :** https://expo.dev/signup (avec `neomoov1@gmail.com`), compte distinct de celui qui porte Taxi Sylvain
+- **Coût :** gratuit (30 compilations par mois avec file d'attente, quota propre au compte) ; forfait Production à 99 $ US par mois seulement si l'attente des compilations devient un frein
 - **À faire :**
-  1. Menu du compte, **Create organization** : `neomoov`.
-  2. Réglages de cette organisation, **Access tokens** : créer un jeton nommé `claude-code`.
-- **Ce que j'attends :** `EXPO_TOKEN` dans `.env` (jeton de l'organisation `neomoov`, pas du compte personnel). Les compilations Android démarrent sans Google Play ; iOS attend Apple (compte 3).
+  1. Créer le compte : nom d'utilisateur `neomoov` (ou `neomoov-inc` si pris), validation en deux étapes activée.
+  2. Menu du compte, **Create organization** : `neomoov`. L'organisation est la propriétaire des projets ; d'autres personnes pourront y être ajoutées plus tard sans partager le mot de passe.
+  3. Réglages de cette organisation, **Access tokens** (ou un « robot user » nommé `claude-code`) : créer un jeton.
+- **Ce que j'attends :** `EXPO_TOKEN` dans `.env` (jeton de l'organisation `neomoov`). Je crée ensuite les deux projets EAS et je lance les compilations Android de test ; iOS attend Apple (compte 3). Rien n'est repris de l'ancien compte : certificats et clés seront créés dans celui-ci.
 
 ## 8. Anthropic, console de l'API
 
@@ -116,27 +117,28 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
   3. « Clés d'API » : créer `neomoov-api`.
 - **Ce que j'attends :** `ANTHROPIC_API_KEY` dans `.env` (agents IA des conversations, entretien vocal des candidats, WhatsApp)
 
-## 9. Stockage des documents : Supabase Storage (recommandé) plutôt que Cloudflare R2
+## 9. Stockage des documents : Supabase Storage (décision D49, 24 septembre 2026)
 
-- **Pourquoi je change de recommandation :** la décision D48 du 24 septembre garde la base **et les documents** au Canada. Cloudflare R2 n'a aucune région canadienne. Supabase Storage vit dans le projet `neomoov-dev`, région Canada (Central), parle le protocole S3 attendu par le code, et ne demande aucun compte de plus.
+- **Pourquoi :** la décision D48 garde la base **et les documents** au Canada. Cloudflare R2 n'a aucune région canadienne. Supabase Storage vit dans le projet `neomoov-dev`, région Canada (Central), parle le protocole S3 attendu par le code, et ne demande aucun compte de plus. Cloudflare R2 est abandonné.
 - **Lien :** https://supabase.com/dashboard (projet `neomoov-dev`)
 - **Coût :** compris (1 Go sur le plan gratuit, 100 Go sur le plan Pro)
 - **À faire :**
   1. « Storage », « New bucket » : `documents`, **privé**.
   2. « Storage », « Settings » (ou « Project Settings », « Storage ») : activer **S3 protocol**, puis « New access key » nommée `neomoov-api`. Noter l'adresse « Endpoint » affichée.
 - **Ce que j'attends :** `S3_ENDPOINT`, `S3_BUCKET=documents`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` dans `.env`
-- **Si tu préfères garder Cloudflare R2 malgré tout :** https://dash.cloudflare.com/sign-up, « R2 », activer (carte, palier gratuit de 10 Go), « Create bucket » `neomoov-documents`, « Manage R2 API tokens » ; alors `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`. Dis-le moi, je note la décision.
 
-## 10. Textos : Twilio existant (recommandé) ou Telnyx
+## 10. Textos et numéro vocal : nouveau compte Twilio au nom de Neomoov (décision D50, 24 septembre 2026)
 
-- **Pourquoi Twilio :** le compte existe déjà (Taxi Sylvain), un numéro Neomoov s'achète en deux minutes, et Vapi (compte 12) sait importer un numéro Twilio pour l'agent vocal. Un seul fournisseur pour les textos et la voix.
-- **Lien :** https://console.twilio.com ; sinon Telnyx https://telnyx.com/sign-up
-- **Coût :** environ 1 $ US par mois par numéro, moins de 1 ¢ par texto
-- **À faire (Twilio) :**
-  1. « Account », « Subaccounts » : créer le sous-compte `Neomoov` (facturation séparée de Taxi Sylvain).
-  2. Dans ce sous-compte, « Phone Numbers », « Buy a number » : Canada, capacités **SMS et Voice**, indicatif 514 ou 438.
-  3. Copier le SID du sous-compte et son jeton d'authentification (page d'accueil de la console).
-- **Ce que j'attends :** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (au format +1…) dans `.env`. Si Telnyx : `TELNYX_API_KEY`, `TELNYX_MESSAGING_PROFILE_ID` et le numéro.
+- **Pourquoi Twilio :** un numéro canadien s'achète en deux minutes, et Vapi (compte 12) sait importer un numéro Twilio pour l'agent vocal : un seul fournisseur pour les textos et la voix. Compte **distinct** de celui de Taxi Sylvain, pour que Neomoov reste autonome. Telnyx abandonné.
+- **Lien :** https://www.twilio.com/try-twilio (avec `neomoov1@gmail.com`)
+- **Coût :** environ 1,15 $ US par mois par numéro, moins de 1 ¢ par texto, environ 1,4 ¢ par minute d'appel ; premier dépôt de 20 $ US à la mise à niveau
+- **À faire :**
+  1. Créer le compte : courriel `neomoov1@gmail.com`, vérification du courriel et d'un téléphone. Dans le questionnaire de départ : « SMS » et « Voice », « with code », JavaScript.
+  2. **Mettre le compte à niveau tout de suite** (« Upgrade », carte, dépôt de 20 $ US) : un compte d'essai n'envoie qu'aux numéros vérifiés, ajoute une mention d'essai dans chaque texto et ne permet pas d'acheter un numéro canadien.
+  3. « Phone Numbers », « Buy a number » : pays **Canada**, capacités **SMS et Voice** cochées, indicatif 514 ou 438 (Montréal), sinon 450. Aucun dossier réglementaire n'est exigé pour un numéro canadien.
+  4. Sur la page d'accueil de la console, section « Account Info » : copier le **Account SID** et l'**Auth Token**.
+  5. Facultatif mais utile : « Account », « Manage account », « Sub-accounts » n'est pas nécessaire ; un seul compte pour Neomoov.
+- **Ce que j'attends :** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (au format +1XXXXXXXXXX) dans `.env`. Le numéro servira aussi au compte 12 (Vapi) et un second numéro, acheté de la même façon, servira à WhatsApp (compte 13).
 
 ## 11. Courriels transactionnels : Resend (recommandé) ou Brevo existant
 
@@ -208,9 +210,10 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
 | 6 Stripe | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` (puis `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`) |
 | 7 Expo | `EXPO_TOKEN` |
 | 8 Anthropic | `ANTHROPIC_API_KEY` |
-| 9 Stockage | `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` (ou `R2_*`) |
-| 10 Textos | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (ou `TELNYX_API_KEY`, `TELNYX_MESSAGING_PROFILE_ID`) |
+| 9 Stockage (Supabase Storage, D49) | `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` |
+| 10 Textos et voix (Twilio Neomoov, D50) | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` |
 | 11 Courriels | `RESEND_API_KEY` (ou `BREVO_API_KEY`) |
+| 7 Expo (nouveau compte Neomoov, organisation `neomoov`) | `EXPO_TOKEN` |
 | 12 Vapi | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID` (puis `VAPI_WEBHOOK_SECRET`) |
 | 13 WhatsApp | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` (puis `WHATSAPP_VERIFY_TOKEN`) |
 | 14 Sentry, Better Stack | `SENTRY_DSN`, `BETTERSTACK_TOKEN` |
