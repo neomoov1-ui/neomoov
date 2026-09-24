@@ -1,0 +1,20 @@
+# Contexte de construction des images (apps/*/Dockerfile, contexte : racine du dépôt).
+.git
+.github
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/.expo
+**/coverage
+**/*.tsbuildinfo
+.env
+.env.*
+!.env.example
+docs
+apps/mobile-client/assets
+apps/mobile-driver/assets
+infra/*.sh
+context
+livrables

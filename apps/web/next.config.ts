@@ -1,8 +1,12 @@
 import type { NextConfig } from 'next';
+import { fileURLToPath } from 'node:url';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Image Docker minimale (apps/web/Dockerfile) : serveur autonome, tracé depuis la racine du monorepo.
+  output: 'standalone',
+  outputFileTracingRoot: fileURLToPath(new URL('../../', import.meta.url)),
   // Les paquets internes sont consommés depuis leur dist compilé (ESM) ; domain reste transpilé pour ses sources partagées.
   transpilePackages: ['@neomoov/domain'],
   headers: async () => [

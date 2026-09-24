@@ -1,0 +1,115 @@
+# Production V1 sur le VPS LWS (décision D48) : Caddy (TLS automatique), deux instances de l'API, un worker, le web,
+# Redis. Aucun PostgreSQL ici : la base est chez Supabase (Canada central). Doit fonctionner à l'identique sur un hôte
+# canadien (section 10.3 du cahier des charges).
+#   Emplacement sur le serveur : /opt/neomoov/infra/compose.prod.yml ; secrets dans /opt/neomoov/.env (jamais dans Git).
+#   Piloté par infra/deploy.sh ; variables : IMAGE_PREFIX (neomoov, ou ghcr.io/neomoov1-ui/neomoov), IMAGE_TAG (local, ou un sha).
+name: neomoov
+
+x-app: &app
+  restart: unless-stopped
+  env_file:
+    - ../.env
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  api:
+    <<: *app
+    image: ${IMAGE_PREFIX:-neomoov}-api:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      REDIS_URL: redis://redis:6379
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 768M
+    depends_on:
+      redis:
+        condition: service_healthy
+    expose:
+      - "4000"
+
+  worker:
+    <<: *app
+    image: ${IMAGE_PREFIX:-neomoov}-worker:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    image: ${IMAGE_PREFIX:-neomoov}-web:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.neomoov.net}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    expose:
+      - "3000"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  redis_data: {}

@@ -4,7 +4,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel tient
 
 | Manuel | Contenu | État |
 |---|---|---|
-| `deploiement-lws.md` | Préparer le VPS LWS, publier une version, vérifier la santé, revenir à la version précédente | À écrire à l'arrivée du serveur (décision D48) |
+| `deploiement-lws.md` | DNS, préparation du VPS LWS (`infra/server-setup.sh`), déploiement par `git push lws main` (`infra/deploy.sh`), vérification, journaux, retour arrière | Écrit le 24 septembre 2026 |
 | `base-de-donnees.md` | Migrations (`pnpm db:migrate`), retour arrière (`pnpm db:rollback`), données de départ, sauvegardes Supabase, restauration | À écrire à l'étape 16 |
 | `incidents.md` | Que faire quand l'API est injoignable, quand Redis tombe, quand Stripe ou Google Maps refusent, quand un règlement hebdomadaire échoue | À écrire à l'étape 15 |
 | `secrets-et-cles.md` | Où vivent les clés, comment les faire tourner (rotation), qui y a accès | À écrire à l'étape 14 |

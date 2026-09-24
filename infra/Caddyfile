@@ -1,0 +1,29 @@
+# Caddy : TLS automatique (Let's Encrypt) et mandataire inverse vers les conteneurs. Les trois noms doivent pointer
+# vers l'adresse IP du serveur dans la zone DNS de neomoov.net avant le premier démarrage.
+{
+	email contact@neomoov.net
+}
+
+api.neomoov.net {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+	# Le nom « api » est résolu par le DNS interne de Docker vers les deux instances (réplicas).
+	reverse_proxy api:4000 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+hub.neomoov.net, reserver.neomoov.net {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	reverse_proxy web:3000 {
+		header_up X-Forwarded-Proto https
+	}
+}

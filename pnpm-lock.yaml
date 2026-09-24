@@ -548,6 +548,9 @@ importers:
       '@neomoov/domain':
         specifier: workspace:*
         version: link:../domain
+      dotenv:
+        specifier: 18.0.2
+        version: 18.0.2
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(postgres@3.4.9)
@@ -558,9 +561,6 @@ importers:
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
-      dotenv:
-        specifier: 18.0.2
-        version: 18.0.2
       drizzle-kit:
         specifier: 0.31.11
         version: 0.31.11
