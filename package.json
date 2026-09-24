@@ -10,11 +10,20 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
+    "dev": "turbo run dev --filter=@neomoov/api --filter=@neomoov/worker --filter=@neomoov/web",
+    "dev:api": "pnpm --filter @neomoov/api dev",
+    "dev:worker": "pnpm --filter @neomoov/worker dev",
+    "dev:web": "pnpm --filter @neomoov/web dev",
+    "dev:client": "pnpm --filter @neomoov/mobile-client dev",
+    "dev:driver": "pnpm --filter @neomoov/mobile-driver dev",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d --wait",
+    "db:down": "docker compose -f infra/docker-compose.yml down",
     "db:generate": "pnpm --filter @neomoov/db db:generate",
     "db:migrate": "pnpm --filter @neomoov/db db:migrate",
     "db:rollback": "pnpm --filter @neomoov/db db:rollback",
     "db:reset": "pnpm --filter @neomoov/db db:reset",
-    "db:seed": "pnpm --filter @neomoov/db db:seed"
+    "db:seed": "pnpm --filter @neomoov/db db:seed",
+    "openapi": "pnpm --filter @neomoov/api-client generate"
   },
   "devDependencies": {
     "turbo": "2.11.2",

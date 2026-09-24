@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Neomoov Chauffeur",
+    "slug": "neomoov-driver",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "neomoov-driver",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.neomoov.driver",
+      "supportsTablet": false,
+      "infoPlist": { "CFBundleAllowMixedLocalizations": true, "CFBundleDevelopmentRegion": "fr-CA" }
+    },
+    "android": {
+      "package": "com.neomoov.driver",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": { "output": "static", "favicon": "./assets/images/favicon.png" },
+    "plugins": [
+      "expo-router",
+      ["expo-splash-screen", { "backgroundColor": "#FFFFFF", "image": "./assets/images/splash-icon.png", "imageWidth": 260 }],
+      "expo-secure-store",
+      "expo-localization"
+    ],
+    "experiments": { "typedRoutes": true, "reactCompiler": true }
+  }
+}

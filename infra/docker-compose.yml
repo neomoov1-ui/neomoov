@@ -1,0 +1,60 @@
+# Services locaux de la plateforme Neomoov : intégration continue et postes qui ont Docker.
+# Décision du 22 septembre 2026 : le développement quotidien utilise la base Supabase (Canada central) ;
+# aucune commande de développement n'exige Docker. `pnpm db:up` / `pnpm db:down` à la racine.
+# Les mots de passe ci-dessous ne servent qu'en local et ne sont pas des secrets.
+name: neomoov
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: neomoov
+      POSTGRES_PASSWORD: neomoov
+      POSTGRES_DB: neomoov
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neomoov -d neomoov"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Boîte de réception de test : les courriels sortants s'y lisent sur http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  # Stockage S3 compatible local (documents des chauffeurs) : console sur http://localhost:9001
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: neomoov
+      MINIO_ROOT_PASSWORD: neomoov-local
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata: {}
+  redisdata: {}
+  miniodata: {}

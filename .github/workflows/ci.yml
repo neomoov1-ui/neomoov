@@ -1,0 +1,92 @@
+# Intégration continue de la plateforme Neomoov : installation, migrations sur une base PostGIS de service,
+# lint, typecheck, tests, construction. Aucun secret n'est nécessaire : les fournisseurs sont simulés.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Vérification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: neomoov
+          POSTGRES_PASSWORD: neomoov
+          POSTGRES_DB: neomoov
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U neomoov -d neomoov"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      CI: "true"
+      DATABASE_URL: postgresql://neomoov:neomoov@localhost:5432/neomoov
+      TEST_DATABASE_URL: postgresql://neomoov:neomoov@localhost:5432/neomoov
+      REDIS_URL: redis://localhost:6379
+      TURBO_TELEMETRY_DISABLED: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+      EXPO_NO_TELEMETRY: "1"
+
+    steps:
+      - name: Code
+        uses: actions/checkout@v5
+
+      - name: pnpm (version lue dans le champ packageManager de package.json)
+        uses: pnpm/action-setup@v4
+
+      - name: Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - name: Dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: Migrations et données de départ
+        run: |
+          pnpm db:migrate
+          pnpm db:seed
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Types
+        run: pnpm typecheck
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Construction
+        run: pnpm build

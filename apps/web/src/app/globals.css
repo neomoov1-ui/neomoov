@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/* Charte Neomoov (planche de marque du 22 septembre 2026) */
+@theme {
+  --color-brand-blue: #1485e0;
+  --color-brand-blue-dark: #0b5fb5;
+  --color-brand-green: #6cc04a;
+  --color-brand-ink: #2c3a4a;
+  --color-brand-night: #10171f;
+  --color-brand-mist: #f4f7fb;
+  --color-brand-tint: #e3f1fc;
+  --font-heading: "Montserrat", "Segoe UI", Arial, sans-serif;
+  --font-body: "Nunito", "Segoe UI", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-brand-mist);
+  color: var(--color-brand-ink);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}

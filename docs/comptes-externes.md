@@ -1,94 +1,221 @@
-# Neomoov. Comptes externes à créer, dans l'ordre
+# Neomoov. Les 14 comptes externes à créer, dans l'ordre
 
-Version 1.1, 23 septembre 2026 (version 1.0 du 22 septembre). Niveau interne. Dérivé de la section 8.5 du document de référence v1.1, du cahier des charges v1.1 et du plan de développement. Répond à la demande du fondateur : « tous les comptes externes pour l'ensemble du projet, les informations dont Claude a besoin, et l'ordre ».
+Version 1.2, 24 septembre 2026 (v1.1 du 23 septembre, v1.0 du 22 septembre). Niveau interne. Dérivé de la section 8.5 du document de référence v1.1, du cahier des charges v1.1 (décision D48, serveurs chez LWS) et de la configuration du dépôt (`apps/api/src/config/env.ts`, `apps/*/app.json`, `eas.json`).
 
-Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.**, avec l'adresse `neomoov1@gmail.com` (décision du 22 septembre 2026), sauf Apple et Google Play qui restent sur les comptes existants. Les clés vont dans `C:\Users\PC\code\neomoov\.env`, sous le nom de variable indiqué, jamais dans une conversation, un courriel ou un document.
+Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.**, avec l'adresse **`neomoov1@gmail.com`** (décision du 22 septembre 2026). Les clés vont dans **`C:\Users\PC\code\neomoov\.env`**, sous le nom de variable indiqué, jamais dans une conversation, un courriel ou un document. Les fichiers (`.p8`, JSON, mot de passe du serveur) vont dans **`C:\Users\PC\cles-neomoov\`**, jamais dans le dépôt.
 
-## Ce que je dois recevoir, selon le type de compte
-
-| Type | Ce dont j'ai besoin | Comment me le donner |
-|---|---|---|
-| Compte avec clé d'API | La clé, collée dans `.env` après le nom de variable indiqué | Tu me dis « la clé X est dans le .env » |
-| Compte hébergeur (Supabase, Railway, Vercel, Expo, Cloudflare) | Une adresse de connexion ou un jeton, dans `.env` ; parfois une invitation de mon compte comme collaborateur | Invitation par courriel à `paulemileverges@gmail.com` ou jeton dans `.env` |
-| Magasins d'applications (Apple, Google) | Compte validé au nom de la société ; puis une clé d'API App Store Connect (fichier `.p8`) et un compte de service Google Play (fichier JSON) déposés dans `C:\Users\PC\cles-neomoov\` | Tu me dis « fichiers déposés » |
-| Comptes administratifs (Revenu Québec, CTQ, assureur, banque) | Aucun accès : seulement les numéros et les documents obtenus (NEQ, numéros de taxes, numéro de dossier CTQ, attestation d'assurance) | Tu me donnes les numéros ou tu déposes les documents dans `context/import/neomoov/` |
-| Comptes de communication (réseaux sociaux, Google Business Profile, LinkedIn) | Rien avant T4 2026 ; ensuite un accès « gestionnaire » de mon côté ou des jetons d'API pour les agents | Plus tard |
-
-## À préparer avant de commencer (une seule fois)
-
-- Dénomination légale exacte (D25), numéro d'entreprise du Québec (NEQ), adresse du siège, date de constitution
-- Numéros de TPS et de TVQ de la société
-- Numéro D-U-N-S : **243377415** (obtenu le 22 septembre 2026)
-- Compte bancaire d'entreprise (spécimen de chèque) et carte de crédit d'entreprise
-- Pièce d'identité du dirigeant (Stripe, Apple, Google et Supabase Pro la demandent)
-- Un gestionnaire de mots de passe (ligne 8) : tous les accès y sont rangés, rien ailleurs
-
-## État au 23 septembre 2026
+## Déjà fait (rien à refaire)
 
 | Compte | État |
 |---|---|
-| Apple Developer | Existant (individuel, ouvert pour Taxi Sylvain, équipe DNB64CQYH6). À convertir en organisation ou à doubler par un compte d'organisation Groupe NSK Inc. avec le D-U-N-S |
-| Google Play Console | Existant (Taxi Sylvain). Une console d'organisation au nom de Groupe NSK Inc. est nécessaire pour Neomoov |
-| GitHub | Compte `neomoov1` créé le 22 septembre ; dépôt privé `neomoov` et invitation de `paulemileverges-star` restent à faire (3 commits locaux attendent) |
-| WordPress LWS, neomoov.net | En service, accès dans `.env` du Jarvis (`WP_NEOMOOV_*`) |
-| Twilio, Brevo, Railway, Vercel, Expo | Existants (Taxi Sylvain), réutilisables avec un projet ou une organisation « neomoov » |
+| **Supabase** | Projet `neomoov-dev`, région Canada (Central), `DATABASE_URL` dans `.env`, 72 tables migrées et semées (24 septembre). Un projet de test puis de production viendront plus tard |
+| **GitHub** | Dépôt privé https://github.com/neomoov1-ui/neomoov, commits poussés |
+| **Site et courriel** | neomoov.net (WordPress chez LWS) en ligne et indexé ; `contact@neomoov.net` existe et arrive dans le Gmail |
+| **D-U-N-S** | 243377415 (obtenu le 22 septembre) |
 
-## Ordre de création (hyper important) et ce que j'attends de chacun
+## À avoir sous la main avant de commencer
 
-### Bloc 1. Aujourd'hui : ce qui bloque le code dès demain
+- Dénomination légale exacte, NEQ, adresse du siège, date de constitution, numéros de TPS et de TVQ
+- D-U-N-S 243377415
+- Carte de crédit d'entreprise et spécimen de chèque (Stripe, Apple, Google)
+- Pièce d'identité du dirigeant (Apple, Google Play, Stripe en mode réel, Meta)
+- Un document officiel au nom de la société avec l'adresse (état de renseignements du Registraire des entreprises, ou relevé bancaire), pour la vérification Meta
+- Le gestionnaire de mots de passe (compte 5) ouvert en premier, pour y ranger chaque accès au fur et à mesure
 
-| N° | Compte | Lien | Coût | Ce qu'il faut pour l'ouvrir | Ce que j'attends |
-|---|---|---|---|---|---|
-| 1 | **Supabase** (base PostgreSQL et PostGIS, région Canada central) | https://supabase.com/dashboard/sign-up | Gratuit, puis 25 $ US par mois avant le lancement | **Fait le 24 septembre 2026** : projet `neomoov-dev`, région Canada (Central), `DATABASE_URL` dans `.env`, migrations et données de départ appliquées | Plus tard : projet de staging puis de production (plan Pro) |
-| 2 | **GitHub** : dépôt `neomoov` privé sous le compte neomoov1 | https://github.com/neomoov1-ui/neomoov | Gratuit | **Fait** : dépôt existant, commits poussés le 24 septembre | Rien |
-| 3 | **LWS, VPS KVM** (serveurs de Neomoov, décision D48) | https://www.lws.fr/vps-kvm.php (compte LWS existant) | 20 à 70 € HT par mois pour la bêta | Formule **VPS KVM** (accès root, gabarit Docker), au moins 4 vCore, 8 Go, 150 Go NVMe, Ubuntu 24.04 ; pas de VPS à panneau ni d'hébergement mutualisé | L'adresse IP du serveur et le mot de passe root déposés dans `C:\Users\PC\cles-neomoov\lws-vps.txt` (jamais dans le dépôt) ; j'installe Docker, la clé SSH et le pare-feu, puis je remplace le mot de passe par la clé. Redis tourne sur ce serveur : plus besoin de Railway |
-| 4 | **Google Maps Platform** : projet `neomoov` | https://console.cloud.google.com/google/maps-apis/start | Crédit mensuel gratuit puis à l'usage | Compte Google `neomoov1@gmail.com`, carte de crédit, alerte de budget à 50 $ | Activer Routes API (avec péages et trafic), Places API (New), Geocoding API, Maps SDK Android et iOS ; trois clés restreintes : `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY` |
-| 5 | **Apple Developer Program**, organisation | Vérifier le D-U-N-S : https://developer.apple.com/enroll/duns-lookup/ puis https://developer.apple.com/programs/enroll/ | 99 $ US par an | D-U-N-S, site web (neomoov.net), courriel au nom du domaine (`contact@neomoov.net`), téléphone | Compte validé (quelques jours à deux semaines, Apple appelle parfois). Ensuite : clé d'API App Store Connect (`.p8`, identifiant de clé, identifiant d'émetteur) dans `C:\Users\PC\cles-neomoov\` |
-| 6 | **Google Play Console**, organisation | https://play.google.com/console/signup | 25 $ US une fois | D-U-N-S, pièce d'identité, site web | Compte vérifié ; ensuite un compte de service (JSON) pour les envois automatiques |
-| 7 | **Revenu Québec, Mon dossier pour les entreprises** | https://www.revenuquebec.ca (Mon dossier, Entreprises) | Gratuit | NEQ, numéros de taxes | Numéros et accès actifs (redevance de 0,90 $, facturation obligatoire, SEV) ; aucun accès de mon côté |
-| 8 | **1Password** (ou équivalent) | https://1password.com | 8 $ par mois | Carte | Rien ; tous les accès ci-dessous y sont rangés |
+## Quand
 
-### Bloc 2. Avant l'étape 7 (paiements), cette semaine
-
-| N° | Compte | Lien | Coût | Ce qu'il faut | Ce que j'attends |
-|---|---|---|---|---|---|
-| 9 | **Stripe**, au nom de la société | https://dashboard.stripe.com/register | 2,9 % + 0,30 $ par transaction ; Connect en sus | Mode test d'abord : rien. Mode réel : NEQ, compte bancaire, pièce d'identité | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` (test) ; activer Connect (comptes Express), Apple Pay (domaine neomoov.net) et Google Pay. `STRIPE_WEBHOOK_SECRET` vient à l'étape 7 |
-| 10 | **Cloudflare** | https://dash.cloudflare.com/sign-up | 0 à 20 $ par mois | Transférer le DNS de `neomoov.net` (LWS) vers Cloudflare, ou me donner l'accès DNS de LWS | R2 activé : `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (documents des chauffeurs ; plus tard enregistrements audio et vidéo) |
-| 11 | **Courriels de la société** sur `neomoov.net` | Panel LWS, rubrique Emails | Compris | Boîtes ou redirections `contact@` (existe), `assistance@`, `comptes@` vers `neomoov1@gmail.com` | Rien d'autre |
-| 12 | **Expo** : organisation « neomoov » | https://expo.dev, Réglages, Access tokens | 0 à 99 $ US par mois | Compte existant | `EXPO_TOKEN` (jeton de l'organisation) dans `.env` |
-| 13 | **Vercel** et **Railway** | Comptes existants | Gratuit au départ | Rien : solution de secours seulement, le web et Redis tournent sur le VPS LWS | Rien |
-
-### Bloc 3. Avant l'étape 11 (notifications, agents, vocal)
-
-| N° | Compte | Lien | Coût | Ce qu'il faut | Ce que j'attends |
-|---|---|---|---|---|---|
-| 14 | **Anthropic, console de l'API** | https://console.anthropic.com | À l'usage | Carte, limite mensuelle fixée (100 $ pour commencer) | `ANTHROPIC_API_KEY` |
-| 15 | **Telnyx** (textos) ou réutilisation de Twilio | https://telnyx.com/sign-up | 0,01 à 0,02 $ par texto | Numéro canadien, enregistrement des textos d'entreprise (formulaire de marque et de campagne, quelques jours) | `TELNYX_API_KEY` et le numéro ; ou `TWILIO_*` si tu préfères garder Twilio |
-| 16 | **Resend** (courriels transactionnels) ou Brevo existant | https://resend.com/signup | 0 à 50 $ par mois | Vérifier le domaine `neomoov.net` (enregistrements DNS que je te donne) | `RESEND_API_KEY` (ou `BREVO_API_KEY`) |
-| 17 | **Vapi** (agent vocal : réservation par téléphone, entretien des candidats) | https://dashboard.vapi.ai | 0,20 à 0,35 $ par minute | Carte, numéro de téléphone importé ou acheté | `VAPI_API_KEY`, identifiant du numéro |
-| 18 | **Sentry** et **Better Stack** | https://sentry.io/signup et https://betterstack.com | 0 à 100 $ par mois | Comptes gratuits | `SENTRY_DSN`, `BETTERSTACK_TOKEN` |
-| 19 | **WhatsApp Business** (Meta) | https://business.facebook.com | Par conversation | Vérification de l'entreprise chez Meta : une à deux semaines, à lancer maintenant | Identifiant du numéro et jeton d'accès permanent |
-
-### Bloc 4. Avant le lancement commercial (hors sprint)
-
-| Compte | Pourquoi | Quand |
+| Quand | Comptes | Pourquoi |
 |---|---|---|
-| **CTQ** (répartiteur, puis répondant d'un système de transport), **SAAQ**, **Aéroports de Montréal** | Autorisations (section 4.4.6 du document de référence), suivies par le fondateur | En cours |
-| **Courtier d'assurance** | Responsabilité civile commerciale, couverture des courses, flotte, cyber | Devis maintenant |
-| **Fournisseur de SEV certifié** (facturation obligatoire) | Sans lui, aucune course facturable légalement | Choix en octobre 2026 |
-| **Partenaire de paiement échelonné** (Affirm Canada, Sezzle ou Klarna) | Courses de plus de 150 $ payées en plusieurs fois (D35) | Novembre 2026 |
-| **Région canadienne** (OVHcloud Beauharnois, AWS ou Google Cloud Montréal) | Seulement si tu décides, avec l'avocat, de rapatrier les serveurs applicatifs au Canada plutôt que de conserver LWS avec l'évaluation Loi 25 (section 10.3 du cahier des charges) | Décision avant le lancement |
-| **QuickBooks en ligne**, **PandaDoc ou DocuSign**, **CRM** (HubSpot ou Brevo), **Canva Pro** | Comptabilité, signatures, prospection, visuels | T4 2026 |
-| **Comptes publicitaires** (Google Ads, Meta, TikTok, LinkedIn), **Google Business Profile**, **LinkedIn** (page) | Marketing et agents IA | T4 2026 |
-| **Séance photo** (photographe, clients et chauffeurs consentants) | Remplacer les photos de banque d'images par de vraies photos Neomoov (D46) | Avant le lancement |
+| Aujourd'hui | 1 (serveur LWS), 2 (Google Maps), 5 (mots de passe), 6 (Stripe test), 7 (Expo) | Bloquent le déploiement, les cartes, les paiements de test et les compilations Android |
+| Aujourd'hui aussi, car la validation prend du temps | 3 (Apple), 4 (Google Play), 13 (WhatsApp) | Une à deux semaines de vérification chez chacun ; à lancer sans attendre |
+| Cette semaine | 8 (Anthropic), 9 (stockage), 10 (textos), 11 (courriels), 12 (Vapi), 14 (Sentry, Better Stack) | Nécessaires avant l'étape 13 (notifications, agents, vocal) et la mise en ligne bêta |
+
+---
+
+## 1. LWS, serveur VPS KVM (à la place de Railway)
+
+- **Lien :** https://www.lws.fr/vps-kvm.php (le compte client LWS existant, celui de neomoov.net)
+- **Coût :** VPS KVM **M** (4 vCore, 8 Go, 150 Go NVMe) : 4,99 € HT le premier mois puis 19,99 € HT par mois, engagement d'un mois
+- **À faire :**
+  1. Choisir la formule **VPS KVM M**. Pas un « VPS Linux » à panneau ISPConfig ou Hestia, ni un hébergement web, ni Plesk.
+  2. Gabarit : **Docker CE**, système **Ubuntu 24.04** (sinon Debian 13, tout aussi bon). Ne cocher ni CapRover, ni Coolify, ni Portainer, ni EasyPanel, ni Supabase.
+  3. Si un nom d'hôte est demandé : `vps.neomoov.net`. Si un domaine est demandé : « j'ai déjà un domaine », `neomoov.net`. Clé SSH : laisser vide.
+  4. Commander sous le même compte LWS que neomoov.net, pour que le domaine et le serveur soient dans le même panel. Les autres domaines ne sont jamais touchés : seule la zone DNS de neomoov.net recevra trois sous-domaines.
+- **Ce que j'attends :** un fichier `C:\Users\PC\cles-neomoov\lws-vps.txt` avec l'adresse IPv4, le mot de passe root reçu par courriel et le nom d'hôte attribué. Tu me dis « le VPS est dans cles-neomoov ». Je sécurise (clé SSH, pare-feu, mises à jour), j'installe Docker Compose et Caddy (TLS), Redis tourne dessus, puis je te donne les trois enregistrements DNS à poser (`api`, `hub`, `reserver`), ou tu me donnes l'accès DNS du panel.
+
+## 2. Google Maps Platform
+
+- **Lien :** https://console.cloud.google.com/google/maps-apis/start (connecté avec `neomoov1@gmail.com`)
+- **Coût :** gratuit au départ (quota mensuel gratuit par API), puis à l'usage ; carte obligatoire
+- **À faire :**
+  1. Créer un projet nommé `neomoov`.
+  2. Facturation : compte de facturation avec la carte d'entreprise ; « Budgets et alertes » : 50 $ par mois.
+  3. « API et services », « Bibliothèque » : activer **Routes API**, **Places API (New)**, **Geocoding API**, **Maps SDK for Android**, **Maps SDK for iOS**.
+  4. « API et services », « Identifiants », « Créer des identifiants », « Clé API », trois fois :
+     - `neomoov-serveur` : restriction d'API : Routes, Places, Geocoding ; restriction d'application : aucune pour l'instant (adresses IP dès que le serveur LWS existe)
+     - `neomoov-ios` : restriction d'application « Applications iOS », identifiants `com.neomoov.client` et `com.neomoov.driver`
+     - `neomoov-android` : restriction d'application « Applications Android », paquets `com.neomoov.client` et `com.neomoov.driver` ; l'empreinte SHA-1, je te la donne après les premières compilations Expo, laisse vide d'ici là
+- **Ce que j'attends :** `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY` dans `.env`
+
+## 3. Apple Developer Program, compte d'organisation
+
+- **Liens :** vérifier le D-U-N-S https://developer.apple.com/enroll/duns-lookup/ puis s'inscrire https://developer.apple.com/programs/enroll/ (ou l'application « Apple Developer » sur iPhone, souvent plus rapide pour la vérification d'identité)
+- **Coût :** 99 $ US par an
+- **À faire :**
+  1. Identifiant Apple `neomoov1@gmail.com`, avec la validation en deux étapes activée.
+  2. Vérifier que le D-U-N-S 243377415 renvoie bien la dénomination légale et l'adresse du siège. Si une donnée diffère, la corriger chez Dun & Bradstreet avant de s'inscrire.
+  3. S'inscrire comme **Organisation** : dénomination légale, D-U-N-S, site `neomoov.net`, courriel au nom du domaine `contact@neomoov.net`, téléphone, et confirmer que tu as le pouvoir d'engager la société.
+  4. Payer et attendre la validation : deux jours à deux semaines, Apple appelle parfois le numéro indiqué.
+- **Ne pas convertir** le compte individuel actuel (équipe DNB64CQYH6) : il porte les applications de Taxi Sylvain.
+- **Ce que j'attends :** rien avant la validation. Ensuite, dans App Store Connect, « Utilisateurs et accès », « Intégrations », « Clés d'API App Store Connect » : une clé de rôle **Admin**, nommée `claude-code`. Télécharger le fichier `.p8` (possible une seule fois) dans `C:\Users\PC\cles-neomoov\`, et noter à côté, dans `apple.txt` : l'identifiant de clé, l'identifiant d'émetteur (Issuer ID) et l'identifiant d'équipe (Team ID).
+
+## 4. Google Play Console, compte d'organisation
+
+- **Lien :** https://play.google.com/console/signup (connecté avec `neomoov1@gmail.com`)
+- **Coût :** 25 $ US une fois
+- **À faire :**
+  1. Type de compte **Organisation** : dénomination légale, D-U-N-S 243377415, adresse, téléphone et courriel vérifiés, site `neomoov.net`.
+  2. Vérification d'identité du représentant (pièce d'identité), parfois un document de l'entreprise. Validation en deux à sept jours.
+  3. Un compte d'organisation évite l'obligation des comptes personnels (12 testeurs pendant 14 jours avant toute publication).
+- **Ce que j'attends :** rien avant la validation. Ensuite, « Paramètres », « Accès à l'API » : lier le projet Google Cloud `neomoov` (compte 2), créer un compte de service, lui accorder le rôle « Administrateur des versions » dans la console, et enregistrer sa clé JSON sous `C:\Users\PC\cles-neomoov\google-play-service-account.json` (chemin déjà attendu par `eas.json`).
+
+## 5. Gestionnaire de mots de passe
+
+- **Liens :** 1Password https://1password.com/sign-up (environ 8 $ US par utilisateur par mois) ou Bitwarden, gratuit https://bitwarden.com/go/start-free/
+- **À faire :** un coffre « Neomoov » ; y ranger l'accès de chacun des comptes de cette liste au moment de sa création ; activer la validation en deux étapes partout, le gestionnaire peut porter les codes.
+- **Ce que j'attends :** rien. Aucun mot de passe ne transite jamais par un message.
+
+## 6. Stripe
+
+- **Lien :** https://dashboard.stripe.com/register
+- **Coût :** rien en mode test ; en réel, 2,9 % + 0,30 $ par transaction, Connect en sus
+- **À faire maintenant (mode test) :**
+  1. Compte au nom de la société, pays Canada.
+  2. « Développeurs », « Clés d'API » : copier la clé secrète de test (`sk_test_…`) et la clé publiable de test (`pk_test_…`).
+  3. « Connect », « Commencer » : comptes **Express** (ce sont les chauffeurs), plateforme de type « place de marché ».
+  4. « Paramètres », « Moyens de paiement » : Apple Pay et Google Pay activés. Le domaine `neomoov.net` sera ajouté pour Apple Pay quand le site de réservation sera en ligne.
+- **À faire avant le lancement (mode réel) :** activation du compte : NEQ, adresse, compte bancaire, pièce d'identité du dirigeant, description de l'activité.
+- **Ce que j'attends :** `STRIPE_SECRET_KEY` et `STRIPE_PUBLISHABLE_KEY` (test) dans `.env`. `STRIPE_WEBHOOK_SECRET` vient plus tard : je crée le point de réception quand l'API est en ligne et je te dis où lire la valeur.
+
+## 7. Expo
+
+- **Lien :** https://expo.dev (compte existant, celui de Taxi Sylvain)
+- **Coût :** gratuit (30 compilations par mois avec file d'attente) ; forfait Production à 99 $ US par mois seulement si les compilations deviennent trop lentes
+- **À faire :**
+  1. Menu du compte, **Create organization** : `neomoov`.
+  2. Réglages de cette organisation, **Access tokens** : créer un jeton nommé `claude-code`.
+- **Ce que j'attends :** `EXPO_TOKEN` dans `.env` (jeton de l'organisation `neomoov`, pas du compte personnel). Les compilations Android démarrent sans Google Play ; iOS attend Apple (compte 3).
+
+## 8. Anthropic, console de l'API
+
+- **Lien :** https://console.anthropic.com (avec `neomoov1@gmail.com`)
+- **Coût :** à l'usage, crédits prépayés
+- **À faire :**
+  1. Organisation `Neomoov`.
+  2. « Facturation » : carte, achat de crédits (25 $ suffisent pour commencer), limite mensuelle fixée à 100 $.
+  3. « Clés d'API » : créer `neomoov-api`.
+- **Ce que j'attends :** `ANTHROPIC_API_KEY` dans `.env` (agents IA des conversations, entretien vocal des candidats, WhatsApp)
+
+## 9. Stockage des documents : Supabase Storage (recommandé) plutôt que Cloudflare R2
+
+- **Pourquoi je change de recommandation :** la décision D48 du 24 septembre garde la base **et les documents** au Canada. Cloudflare R2 n'a aucune région canadienne. Supabase Storage vit dans le projet `neomoov-dev`, région Canada (Central), parle le protocole S3 attendu par le code, et ne demande aucun compte de plus.
+- **Lien :** https://supabase.com/dashboard (projet `neomoov-dev`)
+- **Coût :** compris (1 Go sur le plan gratuit, 100 Go sur le plan Pro)
+- **À faire :**
+  1. « Storage », « New bucket » : `documents`, **privé**.
+  2. « Storage », « Settings » (ou « Project Settings », « Storage ») : activer **S3 protocol**, puis « New access key » nommée `neomoov-api`. Noter l'adresse « Endpoint » affichée.
+- **Ce que j'attends :** `S3_ENDPOINT`, `S3_BUCKET=documents`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` dans `.env`
+- **Si tu préfères garder Cloudflare R2 malgré tout :** https://dash.cloudflare.com/sign-up, « R2 », activer (carte, palier gratuit de 10 Go), « Create bucket » `neomoov-documents`, « Manage R2 API tokens » ; alors `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`. Dis-le moi, je note la décision.
+
+## 10. Textos : Twilio existant (recommandé) ou Telnyx
+
+- **Pourquoi Twilio :** le compte existe déjà (Taxi Sylvain), un numéro Neomoov s'achète en deux minutes, et Vapi (compte 12) sait importer un numéro Twilio pour l'agent vocal. Un seul fournisseur pour les textos et la voix.
+- **Lien :** https://console.twilio.com ; sinon Telnyx https://telnyx.com/sign-up
+- **Coût :** environ 1 $ US par mois par numéro, moins de 1 ¢ par texto
+- **À faire (Twilio) :**
+  1. « Account », « Subaccounts » : créer le sous-compte `Neomoov` (facturation séparée de Taxi Sylvain).
+  2. Dans ce sous-compte, « Phone Numbers », « Buy a number » : Canada, capacités **SMS et Voice**, indicatif 514 ou 438.
+  3. Copier le SID du sous-compte et son jeton d'authentification (page d'accueil de la console).
+- **Ce que j'attends :** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (au format +1…) dans `.env`. Si Telnyx : `TELNYX_API_KEY`, `TELNYX_MESSAGING_PROFILE_ID` et le numéro.
+
+## 11. Courriels transactionnels : Resend (recommandé) ou Brevo existant
+
+- **Lien :** https://resend.com/signup (avec `neomoov1@gmail.com`) ; sinon le compte Brevo existant https://app.brevo.com
+- **Coût :** gratuit jusqu'à 3 000 courriels par mois, puis 20 $ US
+- **À faire (Resend) :**
+  1. « Domains », « Add domain » : `neomoov.net`.
+  2. Resend affiche trois enregistrements DNS (DKIM, chemin de retour, DMARC). Les ajouter dans le panel LWS, domaine neomoov.net, « Zone DNS », puis « Verify » chez Resend. Si tu préfères, donne-moi l'accès au panel et je les pose.
+  3. « API Keys », « Create » : `neomoov-api`, accès en envoi, domaine `neomoov.net`.
+  4. Dans le panel LWS, rubrique Emails : créer `assistance@neomoov.net` et `comptes@neomoov.net` (ou des redirections vers `neomoov1@gmail.com`), ce sont les adresses d'expédition.
+- **Ce que j'attends :** `RESEND_API_KEY` dans `.env` et « le domaine est vérifié ». Si Brevo : `BREVO_API_KEY`.
+
+## 12. Vapi, agent vocal (réservation par téléphone, entretien des candidats)
+
+- **Lien :** https://dashboard.vapi.ai (avec `neomoov1@gmail.com`)
+- **Coût :** environ 0,05 $ US par minute pour la plateforme, plus la voix, la transcription, le modèle et la téléphonie : compter 0,20 à 0,35 $ US par minute ; carte obligatoire
+- **À faire :**
+  1. Compte et organisation `Neomoov` ; « Billing » : carte.
+  2. « Phone Numbers », « Import » : importer le numéro Twilio de Neomoov (compte 10). Le SID et le jeton Twilio se saisissent directement chez Vapi, pas dans un message. Ne pas acheter de numéro chez Vapi : ils sont américains.
+  3. « Organization settings », « API keys » : clé privée `neomoov-api`.
+- **Ce que j'attends :** `VAPI_API_KEY` et l'identifiant du numéro (Phone Number ID) dans `.env`. `VAPI_WEBHOOK_SECRET` : je le génère et je te dis où le coller.
+
+## 13. WhatsApp Business (Meta), à lancer aujourd'hui
+
+- **Liens :** https://business.facebook.com (Meta Business Suite) puis https://developers.facebook.com
+- **Coût :** gratuit pour répondre à un client dans les 24 heures qui suivent son message ; quelques cents par conversation lancée par Neomoov
+- **À faire :**
+  1. Créer le portefeuille d'entreprise « Groupe NSK Inc. » avec `neomoov1@gmail.com`.
+  2. « Centre de sécurité », « Vérification de l'entreprise » : dénomination légale, adresse, téléphone, site `neomoov.net`, et un document officiel au nom de la société (état de renseignements du Registraire des entreprises, ou relevé bancaire). Délai : quelques jours à deux semaines. C'est ce délai qui justifie de commencer maintenant.
+  3. Sur developers.facebook.com : créer une application de type **Entreprise** nommée `Neomoov`, ajouter le produit **WhatsApp**, la rattacher au portefeuille.
+  4. Ajouter un numéro dédié qui n'a jamais servi sur WhatsApp : un second numéro Twilio Neomoov (compte 10) convient, la vérification se fait par code vocal ou texto.
+  5. « Paramètres de l'entreprise », « Utilisateurs », « Utilisateurs système » : un utilisateur `neomoov-api` de rôle Admin, avec un jeton d'accès **permanent** portant `whatsapp_business_messaging` et `whatsapp_business_management`.
+- **Ce que j'attends :** `WHATSAPP_TOKEN` (jeton permanent) et `WHATSAPP_PHONE_ID` (identifiant du numéro) dans `.env`. `WHATSAPP_VERIFY_TOKEN` : je le génère ; je te dirai l'adresse du webhook à coller dans l'application Meta.
+
+## 14. Sentry et Better Stack (erreurs, disponibilité, alertes)
+
+- **Liens :** https://sentry.io/signup et https://betterstack.com (avec `neomoov1@gmail.com`)
+- **Coût :** gratuit pour commencer, les deux
+- **À faire :**
+  1. Sentry : organisation `neomoov`, projet `api` de plateforme **Node.js** ; copier le DSN. Les projets web et mobile viendront après.
+  2. Better Stack : « Telemetry », « Sources », « Connect source » : `neomoov-api`, plateforme Node.js ; copier le jeton de source. Les moniteurs de disponibilité (« Uptime »), je les créerai quand l'API sera en ligne ; mets ton téléphone dans les alertes.
+- **Ce que j'attends :** `SENTRY_DSN` et `BETTERSTACK_TOKEN` dans `.env`
+
+---
+
+## Hors des 14 : démarches sans accès pour moi
+
+| Démarche | Pourquoi | Quand |
+|---|---|---|
+| **Revenu Québec, Mon dossier pour les entreprises** https://www.revenuquebec.ca | Redevance de 0,90 $ par course, facturation obligatoire, choix d'un SEV certifié en octobre | Maintenant |
+| **CTQ** (répartiteur, puis répondant d'un système de transport), **SAAQ**, **Aéroports de Montréal** | Autorisations, section 4.4.6 du document de référence | En cours, suivies par toi |
+| **Courtier d'assurance** | Responsabilité civile, courses, flotte, cyber | Devis maintenant |
+| **Paiement échelonné** (Affirm Canada, Sezzle ou Klarna) | Courses de plus de 150 $ en plusieurs fois (D35) | Novembre 2026 |
+| **QuickBooks**, **PandaDoc ou DocuSign**, **CRM**, **Canva Pro**, comptes publicitaires, Google Business Profile, LinkedIn | Comptabilité, signatures, prospection, marketing | T4 2026 |
+| **Séance photo** | Vraies photos Neomoov à la place des banques d'images (D46) | Avant le lancement |
 
 ## Comment me transmettre les clés
 
-1. Ouvre `C:\Users\PC\code\neomoov\.env` dans VS Code. S'il n'existe pas, copie `.env.example` en `.env`.
-2. Colle chaque clé après le signe égal de sa variable. Enregistre.
+1. Ouvre `C:\Users\PC\code\neomoov\.env` dans VS Code (il existe, `DATABASE_URL` y est déjà). S'il manque une ligne, copie-la depuis `.env.example`.
+2. Colle chaque clé après le signe égal de sa variable, sans guillemets ni espace. Enregistre.
 3. Dis-moi seulement « les clés Stripe sont dans le .env ». Je ne lis jamais ce fichier à l'écran : le code le lit au démarrage.
-4. Les fichiers (`.p8` Apple, JSON Google, attestations) vont dans `C:\Users\PC\cles-neomoov\`, jamais dans le dépôt.
+4. Les fichiers (`.p8` Apple, JSON Google, `lws-vps.txt`) vont dans `C:\Users\PC\cles-neomoov\`, jamais dans le dépôt.
 
-## Budget mensuel à prévoir pendant le sprint
+## Récapitulatif des variables
 
-Environ 150 à 300 $ par mois (Supabase, Railway, courriels, gestionnaire de mots de passe, Expo, API Claude), plus 124 $ US une seule fois (Apple et Google Play). L'usage de Google Maps, des textos et de l'agent vocal reste presque nul tant qu'il n'y a pas de clients.
+| Compte | Variables dans `.env` |
+|---|---|
+| 2 Google Maps | `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY` |
+| 6 Stripe | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` (puis `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`) |
+| 7 Expo | `EXPO_TOKEN` |
+| 8 Anthropic | `ANTHROPIC_API_KEY` |
+| 9 Stockage | `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` (ou `R2_*`) |
+| 10 Textos | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` (ou `TELNYX_API_KEY`, `TELNYX_MESSAGING_PROFILE_ID`) |
+| 11 Courriels | `RESEND_API_KEY` (ou `BREVO_API_KEY`) |
+| 12 Vapi | `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID` (puis `VAPI_WEBHOOK_SECRET`) |
+| 13 WhatsApp | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` (puis `WHATSAPP_VERIFY_TOKEN`) |
+| 14 Sentry, Better Stack | `SENTRY_DSN`, `BETTERSTACK_TOKEN` |
+| 1, 3, 4 | Fichiers dans `C:\Users\PC\cles-neomoov\` : `lws-vps.txt`, `.p8` + `apple.txt`, `google-play-service-account.json` |
+
+## Budget pendant le sprint
+
+Environ 50 à 80 $ par mois maintenant (serveur LWS, gestionnaire de mots de passe, crédits Anthropic, numéro Twilio), plus 124 $ US une seule fois (Apple 99, Google Play 25). Supabase passe à 25 $ US par mois avant le lancement. Google Maps, textos et agent vocal restent presque à zéro tant qu'il n'y a pas de clients.

@@ -21,7 +21,7 @@ export interface DatabaseOptions {
 export function createDatabase({ url, max = 10, prepare = true }: DatabaseOptions) {
   // Bases hébergées (Supabase) : TLS exigé ; base locale Docker : sans TLS.
   const ssl = /localhost|127.0.0.1/.test(url) ? undefined : ('require' as const);
-  const client = postgres(url, { max, prepare, ssl, onnotice: () => undefined });
+  const client = postgres(url, { max, prepare, onnotice: () => undefined, ...(ssl ? { ssl } : {}) });
   const db = drizzle(client, { schema, casing: 'snake_case' });
   return { db, client, close: () => client.end({ timeout: 5 }) };
 }

@@ -4,9 +4,18 @@ packages:
 
 # Scripts d'installation autorisés (pnpm 12 les bloque par défaut).
 allowBuilds:
+  '@scarf/scarf': false
+  '@swc/core': true
   esbuild: true
+  msgpackr-extract: true
 
 # Politique d'âge minimal des versions : dotenv 18.0.2 est trop récent pour la politique par défaut, il est exclu.
 minimumReleaseAgeExclude:
   - dotenv@18.0.2
+  - '@nestjs/common@12.1.0'
+  - '@nestjs/core@12.1.0'
+  - '@nestjs/platform-express@12.1.0'
+  - '@nestjs/platform-socket.io@12.1.0'
+  - '@nestjs/swagger@12.0.2'
+  - '@nestjs/websockets@12.1.0'
 
