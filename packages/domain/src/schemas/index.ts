@@ -9,12 +9,9 @@ import {
   RATING_TAGS, RIDE_STATES, RIDE_TYPES, SEV_STATUSES, STATEMENT_STATUSES, VEHICLE_CATEGORIES,
 } from '../enums.js';
 
-export const cents = z.number().int().min(0).describe('Montant en cents');
-export const signedCents = z.number().int().describe('Montant signé en cents');
-export const uuid = z.string().uuid();
-export const isoDate = z.string().datetime({ offset: true });
-export const phoneE164 = z.string().regex(/^\+[1-9]\d{6,14}$/, 'Numéro au format E.164 attendu, par exemple +15145550142');
-export const localDateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date AAAA-MM-JJ attendue');
+export * from './common.js';
+export * from './auth.js';
+import { cents, isoDate, localDateString, phoneE164, signedCents, uuid } from './common.js';
 
 export const coordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),

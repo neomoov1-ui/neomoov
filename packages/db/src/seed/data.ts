@@ -102,6 +102,26 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'retention.driver_locations_days', value: 90, description: 'Conservation des positions en clair' },
   { key: 'notifications.quiet_hours', value: { from: '22:00', to: '07:00' }, description: 'Heures silencieuses hors course en cours' },
   { key: 'agents.auto_after_weeks', value: 4, description: 'Passage en automatique après quatre semaines sans erreur, sur décision du fondateur' },
+  // Identité et sécurité (section 8, prompt 03) : lus par l'API à chaque calcul, jamais codés en dur.
+  { key: 'auth.otp_ttl_seconds', value: 300, description: 'Code SMS valable 5 minutes' },
+  { key: 'auth.otp_max_attempts', value: 5, description: 'Tentatives de saisie par code' },
+  { key: 'auth.otp_resend_seconds', value: 30, description: 'Délai minimal entre deux codes pour un même numéro' },
+  { key: 'auth.otp_per_phone_per_hour', value: 5, description: 'Codes par numéro et par heure' },
+  { key: 'auth.otp_per_ip_per_hour', value: 20, description: 'Codes par adresse IP et par heure' },
+  { key: 'auth.access_token_ttl_seconds', value: 900, description: "Jeton d'accès : 15 minutes" },
+  { key: 'auth.refresh_token_ttl_days', value: 30, description: 'Jeton de rafraîchissement : 30 jours, rotation à chaque usage' },
+  { key: 'auth.mfa_token_ttl_seconds', value: 300, description: 'Jeton de passage entre mot de passe et second facteur' },
+  { key: 'auth.staff_lockout_threshold', value: 5, description: 'Échecs consécutifs avant verrouillage du compte du personnel' },
+  { key: 'auth.staff_lockout_minutes', value: 15, description: 'Durée du premier verrouillage, doublée à chaque récidive' },
+  { key: 'auth.staff_login_per_email_per_10min', value: 10, description: 'Tentatives de connexion du personnel par courriel et par 10 minutes' },
+  { key: 'auth.staff_login_per_ip_per_10min', value: 30, description: 'Tentatives de connexion du personnel par adresse IP et par 10 minutes' },
+  { key: 'auth.link_token_ttl_seconds', value: 600, description: 'Jeton de liaison Apple ou Google à un téléphone : 10 minutes' },
+  { key: 'ratelimit.per_ip_per_minute', value: 300, description: 'Requêtes par adresse IP et par minute' },
+  { key: 'ratelimit.per_user_per_minute', value: 600, description: 'Requêtes par utilisateur et par minute' },
+  { key: 'legal.terms_version', value: '2026-09-01', description: "Version des conditions d'utilisation en vigueur" },
+  { key: 'legal.privacy_policy_version', value: '2026-09-01', description: 'Version de la politique de confidentialité en vigueur (5.15 : nouvelle version = nouvelle acceptation)' },
+  { key: 'privacy.data_request_due_days', value: 30, description: 'Délai de réponse aux demandes de droits (Loi 25 : 30 jours)' },
+  { key: 'privacy.export_link_ttl_days', value: 7, description: 'Validité du lien signé vers un export de données' },
 ];
 
 export const AGENTS = [

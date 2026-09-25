@@ -5,6 +5,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel tient
 | Manuel | Contenu | État |
 |---|---|---|
 | `deploiement-lws.md` | DNS, préparation du VPS LWS (`infra/server-setup.sh`), déploiement par `git push lws main` (`infra/deploy.sh`), vérification, journaux, retour arrière | Écrit le 24 septembre 2026 |
+| `personnel-my-hub.md` | Premier administrateur (`create-staff`), connexion avec second facteur, codes de secours, autres membres du personnel, téléphone perdu, clés de service, journal d'audit | Écrit le 25 septembre 2026 |
 | `base-de-donnees.md` | Migrations (`pnpm db:migrate`), retour arrière (`pnpm db:rollback`), données de départ, sauvegardes Supabase, restauration | À écrire à l'étape 16 |
 | `incidents.md` | Que faire quand l'API est injoignable, quand Redis tombe, quand Stripe ou Google Maps refusent, quand un règlement hebdomadaire échoue | À écrire à l'étape 15 |
 | `secrets-et-cles.md` | Où vivent les clés, comment les faire tourner (rotation), qui y a accès | À écrire à l'étape 14 |
@@ -18,4 +19,5 @@ pnpm db:seed         charge les données de départ
 pnpm dev:api         API sur http://localhost:4000 (santé : /v1/health, OpenAPI : /v1/docs)
 pnpm dev:web         web sur http://localhost:3000
 pnpm openapi         régénère packages/api-client/src/openapi.json
+pnpm --filter @neomoov/api create-staff --email … --phone … --first … --last … --roles admin   (mot de passe dans STAFF_PASSWORD)
 ```

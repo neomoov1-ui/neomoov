@@ -11,3 +11,16 @@ export { QUEUE_NAMES, QueueModule, QueueService, type QueueName, type QueueStats
 export { AdaptersModule } from './adapters/adapters.module.js';
 export * from './adapters/types.js';
 export * from './adapters/mock/index.js';
+export { SettingsModule, SettingsService } from './common/settings.service.js';
+export { RateLimitService } from './common/rate-limit.service.js';
+export { AuthModule } from './modules/auth/auth.module.js';
+export { TokensService } from './modules/auth/tokens.service.js';
+export { StaffAuthService } from './modules/auth/staff-auth.service.js';
+export { listRoutePolicies, assertRoutePolicies, type RoutePolicy } from './modules/auth/route-policies.js';
+export * from './modules/auth/actor.js';
+export { UsersModule } from './modules/users/users.module.js';
+export { UsersService } from './modules/users/users.service.js';
+export { AuditModule } from './modules/audit/audit.module.js';
+export { AuditService, maskSensitive } from './modules/audit/audit.service.js';
+export { PrivacyModule } from './modules/privacy/privacy.module.js';
+export { PrivacyJobsService, anonymizedPhone } from './modules/privacy/privacy-jobs.service.js';

@@ -14,7 +14,13 @@ export function createLogger(name: string, level = process.env['LOG_LEVEL'] ?? '
     name,
     level,
     redact: {
-      paths: ['req.headers.authorization', 'req.headers.cookie', '*.password', '*.token', '*.secret', '*.cardNumber', '*.card_number'],
+      paths: [
+        'req.headers.authorization', 'req.headers.cookie', 'req.headers["x-api-key"]',
+        '*.password', '*.token', '*.secret', '*.cardNumber', '*.card_number',
+        // Identité (prompt 03) : codes SMS et TOTP, jetons, secrets du second facteur, codes de secours.
+        // (`*.code` et `*.key` sont exclus exprès : err.code (SQLSTATE, code AppError) et settings.key doivent rester lisibles.)
+        '*.otp', '*.accessToken', '*.refreshToken', '*.identityToken', '*.mfaToken', '*.linkToken', '*.totpSecret', '*.backupCodes', '*.apiKey', '*.keyHash', '*.passwordHash',
+      ],
       censor: '[masqué]',
     },
     mixin: () => {

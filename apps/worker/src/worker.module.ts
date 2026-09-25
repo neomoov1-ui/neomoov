@@ -1,4 +1,7 @@
-import { AdaptersModule, APP_LOGGER, CoreModule, DbModule, QueueModule, QueueService, RedisModule, type AppEnv } from '@neomoov/api';
+import {
+  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, PrivacyJobsService, PrivacyModule, QueueModule, QueueService, RedisModule,
+  SettingsModule, UsersModule, type AppEnv,
+} from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
 import type { Logger } from 'pino';
 
@@ -24,13 +27,26 @@ export class HeartbeatService implements OnModuleInit {
   }
 }
 
+/** Tâches de confidentialité (export, suppression de compte) : avec Redis, c'est le worker qui les traite. En mode mémoire, PrivacyJobsService s'enregistre lui-même. */
+@Injectable()
+export class PrivacyWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: PrivacyJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register();
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule],
-      providers: [HeartbeatService],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, UsersModule, AuthModule, AuditModule, PrivacyModule],
+      providers: [HeartbeatService, PrivacyWorker],
     };
   }
 }

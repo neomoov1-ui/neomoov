@@ -5,7 +5,7 @@ import type { Logger } from 'pino';
 import { APP_LOGGER } from '../common/logger.js';
 import { REDIS } from './redis.module.js';
 
-export const QUEUE_NAMES = ['heartbeat', 'notifications', 'invoicing', 'settlements', 'exports', 'agents'] as const;
+export const QUEUE_NAMES = ['heartbeat', 'notifications', 'invoicing', 'settlements', 'exports', 'agents', 'privacy'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
 export interface QueueStats {

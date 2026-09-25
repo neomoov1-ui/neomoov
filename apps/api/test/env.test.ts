@@ -39,9 +39,13 @@ describe('configuration', () => {
     expect(env.PORT).toBe(4100);
   });
 
-  it('exige les secrets et Redis en production', () => {
+  it('exige les secrets, Redis et la vérification réelle des jetons Apple et Google en production', () => {
     expect(() => loadEnv({ ...base, NODE_ENV: 'production' }, { dotenv: false })).toThrow(/JWT_ACCESS_SECRET/);
-    expect(() => loadEnv({ ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a', JWT_REFRESH_SECRET: 'b', ENCRYPTION_KEY: 'c' }, { dotenv: false })).toThrow(/REDIS_URL/);
+    const secrets = { ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a', JWT_REFRESH_SECRET: 'b', ENCRYPTION_KEY: 'c' };
+    expect(() => loadEnv(secrets, { dotenv: false })).toThrow(/REDIS_URL/);
+    expect(() => loadEnv({ ...secrets, REDIS_URL: 'redis://redis:6379' }, { dotenv: false })).toThrow(/SOCIAL_LOGIN_PROVIDER/);
+    expect(() => loadEnv({ ...secrets, REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'mock' }, { dotenv: false })).toThrow(/SOCIAL_LOGIN_PROVIDER/);
+    expect(loadEnv({ ...secrets, REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real' }, { dotenv: false }).SOCIAL_LOGIN_PROVIDER).toBe('real');
   });
 
   it('fournit des secrets de repli non secrets hors production', () => {

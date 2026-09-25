@@ -15,6 +15,13 @@
       "when": 1790085347806,
       "tag": "0001_postgis-triggers-partitions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790295836009,
+      "tag": "0002_identity-staff-api-keys",
+      "breakpoints": true
     }
   ]
 }

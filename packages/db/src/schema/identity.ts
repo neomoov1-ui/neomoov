@@ -48,6 +48,8 @@ export const sessions = pgTable('sessions', {
   revokedAt: tz('revoked_at'),
   ipAddress: inet('ip_address'),
   userAgent: varchar('user_agent', { length: 300 }),
+  /** Méthodes d'authentification de la session (otp, apple, google, pwd, mfa) : un rafraîchissement les conserve. */
+  amr: jsonb('amr').notNull().default(sql`'[]'::jsonb`),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex('sessions_token_unique').on(t.refreshTokenHash), index('sessions_user_idx').on(t.userId), index('sessions_family_idx').on(t.family)]);
 
@@ -92,6 +94,8 @@ export const auditLog = pgTable('audit_log', {
   before: jsonb('before'),
   after: jsonb('after'),
   ipAddress: inet('ip_address'),
+  /** Identifiant de corrélation de la requête HTTP (en-tête x-correlation-id), pour relier audit et journaux. */
+  correlationId: varchar('correlation_id', { length: 64 }),
   occurredAt: tz('occurred_at').notNull().defaultNow(),
 }, (t) => [index('audit_log_entity_idx').on(t.entity, t.entityId), index('audit_log_actor_idx').on(t.actorUserId, t.occurredAt), index('audit_log_time_idx').on(t.occurredAt)]);
 
@@ -111,3 +115,39 @@ export const settings = pgTable('settings', {
   updatedBy: uuid('updated_by'),
   updatedAt: updatedAt(),
 }, (t) => [primaryKey({ columns: [t.key, t.scope] })]);
+
+/**
+ * Personnel de My Hub (rôles admin, operator, finance, readonly) : mot de passe argon2id et second facteur TOTP
+ * (secret chiffré avec ENCRYPTION_KEY), codes de secours hachés, verrouillage progressif. Clients et chauffeurs n'ont
+ * jamais de mot de passe (prompt 03).
+ */
+export const staffCredentials = pgTable('staff_credentials', {
+  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  totpSecretEncrypted: varchar('totp_secret_encrypted', { length: 255 }),
+  /** Secret en cours d'inscription, confirmé par un premier code valide. */
+  totpPendingSecretEncrypted: varchar('totp_pending_secret_encrypted', { length: 255 }),
+  totpEnabledAt: tz('totp_enabled_at'),
+  backupCodeHashes: jsonb('backup_code_hashes').notNull().default(sql`'[]'::jsonb`),
+  failedAttempts: integer('failed_attempts').notNull().default(0),
+  lockedUntil: tz('locked_until'),
+  passwordChangedAt: tz('password_changed_at').notNull().defaultNow(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** Comptes de service (agents et intégrations, section 7.1) : clé à portée limitée, hachée, révocable. */
+export const apiKeys = pgTable('api_keys', {
+  id: id(),
+  name: varchar('name', { length: 100 }).notNull(),
+  /** Début public de la clé (recherche), le reste n'existe qu'en haché. */
+  prefix: varchar('prefix', { length: 24 }).notNull(),
+  keyHash: varchar('key_hash', { length: 128 }).notNull(),
+  scopes: jsonb('scopes').notNull().default(sql`'[]'::jsonb`),
+  agentCode: varchar('agent_code', { length: 40 }),
+  createdByUserId: uuid('created_by_user_id').references(() => users.id),
+  expiresAt: tz('expires_at'),
+  lastUsedAt: tz('last_used_at'),
+  revokedAt: tz('revoked_at'),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex('api_keys_prefix_unique').on(t.prefix), uniqueIndex('api_keys_hash_unique').on(t.keyHash)]);

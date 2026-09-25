@@ -15,8 +15,18 @@ export type RideState = (typeof RIDE_STATES)[number];
 export const RIDE_TYPES = ['immediate', 'scheduled'] as const;
 export type RideType = (typeof RIDE_TYPES)[number];
 
-export const USER_ROLES = ['client', 'driver', 'partner', 'investor', 'operator', 'admin', 'agent'] as const;
+export const USER_ROLES = ['client', 'driver', 'partner', 'investor', 'operator', 'admin', 'agent', 'finance', 'readonly'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
+
+/** Rôles du personnel (My Hub) : connexion par courriel et mot de passe, second facteur obligatoire (prompt 03). */
+export const STAFF_ROLES = ['admin', 'operator', 'finance', 'readonly'] as const;
+export type StaffRole = (typeof STAFF_ROLES)[number];
+
+export const DEVICE_PLATFORMS = ['ios', 'android', 'web'] as const;
+export type DevicePlatform = (typeof DEVICE_PLATFORMS)[number];
+
+export const CONSENT_SOURCES = ['app', 'web', 'hub', 'voice', 'system'] as const;
+export type ConsentSource = (typeof CONSENT_SOURCES)[number];
 
 export const USER_STATUSES = ['active', 'blocked', 'deleted'] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];

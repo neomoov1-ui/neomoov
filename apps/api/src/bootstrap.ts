@@ -10,6 +10,7 @@ import { AppExceptionFilter } from './common/app-exception.filter.js';
 import { correlationMiddleware } from './common/correlation.middleware.js';
 import { createLogger, currentCorrelationId, PinoNestLogger } from './common/logger.js';
 import type { AppEnv } from './config/env.js';
+import { assertRoutePolicies } from './modules/auth/route-policies.js';
 
 const documents = new WeakMap<object, OpenAPIObject>();
 
@@ -53,5 +54,7 @@ export async function createApp(env: AppEnv, logger: Logger = createLogger('api'
   );
   SwaggerModule.setup('v1/docs', app, document, { jsonDocumentUrl: 'v1/docs/openapi.json' });
   documents.set(app, document);
+  // Refus par défaut : toute route déclare sa politique d'accès, sinon l'API ne démarre pas (prompt 03).
+  assertRoutePolicies(app);
   return app;
 }

@@ -112,6 +112,10 @@ VOICE_PROVIDER=mock
 LLM_PROVIDER=mock
 SEV_PROVIDER=mock
 STORAGE_PROVIDER=mock
+# Connexion Apple et Google : jamais le mode simule en production (refuse au demarrage) ; audiences a remplir.
+SOCIAL_LOGIN_PROVIDER=real
+APPLE_CLIENT_IDS=
+GOOGLE_CLIENT_IDS=
 IMAGE_PREFIX=neomoov
 EOF
   chmod 600 /opt/neomoov/.env

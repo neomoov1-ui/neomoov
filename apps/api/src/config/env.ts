@@ -45,6 +45,13 @@ export const envSchema = z.object({
   LLM_PROVIDER: providerMode,
   SEV_PROVIDER: providerMode,
   STORAGE_PROVIDER: providerMode,
+  // Vérification des jetons Apple et Google : simulée (jetons « mock-apple:<sujet>:<courriel> ») ou réelle (JWKS des fournisseurs).
+  SOCIAL_LOGIN_PROVIDER: providerMode,
+  // Identifiants acceptés (audience) : bundle ids iOS et identifiant de service web pour Apple, client ids OAuth pour Google, séparés par des virgules.
+  APPLE_CLIENT_IDS: optionalString,
+  GOOGLE_CLIENT_IDS: optionalString,
+  // Nom affiché dans les applications d'authentification (second facteur du personnel).
+  MFA_ISSUER: z.string().default('Neomoov My Hub'),
 
   STRIPE_SECRET_KEY: optionalString,
   STRIPE_PUBLISHABLE_KEY: optionalString,
@@ -123,6 +130,8 @@ export function loadEnv(source?: Record<string, string | undefined>, { dotenv = 
     const missing = (['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'ENCRYPTION_KEY'] as const).filter((k) => !env[k]);
     if (missing.length) throw new Error(`Configuration invalide en production : ${missing.join(', ')} obligatoire(s).`);
     if (!env.REDIS_URL) throw new Error('Configuration invalide en production : REDIS_URL est obligatoire.');
+    // Le mode simulé accepte des jetons forgés (« mock-apple:<sujet> ») : jamais en production.
+    if (env.SOCIAL_LOGIN_PROVIDER !== 'real') throw new Error('Configuration invalide en production : SOCIAL_LOGIN_PROVIDER doit valoir « real ».');
   }
   return {
     ...env,

@@ -1,6 +1,6 @@
 # Neomoov. Les 14 comptes externes à créer, dans l'ordre
 
-Version 1.3, 24 septembre 2026 au soir (v1.2 le même jour, v1.1 du 23 septembre, v1.0 du 22 septembre) : décisions D49 (Supabase Storage) et D50 (nouveau compte Twilio) prises par le fondateur. Niveau interne. Dérivé de la section 8.5 du document de référence v1.1, du cahier des charges v1.1 (décision D48, serveurs chez LWS) et de la configuration du dépôt (`apps/api/src/config/env.ts`, `apps/*/app.json`, `eas.json`).
+Version 1.4, 25 septembre 2026 : connexion Google et Apple dans les applications (étape 3 du code, variables GOOGLE_CLIENT_IDS et APPLE_CLIENT_IDS). Historique : v1.3 du 24 septembre au soir (v1.2 le même jour, v1.1 du 23 septembre, v1.0 du 22 septembre) : décisions D49 (Supabase Storage) et D50 (nouveau compte Twilio) prises par le fondateur. Niveau interne. Dérivé de la section 8.5 du document de référence v1.1, du cahier des charges v1.1 (décision D48, serveurs chez LWS) et de la configuration du dépôt (`apps/api/src/config/env.ts`, `apps/*/app.json`, `eas.json`).
 
 Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.**, avec l'adresse **`neomoov1@gmail.com`** (décision du 22 septembre 2026). Les clés vont dans **`C:\Users\PC\code\neomoov\.env`**, sous le nom de variable indiqué, jamais dans une conversation, un courriel ou un document. Les fichiers (`.p8`, JSON, mot de passe du serveur) vont dans **`C:\Users\PC\cles-neomoov\`**, jamais dans le dépôt.
 
@@ -55,7 +55,8 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
      - `neomoov-serveur` : restriction d'API : Routes, Places, Geocoding ; restriction d'application : aucune pour l'instant (adresses IP dès que le serveur LWS existe)
      - `neomoov-ios` : restriction d'application « Applications iOS », identifiants `com.neomoov.client` et `com.neomoov.driver`
      - `neomoov-android` : restriction d'application « Applications Android », paquets `com.neomoov.client` et `com.neomoov.driver` ; l'empreinte SHA-1, je te la donne après les premières compilations Expo, laisse vide d'ici là
-- **Ce que j'attends :** `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY` dans `.env`
+  5. **Connexion Google dans les applications** (étape 3 du code, 25 septembre 2026) : « API et services », « Écran de consentement OAuth » (ou « Google Auth Platform ») : type Externe, nom `Neomoov`, courriel `neomoov1@gmail.com`, domaine `neomoov.net`. Puis « Clients », « Créer un client » : **Application Web** (`neomoov-web`, origines `https://hub.neomoov.net` et `https://reserver.neomoov.net`), **iOS** (un client par identifiant de bundle : `com.neomoov.client`, `com.neomoov.driver`), **Android** (paquets `com.neomoov.client` et `com.neomoov.driver`, empreinte SHA-1 plus tard). Chaque client donne un « ID client » en `.apps.googleusercontent.com`.
+- **Ce que j'attends :** `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY` et `GOOGLE_CLIENT_IDS` (tous les ID clients, séparés par des virgules) dans `.env`
 
 ## 3. Apple Developer Program, compte d'organisation
 
@@ -67,6 +68,7 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
   3. S'inscrire comme **Organisation** : dénomination légale, D-U-N-S, site `neomoov.net`, courriel au nom du domaine `contact@neomoov.net`, téléphone, et confirmer que tu as le pouvoir d'engager la société.
   4. Payer et attendre la validation : deux jours à deux semaines, Apple appelle parfois le numéro indiqué.
 - **Ne pas convertir** le compte individuel actuel (équipe DNB64CQYH6) : il porte les applications de Taxi Sylvain.
+- **Connexion avec Apple** (étape 3 du code) : une fois le compte validé, « Certificates, Identifiers & Profiles », « Identifiers » : les identifiants d'application `com.neomoov.client` et `com.neomoov.driver` avec la capacité « Sign in with Apple », plus un « Services ID » (`net.neomoov.web`) pour My Hub et la réservation web. Ces trois identifiants vont dans `APPLE_CLIENT_IDS` (séparés par des virgules).
 - **Ce que j'attends :** rien avant la validation. Ensuite, dans App Store Connect, « Utilisateurs et accès », « Intégrations », « Clés d'API App Store Connect » : une clé de rôle **Admin**, nommée `claude-code`. Télécharger le fichier `.p8` (possible une seule fois) dans `C:\Users\PC\cles-neomoov\`, et noter à côté, dans `apple.txt` : l'identifiant de clé, l'identifiant d'émetteur (Issuer ID) et l'identifiant d'équipe (Team ID).
 
 ## 4. Google Play Console, compte d'organisation
@@ -206,7 +208,8 @@ Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE N
 
 | Compte | Variables dans `.env` |
 |---|---|
-| 2 Google Maps | `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY` |
+| 2 Google Maps et connexion Google | `GOOGLE_MAPS_SERVER_KEY`, `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY`, `GOOGLE_CLIENT_IDS` |
+| 3 Apple (après validation) | `APPLE_CLIENT_IDS` (identifiants de bundle et Services ID pour « Sign in with Apple ») |
 | 6 Stripe | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` (puis `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`) |
 | 7 Expo | `EXPO_TOKEN` |
 | 8 Anthropic | `ANTHROPIC_API_KEY` |
