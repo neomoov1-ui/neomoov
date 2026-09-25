@@ -1,0 +1,11 @@
+# Parcours 3 (9.2) : réservation planifiée avec numéro de vol (session ouverte).
+appId: com.neomoov.client
+---
+- launchApp
+- tapOn: "Réserver"
+- tapOn:
+    id: "flight-input"
+- inputText: "AC870"
+- runFlow: reserver.yaml
+- assertVisible: "Réservation confirmée"
+- assertVisible: "Nous confirmons votre chauffeur avant l'heure de prise en charge. Vous recevrez un rappel la veille."

@@ -1,0 +1,32 @@
+# Parcours 5 (9.2), partie disponible en V1 : choix précis d'un véhicule libre sur le créneau (D37). Le choix d'un
+# chauffeur favori parmi « Mes chauffeurs » et le repli expliqué arrivent avec l'étape 8.
+appId: com.neomoov.client
+---
+- launchApp
+- tapOn: "Réserver"
+- tapOn:
+    id: "origin-input"
+- inputText: "4500 rue Saint-Denis"
+- tapOn:
+    id: "suggestion-0"
+- tapOn:
+    id: "destination-input"
+- inputText: "1000 rue De La Gauchetière Ouest"
+- tapOn:
+    id: "suggestion-0"
+- tapOn:
+    id: "pickup-day-3"
+- tapOn:
+    id: "pickup-hour-14"
+- tapOn:
+    id: "pickup-slot-0"
+- tapOn: "Voir les prix"
+- scrollUntilVisible:
+    element: "Choisir mon véhicule"
+- assertVisible: "Peu importe, attribuez-moi le meilleur"
+- tapOn:
+    text: ".*Tesla.*"
+    optional: true
+- tapOn: "Continuer"
+- tapOn: "Confirmer la réservation"
+- assertVisible: "Réservation confirmée"

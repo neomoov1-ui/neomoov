@@ -1,19 +1,21 @@
-import { Body, Button, Card, Heading, Sheet } from '@neomoov/mobile-core/components';
+import { Body, Button, Card, Heading } from '@neomoov/mobile-core/components';
 import { isLanguage, SUPPORTED_LANGUAGES } from '@neomoov/mobile-core/i18n';
 import { colors, spacing } from '@neomoov/mobile-core/theme';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSession } from '@/lib/session';
 
 const LABELS: Record<string, string> = { 'fr-CA': 'FR', en: 'EN' };
 
-/** Écran de démarrage (étape 1) : logo, slogan (D44), préavis de 2 heures (D32), choix de la langue. */
+/** Accueil : logo, slogan commercial (D44), préavis de 2 heures (D32), langue ; une session ouverte mène à la réservation. */
 export default function StartScreen() {
   const { t, i18n } = useTranslation();
-  const [sheet, setSheet] = useState(false);
+  const status = useSession((s) => s.status);
   const current = isLanguage(i18n.language) ? i18n.language : 'fr-CA';
+  if (status === 'signedIn') return <Redirect href="/book" />;
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.languages} accessibilityLabel={t('core:language')}>
@@ -33,13 +35,9 @@ export default function StartScreen() {
         <Body>{t('core:leadTime')}</Body>
       </Card>
       <View style={styles.actions}>
-        <Button label={t('start')} onPress={() => setSheet(true)} />
-        <Button label={t('login')} variant="ghost" onPress={() => setSheet(true)} />
+        <Button label={t('start')} onPress={() => router.push('/login')} />
+        <Button label={t('login')} variant="ghost" onPress={() => router.push('/login')} />
       </View>
-      <Sheet visible={sheet} onClose={() => setSheet(false)} title={t('core:appName')} closeLabel={t('core:close')}>
-        <Body>{t('stepOne')}</Body>
-        <Button label={t('core:continue')} onPress={() => setSheet(false)} />
-      </Sheet>
     </SafeAreaView>
   );
 }

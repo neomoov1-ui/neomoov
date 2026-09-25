@@ -1,0 +1,13 @@
+# Parcours 6 (9.2) : annulation gratuite avant l'attribution (les frais de 5,00 $ après 2 minutes suivant
+# l'attribution sont vérifiés par les tests d'intégration de l'API).
+appId: com.neomoov.client
+---
+- launchApp
+- tapOn: "Réservations"
+- tapOn:
+    text: ".*→.*"
+    index: 0
+- tapOn: "Annuler la course"
+- assertVisible: "Annulation gratuite maintenant."
+- tapOn: "Confirmer l'annulation"
+- assertVisible: "Course annulée."

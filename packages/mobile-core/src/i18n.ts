@@ -40,7 +40,9 @@ export const coreResources = {
   },
 } as const;
 
-type Resources = Record<Language, Record<string, Record<string, string>>>;
+/** Textes par langue et par espace de noms ; les clés peuvent être imbriquées (`book.title`). */
+type Messages = { [key: string]: string | Messages };
+type Resources = Record<Language, Record<string, Messages>>;
 
 /** Crée une instance i18n avec les textes communs et ceux de l'application (fusionnés par langue). */
 export function createMobileI18n(appResources: Resources, language: Language = 'fr-CA'): i18n {

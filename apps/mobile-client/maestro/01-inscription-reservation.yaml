@@ -1,0 +1,28 @@
+# Parcours 1 (9.2), V1 : inscription par code SMS, consentements, réservation planifiée en trois écrans.
+appId: com.neomoov.client
+env:
+  PHONE: "9995550101"
+  OTP_CODE: ""
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Une application conçue par le client pour les chauffeurs."
+- tapOn: "Réserver ma course"
+- tapOn:
+    id: "phone-input"
+- inputText: ${PHONE}
+- tapOn: "Recevoir le code"
+- assertVisible: "Code de vérification"
+- runFlow:
+    when:
+      true: ${OTP_CODE != ''}
+    commands:
+      - tapOn:
+          id: "code-input"
+      - inputText: ${OTP_CODE}
+      - tapOn: "J'accepte les conditions d'utilisation et la politique de confidentialité."
+      - tapOn: "Vérifier"
+      - assertVisible: "Vos choix de confidentialité"
+      - tapOn: "Enregistrer et continuer"
+      - runFlow: reserver.yaml
+      - assertVisible: "Réservation confirmée"

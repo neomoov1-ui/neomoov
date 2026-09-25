@@ -527,6 +527,11 @@ export class RidesService {
         { ...recipient, template: 'ride.assigned', data: { rideId, driverId: driver.id } },
         { recipientUserId: driver.userId, template: 'ride.assigned_to_you', data: { rideId } },
       ]);
+      // Course réservée pour un tiers (parcours 4) : le passager reçoit par texto le lien de suivi public.
+      if (await this.passengerNeedsTracking(result.ride)) {
+        const trackingUrl = this.trackingUrl(await this.trackingTokenOf(result.ride, SYSTEM_ACTOR));
+        await this.outbox.queue({ recipientUserId: null, recipientAddress: result.ride.passengerPhone!, channel: 'sms', language: recipient.language, template: 'ride.passenger_tracking', data: { rideId, trackingUrl, passengerName: result.ride.passengerName } });
+      }
       this.audit.record({ action: actor.kind === 'operator' ? 'admin.ride_assigned' : 'ride.assigned', entity: 'rides', entityId: rideId, after: { driverId: driver.id, vehicleId: vehicle.id, note: input.note ?? null } });
     }
     return this.view(result.ride);
@@ -818,13 +823,41 @@ export class RidesService {
   async share(rideId: string, actor: UserActor): Promise<{ trackingUrl: string; token: string; expiresAt: string | null }> {
     const ride = await this.getRide(rideId);
     const kind = await this.participantKind(ride, actor);
-    let token = ride.trackingToken;
-    if (!token) {
-      token = randomToken(15);
-      await this.db.update(schema.rides).set({ trackingToken: token }).where(eq(schema.rides.id, rideId));
-      await this.db.insert(schema.rideEvents).values({ rideId, type: 'shared', fromState: ride.state, toState: ride.state, actorUserId: actor.userId, actorKind: kind, data: {} });
+    const token = await this.trackingTokenOf(ride, { kind, userId: actor.userId });
+    return { trackingUrl: this.trackingUrl(token), token, expiresAt: null };
+  }
+
+  /**
+   * Le passager d'un tiers reçoit le lien de suivi une seule fois par course (pas à chaque réattribution), et jamais
+   * quand son numéro est celui du client ou de l'invité qui a réservé.
+   */
+  private async passengerNeedsTracking(ride: RideRow): Promise<boolean> {
+    const phone = ride.passengerPhone;
+    if (!phone || phone === ride.guestPhone) return false;
+    const parties = await this.partiesOf(ride);
+    if (parties.clientUserId) {
+      const [client] = await this.db.select({ phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, parties.clientUserId)).limit(1);
+      if (client?.phone === phone) return false;
     }
-    return { trackingUrl: `${this.env.WEB_BASE_URL.replace(/\/+$/, '')}/suivi/${token}`, token, expiresAt: null };
+    const [sent] = await this.db
+      .select({ id: schema.notifications.id })
+      .from(schema.notifications)
+      .where(and(eq(schema.notifications.template, 'ride.passenger_tracking'), eq(schema.notifications.recipientAddress, phone), sql`${schema.notifications.data}->>'rideId' = ${ride.id}`))
+      .limit(1);
+    return !sent;
+  }
+
+  /** Jeton du suivi public de la course, créé au premier partage (client, ou système pour le passager d'un tiers). */
+  private async trackingTokenOf(ride: RideRow, actor: ActorRef): Promise<string> {
+    if (ride.trackingToken) return ride.trackingToken;
+    const token = randomToken(15);
+    await this.db.update(schema.rides).set({ trackingToken: token }).where(eq(schema.rides.id, ride.id));
+    await this.db.insert(schema.rideEvents).values({ rideId: ride.id, type: 'shared', fromState: ride.state, toState: ride.state, actorUserId: actor.userId, actorKind: actor.kind, data: {} });
+    return token;
+  }
+
+  private trackingUrl(token: string): string {
+    return `${this.env.WEB_BASE_URL.replace(/\/+$/, '')}/suivi/${token}`;
   }
 
   /** Suivi public : le strict nécessaire, position du chauffeur seulement pendant la course. */

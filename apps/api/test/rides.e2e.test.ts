@@ -211,6 +211,35 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     expect(reassigned.body.driver.id).toBe(second.driverId);
   });
 
+  it('réservation pour un tiers (parcours 4) : le passager reçoit par texto le lien de suivi public à l\'attribution', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const quote = await quoteFor(client);
+    const passengerPhone = `+1999${Math.floor(Math.random() * 1e7).toString().padStart(7, '0')}`;
+    const created = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key()).send({ quoteId: quote.id, type: 'scheduled', requestedAt: inThreeHours(), paymentMethod: 'card_app', maxConsentedCents: quote.maxConsentedCents, passenger: { name: 'Marie Tremblay', phone: passengerPhone } }).expect(201);
+    await assign(admin.tokens, created.body.id, driver);
+    const [sms] = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, passengerPhone), eq(schema.notifications.template, 'ride.passenger_tracking')));
+    expect(sms).toMatchObject({ channel: 'sms', recipientUserId: null });
+    const url = (sms!.data as { trackingUrl: string }).trackingUrl;
+    const token = url.split('/suivi/')[1]!;
+    const tracking = await request(server()).get(`/v1/public/track/${token}`).expect(200);
+    expect(tracking.body).toMatchObject({ state: 'assigned' });
+    // Le client garde le même lien s'il partage lui-même le trajet.
+    expect((await request(server()).post(`/v1/rides/${created.body.id}/share`).set(bearer(client)).expect(200)).body.token).toBe(token);
+    // Le chauffeur se retire, un autre est attribué : le passager n'est pas prévenu une seconde fois.
+    await request(server()).post(`/v1/driver/rides/${created.body.id}/cancel`).set(bearer(driver.tokens)).send({ reason: 'Panne de véhicule' }).expect(200);
+    const second = await createDriver(app);
+    await assign(admin.tokens, created.body.id, second);
+    expect(await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, passengerPhone), eq(schema.notifications.template, 'ride.passenger_tracking')))).toHaveLength(1);
+    // Un passager qui est le client lui-même ne reçoit rien.
+    const ownQuote = await quoteFor(client);
+    const self = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key()).send({ quoteId: ownQuote.id, type: 'scheduled', requestedAt: inThreeHours(), paymentMethod: 'card_app', maxConsentedCents: ownQuote.maxConsentedCents, passenger: { name: 'Moi', phone: client.user.phone } }).expect(201);
+    await assign(admin.tokens, self.body.id, await createDriver(app));
+    expect(await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, client.user.phone), eq(schema.notifications.template, 'ride.passenger_tracking')))).toHaveLength(0);
+  });
+
   it('création par l\'opérateur avec fiche minimale, garantie modèle et présence du chauffeur', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const admin = await createStaffAndLogin(app, ['operator']);

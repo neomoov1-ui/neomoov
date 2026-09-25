@@ -16,6 +16,7 @@ import { cents, isoDate, localDateString, phoneE164, signedCents, uuid } from '.
 export * from './quotes.js';
 export * from './rides.js';
 export * from './dispatch.js';
+export * from './client.js';
 import { PAYMENT_CHOICES } from './rides.js';
 import { dispatchSummarySchema, negotiationSummarySchema } from './dispatch.js';
 import { coordinatesSchema, placeSchema, quoteLineSchema, quoteSchema, ridePreferencesSchema } from './quotes.js';
@@ -177,3 +178,7 @@ export const driverLocationSchema = z.object({
   accuracyMeters: z.number().min(0).nullable(),
   recordedAt: isoDate,
 });
+
+// Types des réponses, pour les clients de l'API (applications, web).
+export type CancelRide = z.infer<typeof cancelRideSchema>;
+export type RateRide = z.infer<typeof rateRideSchema>;
