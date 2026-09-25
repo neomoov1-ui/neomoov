@@ -9,6 +9,7 @@ import { Choices, ErrorState, Notice, Row, Screen, SectionTitle, ToggleRow } fro
 import { useBooking } from '@/features/booking/store';
 import { api, errorCode, errorMessage } from '@/lib/api';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
+import { displayPhone, toE164 } from '@/lib/phone';
 import { keys, queryClient, useAppConfig, usePreferences } from '@/lib/queries';
 
 const DEFAULT_PREFERENCES: RidePreferences = { conversation: 'indifferent', music: 'indifferent', temperature: 'neutral', luggageHelp: false };
@@ -46,6 +47,9 @@ export default function ConfirmScreen() {
   const setPreference = (patch: Partial<RidePreferences>) => draft.update({ preferences: { ...preferences, ...patch } });
   const methods = methodsFor(draft.paymentChoice).filter((m) => draft.paymentChoice !== 'pay_driver_after' || !vehicle || vehicle.paymentMethods.includes(m));
   const category = config.data?.categories.find((c) => c.code === quote.category);
+  const passengerPhone = draft.forSomeoneElse ? toE164(draft.passengerPhone) : null;
+  const passenger = draft.forSomeoneElse && passengerPhone && draft.passengerName.trim().length >= 2 ? { name: draft.passengerName.trim(), phone: passengerPhone } : null;
+  const passengerIncomplete = draft.forSomeoneElse && !passenger;
 
   async function book() {
     if (!quote || !draft.pickupAt) return;
@@ -66,6 +70,7 @@ export default function ConfirmScreen() {
           ...(flight ? { flightNumber: flight } : {}),
           ...(draft.specialRequests.trim() ? { specialRequests: draft.specialRequests.trim() } : {}),
           ...(draft.vehicleId ? { vehicleId: draft.vehicleId } : {}),
+          ...(passenger ? { passenger } : {}),
         },
         draft.idempotencyKey,
       );
@@ -75,7 +80,7 @@ export default function ConfirmScreen() {
     } catch (e) {
       if (errorCode(e) === 'QUOTE_EXPIRED' && draft.origin && draft.destination) {
         // Prix expiré : nouveau devis, même catégorie ; le client revoit le prix avant de confirmer.
-        const quotes = await api.quotes.create({ origin: draft.origin, destination: draft.destination, stops: [], requestedAt: draft.pickupAt, options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage } }).catch(() => null);
+        const quotes = await api.quotes.create({ origin: draft.origin, destination: draft.destination, stops: draft.stops, requestedAt: draft.pickupAt, options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage } }).catch(() => null);
         if (quotes) {
           draft.update({ quotes });
           draft.renewKey();
@@ -90,7 +95,7 @@ export default function ConfirmScreen() {
   }
 
   return (
-    <Screen back subtitle={t('book.step', { step: 3 })} title={t('confirm.title')} footer={<Button label={busy ? t('confirm.booking') : t('confirm.book')} onPress={() => void book()} disabled={busy} />}>
+    <Screen back subtitle={t('book.step', { step: 3 })} title={t('confirm.title')} footer={<Button label={busy ? t('confirm.booking') : t('confirm.book')} onPress={() => void book()} disabled={busy || passengerIncomplete} />}>
       <Body>{t('confirm.amenitiesMessage')}</Body>
       <Notice tone="success">{t('confirm.included')}</Notice>
       <Choices label={t('confirm.conversation')} value={preferences.conversation} onChange={(conversation) => setPreference({ conversation })} options={(['silence', 'chat', 'indifferent'] as const).map((v) => ({ value: v, label: t(`confirm.conversationValues.${v}`) }))} />
@@ -119,12 +124,14 @@ export default function ConfirmScreen() {
       <SectionTitle>{t('confirm.summary')}</SectionTitle>
       <Card>
         <Row label={t('confirm.pickup')} value={formatDateTime(draft.pickupAt, language)} />
-        <Row label={t('confirm.route')} value={`${draft.origin.address} → ${draft.destination.address}`} />
+        <Row label={t('confirm.route')} value={[draft.origin.address, ...draft.stops.map((s) => s.address), draft.destination.address].join(' → ')} />
+        {passenger ? <Row label={t('confirm.passenger')} value={`${passenger.name} · ${displayPhone(passenger.phone)}`} /> : null}
         <Row label={t('confirm.category')} value={category?.name ?? quote.category} />
         {vehicle ? <Row label={t('confirm.vehicle')} value={`${vehicle.make} ${vehicle.model} ${vehicle.colour}`} /> : null}
         <Row label={t('confirm.price')} value={formatMoney(quote.totalCents, language)} strong />
         <Body muted>{t('confirm.maxConsented', { amount: formatMoney(quote.maxConsentedCents, language) })}</Body>
       </Card>
+      {passengerIncomplete ? <Notice tone="warning">{t('category.passengerIncomplete')}</Notice> : null}
       {notice ? <Notice tone="warning">{notice}</Notice> : null}
       {error ? <ErrorState message={error} /> : null}
     </Screen>

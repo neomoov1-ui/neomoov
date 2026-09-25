@@ -86,16 +86,18 @@ export function Choices<T extends string | number>({ options, value, onChange, l
   );
 }
 
-/** Interrupteur avec son libellé et une aide facultative. */
+/** Interrupteur avec son libellé et une aide facultative : toute la ligne se touche (cible large, un seul élément accessible). */
 export function ToggleRow({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (value: boolean) => void }) {
   return (
-    <View style={styles.toggle}>
+    <Pressable accessibilityRole="switch" accessibilityState={{ checked: value }} accessibilityLabel={label} accessibilityHint={hint} onPress={() => onChange(!value)} style={styles.toggle}>
       <View style={styles.toggleText}>
         <Text style={styles.toggleLabel}>{label}</Text>
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       </View>
-      <Switch accessibilityLabel={label} value={value} onValueChange={onChange} trackColor={{ true: colors.blue, false: colors.border }} thumbColor={colors.white} />
-    </View>
+      <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Switch value={value} trackColor={{ true: colors.blue, false: colors.border }} thumbColor={colors.white} />
+      </View>
+    </Pressable>
   );
 }
 

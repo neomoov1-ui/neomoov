@@ -232,6 +232,11 @@ async function main() {
     await page.shot('08-categories');
     await page.click('Voir le détail du prix');
     await page.shotHere('09-detail-prix');
+    // Parcours 4 : réservation pour un tiers.
+    await page.click("Je réserve pour quelqu'un d'autre");
+    await page.type('Nom du passager', 'Marie Tremblay');
+    await page.type('Téléphone du passager', '9995550202');
+    await page.shotHere('09b-passager');
     await page.click('Continuer');
     await page.waitText('Commodités et confirmation');
     await page.shot('10-commodites');

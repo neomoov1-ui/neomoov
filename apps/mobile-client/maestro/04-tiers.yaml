@@ -1,0 +1,41 @@
+# Parcours 4 (9.2) : réservation pour un tiers ; le passager reçoit le lien de suivi par texto à l'attribution (API).
+appId: com.neomoov.client
+env:
+  PASSENGER_PHONE: "9995550202"
+---
+- launchApp
+- tapOn: "Réserver"
+- assertVisible: "Où allons-nous ?"
+- tapOn:
+    id: "origin-input"
+- inputText: "4500 rue Saint-Denis"
+- tapOn:
+    id: "suggestion-0"
+- tapOn:
+    id: "destination-input"
+- inputText: "Aéroport Montréal-Trudeau"
+- tapOn:
+    id: "suggestion-0"
+- tapOn:
+    id: "pickup-day-2"
+- tapOn:
+    id: "pickup-hour-8"
+- tapOn:
+    id: "pickup-slot-0"
+- tapOn: "Voir les prix"
+- assertVisible: "Catégorie et prix"
+- scrollUntilVisible:
+    element: "Je réserve pour quelqu'un d'autre"
+- tapOn: "Je réserve pour quelqu'un d'autre"
+- tapOn:
+    id: "passenger-name-input"
+- inputText: "Marie Tremblay"
+- tapOn:
+    id: "passenger-phone-input"
+- inputText: ${PASSENGER_PHONE}
+- tapOn: "Continuer"
+- scrollUntilVisible:
+    element: "Passager"
+- assertVisible: "Marie Tremblay.*"
+- tapOn: "Confirmer la réservation"
+- assertVisible: "Réservation confirmée"

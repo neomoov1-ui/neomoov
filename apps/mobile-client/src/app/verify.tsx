@@ -70,7 +70,7 @@ export default function VerifyScreen() {
   return (
     <Screen back title={t('auth.codeTitle')} footer={<Button label={t('auth.verify')} onPress={() => void verify()} disabled={busy || code.length !== 6 || !config.data} />}>
       <Body muted>{t('auth.codeSentTo', { phone: displayPhone(phone) })}</Body>
-      <Field label={t('auth.codeLabel')} value={code} onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="sms-otp" maxLength={6} />
+      <Field label={t('auth.codeLabel')} value={code} onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="sms-otp" maxLength={6} testID="code-input" />
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: accepted }} onPress={() => setAccepted((v) => !v)} style={styles.check}>
         <Ionicons name={accepted ? 'checkbox' : 'square-outline'} size={24} color={accepted ? colors.blue : colors.muted} />
         <Text style={styles.checkText}>{t('auth.acceptTerms')}</Text>

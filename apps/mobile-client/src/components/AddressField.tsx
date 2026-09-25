@@ -13,13 +13,14 @@ const newSession = () => `${Date.now().toString(36)}${Math.random().toString(36)
  * Champ d'adresse : autocomplétion Places par l'API (jeton de session par recherche), lieux enregistrés et, pour le
  * départ, la position de l'appareil (« lors de l'utilisation » seulement, expliquée avant la demande du système).
  */
-export function AddressField({ label, value, onChange, savedPlaces = [], allowCurrentLocation = false, near }: {
+export function AddressField({ label, value, onChange, savedPlaces = [], allowCurrentLocation = false, near, testID }: {
   label: string;
   value: Place | null;
   onChange: (place: Place | null) => void;
   savedPlaces?: SavedPlace[];
   allowCurrentLocation?: boolean;
   near?: { lat: number; lng: number } | undefined;
+  testID?: string;
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState(value?.address ?? '');
@@ -103,6 +104,7 @@ export function AddressField({ label, value, onChange, savedPlaces = [], allowCu
       <View style={styles.inputRow}>
         <TextInput
           accessibilityLabel={label}
+          testID={testID}
           style={styles.input}
           value={text}
           placeholder={t('book.searchPlaceholder')}

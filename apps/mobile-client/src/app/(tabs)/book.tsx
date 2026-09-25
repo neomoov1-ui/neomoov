@@ -43,7 +43,7 @@ export default function BookScreen() {
       const quotes = await api.quotes.create({
         origin: draft.origin,
         destination: draft.destination,
-        stops: [],
+        stops: draft.stops,
         requestedAt: draft.pickupAt,
         options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage },
       });
@@ -59,8 +59,8 @@ export default function BookScreen() {
   return (
     <Screen subtitle={t('book.step', { step: 1 })} title={t('book.title')} footer={<Button label={t('book.getPrice')} onPress={() => void getPrices()} disabled={busy || flightInvalid} />}>
       <RideMap origin={draft.origin?.coordinates ?? null} destination={draft.destination?.coordinates ?? null} height={180} />
-      <AddressField label={t('book.from')} value={draft.origin} onChange={(origin) => draft.update({ origin, quotes: null })} savedPlaces={places.data ?? []} allowCurrentLocation />
-      <AddressField label={t('book.to')} value={draft.destination} onChange={(destination) => draft.update({ destination, quotes: null })} savedPlaces={places.data ?? []} near={near} />
+      <AddressField label={t('book.from')} value={draft.origin} onChange={(origin) => draft.update({ origin, quotes: null })} savedPlaces={places.data ?? []} allowCurrentLocation testID="origin-input" />
+      <AddressField label={t('book.to')} value={draft.destination} onChange={(destination) => draft.update({ destination, quotes: null })} savedPlaces={places.data ?? []} near={near} testID="destination-input" />
       <PickupPicker booking={booking} value={draft.pickupAt} onChange={(pickupAt) => draft.update({ pickupAt, quotes: null })} />
       <Field
         label={t('book.flight')}
@@ -69,6 +69,7 @@ export default function BookScreen() {
         onChangeText={(flightNumber) => draft.update({ flightNumber: flightNumber.toUpperCase() })}
         autoCapitalize="characters"
         maxLength={6}
+        testID="flight-input"
         {...(flightInvalid ? { error: t('book.flightInvalid') } : {})}
       />
       {busy ? <Notice>{t('category.recalculating')}</Notice> : null}

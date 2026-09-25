@@ -13,6 +13,12 @@ export interface BookingOptions {
 interface BookingDraft {
   origin: Place | null;
   destination: Place | null;
+  /** Arrêts intermédiaires, trois au plus (le devis les tarifie). */
+  stops: Place[];
+  /** Réservation pour un tiers : le passager reçoit le lien de suivi par texto. */
+  forSomeoneElse: boolean;
+  passengerName: string;
+  passengerPhone: string;
   /** Heure de prise en charge (ISO), au moins 2 heures après la demande (D32). */
   pickupAt: string | null;
   flightNumber: string;
@@ -36,6 +42,10 @@ const newKey = () => `client-${Date.now().toString(36)}-${Math.random().toString
 const initial = () => ({
   origin: null,
   destination: null,
+  stops: [] as Place[],
+  forSomeoneElse: false,
+  passengerName: '',
+  passengerPhone: '',
   pickupAt: null,
   flightNumber: '',
   quotes: null,

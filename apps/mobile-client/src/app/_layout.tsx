@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { i18n } from '@/i18n';
 import { offlineQueue } from '@/lib/api';
+import { listenToNotificationTaps, registerForPush } from '@/lib/push';
 import { queryClient } from '@/lib/queries';
 import { useSession } from '@/lib/session';
 
@@ -38,10 +39,16 @@ export default function RootLayout() {
     if (status !== 'loading') void SplashScreen.hideAsync();
     if (status !== 'signedIn') return;
     void offlineQueue.flush();
+    // Push : l'appareil est déclaré à chaque ouverture de session (le jeton peut changer) ; un échec n'empêche rien.
+    void registerForPush().catch(() => undefined);
+    const stopTaps = listenToNotificationTaps();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') void offlineQueue.flush();
     });
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      stopTaps();
+    };
   }, [status]);
 
   if (status === 'loading') return null;

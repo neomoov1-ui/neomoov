@@ -1,29 +1,36 @@
-import type { AvailableVehicle } from '@neomoov/domain';
-import { Button } from '@neomoov/mobile-core/components';
+import type { AvailableVehicle, Place } from '@neomoov/domain';
+import { Button, Field } from '@neomoov/mobile-core/components';
 import { colors, radius, spacing, typography } from '@neomoov/mobile-core/theme';
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AddressField } from '@/components/AddressField';
 import { CategoryCard } from '@/components/CategoryCard';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { ErrorState, Notice, Screen, SectionTitle, ToggleRow } from '@/components/ui';
 import { categoryCards } from '@/features/booking/logic';
 import { useBooking, type BookingOptions } from '@/features/booking/store';
 import { api, errorMessage } from '@/lib/api';
-import { keys, useAppConfig } from '@/lib/queries';
+import { toE164 } from '@/lib/phone';
+import { keys, useAppConfig, usePlaces } from '@/lib/queries';
+
+const MAX_STOPS = 3;
 
 /**
- * Réservation, écran 2 sur 3 : catégories avec prix total de l'API, détail dépliable, options qui redemandent le devis
- * (prix recalculé par l'API), et choix précis du véhicule parmi ceux libres sur le créneau (D37).
+ * Réservation, écran 2 sur 3 : catégories avec prix total de l'API, détail dépliable, options et arrêts qui redemandent
+ * le devis (prix recalculé par l'API), réservation pour un tiers, et choix précis du véhicule parmi ceux libres sur le
+ * créneau (D37).
  */
 export default function CategoryScreen() {
   const { t } = useTranslation();
   const config = useAppConfig();
+  const places = usePlaces();
   const draft = useBooking();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addingStop, setAddingStop] = useState(false);
   const cards = useMemo(() => (draft.quotes && config.data ? categoryCards(draft.quotes, config.data.categories) : []), [draft.quotes, config.data]);
   const selected = cards.find((c) => c.code === draft.category) ?? cards[0] ?? null;
   const vehicles = useQuery({
@@ -34,9 +41,11 @@ export default function CategoryScreen() {
 
   if (!draft.quotes || !draft.origin || !draft.destination) return <Redirect href="/book" />;
 
-  async function setOption(name: keyof Omit<BookingOptions, 'favouriteDriverId'>, value: boolean) {
-    const options = { ...draft.options, [name]: value };
-    draft.update({ options });
+  /** Nouveau devis avec les options et les arrêts donnés : le prix affiché est toujours celui de l'API. */
+  async function requote(patch: { options?: BookingOptions; stops?: Place[] }) {
+    const options = patch.options ?? draft.options;
+    const stops = patch.stops ?? draft.stops;
+    draft.update({ options, stops });
     if (!draft.origin || !draft.destination || !draft.pickupAt) return;
     setBusy(true);
     setError(null);
@@ -44,7 +53,7 @@ export default function CategoryScreen() {
       const quotes = await api.quotes.create({
         origin: draft.origin,
         destination: draft.destination,
-        stops: [],
+        stops,
         requestedAt: draft.pickupAt,
         options: { flex: options.flex, priority: options.priority, childSeat: options.childSeat, luggage: options.luggage, ...(options.favouriteDriverId ? { favouriteDriverId: options.favouriteDriverId } : {}) },
       });
@@ -55,6 +64,9 @@ export default function CategoryScreen() {
       setBusy(false);
     }
   }
+
+  const setOption = (name: keyof Omit<BookingOptions, 'favouriteDriverId'>, value: boolean) => requote({ options: { ...draft.options, [name]: value } });
+  const passengerPhoneInvalid = draft.forSomeoneElse && draft.passengerPhone.trim().length >= 10 && !toE164(draft.passengerPhone);
 
   return (
     <Screen back subtitle={t('book.step', { step: 2 })} title={t('category.title')} footer={<Button label={t('category.continue')} onPress={() => router.push('/book/confirm')} disabled={busy || !selected} />}>
@@ -73,6 +85,52 @@ export default function CategoryScreen() {
       <ToggleRow label={t('category.luggage')} value={draft.options.luggage} onChange={(v) => void setOption('luggage', v)} />
       <ToggleRow label={t('category.flex')} value={draft.options.flex} onChange={(v) => void setOption('flex', v)} />
       <ToggleRow label={t('category.priority')} value={draft.options.priority} onChange={(v) => void setOption('priority', v)} />
+
+      <SectionTitle>{t('category.stops')}</SectionTitle>
+      {draft.stops.map((stop, index) => (
+        <View key={`${stop.address}-${index}`} style={styles.stop}>
+          <Text style={styles.stopText}>{`${t('category.stopLabel', { n: index + 1 })} · ${stop.address}`}</Text>
+          <Pressable accessibilityRole="button" onPress={() => void requote({ stops: draft.stops.filter((_, i) => i !== index) })} hitSlop={8}>
+            <Text style={styles.link}>{t('category.removeStop')}</Text>
+          </Pressable>
+        </View>
+      ))}
+      {addingStop ? (
+        <AddressField
+          label={t('category.stopLabel', { n: draft.stops.length + 1 })}
+          value={null}
+          savedPlaces={places.data ?? []}
+          near={draft.origin.coordinates}
+          onChange={(place) => {
+            if (!place) return;
+            setAddingStop(false);
+            void requote({ stops: [...draft.stops, place] });
+          }}
+        />
+      ) : draft.stops.length < MAX_STOPS ? (
+        <Pressable accessibilityRole="button" onPress={() => setAddingStop(true)}>
+          <Text style={styles.link}>{t('category.addStop')}</Text>
+        </Pressable>
+      ) : (
+        <Text style={styles.hint}>{t('category.maxStops')}</Text>
+      )}
+
+      <SectionTitle>{t('category.someoneElse')}</SectionTitle>
+      <ToggleRow label={t('category.forSomeoneElse')} hint={t('category.passengerHint')} value={draft.forSomeoneElse} onChange={(forSomeoneElse) => draft.update({ forSomeoneElse })} />
+      {draft.forSomeoneElse ? (
+        <>
+          <Field label={t('category.passengerName')} value={draft.passengerName} onChangeText={(passengerName) => draft.update({ passengerName })} maxLength={120} textContentType="name" testID="passenger-name-input" />
+          <Field
+            label={t('category.passengerPhone')}
+            value={draft.passengerPhone}
+            onChangeText={(passengerPhone) => draft.update({ passengerPhone })}
+            keyboardType="phone-pad"
+            maxLength={16}
+            testID="passenger-phone-input"
+            {...(passengerPhoneInvalid ? { error: t('auth.invalidPhone') } : {})}
+          />
+        </>
+      ) : null}
 
       {draft.quotes.requestedAt ? (
         <>
@@ -108,6 +166,9 @@ function VehicleOption({ vehicle, label, selected, onPress }: { vehicle?: Availa
 const styles = StyleSheet.create({
   cards: { gap: spacing.sm },
   hint: { fontSize: typography.sizes.xs, color: colors.muted },
+  link: { color: colors.blueDark, fontWeight: '700', paddingVertical: spacing.xs },
+  stop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.sm },
+  stopText: { flex: 1, fontSize: typography.sizes.sm, color: colors.ink },
   vehicle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.md, borderWidth: 2, borderColor: 'transparent' },
   vehicleSelected: { borderColor: colors.blue },
   vehicleText: { flex: 1, gap: 2 },

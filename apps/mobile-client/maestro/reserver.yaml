@@ -1,0 +1,39 @@
+# Sous-parcours commun : réservation en trois écrans (adresses, créneau du lendemain à 10 h, catégorie, commodités).
+appId: com.neomoov.client
+---
+- assertVisible: "Où allons-nous ?"
+- tapOn:
+    id: "origin-input"
+- inputText: "4500 rue Saint-Denis"
+- tapOn:
+    id: "suggestion-0"
+- tapOn:
+    id: "destination-input"
+- inputText: "1000 rue De La Gauchetière Ouest"
+- tapOn:
+    id: "suggestion-0"
+- scrollUntilVisible:
+    element:
+      id: "pickup-day-1"
+- tapOn:
+    id: "pickup-day-1"
+- scrollUntilVisible:
+    element:
+      id: "pickup-hour-10"
+    direction: RIGHT
+- tapOn:
+    id: "pickup-hour-10"
+- tapOn:
+    id: "pickup-slot-0"
+- tapOn: "Voir les prix"
+- assertVisible: "Catégorie et prix"
+- tapOn:
+    id: "category-neo_premium"
+- tapOn: "Voir le détail du prix"
+- assertVisible: "TPS"
+- tapOn: "Continuer"
+- assertVisible: "Choisissez toutes les commodités de votre voyage, et indiquez-nous vos demandes spéciales"
+- scrollUntilVisible:
+    element: "Payer le chauffeur après la course"
+- tapOn: "Payer le chauffeur après la course"
+- tapOn: "Confirmer la réservation"

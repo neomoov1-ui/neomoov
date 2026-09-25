@@ -42,6 +42,7 @@ export default function LoginScreen() {
         textContentType="telephoneNumber"
         autoComplete="tel"
         maxLength={16}
+        testID="phone-input"
         {...(invalid ? { error: t('auth.invalidPhone') } : {})}
         onSubmitEditing={() => void submit()}
       />
