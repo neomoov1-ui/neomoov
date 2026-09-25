@@ -42,6 +42,7 @@ export const offlineQueue = new OfflineQueue(api, secureStorage, { maxItems: 20 
  */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'TIMEOUT') return i18n.t('errors.timeout');
     if (error.isNetwork) return i18n.t('errors.network');
     const key = `errors.codes.${error.code}`;
     return i18n.exists(key) ? i18n.t(key) : error.message || i18n.t('errors.generic');

@@ -134,8 +134,8 @@ export function AddressField({ label, value, onChange, savedPlaces = [], allowCu
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {showList ? (
         <View style={styles.list}>
-          {suggestions.map((s) => (
-            <Pressable key={s.placeId} accessibilityRole="button" onPress={() => void choose(s)} style={styles.item}>
+          {suggestions.map((s, index) => (
+            <Pressable key={s.placeId} testID={`suggestion-${index}`} accessibilityRole="button" onPress={() => void choose(s)} style={styles.item}>
               <Ionicons name="location-outline" size={18} color={colors.muted} />
               <Text style={styles.itemText}>{s.description}</Text>
             </Pressable>

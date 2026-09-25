@@ -66,7 +66,7 @@ export function placesResource(t: Transport) {
 export function quotesResource(t: Transport) {
   return {
     /** Devis de toutes les catégories (ou d'une seule) ; le prix affiché est celui-ci, au centime. */
-    create: (body: QuoteRequest) => t.post<QuotesResponse>('/quotes', body),
+    create: (body: QuoteRequest) => t.post<QuotesResponse>('/quotes', body, { timeoutMs: 30_000 }),
     get: (quoteId: string) => t.get<QuoteDetail>(`/quotes/${id(quoteId)}`),
     /** Véhicules libres sur le créneau d'un devis planifié (D37). */
     vehicles: (quoteId: string) => t.get<AvailableVehicle[]>(`/quotes/${id(quoteId)}/vehicles`),
@@ -76,7 +76,7 @@ export function quotesResource(t: Transport) {
 export function ridesResource(t: Transport) {
   return {
     /** Demande de course ; la même clé d'idempotence renvoie la même course (reprise après coupure réseau). */
-    create: (body: CreateRide, idempotencyKey: string) => t.post<RideView>('/rides', body, { idempotencyKey }),
+    create: (body: CreateRide, idempotencyKey: string) => t.post<RideView>('/rides', body, { idempotencyKey, timeoutMs: 30_000 }),
     list: (query: { cursor?: string; limit?: number; state?: string } = {}) => t.get<{ items: RideView[]; nextCursor: string | null }>('/rides', { query }),
     get: (rideId: string) => t.get<RideView>(`/rides/${id(rideId)}`),
     events: (rideId: string) => t.get<RideEventView[]>(`/rides/${id(rideId)}/events`),

@@ -72,7 +72,9 @@ export class ApiClient {
   constructor(private readonly options: ApiClientOptions) {
     const impl = options.fetch ?? globalThis.fetch;
     if (typeof impl !== 'function') throw new Error('fetch indisponible : fournir options.fetch');
-    this.fetchImpl = impl;
+    // Le `fetch` des navigateurs exige d'être appelé sur l'objet global (sinon « Illegal invocation ») : jamais comme
+    // méthode du client.
+    this.fetchImpl = ((input: RequestInfo | URL, init?: RequestInit) => impl.call(globalThis, input, init)) as typeof fetch;
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
   }
 

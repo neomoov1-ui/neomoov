@@ -64,6 +64,17 @@ describe('ressources typées', () => {
   });
 });
 
+describe('fetch des navigateurs', () => {
+  it('est appelé sur l\'objet global, pas comme méthode du client (« Illegal invocation » sinon)', async () => {
+    const browserFetch = function (this: unknown): Promise<Response> {
+      if (this !== globalThis) throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
+      return Promise.resolve(json(200, { ok: true }));
+    };
+    const api = createApiClient({ baseUrl: 'https://api', fetch: browserFetch as unknown as typeof fetch });
+    await expect(api.get('/health')).resolves.toEqual({ ok: true });
+  });
+});
+
 describe('file hors ligne', () => {
   it('envoie tout de suite quand le réseau répond', async () => {
     const { calls, fetch } = fakeFetch(json(200, { id: 'm1' }));

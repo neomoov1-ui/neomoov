@@ -28,10 +28,10 @@ export function PickupPicker({ booking, value, onChange }: { booking: AppConfig[
       <Text style={styles.label}>{t('book.when')}</Text>
       <Text style={styles.hint}>{t('book.leadTime')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} accessibilityRole="radiogroup">
-        {days.map((d) => {
+        {days.map((d, index) => {
           const active = day !== null && sameDay(d, day);
           return (
-            <Pressable key={d.toISOString()} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => setDay(d)} style={[styles.pill, active && styles.active]}>
+            <Pressable key={d.toISOString()} testID={`pickup-day-${index}`} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => setDay(d)} style={[styles.pill, active && styles.active]}>
               <Text style={[styles.text, active && styles.activeText]}>{formatDay(d, language)}</Text>
             </Pressable>
           );
@@ -42,17 +42,17 @@ export function PickupPicker({ booking, value, onChange }: { booking: AppConfig[
         {hours.map((h) => {
           const active = h === activeHour;
           return (
-            <Pressable key={h} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => setHour(h)} style={[styles.hour, active && styles.activeSoft]}>
+            <Pressable key={h} testID={`pickup-hour-${h}`} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => setHour(h)} style={[styles.hour, active && styles.activeSoft]}>
               <Text style={[styles.text, active && styles.activeSoftText]}>{`${String(h).padStart(2, '0')} h`}</Text>
             </Pressable>
           );
         })}
       </ScrollView>
       <View style={styles.quarters} accessibilityRole="radiogroup">
-        {quarters.map((s) => {
+        {quarters.map((s, index) => {
           const active = selected !== null && s.getTime() === selected.getTime();
           return (
-            <Pressable key={s.toISOString()} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => onChange(s.toISOString())} style={[styles.quarter, active && styles.active]}>
+            <Pressable key={s.toISOString()} testID={`pickup-slot-${index}`} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => onChange(s.toISOString())} style={[styles.quarter, active && styles.active]}>
               <Text style={[styles.text, active && styles.activeText]}>{formatTime(s, language)}</Text>
             </Pressable>
           );

@@ -220,6 +220,7 @@ export const appResources = {
       },
       errors: {
         network: 'Pas de connexion. Vérifiez votre réseau et réessayez.',
+        timeout: 'Le service met plus de temps que prévu. Réessayez dans un instant.',
         generic: 'Une erreur est survenue. Réessayez.',
         retry: 'Réessayer',
         codes: {
@@ -455,6 +456,7 @@ export const appResources = {
       },
       errors: {
         network: 'No connection. Check your network and try again.',
+        timeout: 'The service is taking longer than expected. Please try again shortly.',
         generic: 'Something went wrong. Please try again.',
         retry: 'Try again',
         codes: {

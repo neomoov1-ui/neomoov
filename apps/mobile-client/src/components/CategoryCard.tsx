@@ -11,6 +11,7 @@ export function CategoryCard({ card, selected, onSelect }: { card: Card; selecte
   const models = card.models.slice(0, 3).join(', ');
   return (
     <Pressable
+      testID={`category-${card.code}`}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       accessibilityLabel={`${card.name}, ${formatMoney(card.quote.totalCents, language)}`}
