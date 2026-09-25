@@ -12,7 +12,9 @@
       "supportsTablet": false,
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
-        "CFBundleDevelopmentRegion": "fr-CA"
+        "CFBundleDevelopmentRegion": "fr-CA",
+        "UIBackgroundModes": ["location", "fetch", "remote-notification"],
+        "LSApplicationQueriesSchemes": ["comgooglemaps", "waze"]
       }
     },
     "android": {
@@ -22,7 +24,17 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA",
+        "VIBRATE",
+        "WAKE_LOCK"
+      ]
     },
     "web": {
       "output": "static",
@@ -41,7 +53,32 @@
       "expo-secure-store",
       "expo-localization",
       "expo-web-browser",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Neomoov Chauffeur utilise votre position quand vous êtes en ligne, pour vous proposer des courses proches et montrer au client où vous êtes. / Neomoov Driver uses your location while you are online, to offer you nearby rides and show the client where you are.",
+          "locationAlwaysAndWhenInUsePermission": "Quand vous êtes en ligne, Neomoov Chauffeur envoie votre position toutes les 5 secondes, même écran verrouillé ou application en arrière-plan, pour recevoir des offres et suivre vos courses. Hors ligne, aucune position n'est envoyée. / While you are online, Neomoov Driver sends your location every 5 seconds, even when the screen is locked or the app is in the background, to receive offers and track your rides. Offline, no location is sent.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Neomoov Chauffeur utilise l'appareil photo pour photographier vos documents (permis, assurance, immatriculation) et, si la vérification est activée, votre visage en début de quart. / Neomoov Driver uses the camera to photograph your documents (licence, insurance, registration) and, when verification is enabled, your face at the start of a shift.",
+          "photosPermission": "Neomoov Chauffeur accède à vos photos pour joindre un document déjà photographié. / Neomoov Driver accesses your photos to attach a document you already photographed.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#1485E0",
+          "sounds": ["./assets/sounds/offer.wav"]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,6 +1,6 @@
 import type { MeView, TokensView } from '@neomoov/domain';
 import { create } from 'zustand';
-import { secureStorage } from './storage';
+import { secureStorage, type SecureStorage } from './storage';
 
 interface StoredSession {
   accessToken: string;
@@ -24,10 +24,10 @@ export interface SessionState {
  * Session d'une application : jetons (rotation par l'API) et profil, gardés dans le stockage sécurisé sous une clé
  * propre à l'application (le client et le chauffeur peuvent être installés sur le même téléphone).
  */
-export function createSessionStore(storageKey: string) {
+export function createSessionStore(storageKey: string, storage: SecureStorage = secureStorage) {
   const persist = async (session: StoredSession | null): Promise<void> => {
-    if (session) await secureStorage.setItem(storageKey, JSON.stringify(session));
-    else await secureStorage.removeItem(storageKey);
+    if (session) await storage.setItem(storageKey, JSON.stringify(session));
+    else await storage.removeItem(storageKey);
   };
   return create<SessionState>((set, get) => ({
     status: 'loading',
@@ -36,7 +36,7 @@ export function createSessionStore(storageKey: string) {
     user: null,
     async load() {
       try {
-        const raw = await secureStorage.getItem(storageKey);
+        const raw = await storage.getItem(storageKey);
         const stored = raw ? (JSON.parse(raw) as StoredSession) : null;
         if (stored?.accessToken && stored.refreshToken && stored.user) {
           set({ status: 'signedIn', accessToken: stored.accessToken, refreshToken: stored.refreshToken, user: stored.user });
