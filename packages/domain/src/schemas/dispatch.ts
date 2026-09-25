@@ -96,7 +96,8 @@ export const clientOfferSchema = z.object({
   expiresAt: isoDate,
   driver: z.object({
     id: uuid,
-    firstName: z.string(),
+    /** Null sans prénom renseigné : l'application affiche son propre libellé traduit. */
+    firstName: z.string().nullable(),
     rating: z.number().min(0).max(5),
     rideCount: count,
     vehicle: z.object({ make: z.string(), model: z.string(), colour: z.string(), category: z.enum(VEHICLE_CATEGORIES) }),
@@ -140,3 +141,23 @@ export type AdminOfferView = z.infer<typeof adminOfferSchema>;
 /** `GET /admin/rides/{id}/dispatch` : répartition et offres d'une course. */
 export const adminDispatchViewSchema = z.object({ dispatch: dispatchSummarySchema.nullable(), offers: z.array(adminOfferSchema) });
 export type AdminDispatchView = z.infer<typeof adminDispatchViewSchema>;
+
+/**
+ * Sélection précise du véhicule (D37) : véhicules réellement libres sur le créneau d'un devis planifié, catégorie du devis
+ * ou supérieure. `paymentMethods` : modes « payer le chauffeur après » que le chauffeur accepte (le prépaiement est
+ * toujours possible).
+ */
+export const availableVehicleSchema = z.object({
+  vehicleId: uuid,
+  category: z.enum(VEHICLE_CATEGORIES),
+  make: z.string(),
+  model: z.string(),
+  year: z.number().int(),
+  colour: z.string(),
+  seats: z.number().int().min(1),
+  photoUrl: z.string().url().nullable(),
+  isFavourite: z.boolean(),
+  paymentMethods: z.array(z.enum(PAYMENT_METHODS)),
+  driver: z.object({ id: uuid, firstName: z.string().nullable(), rating: z.number().min(0).max(5), rideCount: count }),
+});
+export type AvailableVehicle = z.infer<typeof availableVehicleSchema>;

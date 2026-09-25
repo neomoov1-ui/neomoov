@@ -11,7 +11,7 @@ export type Database = ReturnType<typeof createDatabase>;
     {
       provide: DB,
       inject: [APP_ENV],
-      useFactory: (env: AppEnv) => createDatabase({ url: env.DATABASE_URL, max: env.NODE_ENV === 'test' ? 2 : 10 }),
+      useFactory: (env: AppEnv) => createDatabase({ url: env.DATABASE_URL, max: env.DATABASE_POOL_MAX ?? (env.NODE_ENV === 'test' ? 2 : 10) }),
     },
   ],
   exports: [DB],

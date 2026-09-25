@@ -42,7 +42,8 @@ export function testEnv(overrides: Record<string, string> = {}): AppEnv | null {
 export async function startTestApp(overrides: Record<string, string> = {}): Promise<NestExpressApplication | null> {
   const env = testEnv(overrides);
   if (!env) return null;
-  const app = await createApp(env, pino({ level: 'silent' }));
+  // `TEST_LOG_LEVEL=error` affiche les erreurs des traitements asynchrones (répartition), sinon muettes.
+  const app = await createApp(env, pino({ level: process.env['TEST_LOG_LEVEL'] ?? 'silent' }));
   await app.init();
   return app;
 }

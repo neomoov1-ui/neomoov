@@ -22,7 +22,7 @@ import { schema } from '@neomoov/db';
 import {
   agreedPrice, clampProposal, experimentGroupFor, negotiationIneligibility, nextRadius, parseDispatchWeights, parseSearchRadii, scoreCandidates, selectWave, subtotalForTotal,
   validateCounter, type ClientOfferView, type DispatchCandidate, type DispatchSummary, type DispatchTickReport, type DriverOfferView, type NegotiationMode, type OfferCounterInput,
-  type RideView, type SearchRadius, type VehicleCategory,
+  type AvailableVehicle, type PaymentMethod, type RideView, type SearchRadius, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { and, asc, desc, eq, gt, inArray, isNull, lte, sql, type SQL } from 'drizzle-orm';
@@ -41,6 +41,7 @@ import { AuditService } from '../audit/audit.service.js';
 import type { UserActor } from '../auth/actor.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { ZonesService } from '../pricing/zones.service.js';
+import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
 import { dispatchSummaryOf, parseGeoPoint, type RideRow } from './ride-view.js';
@@ -109,6 +110,7 @@ interface Candidate {
 /** Candidat mémorisé dans `ride_dispatches.candidate_ids` (vague en cours). */
 interface CandidateRef {
   driverId: string;
+  userId?: string;
   etaSeconds: number | null;
   distanceMeters: number | null;
   score: number;
@@ -123,12 +125,43 @@ interface OfferOptions {
 
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
+/** Demandes du client portées par `rides.options` : chauffeur favori (devis, supplément) ou véhicule choisi (D37). */
+interface RequestedOptions {
+  favouriteDriverId?: string;
+  requestedVehicleId?: string;
+  requestedDriverId?: string;
+}
+
+type VehicleRow = {
+  vehicle_id: string;
+  category: VehicleCategory;
+  make: string;
+  model: string;
+  year: number;
+  colour: string;
+  seats: number;
+  driver_id: string;
+  first_name: string | null;
+  rating: string;
+  ride_count: number;
+  accepts_cash: boolean;
+  accepts_interac: boolean;
+  accepts_terminal: boolean;
+  is_favourite: boolean;
+};
+
 @Injectable()
 export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private tickTimer: NodeJS.Timeout | null = null;
   private runner = false;
   private subscriptions: Array<() => void> = [];
   private readonly localLocks = new Map<string, Promise<void>>();
+  /** Type de chaque organisation (plateforme ou partenaire), fixé à sa création : lu une fois par processus. */
+  private readonly organizationTypes = new Map<string, string | null>();
+  /** Courses dont l'acceptation (chauffeur ou client) clôt elle-même la répartition : l'événement `ride.assigned` est ignoré. */
+  private readonly closingAssignments = new Set<string>();
+  /** Courses dont le client a été prévenu que le chauffeur demandé n'a pas la course (D37) ; la base fait foi après un redémarrage. */
+  private readonly favouriteNotified = new Set<string>();
   /** Compteurs du processus (tests, santé). */
   readonly stats = { started: 0, offers: 0, ticks: 0, noDriver: 0 };
 
@@ -186,7 +219,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       }),
       this.events.on('ride.cancelled_by_client', (p) => this.cancel(p.rideId, 'cancelled').catch(guard(p.rideId, 'Arrêt de la répartition impossible'))),
       this.events.on('ride.assigned', (p) => {
-        if (p.driverId) this.markAssigned(p.rideId, p.driverId).catch(guard(p.rideId, 'Clôture de la répartition impossible'));
+        if (p.driverId && !this.closingAssignments.has(p.rideId)) void this.onAssigned(p.rideId, p.driverId).catch(guard(p.rideId, 'Clôture de la répartition impossible'));
       }),
     ];
     if (this.env.DISPATCH_TICK_MS > 0) {
@@ -222,7 +255,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return {
       radii: parseSearchRadii(radii), waveSeconds, offerSeconds, candidatesPerWave, chainMaxSeconds, noMovementSeconds, noMovementMeters, weights: parseDispatchWeights(weights), etaCandidates, fallbackSpeedMps, emptySweepsMax,
       scheduledWindowSeconds, scheduledCandidatesMax, favouriteExclusiveSeconds, scheduledConflictMinutes, negotiationWindowSeconds, negotiationImmediateWindowSeconds, negotiationCandidates, floorPpm, ceilingPpm,
-      requiredDocuments: Array.isArray(requiredDocuments) ? requiredDocuments.filter((d): d is string => typeof d === 'string' && /^[a-z_]+$/.test(d)) : [], requireActivePack: requireActivePack === true,
+      requiredDocuments: documentTypes(requiredDocuments), requireActivePack: requireActivePack === true,
     };
   }
 
@@ -272,13 +305,16 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
 
   // --- Démarrage, arrêt, clôture ---
 
-  /** Ouvre (ou rouvre) la répartition d'une course demandée et fait immédiatement le premier pas. */
-  async start(rideId: string, options: { reason: StartReason; priority?: boolean; excludeDriverIds?: string[]; mode?: NegotiationMode }): Promise<DispatchRow | null> {
+  /**
+   * Ouvre (ou rouvre) la répartition d'une course demandée et fait immédiatement le premier pas. `now` : l'heure du
+   * battement qui relance (surveillance du départ), pour que les offres ne soient pas déjà échues à cette heure-là.
+   */
+  async start(rideId: string, options: { reason: StartReason; priority?: boolean; excludeDriverIds?: string[]; mode?: NegotiationMode; now?: Date }): Promise<DispatchRow | null> {
     if (this.env.DISPATCH_MODE === 'manual' && options.reason === 'requested') return null;
     return this.withLock(rideId, async () => {
       const ride = await this.rides.getRide(rideId);
       if (ride.driverId || !['requested', 'offering'].includes(ride.state)) return null;
-      const now = new Date();
+      const now = options.now ?? new Date();
       const existing = await this.dispatchOf(rideId);
       const excluded = [...new Set([...((existing?.excludedDriverIds as string[] | null) ?? []), ...(options.excludeDriverIds ?? [])])];
       const negotiationOn = this.env.FEATURE_NEGOTIATION && ride.negotiationMode === 'negotiation';
@@ -288,11 +324,12 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         mode, status: 'searching', wave: 0, radiusIndex: priority ? 0 : -1, candidateIds: [], candidateCursor: 0, excludedDriverIds: excluded, offeredDriverIds: [], priority,
         nextActionAt: now, startedAt: now, endedAt: null, heldReason: null, heldByUserId: null, assignedAt: null, assignedPosition: null, movementCheckedAt: null, negotiationEndsAt: null, lastError: null, updatedAt: now,
       };
-      await this.db.insert(schema.rideDispatches).values({ rideId, ...values }).onConflictDoUpdate({ target: schema.rideDispatches.rideId, set: values });
-      for (const offer of await this.pendingOffers(rideId)) await this.closeOffer(offer, 'withdrawn', now);
+      const [row] = await this.db.insert(schema.rideDispatches).values({ rideId, ...values }).onConflictDoUpdate({ target: schema.rideDispatches.rideId, set: values }).returning();
+      if (existing) for (const offer of await this.pendingOffers(rideId)) await this.closeOffer(offer, 'withdrawn', now);
       await this.rides.mark(rideId, 'dispatch_started', SYSTEM_ACTOR, { reason: options.reason, mode, priority, excluded });
       this.stats.started += 1;
-      await this.step(rideId, now);
+      // Premier pas avec ce qui vient d'être lu et écrit : chaque aller-retour évité rapproche la première offre.
+      await this.step(rideId, now, { dispatch: row!, ride, pending: [] });
       return this.dispatchOf(rideId);
     });
   }
@@ -305,15 +342,46 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     this.emitDispatch(rideId);
   }
 
-  /** Après une attribution (offre acceptée, confirmation d'une planifiée, attribution forcée) : offres restantes closes, surveillance du départ armée. */
-  async markAssigned(rideId: string, driverId: string): Promise<void> {
+  /**
+   * Après une attribution (offre acceptée, confirmation d'une planifiée, attribution forcée) : offres restantes closes,
+   * y compris celles du chauffeur retenu (sa proposition quand le client a retenu sa contre-offre), surveillance du
+   * départ armée pour une course immédiate. Une réservation planifiée n'est pas surveillée : le chauffeur n'a pas à
+   * bouger des heures avant l'heure de prise en charge (le rappel et l'alerte à 30 minutes s'en chargent).
+   */
+  async markAssigned(rideId: string, driverId: string, known?: RideRow): Promise<void> {
     const now = new Date();
     const cfg = await this.config();
-    for (const offer of await this.pendingOffers(rideId)) if (offer.driverId !== driverId) await this.closeOffer(offer, 'assigned_elsewhere', now);
-    const position = await this.presence.positionOf(driverId);
-    const values: DispatchUpdate = { status: 'assigned', assignedAt: now, assignedPosition: position, movementCheckedAt: null, nextActionAt: new Date(now.getTime() + cfg.noMovementSeconds * 1000), endedAt: now, updatedAt: now };
+    for (const offer of await this.pendingOffers(rideId)) {
+      // Les offres restantes du chauffeur retenu sont closes sans signal : il vient d'obtenir la course, rien ne lui est retiré.
+      if (offer.driverId === driverId) await this.db.update(schema.rideOffers).set({ state: 'withdrawn', respondedAt: now }).where(and(eq(schema.rideOffers.id, offer.id), eq(schema.rideOffers.state, 'sent')));
+      else await this.closeOffer(offer, 'assigned_elsewhere', now);
+    }
+    const ride = known ?? (await this.rides.getRide(rideId));
+    const watched = ride.type === 'immediate';
+    const position = watched ? await this.presence.positionOf(driverId) : null;
+    const values: DispatchUpdate = {
+      status: 'assigned', assignedAt: now, assignedPosition: position, movementCheckedAt: watched ? null : now, nextActionAt: watched ? new Date(now.getTime() + cfg.noMovementSeconds * 1000) : null, endedAt: now, updatedAt: now,
+    };
     await this.db.insert(schema.rideDispatches).values({ rideId, ...values }).onConflictDoUpdate({ target: schema.rideDispatches.rideId, set: values });
     this.emitDispatch(rideId);
+    await this.notifyIfRequestedMissed(ride, driverId);
+  }
+
+  /** Attribution vue par le bus (opérateur, confirmation d'une planifiée, autre processus) : clôture, sauf si c'est déjà fait. */
+  private async onAssigned(rideId: string, driverId: string): Promise<void> {
+    const d = await this.dispatchOf(rideId);
+    if (d?.status === 'assigned' && d.assignedAt && Date.now() - d.assignedAt.getTime() < 30_000) return;
+    await this.markAssigned(rideId, driverId);
+  }
+
+  /** D37 : la course est attribuée à un autre chauffeur que celui demandé (favori ou véhicule choisi) : le client en est prévenu. */
+  private async notifyIfRequestedMissed(ride: RideRow, driverId: string): Promise<void> {
+    const requested = (ride.options ?? {}) as RequestedOptions;
+    if (requested.favouriteDriverId) {
+      if (requested.favouriteDriverId !== driverId) await this.notifyRequestedUnavailable(ride, requested.favouriteDriverId, 'favourite');
+    } else if (requested.requestedDriverId && requested.requestedDriverId !== driverId) {
+      await this.notifyRequestedUnavailable(ride, requested.requestedDriverId, 'vehicle');
+    }
   }
 
   // --- Battement ---
@@ -367,10 +435,10 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
 
   // --- Un pas ---
 
-  private async step(rideId: string, now: Date): Promise<void> {
-    const d = await this.dispatchOf(rideId);
+  private async step(rideId: string, now: Date, known: { dispatch?: DispatchRow; ride?: RideRow; pending?: OfferRow[] } = {}): Promise<void> {
+    const d = known.dispatch ?? (await this.dispatchOf(rideId));
     if (!d || !['searching', 'offering'].includes(d.status)) return;
-    const ride = await this.rides.getRide(rideId);
+    const ride = known.ride ?? (await this.rides.getRide(rideId));
     if (ride.driverId || !['requested', 'offering'].includes(ride.state)) {
       await this.cancel(rideId, ride.driverId ? 'assigned' : 'cancelled');
       return;
@@ -378,13 +446,13 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     const cfg = await this.config();
     if (d.mode === 'negotiation') await this.stepNegotiation(d, ride, now, cfg);
     else if (ride.type === 'scheduled') await this.stepScheduled(d, ride, now, cfg);
-    else await this.stepImmediate(d, ride, now, cfg);
+    else await this.stepImmediate(d, ride, now, cfg, known.pending);
     this.emitDispatch(rideId);
   }
 
   /** Mode fixe, course immédiate : offres séquentielles, vagues par rayon, épuisement de la zone. */
-  private async stepImmediate(d: DispatchRow, ride: RideRow, now: Date, cfg: DispatchConfig): Promise<void> {
-    const pending = await this.pendingOffers(ride.id);
+  private async stepImmediate(d: DispatchRow, ride: RideRow, now: Date, cfg: DispatchConfig, knownPending?: OfferRow[]): Promise<void> {
+    const pending = knownPending ?? (await this.pendingOffers(ride.id));
     const live = pending.filter((o) => o.expiresAt.getTime() > now.getTime());
     if (live.length) {
       await this.save(d.rideId, { nextActionAt: live[0]!.expiresAt, status: 'offering' });
@@ -398,10 +466,12 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     let wave = d.wave;
     const offered = new Set(d.offeredDriverIds as string[]);
     const excluded = d.excludedDriverIds as string[];
+    const premium = this.premiumOnce(current);
     for (let guard = 0; guard < cfg.radii.length + 2; guard += 1) {
       while (cursor < candidates.length) {
         const ref = candidates[cursor]!;
         cursor += 1;
+        // Revérifié juste avant l'offre (en ligne, libre, sans offre en attente ailleurs) : deux courses voisines ne sollicitent pas le même chauffeur.
         const candidate = await this.candidateById(current, ref, cfg);
         if (!candidate) continue;
         const expiresAt = new Date(now.getTime() + cfg.offerSeconds * 1000);
@@ -423,7 +493,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       }
       radiusIndex = next.index;
       wave += 1;
-      const found = await this.searchImmediateCandidates(current, next.radius, [...excluded, ...offered], cfg);
+      const found = await this.searchImmediateCandidates(current, next.radius, [...excluded, ...offered], cfg, premium);
       candidates = found;
       cursor = 0;
       await this.rides.mark(current.id, 'dispatch_wave', SYSTEM_ACTOR, { wave, radiusMeters: next.radius, candidates: found.map((c) => ({ driverId: c.driverId, score: c.score, etaSeconds: c.etaSeconds })) });
@@ -454,7 +524,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         return;
       }
       const end = new Date(now.getTime() + cfg.scheduledWindowSeconds * 1000);
-      const favourite = found.find((c) => c.isRequestedFavourite || c.isClientFavourite);
+      const favourite = found.find((c) => c.isRequestedFavourite) ?? found.find((c) => c.isClientFavourite);
       if (favourite && cfg.favouriteExclusiveSeconds > 0) {
         const exclusiveEnd = new Date(Math.min(end.getTime(), now.getTime() + cfg.favouriteExclusiveSeconds * 1000));
         await this.sendOffer(ride, favourite, { wave: 1, type: 'fixed', expiresAt: exclusiveEnd, now });
@@ -539,38 +609,84 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
 
   // --- Candidats ---
 
-  private premiumContext(ride: RideRow, airport: boolean): boolean {
-    return ride.reservedCategory !== 'neo_premium' || Boolean(ride.organizationId) || airport;
+  /** Course VIP (catégorie au-dessus de Neo Premium), aéroport ou entreprise : bonus Illimité (5.4). */
+  private async premiumContextOf(ride: RideRow): Promise<boolean> {
+    if (ride.reservedCategory !== 'neo_premium') return true;
+    const [fromAirport, toAirport] = await Promise.all([this.zones.isAirport(parseGeoPoint(ride.originGeo)), this.zones.isAirport(parseGeoPoint(ride.destinationGeo))]);
+    return fromAirport || toAirport || (await this.isBusinessRide(ride));
   }
 
-  /** Filtres communs de la section 5.4, en SQL : statut, documents exigés, pack (si exigé), solde, suspension, pas d'offre en attente ailleurs. */
-  private eligibilityFilters(cfg: DispatchConfig, rideId: string) {
-    const documents = cfg.requiredDocuments.length
-      ? sql`AND NOT EXISTS (SELECT 1 FROM unnest(${sql.raw(`ARRAY[${cfg.requiredDocuments.map((t) => `'${t}'`).join(',')}]::text[]`)}) AS req(type)
-             WHERE NOT EXISTS (SELECT 1 FROM driver_documents dd WHERE dd.driver_id = d.id AND dd.type::text = req.type AND dd.status = 'approved' AND (dd.expires_on IS NULL OR dd.expires_on >= current_date)))`
-      : sql``;
-    const pack = cfg.requireActivePack ? sql`AND EXISTS (SELECT 1 FROM pack_purchases pp WHERE pp.driver_id = d.id AND pp.status = 'active' AND (pp.rides_remaining IS NULL OR pp.rides_remaining > 0 OR pp.auto_renew))` : sql``;
-    return sql`d.status = 'active' ${documents} ${pack}
-      AND NOT EXISTS (SELECT 1 FROM driver_balances b WHERE b.driver_id = d.id AND b.suspended_for_balance_at IS NOT NULL)
-      AND NOT EXISTS (SELECT 1 FROM sanctions s WHERE s.driver_id = d.id AND s.type = 'suspension' AND (s.ends_at IS NULL OR s.ends_at > now()))
-      AND NOT EXISTS (SELECT 1 FROM ride_offers o WHERE o.driver_id = d.id AND o.state = 'sent' AND o.expires_at > now() AND o.ride_id <> ${rideId}::uuid)`;
+  /** Contexte premium calculé au premier besoin puis réutilisé pendant le pas (il ne change pas au fil des vagues). */
+  private premiumOnce(ride: RideRow): () => Promise<boolean> {
+    let memo: Promise<boolean> | null = null;
+    return () => (memo ??= this.premiumContextOf(ride));
   }
 
-  /** Un chauffeur ne reçoit que des demandes compatibles avec les modes de paiement qu'il accepte (amendement v1.1). */
-  private paymentFilter(ride: RideRow) {
-    if (ride.paymentChoice !== 'pay_driver_after') return sql``;
-    if (ride.paymentMethod === 'cash') return sql`AND d.accepts_cash`;
-    if (ride.paymentMethod === 'interac') return sql`AND d.accepts_interac`;
-    if (ride.paymentMethod === 'terminal') return sql`AND d.accepts_terminal`;
-    return sql``;
+  /**
+   * Organisation partenaire de la course (flotte, compagnie de taxi, marque blanche, D42) ; la plateforme Neomoov, posée
+   * par défaut sur chaque course, n'en est pas une.
+   */
+  private async partnerOrganizationId(ride: RideRow): Promise<string | null> {
+    if (!ride.organizationId) return null;
+    let type = this.organizationTypes.get(ride.organizationId);
+    if (type === undefined) {
+      const [org] = await this.db.select({ type: schema.organizations.type }).from(schema.organizations).where(eq(schema.organizations.id, ride.organizationId)).limit(1);
+      type = org?.type ?? null;
+      if (org) this.organizationTypes.set(ride.organizationId, type);
+    }
+    return type !== null && type !== 'platform' ? ride.organizationId : null;
   }
 
+  /** Course d'entreprise : compte entreprise du client ou organisation partenaire. */
+  private async isBusinessRide(ride: RideRow): Promise<boolean> {
+    if (await this.partnerOrganizationId(ride)) return true;
+    if (!ride.clientId) return false;
+    const [client] = await this.db.select({ businessAccountId: schema.clients.businessAccountId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1);
+    return Boolean(client?.businessAccountId);
+  }
+
+  /** Chauffeur demandé (priorité et exclusivité) : le favori du devis, sinon le chauffeur du véhicule choisi (D37). */
   private favouriteOf(ride: RideRow): { requested: string | null; clientFavourite: ReturnType<typeof sql> } {
-    const requested = (ride.options as { favouriteDriverId?: string } | null)?.favouriteDriverId ?? null;
-    const clientFavourite = ride.clientId
-      ? sql`(EXISTS (SELECT 1 FROM client_driver_links l WHERE l.client_id = ${ride.clientId}::uuid AND l.driver_id = d.id AND l.favorite_since IS NOT NULL) OR EXISTS (SELECT 1 FROM favorite_drivers f WHERE f.client_id = ${ride.clientId}::uuid AND f.driver_id = d.id))`
+    const options = (ride.options ?? {}) as RequestedOptions;
+    return { requested: options.favouriteDriverId ?? options.requestedDriverId ?? null, clientFavourite: this.clientFavouriteSql(ride.clientId) };
+  }
+
+  private clientFavouriteSql(clientId: string | null) {
+    return clientId
+      ? sql`(EXISTS (SELECT 1 FROM client_driver_links l WHERE l.client_id = ${clientId}::uuid AND l.driver_id = d.id AND l.favorite_since IS NOT NULL) OR EXISTS (SELECT 1 FROM favorite_drivers f WHERE f.client_id = ${clientId}::uuid AND f.driver_id = d.id))`
       : sql`false`;
-    return { requested, clientFavourite };
+  }
+
+  /**
+   * `GET /quotes/{id}/vehicles` (D37) : véhicules libres sur le créneau d'un devis planifié, mêmes filtres que la
+   * répartition planifiée (le mode de paiement, choisi ensuite, est indiqué pour chaque véhicule) ; favoris du client
+   * d'abord, puis la note. En V1, « libre » = chauffeur actif qui accepte les planifiées, sans autre planifiée à
+   * ± `dispatch.scheduled_conflict_minutes` ; les disponibilités déclarées arrivent avec l'application chauffeur.
+   * Une course immédiate n'a pas de choix de véhicule : liste vide.
+   */
+  async availableVehicles(quoteId: string): Promise<AvailableVehicle[]> {
+    const [quote] = await this.db
+      .select({ category: schema.quotes.category, requestedAt: schema.quotes.requestedAt, clientId: schema.quotes.clientId })
+      .from(schema.quotes)
+      .where(eq(schema.quotes.id, quoteId))
+      .limit(1);
+    if (!quote) throw AppError.notFound('QUOTE_NOT_FOUND', 'Devis introuvable');
+    if (!quote.requestedAt) return [];
+    const cfg = await this.config();
+    const rows = await this.db.execute<VehicleRow>(sql`
+      SELECT v.id AS vehicle_id, v.category, v.make, v.model, v.year, v.colour, v.seats, d.id AS driver_id, u.first_name, d.rating_average AS rating, d.ride_count,
+             d.accepts_cash, d.accepts_interac, d.accepts_terminal, ${this.clientFavouriteSql(quote.clientId)} AS is_favourite
+      FROM drivers d
+      JOIN users u ON u.id = d.user_id
+      ${currentVehicleJoin}
+      WHERE ${driverEligible(cfg)} AND ${categoryAtLeast(quote.category)} AND ${scheduledSlotFree(cfg, quote.requestedAt)}
+      ORDER BY is_favourite DESC, d.rating_average DESC, d.ride_count DESC
+      LIMIT ${cfg.scheduledCandidatesMax}::int`);
+    return rows.map((r) => ({
+      vehicleId: r.vehicle_id, category: r.category, make: r.make, model: r.model, year: Number(r.year), colour: r.colour, seats: Number(r.seats), photoUrl: null, isFavourite: r.is_favourite,
+      paymentMethods: [...(r.accepts_cash ? (['cash'] as const) : []), ...(r.accepts_interac ? (['interac'] as const) : []), ...(r.accepts_terminal ? (['terminal'] as const) : [])] as PaymentMethod[],
+      driver: { id: r.driver_id, firstName: r.first_name, rating: Number(r.rating), rideCount: Number(r.ride_count) },
+    }));
   }
 
   private toCandidates(rows: CandidateRow[], favouriteRequested: string | null, now: Date): Candidate[] {
@@ -603,19 +719,29 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       FROM driver_presence p
       JOIN drivers d ON d.id = p.driver_id
       JOIN vehicle_categories vc ON vc.code = p.category
-      WHERE ${this.eligibilityFilters(cfg, ride.id)}
-        AND vc.rank >= (SELECT rank FROM vehicle_categories WHERE code = ${ride.reservedCategory})
+      WHERE ${driverEligible(cfg, ride.id)}
+        AND ${categoryAtLeast(ride.reservedCategory)}
         AND (p.is_available OR (p.current_ride_id IS NOT NULL AND EXISTS (
               SELECT 1 FROM rides cr WHERE cr.id = p.current_ride_id AND cr.state = 'in_progress'
                 AND ST_DWithin(cr.destination_position::geography, ${point}, ${chainMeters}::float))))
-        ${radiusFilter} ${excludedFilter} ${onlyFilter} ${this.paymentFilter(ride)}
+        -- Chauffeur déjà engagé : une course immédiate attribuée ou en approche, une planifiée proche, ou une course en cours
+        -- qui ne se termine pas près de l'origine (l'enchaînement à moins de chain_max_seconds reste permis).
+        AND NOT EXISTS (
+              SELECT 1 FROM rides ar WHERE ar.driver_id = d.id AND ar.id <> ${ride.id}::uuid AND ar.state IN ('assigned', 'en_route', 'arrived', 'in_progress')
+                AND (ar.type = 'immediate' OR ar.state <> 'assigned' OR ar.requested_at < now() + make_interval(mins => ${cfg.scheduledConflictMinutes}::int))
+                AND NOT (ar.state = 'in_progress' AND ST_DWithin(ar.destination_position::geography, ${point}, ${chainMeters}::float)))
+        ${radiusFilter} ${excludedFilter} ${onlyFilter} AND ${paymentAccepted(ride.paymentChoice, ride.paymentMethod)}
       ORDER BY distance_m ASC
       LIMIT 60`;
     return this.db.execute<CandidateRow>(query);
   }
 
-  /** Candidats d'une vague : les plus proches reçoivent un temps d'arrivée par matrice, puis score et sélection. */
-  private async searchImmediateCandidates(ride: RideRow, radius: SearchRadius, excluded: string[], cfg: DispatchConfig): Promise<CandidateRef[]> {
+  /**
+   * Candidats d'une vague : les plus proches reçoivent un temps d'arrivée par matrice, puis score et sélection. Les
+   * suivants, plus loin à vol d'oiseau, gardent une estimation par la distance, jamais inférieure au plus long temps
+   * mesuré : l'estimation brute (sans trafic ni détours) ne doit pas les faire passer devant les plus proches.
+   */
+  private async searchImmediateCandidates(ride: RideRow, radius: SearchRadius, excluded: string[], cfg: DispatchConfig, premium: () => Promise<boolean>): Promise<CandidateRef[]> {
     const rows = await this.immediateRows(ride, cfg, { radius, excluded });
     if (!rows.length) return [];
     const origin = parseGeoPoint(ride.originGeo);
@@ -628,19 +754,25 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         closest.forEach((c, i) => {
           c.etaSeconds = etas[i] ?? null;
         });
+        const measured = closest.map((c) => c.etaSeconds).filter((s): s is number => s !== null);
+        const longest = measured.length ? Math.max(...measured) : 0;
+        for (const c of candidates) {
+          if (c.etaSeconds === null && c.distanceMeters !== null) c.etaSeconds = Math.max(longest, Math.round(c.distanceMeters / cfg.fallbackSpeedMps));
+        }
       } catch (error) {
         this.logger.warn({ err: error, rideId: ride.id }, 'Matrice des temps d\'arrivée indisponible : estimation par la distance');
       }
     }
-    const airport = (await this.zones.isAirport(origin)) || (await this.zones.isAirport(parseGeoPoint(ride.destinationGeo)));
-    const scored = scoreCandidates(candidates.map((c): DispatchCandidate => ({ ...c, zoneImbalance: 0 })), { premiumContext: this.premiumContext(ride, airport), fallbackSpeedMps: cfg.fallbackSpeedMps }, cfg.weights);
-    return selectWave(scored, cfg.candidatesPerWave).map((s) => ({ driverId: s.driverId, etaSeconds: s.etaSeconds, distanceMeters: s.distanceMeters, score: s.score }));
+    const scored = scoreCandidates(candidates.map((c): DispatchCandidate => ({ ...c, zoneImbalance: 0 })), { premiumContext: await premium(), fallbackSpeedMps: cfg.fallbackSpeedMps }, cfg.weights);
+    const users = new Map(candidates.map((c) => [c.driverId, c.userId]));
+    return selectWave(scored, cfg.candidatesPerWave).map((s) => ({ driverId: s.driverId, userId: users.get(s.driverId)!, etaSeconds: s.etaSeconds, distanceMeters: s.distanceMeters, score: s.score }));
   }
 
   /** Négociation d'une course immédiate : premiers candidats trouvés en élargissant le rayon. */
   private async searchAnyRadius(ride: RideRow, excluded: string[], cfg: DispatchConfig): Promise<Candidate[]> {
+    const premium = this.premiumOnce(ride);
     for (const radius of cfg.radii) {
-      const refs = await this.searchImmediateCandidates(ride, radius, excluded, cfg);
+      const refs = await this.searchImmediateCandidates(ride, radius, excluded, cfg, premium);
       if (refs.length) {
         const candidates: Candidate[] = [];
         for (const ref of refs) {
@@ -664,7 +796,6 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private async searchScheduledCandidates(ride: RideRow, excluded: string[], cfg: DispatchConfig): Promise<Candidate[]> {
     const { requested, clientFavourite } = this.favouriteOf(ride);
     const excludedFilter = excluded.length ? sql`AND d.id NOT IN (${sql.join(excluded.map((id) => sql`${id}::uuid`), sql`, `)})` : sql``;
-    const requestedAt = (ride.requestedAt ?? new Date()).toISOString();
     const query = sql`
       SELECT d.id AS driver_id, d.user_id, d.rating_average AS rating, d.ride_count, v.id AS vehicle_id, v.category, ST_AsGeoJSON(p.position) AS position, NULL::float AS distance_m,
              (SELECT max(r.updated_at) FROM rides r WHERE r.driver_id = d.id AND r.state IN ('completed', 'rated')) AS last_ride_at,
@@ -672,20 +803,17 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
              EXISTS (SELECT 1 FROM pack_purchases pp WHERE pp.driver_id = d.id AND pp.status = 'active' AND pp.pack_code = 'unlimited') AS is_unlimited,
              ${clientFavourite} AS is_client_favourite
       FROM drivers d
-      JOIN vehicles v ON v.id = d.current_vehicle_id AND v.status = 'active'
-      JOIN vehicle_categories vc ON vc.code = v.category
+      ${currentVehicleJoin}
       LEFT JOIN driver_presence p ON p.driver_id = d.id
-      WHERE ${this.eligibilityFilters(cfg, ride.id)}
-        AND d.accepts_scheduled
-        AND vc.rank >= (SELECT rank FROM vehicle_categories WHERE code = ${ride.reservedCategory})
-        AND NOT EXISTS (SELECT 1 FROM rides r2 WHERE r2.driver_id = d.id AND r2.id <> ${ride.id}::uuid AND r2.type = 'scheduled' AND r2.state IN ('assigned', 'en_route', 'arrived', 'in_progress')
-                        AND r2.requested_at BETWEEN ${requestedAt}::timestamptz - make_interval(mins => ${cfg.scheduledConflictMinutes}::int) AND ${requestedAt}::timestamptz + make_interval(mins => ${cfg.scheduledConflictMinutes}::int))
-        ${excludedFilter} ${this.paymentFilter(ride)}
+      WHERE ${driverEligible(cfg, ride.id)}
+        AND ${categoryAtLeast(ride.reservedCategory)}
+        AND ${scheduledSlotFree(cfg, ride.requestedAt ?? new Date(), ride.id)}
+        ${excludedFilter} AND ${paymentAccepted(ride.paymentChoice, ride.paymentMethod)}
       ORDER BY (d.id = ${requested ?? NIL_UUID}::uuid) DESC, is_client_favourite DESC, d.rating_average DESC, d.ride_count ASC
       LIMIT ${cfg.scheduledCandidatesMax}::int`;
     const rows = await this.db.execute<CandidateRow>(query);
     const candidates = this.toCandidates(rows, requested, new Date());
-    const scored = scoreCandidates(candidates.map((c): DispatchCandidate => ({ ...c, etaSeconds: null, distanceMeters: null, zoneImbalance: 0 })), { premiumContext: this.premiumContext(ride, false), fallbackSpeedMps: cfg.fallbackSpeedMps }, cfg.weights);
+    const scored = scoreCandidates(candidates.map((c): DispatchCandidate => ({ ...c, etaSeconds: null, distanceMeters: null, zoneImbalance: 0 })), { premiumContext: await this.premiumContextOf(ride), fallbackSpeedMps: cfg.fallbackSpeedMps }, cfg.weights);
     const byId = new Map(candidates.map((c) => [c.driverId, c]));
     return scored.map((s) => byId.get(s.driverId)!);
   }
@@ -695,8 +823,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   /** Passe la course en `offering` avant une première offre, et renvoie la ligne à jour. */
   private async ensureOffering(ride: RideRow, data: Record<string, unknown>): Promise<RideRow> {
     if (ride.state !== 'requested') return ride;
-    await this.rides.systemTransition(ride.id, 'offers_sent', data);
-    return this.rides.getRide(ride.id);
+    return this.rides.systemTransition(ride.id, 'offers_sent', data);
   }
 
   private async broadcast(ride: RideRow, candidates: Candidate[], options: OfferOptions): Promise<string[]> {
@@ -721,7 +848,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return Math.max(0, subtotal - (ride.serviceFeeCents ?? 0) - (ride.regulatoryFeeCents ?? 0) - ride.tollsCents);
   }
 
-  private async sendOffer(ride: RideRow, candidate: Candidate, options: OfferOptions): Promise<OfferRow> {
+  private async sendOffer(ride: RideRow, candidate: Pick<Candidate, 'driverId' | 'userId' | 'distanceMeters' | 'etaSeconds'>, options: OfferOptions): Promise<OfferRow> {
     const current = await this.ensureOffering(ride, { wave: options.wave, type: options.type });
     const negotiation = options.type === 'client_proposal';
     const proposed = negotiation ? current.proposedTotalCents : null;
@@ -733,11 +860,29 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         pickupDistanceMeters: candidate.distanceMeters, pickupSeconds: candidate.etaSeconds, sentAt: options.now, expiresAt: options.expiresAt,
       })
       .returning();
-    await this.rides.mark(current.id, 'offer_sent', SYSTEM_ACTOR, { offerId: offer!.id, driverId: candidate.driverId, wave: options.wave, type: options.type, expiresAt: options.expiresAt.toISOString(), pickupSeconds: candidate.etaSeconds, proposedTotalCents: proposed });
     this.stats.offers += 1;
     this.events.emit('offer.sent', { offerId: offer!.id, rideId: current.id, driverId: candidate.driverId, driverUserId: candidate.userId, wave: options.wave, type: options.type, expiresAt: options.expiresAt, proposedTotalCents: proposed });
+    await this.rides.mark(current.id, 'offer_sent', SYSTEM_ACTOR, { offerId: offer!.id, driverId: candidate.driverId, wave: options.wave, type: options.type, expiresAt: options.expiresAt.toISOString(), pickupSeconds: candidate.etaSeconds, proposedTotalCents: proposed });
     await this.outbox.queue({ recipientUserId: candidate.userId, template: 'offer.new', data: { offerId: offer!.id, rideId: current.id, expiresAt: options.expiresAt.toISOString() } });
     return offer!;
+  }
+
+  /**
+   * D37 : le chauffeur demandé (favori du devis ou chauffeur du véhicule choisi) n'a pas eu la course (hors ligne, occupé,
+   * refus ou délai dépassé) : elle est attribuée à un autre favori du client ou au meilleur candidat de la catégorie. Le
+   * client est prévenu une fois, à l'attribution ; pour un favori, le supplément n'est pas facturé
+   * (`RidesService.favouriteWaiverOf`), sauf prix négocié, qui fait foi.
+   */
+  private async notifyRequestedUnavailable(ride: RideRow, driverId: string, kind: 'favourite' | 'vehicle'): Promise<void> {
+    if (this.favouriteNotified.has(ride.id)) return;
+    if (this.favouriteNotified.size >= 10_000) this.favouriteNotified.clear();
+    this.favouriteNotified.add(ride.id);
+    const type = kind === 'favourite' ? 'favourite_unavailable' : 'vehicle_unavailable';
+    const [already] = await this.db.select({ id: schema.rideEvents.id }).from(schema.rideEvents).where(and(eq(schema.rideEvents.rideId, ride.id), eq(schema.rideEvents.type, type))).limit(1);
+    if (already) return;
+    await this.rides.mark(ride.id, type, SYSTEM_ACTOR, kind === 'favourite' ? { favouriteDriverId: driverId, feeWaived: ride.negotiationMode !== 'negotiation' } : { requestedDriverId: driverId, requestedVehicleId: ((ride.options ?? {}) as RequestedOptions).requestedVehicleId ?? null });
+    const recipient = await this.rides.recipientOf(ride);
+    await this.outbox.queue({ ...recipient, template: `ride.${type}`, data: { rideId: ride.id, publicNumber: ride.publicNumber } });
   }
 
   private async closeOffer(offer: OfferRow, reason: 'timeout' | 'assigned_elsewhere' | 'withdrawn' | 'cancelled', now: Date): Promise<void> {
@@ -800,25 +945,34 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return this.withLock(offer.rideId, async () => {
       const ride = await this.rides.getRide(offer.rideId);
       const actorRef: ActorRef = { kind: 'driver', userId: actor.userId };
+      const lost = async () => {
+        await this.db.update(schema.rideOffers).set({ state: 'expired' }).where(eq(schema.rideOffers.id, offerId));
+        await this.rides.mark(ride.id, 'offer_expired', SYSTEM_ACTOR, { offerId, driverId, reason: 'assigned_elsewhere' });
+        this.events.emit('offer.expired', { offerId, rideId: ride.id, driverId, driverUserId: actor.userId, reason: 'assigned_elsewhere' });
+        return AppError.conflict('OFFER_EXPIRED', 'La course vient d\'être attribuée à un autre chauffeur');
+      };
+      // Une autre acceptation est passée avant sous le verrou : rien n'est écrit pour celle-ci (ni prix convenu, ni journal).
+      if (ride.driverId || !['requested', 'offering'].includes(ride.state)) throw await lost();
       try {
         if (claimed.type === 'client_proposal' && claimed.proposedTotalCents !== null) {
           const agreed = agreedPrice({ displayedCents: ride.quotedTotalCents, proposedCents: ride.proposedTotalCents, offer: { type: 'client_proposal', proposedTotalCents: claimed.proposedTotalCents } });
           await this.db.update(schema.rides).set({ agreedTotalCents: agreed.totalCents }).where(and(eq(schema.rides.id, ride.id), isNull(schema.rides.driverId)));
           await this.rides.mark(ride.id, 'negotiation_agreed', actorRef, { offerId, totalCents: agreed.totalCents, by: 'driver' });
         }
+        this.closingAssignments.add(ride.id);
         await this.rides.assign(ride.id, { driverId }, actorRef);
       } catch (error) {
-        if (error instanceof AppError && ['RIDE_ALREADY_ASSIGNED', 'RIDE_INVALID_TRANSITION'].includes(error.code)) {
-          await this.db.update(schema.rideOffers).set({ state: 'expired' }).where(eq(schema.rideOffers.id, offerId));
-          await this.rides.mark(ride.id, 'offer_expired', SYSTEM_ACTOR, { offerId, driverId, reason: 'assigned_elsewhere' });
-          this.events.emit('offer.expired', { offerId, rideId: ride.id, driverId, driverUserId: actor.userId, reason: 'assigned_elsewhere' });
-          throw AppError.conflict('OFFER_EXPIRED', 'La course vient d\'être attribuée à un autre chauffeur');
-        }
+        this.closingAssignments.delete(ride.id);
+        if (error instanceof AppError && ['RIDE_ALREADY_ASSIGNED', 'RIDE_INVALID_TRANSITION'].includes(error.code)) throw await lost();
         throw error;
       }
-      await this.rides.mark(ride.id, 'offer_accepted', actorRef, { offerId, driverId, type: claimed.type });
-      this.events.emit('offer.responded', { offerId, rideId: ride.id, driverId, response: 'accepted', proposedTotalCents: claimed.proposedTotalCents });
-      await this.markAssigned(ride.id, driverId);
+      try {
+        await this.rides.mark(ride.id, 'offer_accepted', actorRef, { offerId, driverId, type: claimed.type });
+        this.events.emit('offer.responded', { offerId, rideId: ride.id, driverId, response: 'accepted', proposedTotalCents: claimed.proposedTotalCents });
+        await this.markAssigned(ride.id, driverId, ride);
+      } finally {
+        this.closingAssignments.delete(ride.id);
+      }
       return this.rides.viewById(ride.id);
     });
   }
@@ -881,7 +1035,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     const [client] = ride.clientId ? await this.db.select().from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
     if (!client) throw AppError.conflict('NEGOTIATION_NOT_ELIGIBLE', 'Réservation sans compte client', { reason: 'guest' });
     const [quote] = ride.quoteId ? await this.db.select({ flatRateCode: schema.quotes.flatRateCode }).from(schema.quotes).where(eq(schema.quotes.id, ride.quoteId)).limit(1) : [];
-    const ineligible = negotiationIneligibility({ flatRateCode: quote?.flatRateCode ?? null, category: ride.reservedCategory, organizationId: ride.organizationId, businessAccountId: client.businessAccountId });
+    const ineligible = negotiationIneligibility({ flatRateCode: quote?.flatRateCode ?? null, category: ride.reservedCategory, organizationId: await this.partnerOrganizationId(ride), businessAccountId: client.businessAccountId });
     if (ineligible) throw AppError.conflict('NEGOTIATION_NOT_ELIGIBLE', 'La négociation n\'est pas offerte pour cette course', { reason: ineligible });
     let group = client.experimentGroup as NegotiationMode | null;
     if (!group) {
@@ -919,7 +1073,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       return {
         id: o.id, type: o.type, state: o.state, totalCents: o.proposedTotalCents ?? ride.quotedTotalCents, aboveDisplayed: (o.proposedTotalCents ?? 0) > ride.quotedTotalCents, reason: (o.reason as ClientOfferView['reason']) ?? null, reasonText: o.reasonText,
         sentAt: o.sentAt.toISOString(), expiresAt: o.expiresAt.toISOString(),
-        driver: { id: o.driverId, firstName: driver?.firstName ?? 'Chauffeur', rating: Number(driver?.rating ?? 5), rideCount: driver?.rideCount ?? 0, vehicle: { make: vehicle?.make ?? '', model: vehicle?.model ?? '', colour: vehicle?.colour ?? '', category: vehicle?.category ?? ride.reservedCategory } },
+        driver: { id: o.driverId, firstName: driver?.firstName ?? null, rating: Number(driver?.rating ?? 5), rideCount: driver?.rideCount ?? 0, vehicle: { make: vehicle?.make ?? '', model: vehicle?.model ?? '', colour: vehicle?.colour ?? '', category: vehicle?.category ?? ride.reservedCategory } },
       };
     });
   }
@@ -947,9 +1101,14 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       await this.db.update(schema.rides).set({ agreedTotalCents: agreed.totalCents }).where(eq(schema.rides.id, rideId));
       await this.db.update(schema.rideOffers).set({ state: 'accepted', respondedAt: now }).where(eq(schema.rideOffers.id, offerId));
       await this.rides.mark(rideId, 'negotiation_agreed', actorRef, { offerId, totalCents: agreed.totalCents, by: 'client', aboveDisplayed: agreed.explicitConsentRequired });
-      await this.rides.assign(rideId, { driverId: offer.driverId }, actorRef);
-      this.events.emit('offer.responded', { offerId, rideId, driverId: offer.driverId, response: 'accepted', proposedTotalCents: offer.proposedTotalCents });
-      await this.markAssigned(rideId, offer.driverId);
+      this.closingAssignments.add(rideId);
+      try {
+        await this.rides.assign(rideId, { driverId: offer.driverId }, actorRef);
+        this.events.emit('offer.responded', { offerId, rideId, driverId: offer.driverId, response: 'accepted', proposedTotalCents: offer.proposedTotalCents });
+        await this.markAssigned(rideId, offer.driverId, ride);
+      } finally {
+        this.closingAssignments.delete(rideId);
+      }
       return this.rides.viewById(rideId);
     });
   }
@@ -1029,7 +1188,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     await this.rides.mark(d.rideId, 'no_movement_reassign', SYSTEM_ACTOR, { driverId: previousDriverId, seconds: cfg.noMovementSeconds, meters: cfg.noMovementMeters });
     const [driver] = await this.db.select({ userId: schema.drivers.userId }).from(schema.drivers).where(eq(schema.drivers.id, previousDriverId)).limit(1);
     if (driver) await this.outbox.queue({ recipientUserId: driver.userId, template: 'ride.removed_no_movement', data: { rideId: d.rideId } });
-    await this.start(d.rideId, { reason: 'reassign', priority: true, excludeDriverIds: [previousDriverId] });
+    await this.start(d.rideId, { reason: 'reassign', priority: true, excludeDriverIds: [previousDriverId], now });
     return true;
   }
 }

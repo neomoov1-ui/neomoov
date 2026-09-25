@@ -1,6 +1,6 @@
 /** Courses côté client (section 7.2, groupe Courses), négociation encadrée, et suivi public d'une course partagée. */
 import {
-  acceptOfferSchema, cancellationResultSchema, cancelRideSchema, clientOfferSchema, clientProposalSchema, createRideSchema, incidentCreatedSchema, publicTrackingSchema, rateRideSchema,
+  acceptOfferSchema, availableVehicleSchema, cancellationResultSchema, cancelRideSchema, clientOfferSchema, clientProposalSchema, createRideSchema, incidentCreatedSchema, publicTrackingSchema, rateRideSchema,
   rideEventSchema, rideListQuerySchema, rideMessageInputSchema, rideMessageSchema, rideSchema, shareResponseSchema, sosInputSchema, sosResponseSchema, uuid, vehicleMismatchSchema,
 } from '@neomoov/domain';
 import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query, Res } from '@nestjs/common';
@@ -174,6 +174,24 @@ export class RidesController {
   @ApiErrors(400, 401, 403, 404, 409, 429)
   acceptOffer(@Param('id', zodPipe(uuid)) id: string, @Param('offerId', zodPipe(uuid)) offerId: string, @Body(zodPipe(acceptOfferSchema)) body: z.infer<typeof acceptOfferSchema>, @CurrentUser() user: UserActor) {
     return this.dispatch.acceptForClient(id, offerId, user, body.consentText);
+  }
+}
+
+/** Sélection précise du véhicule (D37) : servie par la répartition, qui connaît les chauffeurs libres sur un créneau. */
+@ApiTags('quotes')
+@ApiBearerAuth()
+@Authenticated()
+@Controller('quotes')
+export class QuoteVehiclesController {
+  constructor(private readonly dispatch: DispatchService) {}
+
+  @Get(':id/vehicles')
+  @Owns('quote')
+  @ApiOperation({ summary: 'Véhicules réellement libres sur le créneau d\'un devis planifié, à choisir précisément (D37) ; liste vide pour une course immédiate' })
+  @ZodResponse(200, z.array(availableVehicleSchema))
+  @ApiErrors(401, 403, 404, 429)
+  vehicles(@Param('id', zodPipe(uuid)) id: string) {
+    return this.dispatch.availableVehicles(id);
   }
 }
 

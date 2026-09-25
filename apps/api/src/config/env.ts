@@ -28,6 +28,8 @@ export const envSchema = z.object({
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL est obligatoire (adresse « Session pooler » de Supabase ou base locale)'),
   TEST_DATABASE_URL: optionalString,
+  // Connexions simultanées à la base par processus ; vide : 10 (2 en test, les fichiers de test tournant en parallèle).
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).optional(),
   // Sans REDIS_URL, l'API et le worker utilisent des files et un cache en mémoire (développement seulement).
   REDIS_URL: optionalString,
   // Répartition automatique (étape 6) : `auto` réagit aux demandes de course ; `manual` laisse l'opérateur ou les tests la piloter.

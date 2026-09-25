@@ -27,6 +27,7 @@ import { DB, type Database } from '../../infra/db.module.js';
 import { hasStaffRole, type UserActor } from '../auth/actor.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
+import { categoryAtLeast, currentVehicleJoin, driverEligible, loadEligibilityRules, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
 import { dispatchRows, dispatchSummaryOf, driverSummaries, parseGeoPoint, selectRide, selectRides, timestampsOf, toRideView, type RideRow } from './ride-view.js';
@@ -227,7 +228,11 @@ export class RidesService {
     if (existing) return { ride: await this.view(existing), created: false };
     const client = await this.clientOfUser(actor.userId);
     if (!client) throw AppError.forbidden('CLIENT_PROFILE_REQUIRED', 'Un profil client est requis pour réserver');
-    const type = await this.checkQuoteForRide(await this.quoteById(input.quoteId), { userId: actor.userId, clientId: client.id, maxConsentedCents: input.maxConsentedCents, requestedType: input.type });
+    const quote = await this.quoteById(input.quoteId);
+    const type = await this.checkQuoteForRide(quote, { userId: actor.userId, clientId: client.id, maxConsentedCents: input.maxConsentedCents, requestedType: input.type });
+    const requested = input.vehicleId
+      ? await this.requestedVehicle(input.vehicleId, { category: quote.category, requestedAt: quote.requestedAt, paymentChoice: input.paymentChoice, paymentMethod: input.paymentMethod })
+      : undefined;
     try {
       const ride = await this.db.transaction((tx) =>
         this.insertRide(tx, input.quoteId, {
@@ -242,7 +247,7 @@ export class RidesService {
           preferences: input.preferences,
           specialRequests: input.specialRequests ?? null,
           idempotencyKey,
-        }, { kind: 'client', userId: actor.userId }),
+        }, { kind: 'client', userId: actor.userId }, requested),
       );
       await this.afterCreation(ride, { kind: 'client', userId: actor.userId });
       return { ride: await this.view(ride), created: true };
@@ -292,6 +297,25 @@ export class RidesService {
     }
   }
 
+  /**
+   * D37 : véhicule choisi par le client, pour une réservation planifiée seulement ; mêmes règles que la liste des
+   * véhicules libres et la répartition (`eligibility.ts`) : véhicule courant actif, chauffeur éligible et libre sur le
+   * créneau, mode de paiement accepté, catégorie réservée ou supérieure.
+   */
+  private async requestedVehicle(vehicleId: string, booking: { category: string; requestedAt: Date | null; paymentChoice: string; paymentMethod: string }): Promise<{ requestedVehicleId: string; requestedDriverId: string }> {
+    if (!booking.requestedAt) throw new AppError('VEHICLE_CHOICE_SCHEDULED_ONLY', 'Le choix précis du véhicule se fait pour une réservation planifiée', 400);
+    const rules = await loadEligibilityRules(this.settings);
+    const rows = await this.db.execute<{ driver_id: string; rank_ok: boolean; eligible: boolean }>(sql`
+      SELECT d.id AS driver_id, ${categoryAtLeast(booking.category)} AS rank_ok,
+             (${driverEligible(rules)} AND ${scheduledSlotFree(rules, booking.requestedAt)} AND ${paymentAccepted(booking.paymentChoice, booking.paymentMethod)}) AS eligible
+      FROM drivers d ${currentVehicleJoin}
+      WHERE v.id = ${vehicleId}::uuid`);
+    const row = rows[0];
+    if (row && !row.rank_ok) throw AppError.conflict('VEHICLE_CATEGORY_TOO_LOW', 'Ce véhicule est d\'une catégorie inférieure à celle réservée');
+    if (!row?.eligible) throw AppError.conflict('VEHICLE_NOT_AVAILABLE', 'Ce véhicule n\'est plus disponible sur ce créneau ou pour ce mode de paiement : choisissez-en un autre ou laissez-nous attribuer');
+    return { requestedVehicleId: vehicleId, requestedDriverId: row.driver_id };
+  }
+
   private async byIdempotencyKey(key: string, userId: string): Promise<RideRow | null> {
     const [existing] = await selectRides(this.db, eq(schema.rides.idempotencyKey, key), { limit: 1 });
     if (!existing) return null;
@@ -332,7 +356,7 @@ export class RidesService {
   }
 
   /** Insertion sous verrou du devis : un devis ne sert qu'une fois, même sous deux demandes concurrentes. */
-  private async insertRide(tx: Executor, quoteId: string, fields: RideUpdate & { type: 'immediate' | 'scheduled'; paymentMethod: PaymentMethod; paymentChoice: 'prepaid' | 'pay_driver_after' }, actor: ActorRef): Promise<RideRow> {
+  private async insertRide(tx: Executor, quoteId: string, fields: RideUpdate & { type: 'immediate' | 'scheduled'; paymentMethod: PaymentMethod; paymentChoice: 'prepaid' | 'pay_driver_after' }, actor: ActorRef, extraOptions?: Record<string, unknown>): Promise<RideRow> {
     const quote = await this.quoteById(quoteId, tx, true);
     const [used] = await tx.select({ id: schema.rides.id }).from(schema.rides).where(eq(schema.rides.quoteId, quote.id)).limit(1);
     if (used) throw AppError.conflict('QUOTE_ALREADY_USED', 'Ce devis a déjà servi à une course', { rideId: used.id });
@@ -354,7 +378,7 @@ export class RidesService {
         destinationAddress: quote.destinationAddress,
         destinationPosition: parseGeoPoint(quote.destinationGeo),
         stops: quote.stops,
-        options: quote.options,
+        options: extraOptions ? { ...((quote.options ?? {}) as Record<string, unknown>), ...extraOptions } : quote.options,
         favoriteDriverRequested: Boolean((quote.options as { favouriteDriverId?: string } | null)?.favouriteDriverId),
         maxConsentedCents: quote.maxConsentedCents,
         quotedTotalCents: quote.totalCents,
@@ -437,9 +461,12 @@ export class RidesService {
   /** Signal sans changement d'état dans `ride_events` (répartition, négociation, incidents) ; jamais un événement de transition. */
   async mark(rideId: string, type: string, actor: ActorRef, data: Record<string, unknown>): Promise<void> {
     if ((RIDE_EVENTS as readonly string[]).includes(type)) throw new Error(`Le signal ${type} est un événement de transition : utilisez la machine à états`);
-    const [row] = await this.db.select({ state: schema.rides.state }).from(schema.rides).where(eq(schema.rides.id, rideId)).limit(1);
-    if (!row) throw AppError.notFound('RIDE_NOT_FOUND', 'Course introuvable');
-    await this.db.insert(schema.rideEvents).values({ rideId, type, fromState: row.state, toState: row.state, actorUserId: actor.userId, actorKind: actor.kind, data });
+    // Une seule requête (état lu et signal écrit ensemble) : la répartition en enchaîne plusieurs avant chaque offre.
+    const rows = await this.db.execute<{ id: string }>(sql`
+      INSERT INTO ride_events (ride_id, type, from_state, to_state, actor_user_id, actor_kind, data)
+      SELECT r.id, ${type}::varchar, r.state, r.state, ${actor.userId}::uuid, ${actor.kind}::varchar, ${JSON.stringify(data)}::jsonb FROM rides r WHERE r.id = ${rideId}::uuid
+      RETURNING id`);
+    if (!rows.length) throw AppError.notFound('RIDE_NOT_FOUND', 'Course introuvable');
   }
 
   /**
@@ -649,7 +676,7 @@ export class RidesService {
     await this.presence.flush();
     const track = await this.buildTrack(rideId);
     const loaded = await this.pricingRules.rulesFor(ride.cityCode);
-    const finalQuote = finalizeQuote(this.quoteOfRide(ride, loaded.rules), ride.waitedSeconds, loaded.rules);
+    const finalQuote = finalizeQuote(this.quoteOfRide(ride, loaded.rules, await this.favouriteWaiverOf(ride)), ride.waitedSeconds, loaded.rules);
     const waitChargeCents = finalQuote.lines.find((l) => l.kind === 'wait_time')?.amountCents ?? 0;
     const measuredDistance = track?.distanceMeters ?? input.measuredDistanceMeters ?? ride.distanceMeters;
     const measuredDuration = track?.durationSeconds ?? input.measuredDurationSeconds ?? ride.durationSeconds;
@@ -659,6 +686,7 @@ export class RidesService {
         finalPriceCents: finalQuote.totalCents,
         waitChargeCents,
         fareCents: finalQuote.fareCents,
+        creditsAppliedCents: finalQuote.creditsAppliedCents,
         serviceFeeCents: finalQuote.serviceFeeCents,
         regulatoryFeeCents: finalQuote.regulatoryFeeCents,
         gstCents: finalQuote.gstCents,
@@ -695,23 +723,29 @@ export class RidesService {
    * négociation (5.5) remplace le total : l'écart avec le prix affiché est porté par le tarif du chauffeur, les frais
    * de service et la redevance ne se négocient pas.
    */
-  private quoteOfRide(ride: RideRow, rules: Parameters<typeof finalizeQuote>[2]): Quote {
+  private quoteOfRide(ride: RideRow, rules: Parameters<typeof finalizeQuote>[2], favouriteWaiverCents = 0): Quote {
     const baseFareCents = ride.fareCents ?? 0;
     const serviceFeeCents = ride.serviceFeeCents ?? 0;
     const regulatoryFeeCents = ride.regulatoryFeeCents ?? 0;
     const computedSubtotal = baseFareCents - ride.promotionDiscountCents + serviceFeeCents + regulatoryFeeCents + ride.tollsCents;
     const displayedSubtotal = subtotalForTotal(ride.quotedTotalCents, rules) ?? computedSubtotal;
     const alignmentDiscountCents = Math.max(0, computedSubtotal - displayedSubtotal);
-    const totalCents = ride.agreedTotalCents ?? ride.quotedTotalCents;
-    const subtotalCents = ride.agreedTotalCents !== null ? (subtotalForTotal(totalCents, rules) ?? displayedSubtotal) : displayedSubtotal;
-    const negotiatedCents = subtotalCents - displayedSubtotal;
-    const fareCents = Math.max(0, baseFareCents + negotiatedCents);
     const negotiated = ride.agreedTotalCents !== null;
+    // D37 : supplément « chauffeur favori » retiré du tarif quand un autre chauffeur fait la course ; un prix négocié fait foi.
+    const waived = negotiated ? 0 : Math.max(0, Math.min(favouriteWaiverCents, baseFareCents));
+    const agreedSubtotal = negotiated ? (subtotalForTotal(ride.agreedTotalCents!, rules) ?? displayedSubtotal) : displayedSubtotal;
+    const negotiatedCents = agreedSubtotal - displayedSubtotal;
+    const subtotalCents = agreedSubtotal - waived;
+    const fareCents = Math.max(0, baseFareCents + negotiatedCents - waived);
+    const retaxed = negotiated || waived > 0;
+    const gstCents = retaxed ? mulDivRound(subtotalCents, rules.gstRatePpm, 1_000_000) : (ride.gstCents ?? 0);
+    const qstCents = retaxed ? mulDivRound(subtotalCents, rules.qstRatePpm, 1_000_000) : (ride.qstCents ?? 0);
+    const totalCents = negotiated ? ride.agreedTotalCents! : waived > 0 ? subtotalCents + gstCents + qstCents : ride.quotedTotalCents;
     return {
       category: ride.reservedCategory,
       flatRate: false,
       flatRateCode: null,
-      lines: [],
+      lines: waived > 0 ? [{ kind: 'favourite_driver', code: 'favourite_driver', amountCents: -waived }] : [],
       fareCents,
       promotionCode: null,
       promotionDiscountCents: ride.promotionDiscountCents,
@@ -721,15 +755,28 @@ export class RidesService {
       tollsCents: ride.tollsCents,
       alignmentDiscountCents,
       subtotalCents,
-      gstCents: negotiated ? mulDivRound(subtotalCents, rules.gstRatePpm, 1_000_000) : (ride.gstCents ?? 0),
-      qstCents: negotiated ? mulDivRound(subtotalCents, rules.qstRatePpm, 1_000_000) : (ride.qstCents ?? 0),
+      gstCents,
+      qstCents,
       totalCents,
-      creditsAppliedCents: ride.creditsAppliedCents,
-      amountDueCents: totalCents - ride.creditsAppliedCents,
+      creditsAppliedCents: Math.min(ride.creditsAppliedCents, totalCents),
+      amountDueCents: totalCents - Math.min(ride.creditsAppliedCents, totalCents),
       driverAmountCents: fareCents,
       maxConsentedCents: ride.maxConsentedCents,
       ignoredOptions: [],
     };
+  }
+
+  /**
+   * D37 : le client a demandé un chauffeur favori (supplément du devis) mais un autre chauffeur fait la course : le client
+   * a été prévenu et continue sans supplément. Montant exact de la ligne `favourite_driver` du devis.
+   */
+  private async favouriteWaiverOf(ride: RideRow): Promise<number> {
+    const requested = (ride.options as { favouriteDriverId?: string } | null)?.favouriteDriverId;
+    if (!requested || !ride.quoteId || ride.driverId === requested) return 0;
+    const [quote] = await this.db.select({ lines: schema.quotes.lines }).from(schema.quotes).where(eq(schema.quotes.id, ride.quoteId)).limit(1);
+    const lines = Array.isArray(quote?.lines) ? (quote.lines as Array<{ code?: string; kind?: string; amountCents?: number }>) : [];
+    const line = lines.find((l) => l.code === 'favourite_driver' || l.kind === 'favourite_driver');
+    return Math.max(0, line?.amountCents ?? 0);
   }
 
   /** Trace de course (8) : positions enregistrées pendant la course, simplifiées, distance et durée mesurées. */

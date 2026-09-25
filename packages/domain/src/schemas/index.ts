@@ -34,6 +34,8 @@ export const createRideSchema = z.object({
   preferences: ridePreferencesSchema.prefault({}),
   /** D36 : payé d'avance dans l'application, ou payé au chauffeur après la course. */
   paymentChoice: z.enum(PAYMENT_CHOICES).default('prepaid'),
+  /** D37 : véhicule choisi dans `GET /quotes/{id}/vehicles` ; son chauffeur reçoit l'offre d'abord, puis la catégorie. */
+  vehicleId: uuid.optional(),
   specialRequests: z.string().trim().max(500).optional(),
   maxConsentedCents: cents,
 }).refine((r) => r.type === 'immediate' || r.requestedAt !== undefined, { message: 'Une course planifiée a une heure demandée', path: ['requestedAt'] });
