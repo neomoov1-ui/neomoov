@@ -4,6 +4,7 @@ import { QueryClient, useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { POLL_DATA_SAVER_MS, POLL_FALLBACK_MS } from './config';
 import { usePreferences } from './preferences';
+import { useRealtimeStatus } from './realtime';
 import { useHasDriverRole, useSession } from './session';
 
 export const queryClient = new QueryClient({
@@ -122,21 +123,24 @@ export function useConsents() {
   return useQuery({ queryKey: keys.consents, queryFn: () => api.me.consents(), enabled: useSignedIn() });
 }
 
+/** Intervalle du rafraîchissement HTTP de repli : seulement socket coupé, espacé en économie de données. */
+function useFallbackInterval(wanted: boolean): number | false {
+  const saver = usePreferences((s) => s.dataSaver);
+  const connected = useRealtimeStatus((s) => s.connected);
+  if (!wanted || connected) return false;
+  return saver ? POLL_DATA_SAVER_MS : POLL_FALLBACK_MS;
+}
+
 /** Offres en attente : poussées par le socket, relues ici au retour au premier plan et en repli. */
 export function useOffers(poll: boolean) {
-  const saver = usePreferences((s) => s.dataSaver);
-  return useQuery({ queryKey: keys.offers, queryFn: () => api.driver.offers(), enabled: useDriverReady(), refetchInterval: poll ? (saver ? POLL_DATA_SAVER_MS : POLL_FALLBACK_MS) : false });
+  const interval = useFallbackInterval(poll);
+  return useQuery({ queryKey: keys.offers, queryFn: () => api.driver.offers(), enabled: useDriverReady(), refetchInterval: interval });
 }
 
 /** Fiche de course ; rafraîchie par HTTP quand le socket est indisponible (7.3), plus lentement en économie de données. */
 export function useDriverRide(rideId: string, poll: boolean) {
-  const saver = usePreferences((s) => s.dataSaver);
-  return useQuery({
-    queryKey: keys.ride(rideId),
-    queryFn: () => api.driver.ride(rideId),
-    enabled: useDriverReady() && rideId.length > 0,
-    refetchInterval: poll ? (saver ? POLL_DATA_SAVER_MS : POLL_FALLBACK_MS) : false,
-  });
+  const interval = useFallbackInterval(poll);
+  return useQuery({ queryKey: keys.ride(rideId), queryFn: () => api.driver.ride(rideId), enabled: useDriverReady() && rideId.length > 0, refetchInterval: interval });
 }
 
 export function useMessages(rideId: string, enabled: boolean) {

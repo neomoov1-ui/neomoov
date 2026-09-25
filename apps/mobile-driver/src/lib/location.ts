@@ -77,10 +77,16 @@ if (Platform.OS !== 'web') {
 }
 
 let webWatch: Location.LocationSubscription | null = null;
+/** Navigateur : la position n'est rappelée que si elle change ; un relevé toutes les 5 secondes garde la présence vivante à l'arrêt. */
+let webHeartbeat: ReturnType<typeof setInterval> | null = null;
+/** Un navigateur peut resservir une position mise en cache avec son ancienne date : elle est datée de sa réception. */
+const receivedNow = (location: Location.LocationObject): RawLocation => ({ ...location, timestamp: Date.now() });
 
 async function stopUpdates(): Promise<void> {
   webWatch?.remove();
   webWatch = null;
+  if (webHeartbeat) clearInterval(webHeartbeat);
+  webHeartbeat = null;
   if (Platform.OS === 'web') return;
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false)) await Location.stopLocationUpdatesAsync(LOCATION_TASK);
 }
@@ -120,7 +126,10 @@ export async function currentPosition(): Promise<{ lat: number; lng: number } | 
 export async function startLocationUpdates(presence: Exclude<Presence, 'offline'>): Promise<void> {
   await writePresence(presence);
   if (Platform.OS === 'web') {
-    webWatch ??= await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: INTERVAL_MS, distanceInterval: 0 }, (location) => void processLocations([location]).catch(() => undefined));
+    webWatch ??= await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: INTERVAL_MS, distanceInterval: 0 }, (location) => void processLocations([receivedNow(location)]).catch(() => undefined));
+    webHeartbeat ??= setInterval(() => {
+      void Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).then((location) => processLocations([receivedNow(location)])).catch(() => undefined);
+    }, INTERVAL_MS);
     return;
   }
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK).catch(() => false)) return;

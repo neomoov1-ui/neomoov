@@ -1,0 +1,44 @@
+# Parcours 2 (9.2) : course payée en espèces au chauffeur. Chauffeur validé, position simulée à Montréal ; la
+# réservation du client (paiement au chauffeur, espèces) est faite par l'API pendant l'attente de l'offre. Les lignes du
+# relevé sont vérifiées par les tests du règlement (étape 9).
+appId: com.neomoov.driver
+---
+- launchApp
+- tapOn: "Accueil"
+- tapOn:
+    id: "go-online"
+- tapOn:
+    text: "(J'ai compris, autoriser|Toujours autoriser|Allow all the time|Autoriser tout le temps)"
+    optional: true
+- assertVisible: "Vous recevez les offres.*"
+# L'offre arrive (écran plein écran, sonnerie, compte à rebours).
+- extendedWaitUntil:
+    visible:
+      id: "offer-accept"
+    timeout: 120000
+- assertVisible:
+    id: "offer-countdown"
+- tapOn:
+    id: "offer-accept"
+- tapOn:
+    id: "action-depart"
+- tapOn:
+    id: "action-arrive"
+- tapOn:
+    id: "action-start"
+- tapOn:
+    id: "action-complete"
+# Fin de course : montant reçu, évaluation du client.
+- tapOn:
+    id: "confirm-received"
+- assertVisible: "Montant reçu confirmé.*"
+- tapOn:
+    id: "star-5"
+- tapOn: "Poli"
+- tapOn:
+    id: "rate-client"
+- assertVisible: "Merci : évaluation envoyée."
+- tapOn:
+    id: "ride-done"
+- tapOn: "Revenus"
+- assertVisible: "Déjà reçu en direct"

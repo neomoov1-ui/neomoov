@@ -87,9 +87,9 @@ export default function RidesScreen() {
       {(rides.data?.items ?? []).slice(0, 20).map((r) => (
         <Pressable key={r.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/ride/[id]', params: { id: r.id } })}>
           <Card style={styles.card}>
-            <Row label={r.requestedAt ? formatDateTime(r.requestedAt, language) : ''} value={r.finalPriceCents !== null ? money(r.finalPriceCents) : ''} strong />
+            <Row label={r.requestedAt ? formatDateTime(r.requestedAt, language) : ''} value={money(r.quote.fareCents)} strong />
             <Body muted>{`${r.origin.address} → ${r.destination.address}`}</Body>
-            <Body muted>{t(`ride.states.${r.state as 'completed'}`, { defaultValue: r.state })}</Body>
+            <Body muted>{t(`ride.states.${r.state}`)}</Body>
           </Card>
         </Pressable>
       ))}

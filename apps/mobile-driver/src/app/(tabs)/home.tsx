@@ -95,7 +95,7 @@ export default function HomeScreen() {
       {rides.data?.active ? (
         <Card style={styles.gap}>
           <SectionTitle>{t('home.activeRide')}</SectionTitle>
-          <Body>{t(`ride.states.${rides.data.active.state as 'assigned'}`)}</Body>
+          <Body>{t(`ride.states.${rides.data.active.state}`)}</Body>
           <Button label={t('home.openRide')} onPress={() => router.push({ pathname: '/ride/[id]', params: { id: rides.data!.active!.id } })} />
         </Card>
       ) : null}

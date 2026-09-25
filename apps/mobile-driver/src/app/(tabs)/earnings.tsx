@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { errorMessage } from '@/lib/api';
-import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
+import { formatDateTime, formatLocalDate, formatMoney, type UiLanguage } from '@/lib/format';
 import { useEarnings, useStatements } from '@/lib/queries';
 
 /**
@@ -59,7 +59,7 @@ export default function EarningsScreen() {
       {(statements.data ?? []).map((s) => (
         <Pressable key={s.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/statement/[id]', params: { id: s.id } })}>
           <Card style={styles.item}>
-            <Row label={t('earnings.statementPeriod', { from: s.periodStart, to: s.periodEnd })} value={money(Math.abs(s.netCents))} strong />
+            <Row label={t('earnings.statementPeriod', { from: formatLocalDate(s.periodStart, language), to: formatLocalDate(s.periodEnd, language) })} value={money(Math.abs(s.netCents))} strong />
             <Body muted>{t(`statement.statuses.${s.status as 'issued'}`, { defaultValue: s.status })}</Body>
           </Card>
         </Pressable>

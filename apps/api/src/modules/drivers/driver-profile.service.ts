@@ -321,14 +321,15 @@ export class DriverProfileService {
 
   // Assistant d'inscription ----------------------------------------------------------------------------------------
 
-  async onboarding(driver: DriverRow): Promise<OnboardingView> {
+  /** Documents et pack déjà lus par l'appelant (accueil) : passés ici pour ne pas les relire. */
+  async onboarding(driver: DriverRow, knownDocs?: DriverDocumentsView, knownPackActive?: boolean): Promise<OnboardingView> {
     const [user] = await this.db.select({ firstName: schema.users.firstName, lastName: schema.users.lastName }).from(schema.users).where(eq(schema.users.id, driver.userId)).limit(1);
     const [vehicle] = driver.currentVehicleId ? await this.db.select({ status: schema.vehicles.status }).from(schema.vehicles).where(eq(schema.vehicles.id, driver.currentVehicleId)).limit(1) : [];
-    const [docs, packRequired, payoutRequired, pack] = await Promise.all([
-      this.documentsOf(driver),
+    const [docs, packRequired, payoutRequired, packActive] = await Promise.all([
+      knownDocs ?? this.documentsOf(driver),
       this.settings.get<boolean>('drivers.require_active_pack', false),
       this.settings.get<boolean>('drivers.require_payout_account', false),
-      this.db.select({ id: schema.packPurchases.id }).from(schema.packPurchases).where(and(eq(schema.packPurchases.driverId, driver.id), eq(schema.packPurchases.status, 'active'))).limit(1),
+      knownPackActive ?? this.db.select({ id: schema.packPurchases.id }).from(schema.packPurchases).where(and(eq(schema.packPurchases.driverId, driver.id), eq(schema.packPurchases.status, 'active'))).limit(1).then((rows) => rows.length > 0),
     ]);
     const profileComplete = Boolean(user?.firstName && user.lastName && driver.qualification && driver.gstNumber && driver.qstNumber);
     return onboardingChecklist({
@@ -338,7 +339,7 @@ export class DriverProfileService {
       trainingCertified: Boolean(driver.trainingCertifiedAt),
       payout: { linked: Boolean(driver.stripeConnectAccountId), onboarded: driver.stripeConnectOnboarded },
       payoutRequired: payoutRequired === true,
-      packActive: pack.length > 0,
+      packActive,
       packRequired: packRequired === true,
       driverStatus: driver.status,
     });

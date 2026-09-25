@@ -36,7 +36,7 @@ export function EndOfRide({ ride }: { ride: DriverRideView }) {
     setError(null);
     try {
       queryClient.setQueryData(keys.ride(ride.id), await action());
-      await queryClient.invalidateQueries({ queryKey: keys.home });
+      void queryClient.invalidateQueries({ queryKey: keys.home });
     } catch (e) {
       setError(errorMessage(e));
     } finally {

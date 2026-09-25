@@ -1,0 +1,24 @@
+# Parcours 11 (9.2) : document expiré. Préparation : échéance de l'assurance mise dans le passé (API ou My Hub) ; la
+# suspension automatique à l'échéance et la réactivation après validation sont vérifiées par l'API (étape 14).
+appId: com.neomoov.driver
+---
+- launchApp
+- tapOn: "Documents"
+- assertVisible: "Compte suspendu"
+- assertVisible: "Un document obligatoire est expiré.*"
+- tapOn:
+    id: "document-insurance"
+- tapOn:
+    id: "upload-insurance"
+- tapOn: "Prendre une photo"
+- tapOn:
+    text: "(Utiliser la photo|Use Photo|OK)"
+    optional: true
+- tapOn:
+    id: "expiry-insurance"
+- inputText: "2027-12-31"
+- tapOn:
+    id: "send-insurance"
+- assertVisible: "Document envoyé : il est en vérification."
+- tapOn: "Accueil"
+- assertVisible: "Avant de passer en ligne"

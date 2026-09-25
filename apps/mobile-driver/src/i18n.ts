@@ -233,7 +233,7 @@ const fr = {
     fare: 'Votre tarif',
     payment: 'Paiement',
     paymentChoices: { prepaid: 'Payé dans l\'application', pay_driver_after: 'Payé au chauffeur' },
-    favourite: 'Ce client vous a choisi comme chauffeur favori',
+    favourite: 'Ce client vous a choisi personnellement',
     scheduledFor: 'Prise en charge {{date}}',
     stops: '{{count}} arrêt(s)',
     preferences: 'Préférences du client',
@@ -260,7 +260,11 @@ const fr = {
     language: 'Langue souhaitée : {{language}}',
   },
   ride: {
-    states: { assigned: 'Course acceptée', en_route: 'En route vers le client', arrived: 'Sur place', in_progress: 'Client à bord', completed: 'Course terminée', rated: 'Course terminée' },
+    states: {
+      requested: 'Demandée', offering: 'Recherche d\'un chauffeur', assigned: 'Course acceptée', en_route: 'En route vers le client', arrived: 'Sur place', in_progress: 'Client à bord',
+      completed: 'Course terminée', rated: 'Course terminée', disputed: 'Course contestée', no_driver: 'Aucun chauffeur', cancelled_by_client: 'Annulée par le client',
+      cancelled_by_driver: 'Annulée par le chauffeur', no_show: 'Client absent', interrupted: 'Course interrompue', quoted: 'Devis', expired: 'Expirée',
+    },
     actions: { depart: 'Je pars', arrive: 'Je suis arrivé', start: 'Client à bord', complete: 'Terminer la course' },
     pickup: 'Prise en charge',
     dropoff: 'Destination',
@@ -739,7 +743,7 @@ const en: typeof fr = {
     fare: 'Your fare',
     payment: 'Payment',
     paymentChoices: { prepaid: 'Paid in the app', pay_driver_after: 'Paid to the driver' },
-    favourite: 'This client chose you as their favourite driver',
+    favourite: 'This client chose you personally',
     scheduledFor: 'Pickup {{date}}',
     stops: '{{count}} stop(s)',
     preferences: 'Client preferences',
@@ -766,7 +770,11 @@ const en: typeof fr = {
     language: 'Preferred language: {{language}}',
   },
   ride: {
-    states: { assigned: 'Ride accepted', en_route: 'On the way to the client', arrived: 'On site', in_progress: 'Client on board', completed: 'Ride completed', rated: 'Ride completed' },
+    states: {
+      requested: 'Requested', offering: 'Finding a driver', assigned: 'Ride accepted', en_route: 'On the way to the client', arrived: 'On site', in_progress: 'Client on board',
+      completed: 'Ride completed', rated: 'Ride completed', disputed: 'Ride disputed', no_driver: 'No driver', cancelled_by_client: 'Cancelled by the client',
+      cancelled_by_driver: 'Cancelled by the driver', no_show: 'Client absent', interrupted: 'Ride interrupted', quoted: 'Quote', expired: 'Expired',
+    },
     actions: { depart: 'I\'m leaving', arrive: 'I have arrived', start: 'Client on board', complete: 'End the ride' },
     pickup: 'Pickup',
     dropoff: 'Destination',

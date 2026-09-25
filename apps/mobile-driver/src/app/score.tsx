@@ -4,6 +4,7 @@ import { ErrorState, Loading, Notice, Row, Screen, SectionTitle } from '@neomoov
 import { useTranslation } from 'react-i18next';
 import { StyleSheet } from 'react-native';
 import { errorMessage } from '@/lib/api';
+import { formatLocalDate, type UiLanguage } from '@/lib/format';
 import { useScore } from '@/lib/queries';
 
 /**
@@ -12,6 +13,7 @@ import { useScore } from '@/lib/queries';
  */
 export default function ScoreScreen() {
   const { t, i18n } = useTranslation();
+  const language = (i18n.language === 'en' ? 'en' : 'fr-CA') as UiLanguage;
   const score = useScore();
   const data = score.data;
   const decimal = (n: number) => new Intl.NumberFormat(i18n.language === 'en' ? 'en-CA' : 'fr-CA', { maximumFractionDigits: 2 }).format(n);
@@ -21,7 +23,7 @@ export default function ScoreScreen() {
       {score.error ? <ErrorState message={errorMessage(score.error)} onRetry={() => void score.refetch()} /> : null}
       {data ? (
         <>
-          <Body muted>{`${t('score.period', { from: data.periodStart, to: data.periodEnd })} · ${t('score.updatedDaily')}`}</Body>
+          <Body muted>{`${t('score.period', { from: formatLocalDate(data.periodStart, language), to: formatLocalDate(data.periodEnd, language) })} · ${t('score.updatedDaily')}`}</Body>
           <Card style={styles.card}>
             <Row label={t('score.rating')} value={data.rating !== null ? `${decimal(data.rating)} (${t('score.ratingCount', { count: data.ratingCount })})` : t('score.noRating')} strong />
             <Row label={t('score.punctuality')} value={`${data.punctualityPct} %`} />

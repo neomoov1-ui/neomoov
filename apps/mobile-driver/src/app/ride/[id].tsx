@@ -4,7 +4,7 @@ import { colors, radius, spacing, typography } from '@neomoov/mobile-core/theme'
 import { ErrorState, Loading, Notice, Row } from '@neomoov/mobile-core/ui';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
-import { useKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,13 +24,23 @@ import { useRideSubscription } from '@/lib/realtime';
 
 type Sheet = 'messages' | 'incident' | 'cancel' | 'sos' | null;
 
+/** Écran allumé pendant la course (téléphone sur son support) ; sans objet dans un navigateur. */
+function useScreenAwake(): void {
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const tag = 'neomoov-ride';
+    void activateKeepAwakeAsync(tag).catch(() => undefined);
+    return () => void deactivateKeepAwake(tag).catch(() => undefined);
+  }, []);
+}
+
 /**
  * Navigation de course plein écran (6.2) : étape courante, un seul bouton pour passer à la suivante (le chauffeur ne
  * saisit rien en conduisant), navigation externe Google Maps ou Waze, message et appel masqués, compteur d'attente,
  * non-présentation, SOS, incident, annulation ; fin de course avec paiement direct et évaluation. L'écran reste allumé.
  */
 export default function RideScreen() {
-  useKeepAwake();
+  useScreenAwake();
   const { t, i18n } = useTranslation();
   const language = (i18n.language === 'en' ? 'en' : 'fr-CA') as UiLanguage;
   const { id = '' } = useLocalSearchParams<{ id: string }>();
@@ -57,7 +67,8 @@ export default function RideScreen() {
     try {
       await action();
       await queryClient.invalidateQueries({ queryKey: keys.ride(id) });
-      await refreshDriver();
+      // L'accueil et les listes se mettent à jour en arrière-plan : l'étape suivante est disponible tout de suite.
+      void refreshDriver();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -108,7 +119,7 @@ export default function RideScreen() {
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.number}>{data.type === 'scheduled' && data.requestedAt ? formatDateTime(data.requestedAt, language) : ''}</Text>
-          <Text accessibilityRole="header" style={styles.state} testID="ride-state">{t(`ride.states.${data.state as 'assigned'}`, { defaultValue: data.state })}</Text>
+          <Text accessibilityRole="header" style={styles.state} testID="ride-state">{t(`ride.states.${data.state}`)}</Text>
         </View>
         {active ? (
           <Pressable accessibilityRole="button" accessibilityLabel={t('ride.sos')} onPress={() => setSheet('sos')} style={styles.sos} testID="sos">

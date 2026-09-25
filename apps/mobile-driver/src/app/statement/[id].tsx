@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet } from 'react-native';
 import { errorMessage } from '@/lib/api';
-import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
+import { formatDateTime, formatLocalDate, formatMoney, type UiLanguage } from '@/lib/format';
 import { useStatement } from '@/lib/queries';
 
 /** Relevé hebdomadaire (5.8) : crédits, débits, net, statut du versement ; chaque ligne renvoie à sa course. */
@@ -17,7 +17,7 @@ export default function StatementScreen() {
   const data = statement.data;
   const money = (cents: number) => formatMoney(cents, language);
   return (
-    <Screen back title={t('statement.title')} subtitle={data ? t('earnings.statementPeriod', { from: data.periodStart, to: data.periodEnd }) : undefined}>
+    <Screen back title={t('statement.title')} subtitle={data ? t('earnings.statementPeriod', { from: formatLocalDate(data.periodStart, language), to: formatLocalDate(data.periodEnd, language) }) : undefined}>
       {statement.isLoading ? <Loading /> : null}
       {statement.error ? <ErrorState message={errorMessage(statement.error)} onRetry={() => void statement.refetch()} /> : null}
       {data ? (

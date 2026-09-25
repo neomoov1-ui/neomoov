@@ -27,6 +27,11 @@ export function formatDay(date: Date, language: UiLanguage): string {
   return new Intl.DateTimeFormat(locale(language), { timeZone: SERVICE_TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short' }).format(date);
 }
 
+/** Date civile de l'API (AAAA-MM-JJ, déjà à l'heure de Montréal) : « 27 août », sans décalage de fuseau. */
+export function formatLocalDate(date: string, language: UiLanguage): string {
+  return new Intl.DateTimeFormat(locale(language), { timeZone: 'UTC', day: 'numeric', month: 'short' }).format(new Date(`${date}T12:00:00Z`));
+}
+
 /** « 25 min », « 1 h 05 ». */
 export function formatDuration(seconds: number): string {
   const minutes = Math.max(1, Math.round(seconds / 60));

@@ -1,12 +1,16 @@
 import type { DriverOfferView, RideView } from '@neomoov/domain';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { create } from 'zustand';
 import { API_BASE_URL } from './config';
 import { keys, queryClient } from './queries';
 import { useSession } from './session';
 
 let socket: Socket | null = null;
+
+/** Socket connecté ou non : les écrans ne rafraîchissent par HTTP (toutes les 5 secondes) que s'il est coupé. */
+export const useRealtimeStatus = create<{ connected: boolean }>(() => ({ connected: false }));
 
 /** Socket de l'espace `/driver` (7.3) ; le jeton est relu à chaque connexion (après rotation). */
 function driverSocket(): Socket {
@@ -38,7 +42,8 @@ function removeOffer(offerId: string): void {
  * course mise à jour, message reçu. `connected` à faux déclenche les rafraîchissements HTTP de repli.
  */
 export function useDriverRealtime(enabled: boolean): { connected: boolean } {
-  const [connected, setConnected] = useState(false);
+  const connected = useRealtimeStatus((s) => s.connected);
+  const setConnected = (value: boolean) => useRealtimeStatus.setState({ connected: value });
   useEffect(() => {
     if (!enabled) return;
     const s = driverSocket();
@@ -82,6 +87,7 @@ export function useDriverRealtime(enabled: boolean): { connected: boolean } {
       s.off('ride.updated', onRide);
       s.off('message.received', onMessage);
       s.disconnect();
+      setConnected(false);
     };
   }, [enabled]);
   return { connected };

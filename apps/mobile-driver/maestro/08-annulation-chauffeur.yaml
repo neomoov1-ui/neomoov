@@ -1,0 +1,20 @@
+# Parcours 8 (9.2) : annulation par le chauffeur en route. La réattribution automatique avec priorité et l'exclusion du
+# chauffeur qui annule sont vérifiées par les tests de la répartition (dispatch.e2e.test.ts) ; l'impact sur le tableau
+# de conduite apparaît le lendemain (annulations comptées par jour).
+appId: com.neomoov.driver
+---
+- launchApp
+- tapOn: "Accueil"
+- extendedWaitUntil:
+    visible:
+      id: "offer-accept"
+    timeout: 120000
+- tapOn:
+    id: "offer-accept"
+- tapOn:
+    id: "action-depart"
+- tapOn: "Annuler la course"
+- assertVisible: "Une annulation après votre départ compte dans votre tableau de conduite."
+- tapOn: "Problème de véhicule"
+- tapOn: "Confirmer l'annulation"
+- assertVisible: "(Passer hors ligne|Reprendre)"
