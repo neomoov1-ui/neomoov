@@ -155,3 +155,10 @@ export type AdminAssign = z.infer<typeof adminAssignSchema>;
 export type ScheduledRideView = z.infer<typeof scheduledRideSchema>;
 export type DriverStatusInput = z.infer<typeof driverStatusSchema>;
 export type PublicTrackingView = z.infer<typeof publicTrackingSchema>;
+
+// Types des réponses, pour les clients de l'API (applications, web).
+export type RideEventView = z.infer<typeof rideEventSchema>;
+export type CancellationResult = z.infer<typeof cancellationResultSchema>;
+export type ShareResponse = z.infer<typeof shareResponseSchema>;
+export type SosResponse = z.infer<typeof sosResponseSchema>;
+export type RideMessageInput = z.infer<typeof rideMessageInputSchema>;

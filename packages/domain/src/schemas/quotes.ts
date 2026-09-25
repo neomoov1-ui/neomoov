@@ -27,7 +27,14 @@ export const ridePreferencesSchema = z.object({
   temperature: z.enum(['cool', 'neutral', 'warm']).default('neutral'),
   driverLanguage: z.enum(LANGUAGES).optional(),
   luggageHelp: z.boolean().default(false),
+  /** D36, D37 : genre de musique souhaité, bagages (nombre et taille), siège enfant, accessibilité (mobilité réduite). */
+  musicGenre: z.string().trim().max(60).optional(),
+  luggageCount: z.number().int().min(0).max(10).optional(),
+  luggageSize: z.enum(['small', 'medium', 'large']).optional(),
+  childSeat: z.boolean().optional(),
+  accessibility: z.boolean().optional(),
 });
+export type RidePreferences = z.infer<typeof ridePreferencesSchema>;
 
 export const rideOptionsSchema = z.object({
   flex: z.boolean().default(false),
@@ -185,3 +192,7 @@ export const benchmarkViewSchema = z.object({
   source: z.string(),
   createdAt: isoDate,
 });
+
+// Types des réponses, pour les clients de l'API (applications, web).
+export type AutocompleteSuggestion = z.infer<typeof autocompleteSuggestionSchema>;
+export type PlaceDetails = z.infer<typeof placeDetailsSchema>;

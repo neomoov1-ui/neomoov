@@ -1,4 +1,5 @@
 import { ApiError } from './errors.js';
+import { authResource, configResource, meResource, placesResource, quotesResource, ridesResource } from './resources.js';
 import type { HealthReport } from './types.js';
 
 export type Language = 'fr-CA' | 'en';
@@ -108,6 +109,13 @@ export class ApiClient {
   delete<T = void>(path: string, options?: RequestOptions): Promise<T> {
     return this.request<T>('DELETE', path, options);
   }
+
+  readonly auth = authResource(this);
+  readonly config = configResource(this);
+  readonly me = meResource(this);
+  readonly places = placesResource(this);
+  readonly quotes = quotesResource(this);
+  readonly rides = ridesResource(this);
 
   /** Santé de l'API : base, Redis, files (`GET /v1/health`). */
   readonly health = {

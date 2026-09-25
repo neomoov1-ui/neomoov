@@ -251,3 +251,10 @@ export const errorSchema = z.object({
   details: z.unknown().optional(),
   correlationId: z.string(),
 });
+
+// Types des réponses, pour les clients de l'API (applications, web).
+export type ConsentView = z.infer<typeof consentViewSchema>;
+export type DataRequestView = z.infer<typeof dataRequestViewSchema>;
+export type DeviceView = z.infer<typeof deviceSchema>;
+export type OtpRequestResponse = z.infer<typeof otpRequestResponseSchema>;
+export type SocialLoginResponse = z.infer<typeof socialLoginResponseSchema>;
