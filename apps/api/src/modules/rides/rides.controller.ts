@@ -1,7 +1,7 @@
-/** Courses côté client (section 7.2, groupe Courses) et suivi public d'une course partagée. */
+/** Courses côté client (section 7.2, groupe Courses), négociation encadrée, et suivi public d'une course partagée. */
 import {
-  cancellationResultSchema, cancelRideSchema, createRideSchema, publicTrackingSchema, rateRideSchema, rideEventSchema, rideListQuerySchema, rideMessageInputSchema,
-  rideMessageSchema, rideSchema, shareResponseSchema, sosInputSchema, sosResponseSchema, uuid,
+  acceptOfferSchema, cancellationResultSchema, cancelRideSchema, clientOfferSchema, clientProposalSchema, createRideSchema, incidentCreatedSchema, publicTrackingSchema, rateRideSchema,
+  rideEventSchema, rideListQuerySchema, rideMessageInputSchema, rideMessageSchema, rideSchema, shareResponseSchema, sosInputSchema, sosResponseSchema, uuid, vehicleMismatchSchema,
 } from '@neomoov/domain';
 import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -11,6 +11,7 @@ import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { Audit, Authenticated, CurrentUser, Owns, Public, type UserActor } from '../auth/actor.js';
+import { DispatchService } from './dispatch.service.js';
 import { RidesService } from './rides.service.js';
 
 const rideListSchema = z.object({ items: z.array(rideSchema), nextCursor: uuid.nullable() });
@@ -20,7 +21,10 @@ const rideListSchema = z.object({ items: z.array(rideSchema), nextCursor: uuid.n
 @Authenticated()
 @Controller('rides')
 export class RidesController {
-  constructor(private readonly rides: RidesService) {}
+  constructor(
+    private readonly rides: RidesService,
+    private readonly dispatch: DispatchService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Demande une course à partir d\'un devis valide (en-tête Idempotency-Key obligatoire : la même clé renvoie la même course)' })
@@ -125,6 +129,51 @@ export class RidesController {
   @ApiErrors(401, 403, 404, 429)
   sos(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(sosInputSchema)) body: z.infer<typeof sosInputSchema>, @CurrentUser() user: UserActor) {
     return this.rides.sos(id, user, body);
+  }
+
+  @Post(':id/report-vehicle-mismatch')
+  @Owns('ride')
+  @HttpCode(201)
+  @Audit('ride.vehicle_mismatch_reported', 'incidents', 'incidentId')
+  @ApiOperation({ summary: 'Garantie modèle : signale un véhicule non conforme à la catégorie réservée (incident traité par l\'exploitation)' })
+  @ZodBody(vehicleMismatchSchema)
+  @ZodResponse(201, incidentCreatedSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  reportVehicleMismatch(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(vehicleMismatchSchema)) body: z.infer<typeof vehicleMismatchSchema>, @CurrentUser() user: UserActor) {
+    return this.rides.reportVehicleMismatch(id, user, body);
+  }
+
+  // --- Négociation encadrée (5.5, drapeau FEATURE_NEGOTIATION : 404 sinon) ---
+
+  @Post(':id/proposals')
+  @Owns('ride')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Propose un prix sous le prix affiché (borné au plancher, arrondi au dollar) : diffusé aux meilleurs chauffeurs pendant la fenêtre, puis repli au prix affiché' })
+  @ZodBody(clientProposalSchema)
+  @ZodResponse(200, rideSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  propose(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(clientProposalSchema)) body: z.infer<typeof clientProposalSchema>, @CurrentUser() user: UserActor) {
+    return this.dispatch.propose(id, user, body.proposedTotalCents);
+  }
+
+  @Get(':id/offers')
+  @Owns('ride')
+  @ApiOperation({ summary: 'Contre-propositions des chauffeurs (vide sans le drapeau)' })
+  @ZodResponse(200, z.array(clientOfferSchema))
+  @ApiErrors(401, 403, 404, 429)
+  offers(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
+    return this.dispatch.listForClient(id, user);
+  }
+
+  @Post(':id/offers/:offerId/accept')
+  @Owns('ride')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Retient une contre-proposition : la course est attribuée à ce chauffeur au prix convenu (acceptation écrite exigée au-dessus du prix affiché)' })
+  @ZodBody(acceptOfferSchema)
+  @ZodResponse(200, rideSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  acceptOffer(@Param('id', zodPipe(uuid)) id: string, @Param('offerId', zodPipe(uuid)) offerId: string, @Body(zodPipe(acceptOfferSchema)) body: z.infer<typeof acceptOfferSchema>, @CurrentUser() user: UserActor) {
+    return this.dispatch.acceptForClient(id, offerId, user, body.consentText);
   }
 }
 

@@ -14,7 +14,11 @@ import { DB, type Database } from '../src/infra/db.module.js';
 import { StaffAuthService } from '../src/modules/auth/staff-auth.service.js';
 import { UsersService } from '../src/modules/users/users.service.js';
 
-/** Configuration de test : le .env de la racine (base Supabase de développement), fournisseurs simulés, sans Redis. */
+/**
+ * Configuration de test : le .env de la racine (base Supabase de développement), fournisseurs simulés, sans Redis.
+ * La répartition automatique est désactivée par défaut (`DISPATCH_MODE=manual`, aucun battement) : les tests des
+ * courses attribuent eux-mêmes ; le test de la répartition la réactive explicitement.
+ */
 export function testEnv(overrides: Record<string, string> = {}): AppEnv | null {
   loadDotenvFromRoot();
   const databaseUrl = process.env['TEST_DATABASE_URL'] || process.env['DATABASE_URL'];
@@ -25,6 +29,8 @@ export function testEnv(overrides: Record<string, string> = {}): AppEnv | null {
       NODE_ENV: 'test',
       DATABASE_URL: databaseUrl,
       REDIS_URL: '',
+      DISPATCH_MODE: 'manual',
+      DISPATCH_TICK_MS: '0',
       PAYMENT_PROVIDER: 'mock', MAPS_PROVIDER: 'mock', SMS_PROVIDER: 'mock', EMAIL_PROVIDER: 'mock', PUSH_PROVIDER: 'mock',
       WHATSAPP_PROVIDER: 'mock', VOICE_PROVIDER: 'mock', LLM_PROVIDER: 'mock', SEV_PROVIDER: 'mock', STORAGE_PROVIDER: 'mock', SOCIAL_LOGIN_PROVIDER: 'mock',
       ...overrides,
@@ -138,19 +144,32 @@ export interface TestDriver {
   phone: string;
 }
 
+export interface CreateDriverOptions {
+  /** Accepte le paiement par terminal (les tests de la répartition s'isolent des autres fichiers par ce mode). */
+  acceptsTerminal?: boolean;
+  acceptsScheduled?: boolean;
+  /** Note moyenne de départ (5,00 par défaut). */
+  rating?: number;
+  firstName?: string;
+}
+
 /**
  * Crée un chauffeur actif complet (compte, rôle, fiche, véhicule actif, documents approuvés) et le connecte ; le
  * jeton porte le rôle `driver`.
  */
-export async function createDriver(app: NestExpressApplication, category: 'neo_premium' | 'neo_prestige' | 'neo_xl' = 'neo_premium'): Promise<TestDriver> {
+export async function createDriver(app: NestExpressApplication, category: 'neo_premium' | 'neo_prestige' | 'neo_xl' = 'neo_premium', options: CreateDriverOptions = {}): Promise<TestDriver> {
   const phone = testPhone();
   const first = await loginByOtp(app, phone);
   const database = db(app);
   await app.get(UsersService).grantRole(first.user.id, 'driver');
+  if (options.firstName) await database.update(schema.users).set({ firstName: options.firstName }).where(eq(schema.users.id, first.user.id));
   const [numberRow] = await database.execute<{ n: string }>(sql`SELECT next_driver_public_number() AS n`);
   const [driver] = await database
     .insert(schema.drivers)
-    .values({ userId: first.user.id, publicNumber: numberRow!.n, status: 'active', qualification: 'saaq_authorized', acceptsCash: true, acceptsInterac: true, activatedAt: new Date() })
+    .values({
+      userId: first.user.id, publicNumber: numberRow!.n, status: 'active', qualification: 'saaq_authorized', acceptsCash: true, acceptsInterac: true, acceptsTerminal: options.acceptsTerminal ?? false,
+      acceptsScheduled: options.acceptsScheduled ?? true, ratingAverage: (options.rating ?? 5).toFixed(2), ratingCount: options.rating !== undefined ? 10 : 0, activatedAt: new Date(),
+    })
     .returning({ id: schema.drivers.id });
   const plate = `T${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   const [vehicle] = await database

@@ -8,9 +8,9 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  ACTIVE_RIDE_STATES, canTransition, clientCancellationFeeCents, finalizeQuote, isTerminalState, noShowCheck, RIDE_EVENTS, RIDE_TRANSITIONS, subtotalForTotal, transition,
-  waitedSecondsBetween, type AdminAssign, type AdminCreateRide, type CancellationRules, type CreateRide, type Language, type NotificationChannel, type PaymentMethod, type Quote,
-  type RideEvent, type RideMessageView, type RideState, type RideView, type SosInput, type VehicleCategory,
+  ACTIVE_RIDE_STATES, canTransition, clientCancellationFeeCents, finalizeQuote, isTerminalState, mulDivRound, noShowCheck, parseSearchRadii, RIDE_EVENTS, RIDE_TRANSITIONS, subtotalForTotal, transition,
+  waitedSecondsBetween, type AdminAssign, type AdminCreateRide, type CancellationRules, type CreateRide, type Language, type NegotiationSummary, type NotificationChannel, type PaymentMethod,
+  type Quote, type RideEvent, type RideMessageView, type RideState, type RideView, type SosInput, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
@@ -29,7 +29,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
-import { driverSummaries, parseGeoPoint, selectRide, selectRides, timestampsOf, toRideView, type RideRow } from './ride-view.js';
+import { dispatchRows, dispatchSummaryOf, driverSummaries, parseGeoPoint, selectRide, selectRides, timestampsOf, toRideView, type RideRow } from './ride-view.js';
 
 export type ActorKind = 'client' | 'driver' | 'operator' | 'system' | 'agent';
 export interface ActorRef {
@@ -97,17 +97,49 @@ export class RidesService {
   }
 
   async view(ride: RideRow): Promise<RideView> {
-    const drivers = ride.driverId ? await driverSummaries(this.db, [ride.driverId]) : new Map();
-    return toRideView(ride, ride.driverId ? (drivers.get(ride.driverId) ?? null) : null, { webBaseUrl: this.env.WEB_BASE_URL });
+    const [view] = await this.views([ride]);
+    return view!;
   }
 
   async viewById(id: string): Promise<RideView> {
     return this.view(await this.getRide(id));
   }
 
+  /**
+   * Vues des courses : chauffeur, répartition en cours (`ride_dispatches`, lue ici directement pour ne pas dépendre du
+   * service de répartition) et, quand le drapeau `FEATURE_NEGOTIATION` est actif, l'état de la négociation. Drapeau
+   * inactif : `negotiation` est toujours null, rien de la négociation ne sort de l'API.
+   */
   async views(rides: RideRow[]): Promise<RideView[]> {
-    const drivers = await driverSummaries(this.db, rides.map((r) => r.driverId).filter((d): d is string => Boolean(d)));
-    return rides.map((r) => toRideView(r, r.driverId ? (drivers.get(r.driverId) ?? null) : null, { webBaseUrl: this.env.WEB_BASE_URL }));
+    if (!rides.length) return [];
+    const open = rides.filter((r) => !isTerminalState(r.state));
+    const [drivers, dispatches, radii] = await Promise.all([
+      driverSummaries(this.db, rides.map((r) => r.driverId).filter((d): d is string => Boolean(d))),
+      dispatchRows(this.db, open.map((r) => r.id)),
+      this.settings.get<unknown>('dispatch.search_radii_m', null).then(parseSearchRadii),
+    ]);
+    const openOffers = new Map<string, number>();
+    if (this.env.FEATURE_NEGOTIATION && open.length) {
+      const counts = await this.db
+        .select({ rideId: schema.rideOffers.rideId, count: sql<number>`count(*)::int` })
+        .from(schema.rideOffers)
+        .where(and(inArray(schema.rideOffers.rideId, open.map((r) => r.id)), eq(schema.rideOffers.type, 'driver_counter'), eq(schema.rideOffers.state, 'sent'), sql`${schema.rideOffers.expiresAt} > now()`))
+        .groupBy(schema.rideOffers.rideId);
+      for (const c of counts) openOffers.set(c.rideId, c.count);
+    }
+    return rides.map((r) => {
+      const dispatch = dispatches.get(r.id) ?? null;
+      const negotiation: NegotiationSummary | null = this.env.FEATURE_NEGOTIATION
+        ? {
+            displayedTotalCents: r.quotedTotalCents,
+            proposedTotalCents: r.proposedTotalCents,
+            agreedTotalCents: r.agreedTotalCents,
+            endsAt: dispatch && dispatch.mode === 'negotiation' && dispatch.negotiationEndsAt ? dispatch.negotiationEndsAt.toISOString() : null,
+            openOffers: openOffers.get(r.id) ?? 0,
+          }
+        : null;
+      return toRideView(r, r.driverId ? (drivers.get(r.driverId) ?? null) : null, { webBaseUrl: this.env.WEB_BASE_URL, dispatch: dispatch ? dispatchSummaryOf(dispatch, radii) : null, negotiation });
+    });
   }
 
   /** Historique d'un client, du plus récent au plus ancien, par curseur. */
@@ -402,6 +434,31 @@ export class RidesService {
     return payload;
   }
 
+  /** Signal sans changement d'état dans `ride_events` (répartition, négociation, incidents) ; jamais un événement de transition. */
+  async mark(rideId: string, type: string, actor: ActorRef, data: Record<string, unknown>): Promise<void> {
+    if ((RIDE_EVENTS as readonly string[]).includes(type)) throw new Error(`Le signal ${type} est un événement de transition : utilisez la machine à états`);
+    const [row] = await this.db.select({ state: schema.rides.state }).from(schema.rides).where(eq(schema.rides.id, rideId)).limit(1);
+    if (!row) throw AppError.notFound('RIDE_NOT_FOUND', 'Course introuvable');
+    await this.db.insert(schema.rideEvents).values({ rideId, type, fromState: row.state, toState: row.state, actorUserId: actor.userId, actorKind: actor.kind, data });
+  }
+
+  /**
+   * Transitions de la répartition (5.4) : offres envoyées, nouvelle vague, aucun chauffeur trouvé. La dernière alerte
+   * le client et l'exploitation, et publie `ride.no_driver` (l'étape 7 y annule l'autorisation de paiement).
+   */
+  async systemTransition(rideId: string, event: 'offers_sent' | 'new_wave' | 'no_driver_found', data: Record<string, unknown> = {}): Promise<RideRow> {
+    const result = await this.applyTransition(rideId, event, SYSTEM_ACTOR, { data });
+    const payload = await this.publish(result, event, SYSTEM_ACTOR, data);
+    if (event === 'no_driver_found' && !result.replayed) {
+      this.events.emit('ride.no_driver', payload);
+      const recipient = await this.recipientOf(result.ride);
+      await this.outbox.queue({ ...recipient, template: 'ride.no_driver', data: { rideId, publicNumber: result.ride.publicNumber } });
+      await this.outbox.queueForStaff('alert.no_driver', { rideId, publicNumber: result.ride.publicNumber, ...data });
+      this.logger.warn({ rideId, publicNumber: result.ride.publicNumber }, 'Course sans chauffeur : alerte à l\'exploitation');
+    }
+    return result.ride;
+  }
+
   // --- Attribution (opérateur, confirmation d'une planifiée ; la répartition automatique arrive à l'étape 6) ---
 
   async assign(rideId: string, input: AdminAssign, actor: ActorRef): Promise<RideView> {
@@ -474,22 +531,36 @@ export class RidesService {
   }
 
   async cancelByDriver(rideId: string, driverActor: UserActor, reason: string): Promise<RideView> {
-    const { driver } = await this.rideOfDriver(rideId, driverActor);
-    const actor: ActorRef = { kind: 'driver', userId: driverActor.userId };
-    const cancelled = await this.applyTransition(rideId, 'driver_cancels', actor, { data: { reason, driverId: driver.id }, set: { cancellationReason: 'driver', cancellationComment: reason } });
-    const payload = await this.publish(cancelled, 'driver_cancels', actor, { reason });
-    if (cancelled.replayed) return this.view(cancelled.ride);
-    this.events.emit('ride.cancelled_by_driver', { ...payload, reason });
-    // Réattribution immédiate avec priorité (5.2) : la course redevient demandée, sans chauffeur ; l'étape 6 consomme l'événement.
-    const reassigned = await this.applyTransition(rideId, 'reassign', SYSTEM_ACTOR, { data: { previousDriverId: driver.id, priority: true }, set: { driverId: null, vehicleId: null, servedCategory: null } });
-    // Une planifiée redevient ouverte aux propositions : celle du chauffeur qui annule est retirée.
-    await this.db.update(schema.scheduledAssignments).set({ declinedAt: reassigned.at }).where(and(eq(schema.scheduledAssignments.rideId, rideId), eq(schema.scheduledAssignments.driverId, driver.id), sql`${schema.scheduledAssignments.declinedAt} IS NULL`));
-    const reassignPayload = await this.publish(reassigned, 'reassign', SYSTEM_ACTOR, { previousDriverId: driver.id });
+    await this.rideOfDriver(rideId, driverActor);
+    const released = await this.releaseDriver(rideId, { kind: 'driver', userId: driverActor.userId }, reason, { sanction: true, source: 'driver' });
+    return this.view(released.ride);
+  }
+
+  /**
+   * Retire le chauffeur d'une course attribuée et la remet en demande avec priorité (5.2) : annulation du chauffeur
+   * (sanction si déjà en route), retrait par l'opérateur ou par la surveillance du départ (sans sanction). La
+   * réattribution est consommée par la répartition (`ride.reassign_requested`, `data.source`).
+   */
+  async releaseDriver(rideId: string, actor: ActorRef, reason: string, options: { sanction: boolean; source: 'driver' | 'operator' | 'system' }): Promise<{ ride: RideRow; previousDriverId: string; replayed: boolean }> {
+    const current = await this.getRide(rideId);
+    const previousDriverId = current.driverId;
+    if (!previousDriverId) throw AppError.conflict('RIDE_NOT_ASSIGNED', 'La course n\'a pas de chauffeur à retirer', { state: current.state });
+    const cancellationReason = options.source === 'driver' ? 'driver' : options.source === 'operator' ? 'operator_reassign' : 'no_movement';
+    const cancelled = await this.applyTransition(rideId, 'driver_cancels', actor, { data: { reason, driverId: previousDriverId, source: options.source }, set: { cancellationReason, cancellationComment: reason } });
+    const payload = await this.publish(cancelled, 'driver_cancels', actor, { reason, source: options.source });
+    if (cancelled.replayed) return { ride: cancelled.ride, previousDriverId, replayed: true };
+    if (options.source === 'driver') this.events.emit('ride.cancelled_by_driver', { ...payload, reason });
+    // Réattribution immédiate avec priorité : la course redevient demandée, sans chauffeur.
+    const reassigned = await this.applyTransition(rideId, 'reassign', SYSTEM_ACTOR, { data: { previousDriverId, priority: true, source: options.source }, set: { driverId: null, vehicleId: null, servedCategory: null } });
+    // Une planifiée redevient ouverte aux propositions : celle du chauffeur retiré est retirée.
+    await this.db.update(schema.scheduledAssignments).set({ declinedAt: reassigned.at }).where(and(eq(schema.scheduledAssignments.rideId, rideId), eq(schema.scheduledAssignments.driverId, previousDriverId), sql`${schema.scheduledAssignments.declinedAt} IS NULL`));
+    const reassignPayload = await this.publish(reassigned, 'reassign', SYSTEM_ACTOR, { previousDriverId, source: options.source });
     this.events.emit('ride.reassign_requested', reassignPayload);
     const recipient = await this.recipientOf(reassigned.ride);
     await this.outbox.queue({ ...recipient, template: 'ride.reassigning', data: { rideId } });
-    if (cancelled.effects.includes('driver_sanction')) this.audit.record({ action: 'ride.driver_cancellation_after_en_route', entity: 'drivers', entityId: driver.id, after: { rideId, reason } });
-    return this.view(reassigned.ride);
+    if (options.sanction && cancelled.effects.includes('driver_sanction')) this.audit.record({ action: 'ride.driver_cancellation_after_en_route', entity: 'drivers', entityId: previousDriverId, after: { rideId, reason } });
+    if (options.source !== 'driver') this.audit.record({ action: options.source === 'operator' ? 'admin.ride_driver_released' : 'ride.driver_released_no_movement', entity: 'rides', entityId: rideId, after: { previousDriverId, reason } });
+    return { ride: reassigned.ride, previousDriverId, replayed: false };
   }
 
   // --- Déroulé chauffeur ---
@@ -620,15 +691,22 @@ export class RidesService {
 
   /**
    * Reconstitue le devis du domaine à partir de la course. Le sous-total est retrouvé depuis le total affiché
-   * (`subtotalForTotal`) : il inclut donc la remise d'alignement (D33), que la course ne stocke pas.
+   * (`subtotalForTotal`) : il inclut donc la remise d'alignement (D33), que la course ne stocke pas. Un prix convenu par
+   * négociation (5.5) remplace le total : l'écart avec le prix affiché est porté par le tarif du chauffeur, les frais
+   * de service et la redevance ne se négocient pas.
    */
   private quoteOfRide(ride: RideRow, rules: Parameters<typeof finalizeQuote>[2]): Quote {
-    const fareCents = ride.fareCents ?? 0;
+    const baseFareCents = ride.fareCents ?? 0;
     const serviceFeeCents = ride.serviceFeeCents ?? 0;
     const regulatoryFeeCents = ride.regulatoryFeeCents ?? 0;
-    const computedSubtotal = fareCents - ride.promotionDiscountCents + serviceFeeCents + regulatoryFeeCents + ride.tollsCents;
-    const subtotalCents = subtotalForTotal(ride.quotedTotalCents, rules) ?? computedSubtotal;
-    const alignmentDiscountCents = Math.max(0, computedSubtotal - subtotalCents);
+    const computedSubtotal = baseFareCents - ride.promotionDiscountCents + serviceFeeCents + regulatoryFeeCents + ride.tollsCents;
+    const displayedSubtotal = subtotalForTotal(ride.quotedTotalCents, rules) ?? computedSubtotal;
+    const alignmentDiscountCents = Math.max(0, computedSubtotal - displayedSubtotal);
+    const totalCents = ride.agreedTotalCents ?? ride.quotedTotalCents;
+    const subtotalCents = ride.agreedTotalCents !== null ? (subtotalForTotal(totalCents, rules) ?? displayedSubtotal) : displayedSubtotal;
+    const negotiatedCents = subtotalCents - displayedSubtotal;
+    const fareCents = Math.max(0, baseFareCents + negotiatedCents);
+    const negotiated = ride.agreedTotalCents !== null;
     return {
       category: ride.reservedCategory,
       flatRate: false,
@@ -643,11 +721,11 @@ export class RidesService {
       tollsCents: ride.tollsCents,
       alignmentDiscountCents,
       subtotalCents,
-      gstCents: ride.gstCents ?? 0,
-      qstCents: ride.qstCents ?? 0,
-      totalCents: ride.quotedTotalCents,
+      gstCents: negotiated ? mulDivRound(subtotalCents, rules.gstRatePpm, 1_000_000) : (ride.gstCents ?? 0),
+      qstCents: negotiated ? mulDivRound(subtotalCents, rules.qstRatePpm, 1_000_000) : (ride.qstCents ?? 0),
+      totalCents,
       creditsAppliedCents: ride.creditsAppliedCents,
-      amountDueCents: ride.quotedTotalCents - ride.creditsAppliedCents,
+      amountDueCents: totalCents - ride.creditsAppliedCents,
       driverAmountCents: fareCents,
       maxConsentedCents: ride.maxConsentedCents,
       ignoredOptions: [],
@@ -761,6 +839,36 @@ export class RidesService {
     this.audit.record({ action: 'ride.sos', entity: 'incidents', entityId: incident!.id, after: { rideId, reportedByKind: kind } });
     this.logger.error({ rideId, incidentId: incident!.id, kind }, 'SOS déclenché');
     return { incidentId: incident!.id, status: 'alerted' };
+  }
+
+  /**
+   * Garantie modèle (5.2) : le client signale un véhicule non conforme à la catégorie réservée (ou au véhicule choisi).
+   * Incident `model_guarantee` traité à l'étape 8 (remboursement de l'écart) ; un seul signalement par course, dans les
+   * `rides.vehicle_mismatch_window_hours` qui suivent la fin de course.
+   */
+  async reportVehicleMismatch(rideId: string, actor: UserActor, input: { description: string; plateSeen?: string | undefined; modelSeen?: string | undefined }): Promise<{ incidentId: string; status: 'open' }> {
+    const ride = await this.getRide(rideId);
+    const kind = await this.participantKind(ride, actor);
+    if (kind !== 'client') throw AppError.forbidden('NOT_CLIENT', 'Seul le client signale un véhicule non conforme');
+    if (!ride.driverId || !ride.vehicleId) throw AppError.conflict('RIDE_NOT_ASSIGNED', 'Aucun véhicule n\'a encore été attribué à cette course', { state: ride.state });
+    const windowHours = await this.settings.number('rides.vehicle_mismatch_window_hours', 24);
+    const timestamps = timestampsOf(ride);
+    const endedAt = timestamps.completed ?? (isTerminalState(ride.state) ? ride.updatedAt.toISOString() : null);
+    if (endedAt && new Date(endedAt).getTime() + windowHours * 3_600_000 < Date.now()) throw AppError.conflict('MISMATCH_WINDOW_CLOSED', `Le signalement se fait dans les ${windowHours} heures qui suivent la course`, { windowHours });
+    const [existing] = await this.db.select({ id: schema.incidents.id, status: schema.incidents.status }).from(schema.incidents).where(and(eq(schema.incidents.rideId, rideId), eq(schema.incidents.type, 'model_guarantee'))).limit(1);
+    if (existing) throw AppError.conflict('ALREADY_REPORTED', 'Un signalement existe déjà pour cette course', { incidentId: existing.id, status: existing.status });
+    const [vehicle] = await this.db.select({ make: schema.vehicles.make, model: schema.vehicles.model, plate: schema.vehicles.plate, category: schema.vehicles.category }).from(schema.vehicles).where(eq(schema.vehicles.id, ride.vehicleId)).limit(1);
+    const [incident] = await this.db
+      .insert(schema.incidents)
+      .values({
+        rideId, type: 'model_guarantee', severity: 'medium', reportedByUserId: actor.userId, reportedByKind: 'client', description: input.description,
+        attachments: [{ reservedCategory: ride.reservedCategory, servedCategory: ride.servedCategory, assignedVehicle: vehicle ?? null, plateSeen: input.plateSeen ?? null, modelSeen: input.modelSeen ?? null, driverId: ride.driverId, reportedAt: new Date().toISOString() }],
+      })
+      .returning({ id: schema.incidents.id });
+    await this.mark(rideId, 'vehicle_mismatch_reported', { kind: 'client', userId: actor.userId }, { incidentId: incident!.id, plateSeen: input.plateSeen ?? null, modelSeen: input.modelSeen ?? null });
+    this.events.emit('ride.incident', { rideId, incidentId: incident!.id, type: 'model_guarantee', severity: 'medium', reportedByUserId: actor.userId });
+    await this.outbox.queueForStaff('alert.vehicle_mismatch', { rideId, incidentId: incident!.id, publicNumber: ride.publicNumber });
+    return { incidentId: incident!.id, status: 'open' };
   }
 
   /** Journal d'une course (extrait de `ride_events`). */

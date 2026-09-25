@@ -1,6 +1,6 @@
 import {
-  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DomainEventsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule, QueueService,
-  RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
+  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
 import type { Logger } from 'pino';
@@ -61,13 +61,35 @@ export class SchedulingWorker implements OnModuleInit {
   }
 }
 
+/**
+ * Répartition automatique (étape 6) : avec Redis, le worker porte la répartition (événements de course reçus par
+ * Redis, battement `DISPATCH_TICK_MS`) ; sans Redis, c'est le processus de l'API, seul à recevoir ses événements,
+ * qui la porte : le worker s'en retire pour ne pas solliciter deux fois les chauffeurs.
+ */
+@Injectable()
+export class DispatchWorker implements OnModuleInit {
+  constructor(
+    private readonly dispatch: DispatchService,
+    private readonly queues: QueueService,
+    @Inject(APP_LOGGER) private readonly logger: Logger,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.dispatch.enableRunner();
+    else {
+      this.dispatch.disableRunner();
+      this.logger.warn('Sans Redis, la répartition automatique est portée par le processus de l\'API, pas par le worker');
+    }
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
       imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker],
     };
   }
 }

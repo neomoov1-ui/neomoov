@@ -25,7 +25,7 @@ import {
   type RideView, type SearchRadius, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
-import { and, asc, desc, eq, gt, inArray, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
 import { MAPS_PROVIDER, type GeoPoint, type MapsProvider } from '../../adapters/types.js';
@@ -47,7 +47,8 @@ import { dispatchSummaryOf, parseGeoPoint, type RideRow } from './ride-view.js';
 import { RidesService, SYSTEM_ACTOR, type ActorRef } from './rides.service.js';
 
 type DispatchRow = typeof schema.rideDispatches.$inferSelect;
-type DispatchUpdate = Partial<typeof schema.rideDispatches.$inferInsert>;
+/** Champs à poser sur `ride_dispatches` ; le compteur d'offres s'incrémente en SQL (pas de lecture puis écriture). */
+type DispatchUpdate = Partial<Omit<typeof schema.rideDispatches.$inferInsert, 'offersSent'>> & { offersSent?: number | SQL };
 type OfferRow = typeof schema.rideOffers.$inferSelect;
 type StartReason = 'requested' | 'reassign' | 'scheduled_due' | 'release' | 'proposal' | 'operator';
 
@@ -77,7 +78,7 @@ interface DispatchConfig {
 }
 
 /** Candidat lu en base (une requête ensembliste), avant score. */
-interface CandidateRow {
+type CandidateRow = {
   driver_id: string;
   user_id: string;
   rating: string;
@@ -90,7 +91,7 @@ interface CandidateRow {
   shift_started_at: string | null;
   is_unlimited: boolean;
   is_client_favourite: boolean;
-}
+};
 
 interface Candidate {
   driverId: string;
@@ -126,6 +127,7 @@ const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private tickTimer: NodeJS.Timeout | null = null;
   private runner = false;
+  private subscriptions: Array<() => void> = [];
   private readonly localLocks = new Map<string, Promise<void>>();
   /** Compteurs du processus (tests, santé). */
   readonly stats = { started: 0, offers: 0, ticks: 0, noDriver: 0 };
@@ -156,7 +158,12 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy() {
-    if (this.tickTimer) clearInterval(this.tickTimer);
+    this.disableRunner();
+  }
+
+  /** Vrai si ce processus porte la répartition (abonnements et battement). */
+  get running(): boolean {
+    return this.runner;
   }
 
   /** Abonne le processus aux événements de course et lance le battement périodique (une seule fois par processus). */
@@ -164,23 +171,38 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     if (this.runner) return;
     this.runner = true;
     const guard = (rideId: string, what: string) => (error: unknown) => this.logger.error({ err: error, rideId }, what);
-    this.events.on('ride.requested', (p) => this.start(p.rideId, { reason: 'requested' }).catch(guard(p.rideId, 'Répartition impossible')));
-    this.events.on('ride.reassign_requested', (p) => {
-      const data = (p.data ?? {}) as { previousDriverId?: string; source?: string };
-      // Les retraits par l'opérateur ou la surveillance relancent eux-mêmes la recherche.
-      if (data.source && data.source !== 'driver') return;
-      this.start(p.rideId, { reason: 'reassign', priority: true, excludeDriverIds: data.previousDriverId ? [data.previousDriverId] : [] }).catch(guard(p.rideId, 'Réattribution impossible'));
-    });
-    this.events.on('scheduled.dispatch_due', (p) => this.start(p.rideId, { reason: 'scheduled_due' }).catch(guard(p.rideId, 'Attribution planifiée impossible')));
-    this.events.on('ride.cancelled_by_client', (p) => this.cancel(p.rideId, 'cancelled').catch(guard(p.rideId, 'Arrêt de la répartition impossible')));
-    this.events.on('ride.assigned', (p) => {
-      if (p.driverId) this.markAssigned(p.rideId, p.driverId).catch(guard(p.rideId, 'Clôture de la répartition impossible'));
-    });
+    this.subscriptions = [
+      this.events.on('ride.requested', (p) => {
+        void this.start(p.rideId, { reason: 'requested' }).catch(guard(p.rideId, 'Répartition impossible'));
+      }),
+      this.events.on('ride.reassign_requested', (p) => {
+        const data = (p.data ?? {}) as { previousDriverId?: string; source?: string };
+        // Les retraits par l'opérateur ou la surveillance relancent eux-mêmes la recherche.
+        if (data.source && data.source !== 'driver') return;
+        this.start(p.rideId, { reason: 'reassign', priority: true, excludeDriverIds: data.previousDriverId ? [data.previousDriverId] : [] }).catch(guard(p.rideId, 'Réattribution impossible'));
+      }),
+      this.events.on('scheduled.dispatch_due', (p) => {
+        void this.start(p.rideId, { reason: 'scheduled_due' }).catch(guard(p.rideId, 'Attribution planifiée impossible'));
+      }),
+      this.events.on('ride.cancelled_by_client', (p) => this.cancel(p.rideId, 'cancelled').catch(guard(p.rideId, 'Arrêt de la répartition impossible'))),
+      this.events.on('ride.assigned', (p) => {
+        if (p.driverId) this.markAssigned(p.rideId, p.driverId).catch(guard(p.rideId, 'Clôture de la répartition impossible'));
+      }),
+    ];
     if (this.env.DISPATCH_TICK_MS > 0) {
       this.tickTimer = setInterval(() => void this.tick(new Date()).catch((error: unknown) => this.logger.error({ err: error }, 'Battement de la répartition en échec')), this.env.DISPATCH_TICK_MS);
       this.tickTimer.unref();
     }
     this.logger.info({ tickMs: this.env.DISPATCH_TICK_MS }, 'Répartition automatique active dans ce processus');
+  }
+
+  /** Retire ce processus de la répartition (worker sans Redis, arrêt). */
+  disableRunner(): void {
+    if (this.tickTimer) clearInterval(this.tickTimer);
+    this.tickTimer = null;
+    for (const off of this.subscriptions) off();
+    this.subscriptions = [];
+    this.runner = false;
   }
 
   // --- Réglages ---

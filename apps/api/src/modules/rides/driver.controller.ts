@@ -1,7 +1,7 @@
-/** Côté chauffeur (section 7.2, groupe Chauffeur) : statut, positions de secours, déroulé des courses, réservations planifiées. */
+/** Côté chauffeur (section 7.2, groupe Chauffeur) : statut, positions de secours, offres de la répartition, déroulé des courses, réservations planifiées. */
 import {
-  cancellationResultSchema, completeRideSchema, driverCancelSchema, driverStatusSchema, driverStatusViewSchema, locationBatchSchema, locationUpdateSchema, rideSchema,
-  scheduledRideSchema, uuid,
+  cancellationResultSchema, completeRideSchema, driverCancelSchema, driverOfferSchema, driverStatusSchema, driverStatusViewSchema, locationBatchSchema, locationUpdateSchema,
+  offerCounterSchema, rideSchema, scheduledRideSchema, uuid,
 } from '@neomoov/domain';
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { CurrentUser, NoAudit, Roles, type UserActor } from '../auth/actor.js';
+import { DispatchService } from './dispatch.service.js';
 import { PresenceService } from './presence.service.js';
 import { RidesService } from './rides.service.js';
 import { ScheduledService } from './scheduled.service.js';
@@ -25,7 +26,45 @@ export class DriverController {
     private readonly rides: RidesService,
     private readonly presence: PresenceService,
     private readonly scheduled: ScheduledService,
+    private readonly dispatch: DispatchService,
   ) {}
+
+  @Get('offers')
+  @NoAudit()
+  @ApiOperation({ summary: 'Offres de course en attente de réponse (la plus ancienne d\'abord) ; aussi poussées par le socket `offer.new`' })
+  @ZodResponse(200, z.array(driverOfferSchema))
+  @ApiErrors(401, 403, 429)
+  offers(@CurrentUser() user: UserActor) {
+    return this.dispatch.listForDriver(user);
+  }
+
+  @Post('offers/:id/accept')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Accepte une offre : la première acceptation gagne la course, les autres offres expirent' })
+  @ZodResponse(200, rideSchema)
+  @ApiErrors(401, 403, 404, 409, 429)
+  acceptOffer(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
+    return this.dispatch.accept(id, user);
+  }
+
+  @Post('offers/:id/decline')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Décline une offre : le candidat suivant est sollicité tout de suite' })
+  @ZodResponse(200, z.object({ state: z.literal('declined') }))
+  @ApiErrors(401, 403, 404, 429)
+  declineOffer(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
+    return this.dispatch.decline(id, user);
+  }
+
+  @Post('offers/:id/counter')
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Contre-proposition (négociation encadrée, drapeau FEATURE_NEGOTIATION) : une seule par course, entre la proposition du client et le prix affiché' })
+  @ZodBody(offerCounterSchema)
+  @ZodResponse(201, driverOfferSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  counterOffer(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(offerCounterSchema)) body: z.infer<typeof offerCounterSchema>, @CurrentUser() user: UserActor) {
+    return this.dispatch.counter(id, user, body);
+  }
 
   @Get('status')
   @ApiOperation({ summary: 'Statut de présence du chauffeur' })

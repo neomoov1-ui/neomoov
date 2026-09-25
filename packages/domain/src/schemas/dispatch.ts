@@ -120,3 +120,23 @@ export const incidentCreatedSchema = z.object({ incidentId: uuid, status: z.lite
 export const dispatchTickSchema = z.object({ now: isoDate.optional() });
 export const dispatchTickReportSchema = z.object({ expiredOffers: count, steps: count, fallbacks: count, noMovement: count, iterations: count });
 export type DispatchTickReport = z.infer<typeof dispatchTickReportSchema>;
+
+/** Offre telle que My Hub la voit (toutes les offres d'une course, tous états). */
+export const adminOfferSchema = z.object({
+  id: uuid,
+  driverId: uuid,
+  wave: count,
+  type: z.enum(OFFER_TYPES),
+  state: z.enum(OFFER_STATES),
+  driverFareCents: cents,
+  proposedTotalCents: cents.nullable(),
+  pickupSeconds: z.number().int().min(0).nullable(),
+  sentAt: isoDate,
+  expiresAt: isoDate,
+  respondedAt: isoDate.nullable(),
+});
+export type AdminOfferView = z.infer<typeof adminOfferSchema>;
+
+/** `GET /admin/rides/{id}/dispatch` : répartition et offres d'une course. */
+export const adminDispatchViewSchema = z.object({ dispatch: dispatchSummarySchema.nullable(), offers: z.array(adminOfferSchema) });
+export type AdminDispatchView = z.infer<typeof adminDispatchViewSchema>;

@@ -111,6 +111,8 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'dispatch.score_weights', value: { eta: 0.55, rating: 0.2, fairness: 0.15, zone: 0.1, favouriteBonus: 100, otherFavouriteBonus: 50, unlimitedBonus: 5, fairnessDecayMinutes: 20 }, description: 'Poids de la formule du score (section 5.4) : 0,55 × ETA + 0,20 × (5 − note) × 4 + 0,15 × équité + 0,10 × zone, moins les bonus' },
   { key: 'dispatch.eta_candidates', value: 10, description: 'Nombre de candidats (les plus proches) dont le temps d\'arrivée est demandé à la matrice' },
   { key: 'dispatch.fallback_speed_mps', value: 8, description: 'Vitesse moyenne (m/s) pour estimer un temps d\'arrivée sans matrice' },
+  { key: 'dispatch.empty_sweeps_max', value: 3, description: 'Balayages complets de la zone sans aucun candidat avant de passer la course en « aucun chauffeur »' },
+  { key: 'rides.vehicle_mismatch_window_hours', value: 24, description: 'Délai après la fin de course pour signaler un véhicule non conforme (garantie modèle, 5.2)' },
   { key: 'dispatch.scheduled_window_seconds', value: 600, description: 'D40 : fenêtre d\'offres d\'une réservation planifiée (10 minutes), diffusée aux chauffeurs disponibles sur le créneau' },
   { key: 'dispatch.scheduled_candidates_max', value: 20, description: 'Chauffeurs sollicités en même temps pour une réservation planifiée' },
   { key: 'dispatch.favourite_exclusive_seconds', value: 120, description: 'D37 : le chauffeur favori reçoit l\'offre seul pendant ce délai avant les autres' },

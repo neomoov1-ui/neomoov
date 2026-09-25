@@ -30,3 +30,4 @@ export { RidesModule } from './modules/rides/rides.module.js';
 export { RidesService } from './modules/rides/rides.service.js';
 export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';
+export { DispatchService } from './modules/rides/dispatch.service.js';

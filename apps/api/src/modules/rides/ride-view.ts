@@ -1,12 +1,13 @@
 /** Lecture d'une course avec ses positions (GeoJSON) et son chauffeur, et projection vers la vue de l'API. */
 import { schema } from '@neomoov/db';
-import type { PaymentMethod, Place, RideState, RideView, VehicleCategory } from '@neomoov/domain';
+import type { DispatchSummary, NegotiationSummary, PaymentMethod, Place, RideState, RideView, SearchRadius, VehicleCategory } from '@neomoov/domain';
 import { desc, eq, getTableColumns, inArray, sql, type SQL } from 'drizzle-orm';
 import type { Database } from '../../infra/db.module.js';
 
 const { originPosition: _o, destinationPosition: _d, ...rideColumns } = getTableColumns(schema.rides);
 
 export type RideRow = Omit<typeof schema.rides.$inferSelect, 'originPosition' | 'destinationPosition'> & { originGeo: string; destinationGeo: string };
+export type DispatchRow = typeof schema.rideDispatches.$inferSelect;
 
 export interface VehicleSummary {
   id: string;
@@ -76,12 +77,43 @@ export async function driverSummaries(db: Database['db'], driverIds: string[]): 
   return map;
 }
 
+/** Lignes `ride_dispatches` des courses demandées, par identifiant de course. */
+export async function dispatchRows(db: Database['db'], rideIds: string[]): Promise<Map<string, DispatchRow>> {
+  const ids = [...new Set(rideIds)];
+  if (!ids.length) return new Map();
+  const rows = await db.select().from(schema.rideDispatches).where(inArray(schema.rideDispatches.rideId, ids));
+  return new Map(rows.map((r) => [r.rideId, r]));
+}
+
 export function timestampsOf(row: RideRow): Partial<Record<RideState, string>> {
   return (row.stateTimestamps ?? {}) as Partial<Record<RideState, string>>;
 }
 
+/** Résumé de la répartition (My Hub, client) : le rayon courant est résolu depuis la liste des rayons de `settings`. */
+export function dispatchSummaryOf(row: DispatchRow, radii: readonly SearchRadius[]): DispatchSummary {
+  const radius = row.radiusIndex >= 0 && row.radiusIndex < radii.length ? radii[row.radiusIndex] : null;
+  return {
+    status: row.status as DispatchSummary['status'],
+    mode: row.mode as DispatchSummary['mode'],
+    wave: row.wave,
+    radiusMeters: radius ?? null,
+    offersSent: row.offersSent,
+    priority: row.priority,
+    startedAt: row.startedAt.toISOString(),
+    nextActionAt: row.nextActionAt?.toISOString() ?? null,
+    heldReason: row.heldReason,
+  };
+}
+
+export interface RideViewOptions {
+  webBaseUrl: string;
+  etaSeconds?: number | null;
+  dispatch?: DispatchSummary | null;
+  negotiation?: NegotiationSummary | null;
+}
+
 /** Vue de la course : le véhicule affiché est celui enregistré sur la course (`rides.vehicle_id`), sinon le véhicule courant du chauffeur. */
-export function toRideView(row: RideRow, driver: DriverSummary | null, options: { webBaseUrl: string; etaSeconds?: number | null }): RideView {
+export function toRideView(row: RideRow, driver: DriverSummary | null, options: RideViewOptions): RideView {
   const vehicle = driver ? (driver.vehicles.find((v) => v.id === row.vehicleId) ?? driver.vehicles.find((v) => v.id === driver.currentVehicleId) ?? driver.vehicles[0] ?? null) : null;
   return {
     id: row.id,
@@ -110,5 +142,7 @@ export function toRideView(row: RideRow, driver: DriverSummary | null, options: 
     etaSeconds: options.etaSeconds ?? null,
     trackingUrl: row.trackingToken ? `${options.webBaseUrl.replace(/\/+$/, '')}/suivi/${row.trackingToken}` : null,
     timestamps: timestampsOf(row),
+    dispatch: options.dispatch ?? null,
+    negotiation: options.negotiation ?? null,
   };
 }
