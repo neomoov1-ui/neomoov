@@ -73,6 +73,7 @@ describe('courses', () => {
       requestedAt: null, quote: { totalCents: 3156, fareCents: 2455, maxConsentedCents: 5156, flatRateCode: null }, finalPriceCents: null, tipCents: 0,
       paymentMethod: 'card_app', etaSeconds: 300, trackingUrl: 'https://neomoov.net/s/abc', timestamps: { requested: NOW, assigned: NOW },
       driver: { id: ID, firstName: 'Samuel', rating: 4.96, rideCount: 1214, photoUrl: null, vehicle: { make: 'Tesla', model: 'Model 3', colour: 'blanche', plate: 'N52 KTB', category: 'neo_premium' } },
+      dispatch: null, negotiation: null,
     };
     expect(rideSchema.parse(ride).driver?.firstName).toBe('Samuel');
     expect(rideSchema.safeParse({ ...ride, timestamps: { flying: NOW } }).success).toBe(false);

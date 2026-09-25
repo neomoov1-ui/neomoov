@@ -65,6 +65,10 @@ export const rides = pgTable('rides', {
   cancellationReason: varchar('cancellation_reason', { length: 40 }),
   cancellationComment: text('cancellation_comment'),
   cancellationFeeCents: cents('cancellation_fee_cents').notNull().default(0),
+  /** Négociation encadrée (5.5) : proposition du client P', prix convenu à l'acceptation d'une offre, mode de répartition. */
+  proposedTotalCents: cents('proposed_total_cents'),
+  agreedTotalCents: cents('agreed_total_cents'),
+  negotiationMode: varchar('negotiation_mode', { length: 20 }),
   /** Horodatage de chaque état atteint : { requested: ISO, assigned: ISO, ... }. */
   stateTimestamps: jsonb('state_timestamps').notNull().default(sql`'{}'::jsonb`),
   trackingToken: varchar('tracking_token', { length: 24 }),
@@ -88,6 +92,9 @@ export const rides = pgTable('rides', {
   index('rides_origin_gist').using('gist', t.originPosition),
   check('rides_amounts_positive', sql`${t.maxConsentedCents} >= 0 AND ${t.quotedTotalCents} >= 0 AND ${t.tipCents} >= 0 AND ${t.waitChargeCents} >= 0 AND ${t.cancellationFeeCents} >= 0`),
   check('rides_final_within_consent', sql`${t.finalPriceCents} IS NULL OR ${t.finalPriceCents} <= ${t.maxConsentedCents}`),
+  /** Invariant de la négociation (5.5, T-11.2) : le prix convenu ne dépasse jamais le prix maximal consenti. */
+  check('rides_agreed_within_consent', sql`${t.agreedTotalCents} IS NULL OR ${t.agreedTotalCents} <= ${t.maxConsentedCents}`),
+  check('rides_negotiation_mode', sql`${t.negotiationMode} IS NULL OR ${t.negotiationMode} IN ('fixed', 'negotiation')`),
   check('rides_client_or_guest', sql`${t.clientId} IS NOT NULL OR ${t.guestPhone} IS NOT NULL`),
   check('rides_payment_choice', sql`${t.paymentChoice} IN ('prepaid', 'pay_driver_after')`),
 ]);
@@ -105,6 +112,10 @@ export const rideEvents = pgTable('ride_events', {
   occurredAt: tz('occurred_at').notNull().defaultNow(),
 }, (t) => [index('ride_events_ride_idx').on(t.rideId, t.occurredAt), check('ride_events_actor_kind', sql`${t.actorKind} IN ('client', 'driver', 'operator', 'system', 'agent')`)]);
 
+/**
+ * Offres faites aux chauffeurs (5.4) et contre-propositions (5.5). L'état d'une offre évolue (`sent` → `accepted`,
+ * `declined`, `expired`, `withdrawn`) ; l'historique complet est dans `ride_events`.
+ */
 export const rideOffers = pgTable('ride_offers', {
   id: id(),
   rideId: uuid('ride_id').notNull().references(() => rides.id, { onDelete: 'cascade' }),
@@ -113,13 +124,60 @@ export const rideOffers = pgTable('ride_offers', {
   type: offerTypeEnum('type').notNull().default('fixed'),
   state: offerStateEnum('state').notNull().default('sent'),
   driverFareCents: cents('driver_fare_cents').notNull(),
+  /** Prix proposé (P' du client, ou contre-offre du chauffeur) ; null en mode fixe. */
   proposedTotalCents: cents('proposed_total_cents'),
+  /** Prix affiché au client (P) au moment de l'offre, en négociation. */
+  displayedTotalCents: cents('displayed_total_cents'),
+  /** Motif d'une contre-offre au-dessus du prix affiché (`exceptional_reason`) et son texte. */
+  reason: varchar('reason', { length: 40 }),
+  reasonText: text('reason_text'),
   pickupDistanceMeters: integer('pickup_distance_meters'),
   pickupSeconds: integer('pickup_seconds'),
   sentAt: createdAt(),
   respondedAt: tz('responded_at'),
   expiresAt: tz('expires_at').notNull(),
-}, (t) => [index('ride_offers_ride_idx').on(t.rideId, t.wave), index('ride_offers_driver_idx').on(t.driverId, t.sentAt), uniqueIndex('ride_offers_pending_unique').on(t.rideId, t.driverId).where(sql`${t.state} = 'sent'`), check('ride_offers_fare_positive', sql`${t.driverFareCents} >= 0`)]);
+}, (t) => [
+  index('ride_offers_ride_idx').on(t.rideId, t.wave),
+  index('ride_offers_driver_idx').on(t.driverId, t.sentAt),
+  index('ride_offers_pending_idx').on(t.expiresAt).where(sql`${t.state} = 'sent'`),
+  /** Une seule offre en attente par chauffeur, par course et par type (une contre-offre coexiste avec l'offre reçue). */
+  uniqueIndex('ride_offers_pending_unique').on(t.rideId, t.driverId, t.type).where(sql`${t.state} = 'sent'`),
+  check('ride_offers_fare_positive', sql`${t.driverFareCents} >= 0`),
+]);
+
+/**
+ * Répartition en cours d'une course (5.4) : une ligne par course demandée, pilotée par le service de répartition
+ * (vagues, rayon, candidats, offres en attente, mise en attente par l'opérateur, surveillance du départ du chauffeur).
+ */
+export const rideDispatches = pgTable('ride_dispatches', {
+  rideId: uuid('ride_id').primaryKey().references(() => rides.id, { onDelete: 'cascade' }),
+  mode: varchar('mode', { length: 20 }).notNull().default('fixed'),
+  status: varchar('status', { length: 20 }).notNull().default('searching'),
+  wave: smallint('wave').notNull().default(0),
+  radiusIndex: smallint('radius_index').notNull().default(-1),
+  /** Candidats de la vague en cours, dans l'ordre du score, et position du prochain à solliciter. */
+  candidateIds: jsonb('candidate_ids').notNull().default(sql`'[]'::jsonb`),
+  candidateCursor: smallint('candidate_cursor').notNull().default(0),
+  excludedDriverIds: jsonb('excluded_driver_ids').notNull().default(sql`'[]'::jsonb`),
+  offeredDriverIds: jsonb('offered_driver_ids').notNull().default(sql`'[]'::jsonb`),
+  priority: boolean('priority').notNull().default(false),
+  offersSent: integer('offers_sent').notNull().default(0),
+  nextActionAt: tz('next_action_at'),
+  startedAt: tz('started_at').notNull().defaultNow(),
+  endedAt: tz('ended_at'),
+  heldReason: varchar('held_reason', { length: 200 }),
+  heldByUserId: uuid('held_by_user_id'),
+  assignedAt: tz('assigned_at'),
+  assignedPosition: geoPoint('assigned_position'),
+  movementCheckedAt: tz('movement_checked_at'),
+  negotiationEndsAt: tz('negotiation_ends_at'),
+  lastError: text('last_error'),
+  updatedAt: updatedAt(),
+}, (t) => [
+  index('ride_dispatches_due_idx').on(t.status, t.nextActionAt),
+  check('ride_dispatches_status', sql`${t.status} IN ('searching', 'offering', 'held', 'assigned', 'exhausted', 'window_closed', 'cancelled')`),
+  check('ride_dispatches_mode', sql`${t.mode} IN ('fixed', 'negotiation')`),
+]);
 
 export const rideRatings = pgTable('ride_ratings', {
   id: id(),

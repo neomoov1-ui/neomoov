@@ -14,9 +14,16 @@ export const clients = pgTable('clients', {
   businessAccountId: uuid('business_account_id'),
   subscriptionCode: varchar('subscription_code', { length: 40 }),
   rideCount: cents('ride_count').notNull().default(0),
+  /** Test comparatif de la négociation (5.5) : groupe tiré au sort à la première proposition, journalisé. */
+  experimentGroup: varchar('experiment_group', { length: 20 }),
+  experimentAssignedAt: tz('experiment_assigned_at'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-}, (t) => [uniqueIndex('clients_user_unique').on(t.userId), check('clients_status', sql`${t.status} IN ('active', 'blocked', 'deleted')`)]);
+}, (t) => [
+  uniqueIndex('clients_user_unique').on(t.userId),
+  check('clients_status', sql`${t.status} IN ('active', 'blocked', 'deleted')`),
+  check('clients_experiment_group', sql`${t.experimentGroup} IS NULL OR ${t.experimentGroup} IN ('fixed', 'negotiation')`),
+]);
 
 export const clientPaymentMethods = pgTable('client_payment_methods', {
   id: id(),

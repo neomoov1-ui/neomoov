@@ -9,4 +9,6 @@ export * from './packs/packs.js';
 export * from './settlement/settlement.js';
 export * from './rides/state-machine.js';
 export * from './rides/cancellation.js';
+export * from './dispatch/scoring.js';
+export * from './dispatch/negotiation.js';
 export * from './schemas/index.js';

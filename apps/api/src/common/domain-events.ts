@@ -43,6 +43,13 @@ export interface DomainEvents {
   'scheduled.unconfirmed_alert': { rideId: string; requestedAt: Date; driverId: string | null };
   'driver.presence': { driverId: string; status: 'online' | 'offline' | 'paused'; category: string | null };
   'driver.location': { driverId: string; rideId: string | null; coordinates: { lat: number; lng: number }; headingDegrees: number | null; speedMps: number | null; recordedAt: Date };
+  /** Répartition (étape 6) : offres aux chauffeurs, réponses, fin de recherche sans chauffeur, état de la répartition. */
+  'offer.sent': { offerId: string; rideId: string; driverId: string; driverUserId: string; wave: number; type: string; expiresAt: Date; proposedTotalCents: number | null };
+  'offer.expired': { offerId: string; rideId: string; driverId: string; driverUserId: string; reason: 'timeout' | 'assigned_elsewhere' | 'withdrawn' | 'cancelled' };
+  'offer.responded': { offerId: string; rideId: string; driverId: string; response: 'accepted' | 'declined' | 'countered'; proposedTotalCents: number | null };
+  'ride.no_driver': RideEventPayload;
+  'ride.incident': { rideId: string; incidentId: string; type: string; severity: string; reportedByUserId: string | null };
+  'dispatch.updated': { rideId: string; status: string; wave: number; offersSent: number; nextActionAt: Date | null };
 }
 
 type Handler<K extends keyof DomainEvents> = (payload: DomainEvents[K]) => void | Promise<void>;

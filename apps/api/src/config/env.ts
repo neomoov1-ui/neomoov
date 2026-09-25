@@ -30,6 +30,10 @@ export const envSchema = z.object({
   TEST_DATABASE_URL: optionalString,
   // Sans REDIS_URL, l'API et le worker utilisent des files et un cache en mémoire (développement seulement).
   REDIS_URL: optionalString,
+  // Répartition automatique (étape 6) : `auto` réagit aux demandes de course ; `manual` laisse l'opérateur ou les tests la piloter.
+  DISPATCH_MODE: z.enum(['auto', 'manual']).default('auto'),
+  // Période du battement de la répartition (expiration des offres, vagues, surveillance) ; 0 : aucun battement périodique.
+  DISPATCH_TICK_MS: z.coerce.number().int().min(0).max(60_000).default(1000),
 
   JWT_ACCESS_SECRET: optionalString,
   JWT_REFRESH_SECRET: optionalString,

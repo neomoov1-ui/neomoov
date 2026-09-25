@@ -15,7 +15,9 @@ import { cents, isoDate, localDateString, phoneE164, signedCents, uuid } from '.
 
 export * from './quotes.js';
 export * from './rides.js';
+export * from './dispatch.js';
 import { PAYMENT_CHOICES } from './rides.js';
+import { dispatchSummarySchema, negotiationSummarySchema } from './dispatch.js';
 import { coordinatesSchema, placeSchema, quoteLineSchema, quoteSchema, ridePreferencesSchema } from './quotes.js';
 
 export const thirdPartyPassengerSchema = z.object({ name: z.string().min(2).max(120), phone: phoneE164 });
@@ -63,6 +65,10 @@ export const rideSchema = z.object({
   etaSeconds: z.number().int().min(0).nullable(),
   trackingUrl: z.string().url().nullable(),
   timestamps: z.partialRecord(z.enum(RIDE_STATES), isoDate),
+  /** Répartition en cours (étape 6) : null avant la première recherche et pour les courses closes. */
+  dispatch: dispatchSummarySchema.nullable(),
+  /** Négociation encadrée : toujours null quand le drapeau `FEATURE_NEGOTIATION` est désactivé. */
+  negotiation: negotiationSummarySchema.nullable(),
 });
 export type RideView = z.infer<typeof rideSchema>;
 
