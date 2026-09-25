@@ -44,7 +44,7 @@ import { ZonesService } from '../pricing/zones.service.js';
 import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
-import { dispatchSummaryOf, parseGeoPoint, type RideRow } from './ride-view.js';
+import { dispatchSummaryOf, parseGeoPoint, preferencesOf, type RideRow } from './ride-view.js';
 import { RidesService, SYSTEM_ACTOR, type ActorRef } from './rides.service.js';
 
 type DispatchRow = typeof schema.rideDispatches.$inferSelect;
@@ -910,6 +910,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       ride: {
         id: ride.id, publicNumber: ride.publicNumber, type: ride.type, category: ride.reservedCategory, origin: { address: ride.originAddress, coordinates: parseGeoPoint(ride.originGeo) }, destination: { address: ride.destinationAddress, coordinates: parseGeoPoint(ride.destinationGeo) },
         requestedAt: ride.requestedAt?.toISOString() ?? null, paymentMethod: ride.paymentMethod, paymentChoice: ride.paymentChoice as 'prepaid' | 'pay_driver_after', specialRequests: ride.specialRequests,
+        distanceMeters: ride.distanceMeters, durationSeconds: ride.durationSeconds, stops: Array.isArray(ride.stops) ? ride.stops.length : 0, preferences: preferencesOf(ride.preferences),
       },
     };
   }

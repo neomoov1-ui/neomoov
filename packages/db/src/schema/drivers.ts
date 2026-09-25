@@ -26,6 +26,11 @@ export const drivers = pgTable('drivers', {
   interacEmail: varchar('interac_email', { length: 254 }),
   acceptsScheduled: boolean('accepts_scheduled').notNull().default(true),
   preferredZones: jsonb('preferred_zones').notNull().default(sql`'[]'::jsonb`),
+  /** Langues parlées déclarées à l'inscription (codes ISO 639-1). */
+  spokenLanguages: jsonb('spoken_languages').notNull().default(sql`'[]'::jsonb`),
+  experienceYears: smallint('experience_years'),
+  /** Attestation de la formation Neomoov (tous les modules réussis) ; exigée pour passer en ligne. */
+  trainingCertifiedAt: tz('training_certified_at'),
   ratingAverage: numeric('rating_average', { precision: 3, scale: 2 }).notNull().default('5.00'),
   ratingCount: integer('rating_count').notNull().default(0),
   rideCount: integer('ride_count').notNull().default(0),
@@ -150,7 +155,23 @@ export const driverScores = pgTable('driver_scores', {
   cancellationCount: integer('cancellation_count').notNull().default(0),
   harshAccelerations: integer('harsh_accelerations').notNull().default(0),
   harshBrakings: integer('harsh_brakings').notNull().default(0),
+  /** Compteurs journaliers (prompt 11) : une ligne par jour, agrégée sur la période du tableau de conduite. */
+  distanceMeters: integer('distance_meters').notNull().default(0),
+  completedRides: integer('completed_rides').notNull().default(0),
+  timedRides: integer('timed_rides').notNull().default(0),
+  punctualRides: integer('punctual_rides').notNull().default(0),
   rating: numeric('rating', { precision: 3, scale: 2 }),
   suggestions: jsonb('suggestions').notNull().default(sql`'[]'::jsonb`),
   computedAt: createdAt(),
 }, (t) => [uniqueIndex('driver_scores_period_unique').on(t.driverId, t.periodStart)]);
+
+/** Formation Neomoov (prompt 11) : chaque tentative de quiz d'un module, corrigée par l'API. */
+export const driverTrainingResults = pgTable('driver_training_results', {
+  id: id(),
+  driverId: uuid('driver_id').notNull().references(() => drivers.id, { onDelete: 'cascade' }),
+  moduleCode: varchar('module_code', { length: 40 }).notNull(),
+  scorePct: smallint('score_pct').notNull(),
+  passed: boolean('passed').notNull(),
+  answers: jsonb('answers').notNull().default(sql`'{}'::jsonb`),
+  completedAt: createdAt(),
+}, (t) => [index('driver_training_results_driver_idx').on(t.driverId, t.moduleCode), check('driver_training_results_score', sql`${t.scorePct} BETWEEN 0 AND 100`)]);

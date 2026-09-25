@@ -89,7 +89,7 @@ export async function seed(db: Database): Promise<Record<string, number>> {
     const user = await upsertUser({ phone: d.phone, email: d.email, firstName: d.firstName, lastName: d.lastName, role: 'driver' });
     if (!user.created) continue;
     const [publicNumber] = await db.execute<{ n: string }>(sql`SELECT next_driver_public_number() AS n`);
-    const [driver] = await db.insert(s.drivers).values({ userId: user.id, publicNumber: publicNumber!.n, status: 'active', qualification: 'saaq_authorized', acceptsCash: true, acceptsInterac: true, activatedAt: new Date() }).returning({ id: s.drivers.id });
+    const [driver] = await db.insert(s.drivers).values({ userId: user.id, publicNumber: publicNumber!.n, status: 'active', qualification: 'saaq_authorized', acceptsCash: true, acceptsInterac: true, spokenLanguages: ['fr', 'en'], experienceYears: 5, trainingCertifiedAt: new Date(), activatedAt: new Date() }).returning({ id: s.drivers.id });
     const [vehicle] = await db.insert(s.vehicles).values({ driverId: driver!.id, category: d.vehicle.category, make: d.vehicle.make, model: d.vehicle.model, year: d.vehicle.year, colour: d.vehicle.colour, plate: d.vehicle.plate, seats: d.vehicle.seats, status: 'active', lastInspectionOn: TODAY, nextInspectionDueOn: new Date(Date.now() + 180 * 86_400_000).toISOString().slice(0, 10) }).returning({ id: s.vehicles.id });
     await db.update(s.drivers).set({ currentVehicleId: vehicle!.id }).where(eq(s.drivers.id, driver!.id));
     const inOneYear = new Date(Date.now() + 365 * 86_400_000).toISOString().slice(0, 10);

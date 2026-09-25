@@ -101,6 +101,15 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
       const approved = new Set(docs.map((d) => d.type as string));
       for (const type of required) if (!approved.has(type)) reasons.push(`document_missing:${type}`);
     }
+    // Prompt 11 : formation Neomoov réussie, compte de versement (quand Stripe est branché), géolocalisation non retirée.
+    if (!driver.trainingCertifiedAt && (await this.settings.get<boolean>('drivers.require_training', true))) reasons.push('training_required');
+    if (!driver.stripeConnectOnboarded && (await this.settings.get<boolean>('drivers.require_payout_account', false))) reasons.push('payout_required');
+    // Retrait : au moins un accord enregistré et aucun en vigueur (un chauffeur qui n'a jamais répondu n'est pas bloqué ici).
+    const [geolocation] = await this.db
+      .select({ total: sql<number>`count(*)::int`, active: sql<number>`count(*) FILTER (WHERE ${schema.consents.withdrawnAt} IS NULL)::int` })
+      .from(schema.consents)
+      .where(and(eq(schema.consents.userId, driver.userId), eq(schema.consents.purpose, 'geolocation')));
+    if (geolocation && geolocation.total > 0 && geolocation.active === 0) reasons.push('geolocation_consent_withdrawn');
     if (await this.settings.get<boolean>('drivers.require_active_pack', false)) {
       const [pack] = await this.db.select({ id: schema.packPurchases.id }).from(schema.packPurchases).where(and(eq(schema.packPurchases.driverId, driver.id), eq(schema.packPurchases.status, 'active'))).limit(1);
       if (!pack) reasons.push('pack_required');

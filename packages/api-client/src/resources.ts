@@ -6,6 +6,10 @@ import type {
   AppConfig, AutocompleteSuggestion, AvailableVehicle, CancellationResult, CancelRide, ClientOfferView, ConsentInput, ConsentView, CreateRide, DataRequestInput, DataRequestView,
   DeviceInput, DeviceView, MeView, OtpRequestResponse, OtpVerify, PatchMe, PlaceDetails, QuoteDetail, QuoteRequest, QuotesResponse, RateRide, RideEventView, RideMessageInput,
   RideMessageView, RidePreferences, RideView, SavedPlace, SavedPlaceInput, ShareResponse, SocialLogin, SocialLoginResponse, SosInput, SosResponse, TokensView,
+  AdmittedModel, DriverApply, DriverDocumentView, DriverDocumentsView, DriverHomeView, DriverIncidentInput, DriverOfferView, DriverPacksView, DriverProfileUpdate,
+  DriverProfileView, DriverRideView, DriverScoreView, DriverStatementView, DriverStatusInput, DriverStatusView, EarningsQuery, EarningsView, LocationUpdate,
+  LoyalClientView, OfferCounterInput, OnboardingView, PackActivate, PackUpdate, PayoutLink, PayoutStatus, RateClient, ScheduledRideView, ShiftStartResult,
+  StatementSummary, TrainingResult, TrainingView, VehicleInputBody, VehicleView,
 } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
@@ -99,5 +103,64 @@ export function configResource(t: Transport) {
   return {
     /** Configuration publique : drapeaux distants, préavis, catégories. Lue à chaque démarrage de l'application. */
     get: () => t.get<AppConfig>('/config', { auth: false }),
+  };
+}
+
+export function driverResource(t: Transport) {
+  const ride = (rideId: string, action: string) => `/driver/rides/${id(rideId)}/${action}`;
+  return {
+    /** Candidature d'un compte connecté ; renouveler ensuite le jeton (`auth.refresh`) pour obtenir le rôle chauffeur. */
+    apply: (body: DriverApply) => t.post<DriverProfileView>('/driver/apply', body),
+    home: () => t.get<DriverHomeView>('/driver/home'),
+    profile: () => t.get<DriverProfileView>('/driver/profile'),
+    updateProfile: (body: DriverProfileUpdate) => t.patch<DriverProfileView>('/driver/profile', body),
+    onboarding: () => t.get<OnboardingView>('/driver/onboarding'),
+    vehicleModels: () => t.get<AdmittedModel[]>('/driver/vehicle-models'),
+    vehicles: () => t.get<VehicleView[]>('/driver/vehicles'),
+    addVehicle: (body: VehicleInputBody) => t.post<VehicleView>('/driver/vehicles', body),
+    documents: () => t.get<DriverDocumentsView>('/driver/documents'),
+    /** Formulaire multipart : champs `type`, `number`, `issuedOn`, `expiresOn`, `vehicleId` et le fichier `file`. */
+    uploadDocument: (form: FormData) => t.post<DriverDocumentView>('/driver/documents', form, { timeoutMs: 60_000 }),
+    training: () => t.get<TrainingView>('/driver/training'),
+    submitTraining: (moduleCode: string, answers: Record<string, number>) => t.post<TrainingResult>(`/driver/training/${id(moduleCode)}/submit`, { answers }),
+    payout: () => t.get<PayoutStatus>('/driver/payout'),
+    payoutLink: () => t.post<PayoutLink>('/driver/connect/onboarding-link'),
+    earnings: (query: EarningsQuery = {}) => t.get<EarningsView>('/driver/earnings', { query }),
+    statements: () => t.get<StatementSummary[]>('/driver/statements'),
+    statement: (statementId: string) => t.get<DriverStatementView>(`/driver/statements/${id(statementId)}`),
+    packs: () => t.get<DriverPacksView>('/driver/packs'),
+    activatePack: (body: PackActivate) => t.post<DriverPacksView>('/driver/packs/activate', body),
+    updatePack: (purchaseId: string, body: PackUpdate) => t.patch<DriverPacksView>(`/driver/packs/${id(purchaseId)}`, body),
+    loyalClients: () => t.get<LoyalClientView[]>('/driver/loyal-clients'),
+    score: () => t.get<DriverScoreView>('/driver/score'),
+    startShift: (photoBase64: string) => t.post<ShiftStartResult>('/driver/shifts/start', { photoBase64 }),
+    // Présence et positions (secours au socket `/driver`).
+    status: () => t.get<DriverStatusView>('/driver/status'),
+    setStatus: (body: DriverStatusInput) => t.post<DriverStatusView>('/driver/status', body),
+    location: (body: LocationUpdate) => t.post<{ rideId: string | null; accepted: boolean }>('/driver/location', body),
+    locations: (positions: LocationUpdate[]) => t.post<{ rideId: string | null; accepted: number; ignored: number }>('/driver/locations', { positions }),
+    // Offres de la répartition.
+    offers: () => t.get<DriverOfferView[]>('/driver/offers'),
+    acceptOffer: (offerId: string) => t.post<RideView>(`/driver/offers/${id(offerId)}/accept`),
+    declineOffer: (offerId: string) => t.post<{ state: 'declined' }>(`/driver/offers/${id(offerId)}/decline`),
+    counterOffer: (offerId: string, body: OfferCounterInput) => t.post<DriverOfferView>(`/driver/offers/${id(offerId)}/counter`, body),
+    // Déroulé des courses.
+    rides: () => t.get<{ active: RideView | null; items: RideView[] }>('/driver/rides'),
+    ride: (rideId: string) => t.get<DriverRideView>(`/driver/rides/${id(rideId)}`),
+    depart: (rideId: string) => t.post<RideView>(ride(rideId, 'depart')),
+    arrive: (rideId: string) => t.post<RideView>(ride(rideId, 'arrive')),
+    contact: (rideId: string) => t.post<{ contactAttempts: number }>(ride(rideId, 'contact')),
+    start: (rideId: string) => t.post<RideView>(ride(rideId, 'start')),
+    complete: (rideId: string, body: { measuredDistanceMeters?: number; measuredDurationSeconds?: number } = {}) => t.post<RideView>(ride(rideId, 'complete'), body),
+    noShow: (rideId: string) => t.post<CancellationResult>(ride(rideId, 'no-show')),
+    cancel: (rideId: string, reason: string) => t.post<RideView>(ride(rideId, 'cancel'), { reason }),
+    paymentReceived: (rideId: string, amountCents: number) => t.post<DriverRideView>(ride(rideId, 'payment-received'), { amountCents }),
+    rateClient: (rideId: string, body: RateClient) => t.post<DriverRideView>(ride(rideId, 'rate'), body),
+    reportIncident: (rideId: string, body: DriverIncidentInput) => t.post<{ incidentId: string; status: 'open' }>(ride(rideId, 'incident'), body),
+    // Réservations planifiées.
+    scheduled: () => t.get<ScheduledRideView[]>('/driver/scheduled'),
+    claimScheduled: (rideId: string) => t.post<{ assignmentId: string; status: 'proposed' }>(`/driver/scheduled/${id(rideId)}/claim`),
+    confirmScheduled: (rideId: string) => t.post<RideView>(`/driver/scheduled/${id(rideId)}/confirm`),
+    declineScheduled: (rideId: string) => t.post<void>(`/driver/scheduled/${id(rideId)}/decline`),
   };
 }

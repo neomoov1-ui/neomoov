@@ -150,3 +150,37 @@ describe('file hors ligne', () => {
     expect(await queue.pending()).toEqual([]);
   });
 });
+
+describe('ressource chauffeur', () => {
+  it('chemins et verbes de l\'application chauffeur ; le document part en multipart, sans en-tête JSON', async () => {
+    const seen: Array<{ method: string; url: string; body: unknown; headers: Record<string, string> }> = [];
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      seen.push({ method: init?.method ?? 'GET', url: String(input).replace('https://api.neomoov.net', ''), body: init?.body, headers: (init?.headers ?? {}) as Record<string, string> });
+      return json(200, {});
+    }) as unknown as typeof globalThis.fetch;
+    const api = createApiClient({ baseUrl: 'https://api.neomoov.net', fetch, tokens: { getAccessToken: () => 'jeton' } });
+    const form = new FormData();
+    form.append('type', 'licence');
+    form.append('file', new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }), 'permis.jpg');
+    await api.driver.uploadDocument(form);
+    await api.driver.earnings({ period: 'week', date: '2026-09-25' });
+    await api.driver.submitTraining('service', { 'service-1': 1 });
+    await api.driver.paymentReceived('r/1', 4200);
+    await api.driver.setStatus({ status: 'online', coordinates: { lat: 45.5, lng: -73.6 } });
+    await api.driver.locations([{ coordinates: { lat: 45.5, lng: -73.6 } }]);
+    expect(seen.map((c) => `${c.method} ${c.url}`)).toEqual([
+      'POST /v1/driver/documents',
+      'GET /v1/driver/earnings?period=week&date=2026-09-25',
+      'POST /v1/driver/training/service/submit',
+      'POST /v1/driver/rides/r%2F1/payment-received',
+      'POST /v1/driver/status',
+      'POST /v1/driver/locations',
+    ]);
+    expect(seen[0]!.body).toBe(form);
+    expect(seen[0]!.headers['content-type']).toBeUndefined();
+    expect(seen[1]!.body).toBeUndefined();
+    expect(JSON.parse(String(seen[2]!.body))).toEqual({ answers: { 'service-1': 1 } });
+    expect(seen[3]!.headers['content-type']).toBe('application/json');
+    expect(JSON.parse(String(seen[5]!.body))).toEqual({ positions: [{ coordinates: { lat: 45.5, lng: -73.6 } }] });
+  });
+});

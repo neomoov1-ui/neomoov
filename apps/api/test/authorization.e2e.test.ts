@@ -3,9 +3,9 @@ import { schema } from '@neomoov/db';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { desc, eq } from 'drizzle-orm';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { listRoutePolicies, type RoutePolicy } from '../src/modules/auth/route-policies.js';
-import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, startTestApp } from './helpers.js';
+import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, resetHttpLimits, startTestApp } from './helpers.js';
 
 const SAMPLE_ID = '00000000-0000-4000-8000-000000000001';
 const concrete = (p: RoutePolicy) => p.path.replace(/:[A-Za-z]+/g, SAMPLE_ID);
@@ -21,6 +21,9 @@ describe('autorisation sur chaque endpoint (intégration)', () => {
   beforeAll(async () => {
     app = await startTestApp();
     if (app) policies = listRoutePolicies(app);
+  });
+  beforeEach(async () => {
+    if (app) await resetHttpLimits(app);
   });
   afterAll(async () => {
     if (app) await cleanupTestData(app);

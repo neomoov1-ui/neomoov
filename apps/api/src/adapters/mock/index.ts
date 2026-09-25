@@ -145,6 +145,28 @@ export class MockPaymentProvider implements PaymentProvider {
     const parsed = JSON.parse(rawBody.toString()) as { id: string; type: string; data: unknown };
     return parsed;
   }
+  /** Comptes Connect simulés : l'inscription est considérée terminée dès que le lien a été demandé (aucun formulaire Stripe). */
+  readonly connectAccounts = new Map<string, { onboarded: boolean }>();
+  async createConnectAccount(input: { externalId: string }) {
+    this.calls.push({ method: 'createConnectAccount', args: [input] });
+    const accountRef = `acct_mock_${input.externalId.replace(/-/g, '').slice(0, 16)}`;
+    if (!this.connectAccounts.has(accountRef)) this.connectAccounts.set(accountRef, { onboarded: false });
+    return { accountRef };
+  }
+  async createConnectOnboardingLink(input: { accountRef: string; returnUrl: string; refreshUrl: string }) {
+    this.calls.push({ method: 'createConnectOnboardingLink', args: [input] });
+    this.connectAccounts.set(input.accountRef, { onboarded: true });
+    const url = new URL(input.returnUrl);
+    url.searchParams.set('account', input.accountRef);
+    url.searchParams.set('simulated', '1');
+    return { url: url.toString(), expiresAt: new Date(Date.now() + 300_000) };
+  }
+  async connectAccountStatus(accountRef: string) {
+    this.calls.push({ method: 'connectAccountStatus', args: [accountRef] });
+    // Après un redémarrage de l'API, un compte simulé déjà créé est considéré comme inscrit.
+    const onboarded = this.connectAccounts.get(accountRef)?.onboarded ?? accountRef.startsWith('acct_mock_');
+    return { onboarded, payoutsEnabled: onboarded };
+  }
 }
 
 export class MockSmsProvider implements SmsProvider {

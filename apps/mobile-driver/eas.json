@@ -1,11 +1,45 @@
 {
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
-    "development": { "developmentClient": true, "distribution": "internal", "channel": "development" },
-    "preview": { "distribution": "internal", "channel": "preview", "android": { "buildType": "apk" } },
-    "production": { "autoIncrement": true, "channel": "production" }
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "http://10.0.2.2:4000"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.neomoov.net"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.neomoov.net"
+      }
+    }
   },
   "submit": {
-    "production": { "ios": { "appleTeamId": "", "ascAppId": "" }, "android": { "serviceAccountKeyPath": "../../../cles-neomoov/google-play-service-account.json", "track": "internal" } }
+    "production": {
+      "ios": {
+        "appleTeamId": "",
+        "ascAppId": ""
+      },
+      "android": {
+        "serviceAccountKeyPath": "../../../cles-neomoov/google-play-service-account.json",
+        "track": "internal"
+      }
+    }
   }
 }

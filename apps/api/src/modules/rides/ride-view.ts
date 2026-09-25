@@ -1,6 +1,6 @@
 /** Lecture d'une course avec ses positions (GeoJSON) et son chauffeur, et projection vers la vue de l'API. */
 import { schema } from '@neomoov/db';
-import type { DispatchSummary, NegotiationSummary, PaymentMethod, Place, RideState, RideView, SearchRadius, VehicleCategory } from '@neomoov/domain';
+import { ridePreferencesSchema, type DispatchSummary, type NegotiationSummary, type PaymentMethod, type Place, type RidePreferences, type RideState, type RideView, type SearchRadius, type VehicleCategory } from '@neomoov/domain';
 import { desc, eq, getTableColumns, inArray, sql, type SQL } from 'drizzle-orm';
 import type { Database } from '../../infra/db.module.js';
 
@@ -27,6 +27,12 @@ export interface DriverSummary {
   currentVehicleId: string | null;
   /** Tous les véhicules du chauffeur (le véhicule de la course peut ne plus être son véhicule courant). */
   vehicles: VehicleSummary[];
+}
+
+/** Préférences copiées sur la course (D36, D37) ; une valeur ancienne invalide est ignorée plutôt que de bloquer l'affichage. */
+export function preferencesOf(value: unknown): RidePreferences | null {
+  const parsed = ridePreferencesSchema.safeParse(value ?? {});
+  return parsed.success ? parsed.data : null;
 }
 
 export function parseGeoPoint(geo: string): { lat: number; lng: number } {

@@ -47,6 +47,9 @@ class RealPaymentProvider extends NotDelivered implements PaymentProvider {
   refund(): Promise<never> { return this.reject(); }
   chargeOffSession(): Promise<never> { return this.reject(); }
   verifyWebhook(): Promise<never> { return this.reject(); }
+  createConnectAccount(): Promise<never> { return this.reject(); }
+  createConnectOnboardingLink(): Promise<never> { return this.reject(); }
+  connectAccountStatus(): Promise<never> { return this.reject(); }
 }
 
 class RealSmsProvider extends NotDelivered implements SmsProvider {
