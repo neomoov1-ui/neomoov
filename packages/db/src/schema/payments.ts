@@ -82,6 +82,7 @@ export const packConsumptions = pgTable('pack_consumptions', {
 export const weeklyStatements = pgTable('weekly_statements', {
   id: id(),
   driverId: uuid('driver_id').notNull().references(() => drivers.id),
+  organizationId: uuid('organization_id'),
   periodStart: date('period_start').notNull(),
   periodEnd: date('period_end').notNull(),
   platformFaresCents: cents('platform_fares_cents').notNull().default(0),

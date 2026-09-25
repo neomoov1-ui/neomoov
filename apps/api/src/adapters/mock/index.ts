@@ -3,6 +3,8 @@
  * les tests et journalisent en développement. Aucune ne contient de règle métier.
  */
 import { createHash } from 'node:crypto';
+import { AppError } from '../../common/app-error.js';
+import { haversineMeters } from '../../common/geo.js';
 import type {
   AutocompleteSuggestion, EmailProvider, GeoPoint, GeocodeResult, LlmProvider, MapsProvider, PaymentAuthorization, PaymentProvider,
   PushProvider, RouteRequest, RouteResult, SevInvoiceInput, SevProvider, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider,
@@ -11,15 +13,7 @@ import type {
 let counter = 0;
 const nextId = (prefix: string) => `${prefix}_${(++counter).toString(36).padStart(6, '0')}`;
 
-/** Distance à vol d'oiseau (mètres) : sert de base au simulateur de cartes, majorée pour approcher une distance routière. */
-export function haversineMeters(a: GeoPoint, b: GeoPoint): number {
-  const r = 6_371_000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * r * Math.asin(Math.sqrt(h));
-}
+export { haversineMeters };
 
 const MONTREAL: GeoPoint = { lat: 45.5019, lng: -73.5674 };
 const montrealHour = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', hourCycle: 'h23' });
@@ -52,14 +46,32 @@ export class MockMapsProvider implements MapsProvider {
     return { ...point, formattedAddress: `Adresse simulée (${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}), Montréal, QC` };
   }
 
-  async autocomplete(input: string): Promise<AutocompleteSuggestion[]> {
-    this.calls.push({ method: 'autocomplete', args: [input] });
+  async autocomplete(input: string, sessionToken?: string, near?: GeoPoint): Promise<AutocompleteSuggestion[]> {
+    this.calls.push({ method: 'autocomplete', args: [input, sessionToken, near] });
     const q = input.trim().toLowerCase();
-    return [...this.known.values()].filter((k) => k.formattedAddress.toLowerCase().includes(q)).map((k) => ({ placeId: k.placeId!, description: k.formattedAddress }));
+    const known = [...this.known.values()].filter((k) => k.formattedAddress.toLowerCase().includes(q)).map((k) => ({ placeId: k.placeId!, description: k.formattedAddress }));
+    if (known.length) return known;
+    // Toujours au moins une suggestion : l'adresse saisie, géocodée de façon déterministe.
+    const typed = await this.geocode(input);
+    return [{ placeId: typed.placeId!, description: `${input.trim()}, Montréal, QC` }];
   }
+
+  async placeDetails(placeId: string, sessionToken?: string): Promise<GeocodeResult> {
+    this.calls.push({ method: 'placeDetails', args: [placeId, sessionToken] });
+    const known = [...this.known.values()].find((k) => k.placeId === placeId);
+    if (known) return known;
+    if (!placeId.startsWith('mock-')) throw AppError.notFound('PLACE_NOT_FOUND', `Lieu introuvable : ${placeId}`);
+    // Point déterministe dérivé de l'identifiant (comme geocode dérive de l'adresse).
+    const h = createHash('sha256').update(placeId).digest();
+    return { lat: MONTREAL.lat + ((h[0]! - 128) / 128) * 0.08, lng: MONTREAL.lng + ((h[1]! - 128) / 128) * 0.12, formattedAddress: `Lieu ${placeId}, Montréal, QC`, placeId };
+  }
+
+  /** Test du mode dégradé : quand vrai, `route` échoue comme une API indisponible. */
+  failRoutes = false;
 
   async route(request: RouteRequest): Promise<RouteResult> {
     this.calls.push({ method: 'route', args: [request] });
+    if (this.failRoutes) throw new Error('Routes API indisponible (simulation)');
     const points = [request.origin, ...(request.waypoints ?? []), request.destination];
     let meters = 0;
     for (let i = 1; i < points.length; i += 1) meters += haversineMeters(points[i - 1]!, points[i]!) * 1.3;

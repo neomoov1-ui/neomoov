@@ -33,8 +33,9 @@ export function buildPricingRules(src: PricingSources): PricingRules {
   const flatByPair = new Map<string, FlatRate>();
   for (const f of src.flatRates) {
     const key = `${f.originZoneCode}>${f.destinationZoneCode}`;
-    const entry = flatByPair.get(key) ?? { originZone: f.originZoneCode, destinationZone: f.destinationZoneCode, bidirectional: f.bidirectional, totalCentsByCategory: {} };
+    const entry = flatByPair.get(key) ?? { originZone: f.originZoneCode, destinationZone: f.destinationZoneCode, bidirectional: f.bidirectional, totalCentsByCategory: {}, codeByCategory: {} };
     entry.totalCentsByCategory[f.category] = f.totalCents;
+    entry.codeByCategory![f.category] = f.code;
     flatByPair.set(key, entry);
   }
 

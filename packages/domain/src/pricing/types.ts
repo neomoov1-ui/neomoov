@@ -38,6 +38,8 @@ export interface FlatRate {
   bidirectional: boolean;
   /** Prix total affiché, taxes comprises, par catégorie. */
   totalCentsByCategory: Record<string, number>;
+  /** Code de la ligne `flat_rates` par catégorie (yul-centre-premium), renvoyé dans `flatRateCode`. */
+  codeByCategory?: Record<string, string>;
 }
 
 export interface PricingRules {
@@ -82,6 +84,8 @@ export interface Promotion {
   categories?: string[];
   /** Pour `free_ride` : vrai si Neomoov renonce aussi aux frais de service, à la redevance et aux taxes. */
   waivesFees?: boolean;
+  /** Plafond de la remise en cents (LANCEMENT30 : 15,00 $ au plus). */
+  maxDiscountCents?: number;
 }
 
 export interface QuoteInput {
@@ -98,11 +102,13 @@ export interface QuoteInput {
   /** Nombre de courses déjà terminées par le client, pour les promotions de n-ième course. */
   clientCompletedRides?: number;
   creditsAvailableCents?: number;
+  /** Péages réels sur l'itinéraire (API Routes, D33) : ligne du prix affiché, jamais dans le tarif chauffeur ; ignorés sous un forfait. */
+  tollsCents?: number;
 }
 
 export type QuoteLineKind =
   | 'base_fare' | 'distance' | 'duration' | 'minimum_adjustment' | 'surcharge'
-  | 'flex' | 'priority' | 'favourite_driver' | 'flat_rate' | 'wait_time';
+  | 'flex' | 'priority' | 'favourite_driver' | 'flat_rate' | 'wait_time' | 'tolls' | 'benchmark_alignment';
 
 export interface QuoteLine {
   kind: QuoteLineKind;
@@ -113,6 +119,8 @@ export interface QuoteLine {
 export interface Quote {
   category: string;
   flatRate: boolean;
+  /** Code du forfait appliqué (table `flat_rates`), sinon null. */
+  flatRateCode: string | null;
   lines: QuoteLine[];
   /** Tarif de la course : ce qui revient au chauffeur, avant toute promotion. */
   fareCents: number;
@@ -122,6 +130,10 @@ export interface Quote {
   promotionCompensationCents: number;
   serviceFeeCents: number;
   regulatoryFeeCents: number;
+  /** Péages ajoutés au sous-total (0 sous un forfait). */
+  tollsCents: number;
+  /** Remise d'alignement concurrentiel déjà appliquée sur les frais de service (D33). */
+  alignmentDiscountCents: number;
   subtotalCents: number;
   gstCents: number;
   qstCents: number;

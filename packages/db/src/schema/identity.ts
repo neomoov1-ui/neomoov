@@ -112,6 +112,7 @@ export const settings = pgTable('settings', {
   scope: varchar('scope', { length: 40 }).notNull().default('global'),
   value: jsonb('value').notNull(),
   description: text('description'),
+  organizationId: uuid('organization_id'),
   updatedBy: uuid('updated_by'),
   updatedAt: updatedAt(),
 }, (t) => [primaryKey({ columns: [t.key, t.scope] })]);

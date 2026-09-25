@@ -30,6 +30,7 @@ describe('devis', () => {
     const quote = {
       id: ID, category: 'neo_premium', distanceMeters: 8000, durationSeconds: 1080,
       lines: [{ code: 'fare', label: 'Tarif', amountCents: 2455 }], fareCents: 2455, serviceFeeCents: 200, regulatoryFeeCents: 90, gstCents: 137, qstCents: 274,
+      tollsCents: 0, promotionCode: null, promotionDiscountCents: 0, alignmentDiscountCents: 0, subtotalCents: 2745, amountDueCents: 3156, estimated: false, eta: { seconds: 300, status: 'estimated' }, requestedAt: NOW,
       creditsAppliedCents: 0, totalCents: 3156, maxConsentedCents: 5156, flatRateCode: null, ignoredOptions: [], validUntil: NOW, fingerprint: 'abc',
     };
     expect(quoteSchema.parse(quote).totalCents).toBe(3156);

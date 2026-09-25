@@ -141,6 +141,9 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   usedPhones.clear();
   const ids = [...createdUserIds];
   if (!ids.length) return;
+  const clients = await database.select({ id: schema.clients.id }).from(schema.clients).where(inArray(schema.clients.userId, ids));
+  if (clients.length) await database.delete(schema.quotes).where(inArray(schema.quotes.clientId, clients.map((c) => c.id)));
+  await database.delete(schema.competitorBenchmarks).where(inArray(schema.competitorBenchmarks.recordedByUserId, ids));
   await database.delete(schema.apiKeys).where(inArray(schema.apiKeys.createdByUserId, ids));
   await database.delete(schema.dataRequests).where(inArray(schema.dataRequests.userId, ids));
   await database.delete(schema.users).where(inArray(schema.users.id, ids));

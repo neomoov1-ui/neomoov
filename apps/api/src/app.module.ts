@@ -11,6 +11,7 @@ import { AuditModule } from './modules/audit/audit.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { MeModule } from './modules/me/me.module.js';
+import { PricingModule } from './modules/pricing/pricing.module.js';
 import { PrivacyModule } from './modules/privacy/privacy.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
@@ -20,7 +21,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule],
     };
   }
 }

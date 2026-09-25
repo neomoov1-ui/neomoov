@@ -134,7 +134,9 @@ describe('forfaits', () => {
   ])('aéroport, %s : le forfait fixe le prix total affiché', (category, total, fare, gst, qst) => {
     const q = computeQuote(base({ category, originZone: 'centre_ville', destinationZone: 'aeroport_yul' }), rules);
     expect(q).toMatchObject({ flatRate: true, totalCents: total, fareCents: fare, gstCents: gst, qstCents: qst, driverAmountCents: fare });
-    expect(q.lines).toEqual([{ kind: 'flat_rate', code: 'centre_ville:aeroport_yul', amountCents: fare }]);
+    expect(q.lines).toEqual([{ kind: 'flat_rate', code: 'flat_rate', amountCents: fare }]);
+    expect(q.flatRateCode).toBe('centre_ville:aeroport_yul');
+    expect(computeQuote(base({ category, originZone: 'centre_ville', destinationZone: 'aeroport_yul' }), { ...rules, flatRates: [{ ...rules.flatRates[0]!, codeByCategory: { neo_premium: 'yul-centre-premium' } }] }).flatRateCode).toBe(category === 'neo_premium' ? 'yul-centre-premium' : 'centre_ville:aeroport_yul');
   });
   it('forfait dans les deux sens, nuit et options ignorées et signalées', () => {
     const q = computeQuote(base({ pickupAt: NIGHT, originZone: 'aeroport_yul', destinationZone: 'centre_ville', options: { flex: true, priority: true, childSeat: false, stops: 1 } }), rules);

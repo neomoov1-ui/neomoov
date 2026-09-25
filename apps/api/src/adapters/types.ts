@@ -39,7 +39,10 @@ export interface MapsProvider {
   readonly name: string;
   geocode(address: string): Promise<GeocodeResult>;
   reverseGeocode(point: GeoPoint): Promise<GeocodeResult>;
-  autocomplete(input: string, sessionToken?: string): Promise<AutocompleteSuggestion[]>;
+  /** Suggestions d'adresses ; `near` favorise les résultats autour de ce point (position du client). */
+  autocomplete(input: string, sessionToken?: string, near?: GeoPoint): Promise<AutocompleteSuggestion[]>;
+  /** Adresse et position d'un lieu choisi dans les suggestions (même jeton de session : facturation groupée). */
+  placeDetails(placeId: string, sessionToken?: string): Promise<GeocodeResult>;
   route(request: RouteRequest): Promise<RouteResult>;
   /** Temps d'arrivée estimé (secondes) de chaque origine vers la destination. */
   etaMatrix(origins: GeoPoint[], destination: GeoPoint): Promise<number[]>;

@@ -1,7 +1,7 @@
 /** Section 4.8 : partenaires, comptes entreprises, investisseurs (structures V1, écrans V2 et V3). */
 
 import { sql } from 'drizzle-orm';
-import { check, index, integer, jsonb, pgTable, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, index, integer, jsonb, pgTable, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 import { cents, createdAt, id, tz, updatedAt } from './_helpers.js';
 import { vehicles } from './drivers.js';
 import { partnerTypeEnum } from './enums.js';
@@ -67,3 +67,15 @@ export const vehicleFinancings = pgTable('vehicle_financings', {
   startedAt: tz('started_at'),
   createdAt: createdAt(),
 }, (t) => [index('vehicle_financings_investor_idx').on(t.investorId), check('vehicle_financings_positive', sql`${t.principalCents} > 0 AND ${t.rateBps} >= 0 AND ${t.termMonths} > 0`)]);
+
+/** Organisations (D42) : Neomoov seule en V1 ; plus tard flottes, compagnies de taxi et marque blanche. */
+export const organizations = pgTable('organizations', {
+  id: id(),
+  code: varchar('code', { length: 40 }).notNull(),
+  name: varchar('name', { length: 120 }).notNull(),
+  type: varchar('type', { length: 20 }).notNull().default('platform'),
+  settings: jsonb('settings').notNull().default(sql`'{}'::jsonb`),
+  active: boolean('active').notNull().default(true),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [uniqueIndex('organizations_code_unique').on(t.code), check('organizations_type', sql`${t.type} IN ('platform', 'fleet', 'taxi_company', 'white_label')`)]);

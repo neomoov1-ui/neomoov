@@ -36,6 +36,12 @@ export const rides = pgTable('rides', {
   preferences: jsonb('preferences').notNull().default(sql`'{}'::jsonb`),
   options: jsonb('options').notNull().default(sql`'{}'::jsonb`),
   paymentMethod: paymentMethodEnum('payment_method').notNull(),
+  /** D36 : payé d'avance dans l'application, ou payé au chauffeur après la course. */
+  paymentChoice: varchar('payment_choice', { length: 20 }).notNull().default('prepaid'),
+  /** Référence chez le fournisseur de paiement échelonné (plus de 150 $, V1.1). */
+  installmentProviderRef: varchar('installment_provider_ref', { length: 100 }),
+  tollsCents: cents('tolls_cents').notNull().default(0),
+  organizationId: uuid('organization_id'),
   maxConsentedCents: cents('max_consented_cents').notNull(),
   quotedTotalCents: cents('quoted_total_cents').notNull(),
   finalPriceCents: cents('final_price_cents'),
@@ -73,6 +79,7 @@ export const rides = pgTable('rides', {
   check('rides_amounts_positive', sql`${t.maxConsentedCents} >= 0 AND ${t.quotedTotalCents} >= 0 AND ${t.tipCents} >= 0 AND ${t.waitChargeCents} >= 0 AND ${t.cancellationFeeCents} >= 0`),
   check('rides_final_within_consent', sql`${t.finalPriceCents} IS NULL OR ${t.finalPriceCents} <= ${t.maxConsentedCents}`),
   check('rides_client_or_guest', sql`${t.clientId} IS NOT NULL OR ${t.guestPhone} IS NOT NULL`),
+  check('rides_payment_choice', sql`${t.paymentChoice} IN ('prepaid', 'pay_driver_after')`),
 ]);
 
 /** Table en ajout seul (déclencheur en migration 0001). */

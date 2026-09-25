@@ -176,6 +176,15 @@ export class OwnershipGuard implements CanActivate {
           .limit(1);
         return row ? [row.clientUserId, row.driverUserId].filter((v): v is string => Boolean(v)) : null;
       }
+      case 'quote': {
+        const [row] = await db
+          .select({ clientUserId: schema.clients.userId, createdByUserId: schema.quotes.createdByUserId })
+          .from(schema.quotes)
+          .leftJoin(schema.clients, eq(schema.clients.id, schema.quotes.clientId))
+          .where(eq(schema.quotes.id, id))
+          .limit(1);
+        return row ? [row.clientUserId, row.createdByUserId].filter((v): v is string => Boolean(v)) : null;
+      }
     }
   }
 }

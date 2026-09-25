@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import {
-  CANCELLATION_REASONS, DOCUMENT_TYPES, LANGUAGES, OFFER_STATES, OFFER_TYPES, PACK_CODES, PACK_PURCHASE_STATUSES, PAYMENT_METHODS,
+  CANCELLATION_REASONS, DOCUMENT_TYPES, OFFER_STATES, OFFER_TYPES, PACK_CODES, PACK_PURCHASE_STATUSES, PAYMENT_METHODS,
   RATING_TAGS, RIDE_STATES, RIDE_TYPES, SEV_STATUSES, STATEMENT_STATUSES, VEHICLE_CATEGORIES,
 } from '../enums.js';
 
@@ -13,71 +13,8 @@ export * from './common.js';
 export * from './auth.js';
 import { cents, isoDate, localDateString, phoneE164, signedCents, uuid } from './common.js';
 
-export const coordinatesSchema = z.object({
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-});
-export type Coordinates = z.infer<typeof coordinatesSchema>;
-
-export const placeSchema = z.object({
-  address: z.string().min(3).max(300),
-  coordinates: coordinatesSchema,
-  placeId: z.string().max(200).optional(),
-  instructions: z.string().max(300).optional(),
-});
-export type Place = z.infer<typeof placeSchema>;
-
-export const ridePreferencesSchema = z.object({
-  conversation: z.enum(['silence', 'chat', 'indifferent']).default('indifferent'),
-  music: z.enum(['none', 'soft', 'client_choice', 'indifferent']).default('indifferent'),
-  temperature: z.enum(['cool', 'neutral', 'warm']).default('neutral'),
-  driverLanguage: z.enum(LANGUAGES).optional(),
-  luggageHelp: z.boolean().default(false),
-});
-
-export const rideOptionsSchema = z.object({
-  flex: z.boolean().default(false),
-  priority: z.boolean().default(false),
-  favouriteDriverId: uuid.optional(),
-  childSeat: z.boolean().default(false),
-  luggage: z.boolean().default(false),
-  promoCode: z.string().trim().toUpperCase().max(30).optional(),
-});
-
-/** Demande de devis (POST /v1/quotes). */
-export const quoteRequestSchema = z.object({
-  category: z.enum(VEHICLE_CATEGORIES),
-  origin: placeSchema,
-  destination: placeSchema,
-  stops: z.array(placeSchema).max(3).default([]),
-  requestedAt: isoDate.optional().describe('Absent : course immédiate'),
-  options: rideOptionsSchema.prefault({}),
-}).refine((q) => q.stops.length === 0 || !q.options.flex, { message: 'L\'offre Flex n\'est pas compatible avec des arrêts', path: ['options', 'flex'] });
-export type QuoteRequest = z.infer<typeof quoteRequestSchema>;
-
-export const quoteLineSchema = z.object({ code: z.string(), label: z.string(), amountCents: signedCents });
-
-/** Devis retourné au client : prix affiché identique au centime à celui de l'API. */
-export const quoteSchema = z.object({
-  id: uuid,
-  category: z.enum(VEHICLE_CATEGORIES),
-  distanceMeters: z.number().int().min(0),
-  durationSeconds: z.number().int().min(0),
-  lines: z.array(quoteLineSchema),
-  fareCents: cents,
-  serviceFeeCents: cents,
-  regulatoryFeeCents: cents,
-  gstCents: cents,
-  qstCents: cents,
-  creditsAppliedCents: cents,
-  totalCents: cents,
-  maxConsentedCents: cents,
-  flatRateCode: z.string().nullable(),
-  ignoredOptions: z.array(z.string()),
-  validUntil: isoDate,
-  fingerprint: z.string(),
-});
-export type QuoteView = z.infer<typeof quoteSchema>;
+export * from './quotes.js';
+import { coordinatesSchema, placeSchema, quoteLineSchema, quoteSchema, ridePreferencesSchema } from './quotes.js';
 
 export const thirdPartyPassengerSchema = z.object({ name: z.string().min(2).max(120), phone: phoneE164 });
 

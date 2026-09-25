@@ -32,6 +32,11 @@ export class SettingsService {
     return typeof value === 'string' && value ? value : fallback;
   }
 
+  /** Tous les réglages globaux (assemblage des règles de tarification). */
+  async all(): Promise<Record<string, unknown>> {
+    return Object.fromEntries(await this.load());
+  }
+
   /** Force une relecture au prochain accès (après une modification par My Hub ou dans un test). */
   invalidate() {
     this.cache = null;

@@ -16,6 +16,8 @@ export async function seed(db: Database): Promise<Record<string, number>> {
   const count = (k: string) => { created[k] = (created[k] ?? 0) + 1; };
 
   await db.insert(s.cities).values({ code: CITY.code, name: CITY.name, timeZone: CITY.timeZone }).onConflictDoNothing();
+  const org = await db.insert(s.organizations).values({ code: 'neomoov', name: 'Neomoov', type: 'platform' }).onConflictDoNothing().returning({ id: s.organizations.id });
+  if (org.length) count('organizations');
 
   for (const z of ZONES) {
     const r = await db.insert(s.zones).values({ cityCode: CITY.code, code: z.code, name: z.name, type: z.type, geometry: z.geometry }).onConflictDoNothing().returning({ id: s.zones.id });

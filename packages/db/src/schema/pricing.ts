@@ -2,6 +2,7 @@
 
 import { sql } from 'drizzle-orm';
 import { boolean, check, date, index, integer, jsonb, pgTable, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { users } from './identity.js';
 import { cents, createdAt, geoPoint, geoPolygon, id, tz, updatedAt } from './_helpers.js';
 import { surchargeCodeEnum, vehicleCategoryEnum, zoneTypeEnum } from './enums.js';
 
@@ -93,9 +94,46 @@ export const quotes = pgTable('quotes', {
   promoCode: varchar('promo_code', { length: 30 }),
   flatRateCode: varchar('flat_rate_code', { length: 40 }),
   ignoredOptions: jsonb('ignored_options').notNull().default(sql`'[]'::jsonb`),
+  /** Péages réels (D33), remise d'alignement concurrentiel, remise de promotion, reste à payer après crédits. */
+  tollsCents: cents('tolls_cents').notNull().default(0),
+  alignmentDiscountCents: cents('alignment_discount_cents').notNull().default(0),
+  promotionDiscountCents: cents('promotion_discount_cents').notNull().default(0),
+  amountDueCents: cents('amount_due_cents').notNull().default(0),
+  /** Mode dégradé : itinéraire estimé en interne (API Routes indisponible). */
+  estimated: boolean('estimated').notNull().default(false),
+  /** Temps d'arrivée estimé du chauffeur le plus proche au moment du devis, ou null (« selon disponibilité »). */
+  etaSeconds: integer('eta_seconds'),
+  originZoneCode: varchar('origin_zone_code', { length: 40 }),
+  destinationZoneCode: varchar('destination_zone_code', { length: 40 }),
+  /** Utilisateur qui a demandé le devis (propriétaire quand il n'a pas de profil client). */
+  createdByUserId: uuid('created_by_user_id'),
   validUntil: tz('valid_until').notNull(),
   /** Empreinte des entrées et des règles : la course vérifie que le devis n'a pas été altéré. */
   fingerprint: varchar('fingerprint', { length: 64 }).notNull(),
   pricingRulesVersion: varchar('pricing_rules_version', { length: 40 }).notNull(),
   createdAt: createdAt(),
 }, (t) => [index('quotes_client_idx').on(t.clientId, t.createdAt), index('quotes_valid_until_idx').on(t.validUntil), check('quotes_amounts_positive', sql`${t.fareCents} >= 0 AND ${t.totalCents} >= 0 AND ${t.maxConsentedCents} >= ${t.totalCents}`)]);
+
+/**
+ * Relevés concurrentiels (D33, section 5.1) : saisis dans My Hub par le fondateur et les opérateurs sur des trajets
+ * témoins. Aucune API d'Uber ou de Lyft n'est appelée. Plage horaire : weekday_morning, weekday_day, weekday_evening,
+ * weekday_night, weekend_day, weekend_night.
+ */
+export const competitorBenchmarks = pgTable('competitor_benchmarks', {
+  id: id(),
+  cityCode: varchar('city_code', { length: 30 }).notNull().references(() => cities.code),
+  category: vehicleCategoryEnum('category').notNull(),
+  originZoneCode: varchar('origin_zone_code', { length: 40 }).notNull(),
+  destinationZoneCode: varchar('destination_zone_code', { length: 40 }).notNull(),
+  timeWindow: varchar('time_window', { length: 20 }).notNull(),
+  uberPriceCents: cents('uber_price_cents'),
+  lyftPriceCents: cents('lyft_price_cents'),
+  observedAt: tz('observed_at').notNull(),
+  source: varchar('source', { length: 60 }).notNull().default('manual'),
+  recordedByUserId: uuid('recorded_by_user_id').references(() => users.id),
+  createdAt: createdAt(),
+}, (t) => [
+  index('competitor_benchmarks_lookup_idx').on(t.category, t.originZoneCode, t.destinationZoneCode, t.observedAt),
+  check('competitor_benchmarks_window', sql`${t.timeWindow} IN ('weekday_morning', 'weekday_day', 'weekday_evening', 'weekday_night', 'weekend_day', 'weekend_night')`),
+  check('competitor_benchmarks_price', sql`${t.uberPriceCents} IS NOT NULL OR ${t.lyftPriceCents} IS NOT NULL`),
+]);

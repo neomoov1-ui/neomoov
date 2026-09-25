@@ -69,7 +69,8 @@ export function applyPromotion(promotion: Promotion, input: QuoteInput, fareCent
   if (promotion.categories && !promotion.categories.includes(input.category)) refuse('catégorie non admissible');
   if (promotion.maxDistanceMeters !== undefined && input.distanceMeters > promotion.maxDistanceMeters) refuse('distance trop longue');
   if (promotion.nthRide !== undefined && (input.clientCompletedRides ?? 0) + 1 !== promotion.nthRide) refuse('rang de course différent');
-  return promotion.kind === 'free_ride' ? fareCents : mulDivRound(fareCents, promotion.percentBps ?? 0, 10_000);
+  const discount = promotion.kind === 'free_ride' ? fareCents : mulDivRound(fareCents, promotion.percentBps ?? 0, 10_000);
+  return promotion.maxDiscountCents !== undefined ? Math.min(discount, promotion.maxDiscountCents) : discount;
 }
 
 /** Sous-total hors taxes dont le total taxes comprises vaut exactement `totalCents`, ou `null` s'il n'en existe pas. */
@@ -88,6 +89,7 @@ function taxes(subtotalCents: number, rules: PricingRules): { gst: number; qst: 
 function validate(input: QuoteInput): void {
   const bad = (field: string): never => { throw new PricingError('INVALID_INPUT', `Valeur invalide : ${field}`); };
   if (!Number.isFinite(input.distanceMeters) || input.distanceMeters < 0) bad('distanceMeters');
+  if (input.tollsCents !== undefined && (!Number.isFinite(input.tollsCents) || input.tollsCents < 0)) bad('tollsCents');
   if (!Number.isFinite(input.durationSeconds) || input.durationSeconds < 0) bad('durationSeconds');
   if (Number.isNaN(input.pickupAt.getTime())) bad('pickupAt');
   const stops = input.options?.stops ?? 0;
@@ -108,6 +110,7 @@ export function computeQuote(input: QuoteInput, rules: PricingRules): Quote {
   const ignoredOptions: string[] = [];
   let fareCents: number;
   let flat = false;
+  let flatRateCode: string | null = null;
 
   const flatRate = matchFlatRate(rules.flatRates, input.originZone, input.destinationZone);
   const flatTotal = flatRate?.totalCentsByCategory[input.category];
@@ -116,8 +119,9 @@ export function computeQuote(input: QuoteInput, rules: PricingRules): Quote {
     const subtotal = subtotalForTotal(flatTotal, rules);
     if (subtotal === null) throw new PricingError('FLAT_RATE_NOT_DECOMPOSABLE', `Forfait de ${flatTotal} cents indécomposable en lignes arrondies`);
     flat = true;
+    flatRateCode = flatRate!.codeByCategory?.[input.category] ?? `${input.originZone}:${input.destinationZone}`;
     fareCents = subtotal - rules.serviceFeeCents - rules.regulatoryFeeCents;
-    lines.push({ kind: 'flat_rate', code: `${input.originZone}:${input.destinationZone}`, amountCents: fareCents });
+    lines.push({ kind: 'flat_rate', code: 'flat_rate', amountCents: fareCents });
     for (const [name, on] of Object.entries(options)) if (on) ignoredOptions.push(name);
   } else {
     if (options.flex && options.priority) throw new PricingError('FLEX_AND_PRIORITY_EXCLUSIVE', 'Flex et Priorité ne se cumulent pas');
@@ -152,15 +156,18 @@ export function computeQuote(input: QuoteInput, rules: PricingRules): Quote {
   const waived = promotion?.kind === 'free_ride' && promotion.waivesFees === true;
   const serviceFeeCents = waived ? 0 : rules.serviceFeeCents;
   const regulatoryFeeCents = waived ? 0 : rules.regulatoryFeeCents;
-  const subtotalCents = fareCents - discount + serviceFeeCents + regulatoryFeeCents;
+  // Péages (D33) : ligne du prix affiché, hors tarif chauffeur ; un forfait est tout compris et les ignore.
+  const tollsCents = flat ? 0 : Math.max(0, Math.round(input.tollsCents ?? 0));
+  if (tollsCents > 0) lines.push({ kind: 'tolls', code: 'tolls', amountCents: tollsCents });
+  const subtotalCents = fareCents - discount + serviceFeeCents + regulatoryFeeCents + tollsCents;
   const { gst, qst } = taxes(subtotalCents, rules);
   const totalCents = subtotalCents + gst + qst;
   const creditsAppliedCents = Math.min(input.creditsAvailableCents ?? 0, totalCents);
 
   return {
-    category: input.category, flatRate: flat, lines, fareCents,
+    category: input.category, flatRate: flat, flatRateCode, lines, fareCents,
     promotionCode: promotion?.code ?? null, promotionDiscountCents: discount, promotionCompensationCents: discount,
-    serviceFeeCents, regulatoryFeeCents, subtotalCents, gstCents: gst, qstCents: qst, totalCents,
+    serviceFeeCents, regulatoryFeeCents, tollsCents, alignmentDiscountCents: 0, subtotalCents, gstCents: gst, qstCents: qst, totalCents,
     creditsAppliedCents, amountDueCents: totalCents - creditsAppliedCents,
     driverAmountCents: fareCents, maxConsentedCents: totalCents + rules.maxExtraAllowanceCents, ignoredOptions,
   };
@@ -190,7 +197,7 @@ export function finalizeQuote(quote: Quote, waitedSeconds: number, rules: Pricin
 }
 
 /** Plus grand sous-total dont le total taxes comprises ne dépasse pas `maxTotalCents`. */
-function subtotalForTotalAtMost(maxTotalCents: number, rules: PricingRules): number {
+export function subtotalForTotalAtMost(maxTotalCents: number, rules: PricingRules): number {
   let subtotal = mulDivRound(maxTotalCents, 1_000_000, 1_000_000 + rules.gstRatePpm + rules.qstRatePpm) + 1;
   while (subtotal + taxes(subtotal, rules).gst + taxes(subtotal, rules).qst > maxTotalCents) subtotal -= 1;
   return subtotal;

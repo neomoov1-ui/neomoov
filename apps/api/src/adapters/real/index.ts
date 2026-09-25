@@ -11,6 +11,7 @@ import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { AppEnv } from '../../config/env.js';
 import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider } from '../types.js';
+import { GoogleMapsProvider } from './google-maps.js';
 
 const notConfigured = (service: string, variable: string) =>
   new AppError('PROVIDER_NOT_CONFIGURED', `Le fournisseur ${service} n'est pas configuré (${variable} absente ou adaptateur réel non livré à cette étape).`, HttpStatus.NOT_IMPLEMENTED);
@@ -35,14 +36,6 @@ abstract class NotDelivered {
   toJSON() {
     return { name: this.name, configured: false };
   }
-}
-
-class RealMapsProvider extends NotDelivered implements MapsProvider {
-  geocode(): Promise<never> { return this.reject(); }
-  reverseGeocode(): Promise<never> { return this.reject(); }
-  autocomplete(): Promise<never> { return this.reject(); }
-  route(): Promise<never> { return this.reject(); }
-  etaMatrix(): Promise<never> { return this.reject(); }
 }
 
 class RealPaymentProvider extends NotDelivered implements PaymentProvider {
@@ -99,7 +92,10 @@ function build<T>(factory: new (name: string, service: string, variable: string)
   return new factory(name, service, variable);
 }
 
-export const realMaps = (env: AppEnv): MapsProvider => build(RealMapsProvider, 'google-maps', 'cartes (Google Maps Platform)', 'GOOGLE_MAPS_SERVER_KEY', env);
+export const realMaps = (env: AppEnv): MapsProvider => {
+  requireKey('cartes (Google Maps Platform)', 'GOOGLE_MAPS_SERVER_KEY', env);
+  return new GoogleMapsProvider(env.GOOGLE_MAPS_SERVER_KEY!);
+};
 export const realPayment = (env: AppEnv): PaymentProvider => build(RealPaymentProvider, 'stripe', 'paiements (Stripe)', 'STRIPE_SECRET_KEY', env);
 export const realSms = (env: AppEnv): SmsProvider =>
   env.TWILIO_ACCOUNT_SID

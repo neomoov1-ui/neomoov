@@ -50,7 +50,7 @@ export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);
 /** Portées admises pour les comptes de service (clés d'API) ; une route sans `@Scopes` leur est fermée. */
 export const Scopes = (...scopes: string[]) => SetMetadata(SCOPES_KEY, scopes);
 
-export type OwnedEntity = 'user' | 'device' | 'dataRequest' | 'driverProfile' | 'ride';
+export type OwnedEntity = 'user' | 'device' | 'dataRequest' | 'driverProfile' | 'ride' | 'quote';
 export interface OwnsOptions {
   entity: OwnedEntity;
   /** Paramètre de route qui porte l'identifiant (défaut : `id`). */

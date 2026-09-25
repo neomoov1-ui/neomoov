@@ -46,6 +46,17 @@ export const favoriteDrivers = pgTable('favorite_drivers', {
   addedAt: createdAt(),
 }, (t) => [primaryKey({ columns: [t.clientId, t.driverId] }), index('favorite_drivers_driver_idx').on(t.driverId)]);
 
+/** Lien client et chauffeur (D40) : « Mes chauffeurs » côté client, « Mes clients » côté chauffeur, alimenté à chaque course terminée. */
+export const clientDriverLinks = pgTable('client_driver_links', {
+  clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  driverId: uuid('driver_id').notNull(),
+  favoriteSince: tz('favorite_since'),
+  ridesCount: cents('rides_count').notNull().default(0),
+  lastRideAt: tz('last_ride_at'),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [primaryKey({ columns: [t.clientId, t.driverId] }), index('client_driver_links_driver_idx').on(t.driverId, t.lastRideAt)]);
+
 export const referrals = pgTable('referrals', {
   id: id(),
   referrerUserId: uuid('referrer_user_id').notNull().references(() => users.id),
