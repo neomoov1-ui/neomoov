@@ -11,39 +11,55 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const examplePath = resolve(root, '.env.example');
 const envPath = resolve(root, '.env');
 
-/** Lit un fichier .env : sections (commentaires « # --- Titre --- ») et clés, dans l'ordre. */
+/**
+ * Lit un fichier .env : sections (commentaires « # --- Titre --- ») et clés, dans l'ordre. Les lignes mal formées
+ * (sans signe égal, ou nom de variable avec un espace ou un caractère interdit) sont signalées par leur numéro seulement.
+ */
 function parseEnv(text) {
   const entries = [];
+  const issues = [];
   let section = 'Sans section';
-  for (const raw of text.split(/\r?\n/)) {
+  text.split(/\r?\n/).forEach((raw, index) => {
     const line = raw.trim();
     const title = /^#\s*---\s*(.+?)\s*---$/.exec(line);
     if (title) {
       section = title[1];
-      continue;
+      return;
     }
-    if (!line || line.startsWith('#')) continue;
+    if (!line || line.startsWith('#')) return;
     const eq = line.indexOf('=');
-    if (eq < 1) continue;
+    if (eq < 1) {
+      issues.push({ line: index + 1, reason: 'aucun signe égal : la ligne est ignorée (une clé s\'écrit NOM=valeur)' });
+      return;
+    }
     const key = line.slice(0, eq).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+      issues.push({ line: index + 1, reason: 'nom de variable invalide (espace ou caractère interdit) : la ligne est ignorée' });
+      return;
+    }
     let value = line.slice(eq + 1).trim();
     if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
     entries.push({ section, key, filled: value.length > 0 });
-  }
-  return entries;
+  });
+  return { entries, issues };
 }
 
 if (!existsSync(examplePath)) {
   console.error(`Fichier ${examplePath} introuvable.`);
   process.exit(1);
 }
-const expected = parseEnv(readFileSync(examplePath, 'utf8'));
+const expected = parseEnv(readFileSync(examplePath, 'utf8')).entries;
 console.log(`Fichier attendu : ${envPath}`);
 if (!existsSync(envPath)) {
   console.log('Le fichier .env est ABSENT. Copiez .env.example en .env, puis remplissez-le.');
   process.exit(2);
 }
-const actual = new Map(parseEnv(readFileSync(envPath, 'utf8')).map((e) => [e.key, e]));
+const parsedActual = parseEnv(readFileSync(envPath, 'utf8'));
+const actual = new Map(parsedActual.entries.map((e) => [e.key, e]));
+if (parsedActual.issues.length) {
+  console.log('\nLignes à corriger dans .env (numéro de ligne seulement, le contenu n\'est pas affiché) :');
+  for (const issue of parsedActual.issues) console.log(`  ligne ${issue.line} : ${issue.reason}`);
+}
 
 let filled = 0;
 let currentSection = '';
