@@ -1,6 +1,6 @@
 import type { AppConfig, QuoteView, QuotesResponse } from '@neomoov/domain';
 import { describe, expect, it } from 'vitest';
-import { categoryCards, earliestPickup, pickupDays, pickupProblem, pickupSlots, priceRows, proposalBounds, sumRows } from '../src/features/booking/logic';
+import { categoryCards, earliestPickup, pickupProblem, pickupSchedule, priceRows, proposalBounds, serviceClock, sumRows } from '../src/features/booking/logic';
 
 const booking: AppConfig['booking'] = { minLeadSeconds: 7200, maxLeadDays: 30, freeCancellationSeconds: 120, cancellationFeeCents: 500 };
 
@@ -29,26 +29,39 @@ function quote(category: QuoteView['category'], total: number, eta: QuoteView['e
   };
 }
 
-describe('créneaux de prise en charge (D32)', () => {
-  const now = new Date('2026-09-26T13:07:00');
+describe("créneaux de prise en charge (D32), à l'heure de Montréal", () => {
+  // 26 septembre 2026, 13 h 07 à Montréal (UTC-4), quel que soit le fuseau de la machine de test.
+  const now = new Date('2026-09-26T17:07:00Z');
 
-  it('première heure réservable : 2 heures plus tard, au quart d\'heure suivant', () => {
-    expect(earliestPickup(now, 7200).toISOString()).toBe(new Date('2026-09-26T15:15:00').toISOString());
+  it("première heure réservable : 2 heures plus tard, au quart d'heure suivant", () => {
+    expect(earliestPickup(now, 7200).toISOString()).toBe('2026-09-26T19:15:00.000Z');
+    expect(serviceClock(earliestPickup(now, 7200))).toEqual({ day: '2026-09-26', hour: 15, minute: 15 });
   });
 
   it('refuse trop tôt et trop tard, accepte entre les deux', () => {
-    expect(pickupProblem(new Date('2026-09-26T15:00:00'), now, booking)).toBe('too_soon');
-    expect(pickupProblem(new Date('2026-09-26T15:15:00'), now, booking)).toBeNull();
-    expect(pickupProblem(new Date('2026-10-27T13:00:00'), now, booking)).toBe('too_far');
+    expect(pickupProblem(new Date('2026-09-26T19:00:00Z'), now, booking)).toBe('too_soon');
+    expect(pickupProblem(new Date('2026-09-26T19:15:00Z'), now, booking)).toBeNull();
+    expect(pickupProblem(new Date('2026-10-27T17:08:00Z'), now, booking)).toBe('too_far');
   });
 
-  it('créneaux du jour à partir de la première heure réservable, tous les quarts d\'heure', () => {
-    const today = pickupSlots(now, now, booking);
-    expect(today[0]!.getHours()).toBe(15);
-    expect(today[0]!.getMinutes()).toBe(15);
-    expect(today.every((s) => s.getMinutes() % 15 === 0)).toBe(true);
-    expect(pickupSlots(new Date('2026-09-27T00:00:00'), now, booking)).toHaveLength(96);
-    expect(pickupDays(now, booking)).toHaveLength(14);
+  it("jours de Montréal, quarts d'heure exacts : le jour même à partir de 15 h 15, puis 96 créneaux par jour", () => {
+    const schedule = pickupSchedule(now, booking);
+    expect(schedule).toHaveLength(14);
+    expect(schedule[0]!.day).toBe('2026-09-26');
+    expect(serviceClock(schedule[0]!.slots[0]!)).toEqual({ day: '2026-09-26', hour: 15, minute: 15 });
+    expect(schedule[1]).toMatchObject({ day: '2026-09-27' });
+    expect(schedule[1]!.slots).toHaveLength(96);
+    expect(schedule.every((d) => d.slots.every((slot) => serviceClock(slot).day === d.day && serviceClock(slot).minute % 15 === 0))).toBe(true);
+  });
+
+  it("changement d'heure du 1er novembre 2026 : jour de 25 heures (100 créneaux), aucun jour répété ni perdu", () => {
+    const schedule = pickupSchedule(new Date('2026-10-25T12:00:00Z'), booking);
+    const days = schedule.map((d) => d.day);
+    expect(new Set(days).size).toBe(days.length);
+    expect(days).toContain('2026-11-01');
+    expect(days).toContain('2026-11-02');
+    expect(schedule.find((d) => d.day === '2026-11-01')!.slots).toHaveLength(100);
+    expect(schedule.find((d) => d.day === '2026-11-02')!.slots).toHaveLength(96);
   });
 });
 

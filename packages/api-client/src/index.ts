@@ -8,6 +8,6 @@ export { ApiClient, createApiClient } from './client.js';
 export type { ApiClientOptions, HttpMethod, Language, Query, QueryValue, RequestOptions, TokenProvider } from './client.js';
 export { ApiError } from './errors.js';
 export { OfflineQueue } from './offline.js';
-export type { EnqueueResult, OfflineStorage, QueuedWrite } from './offline.js';
+export type { EnqueueResult, FlushReport, OfflineStorage, QueuedWrite } from './offline.js';
 export type { Transport } from './resources.js';
 export type { ApiErrorBody, CheckStatus, HealthCheck, HealthReport, QueueStats } from './types.js';

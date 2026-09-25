@@ -31,27 +31,38 @@ export function AddressField({ label, value, onChange, savedPlaces = [], allowCu
   const [explainLocation, setExplainLocation] = useState(false);
   const session = useRef(newSession());
 
+  // Une adresse choisie remplit le champ ; la remise à zéro pendant la saisie (value nulle) ne l'efface pas.
   useEffect(() => {
-    setText(value?.address ?? '');
-  }, [value?.address]);
+    if (value) setText(value.address);
+  }, [value]);
 
   useEffect(() => {
     if (!focused || text.trim().length < 2 || text === value?.address) {
       setSuggestions([]);
       return;
     }
+    // Seule la réponse à la dernière frappe s'affiche : une réponse plus lente d'une frappe précédente est ignorée.
+    let stale = false;
     const handle = setTimeout(() => {
       setBusy(true);
       api.places
         .autocomplete(text.trim(), { sessionToken: session.current, ...(near ? { near } : {}) })
         .then((list) => {
+          if (stale) return;
           setSuggestions(list);
           setError(null);
         })
-        .catch((e: unknown) => setError(errorMessage(e)))
-        .finally(() => setBusy(false));
+        .catch((e: unknown) => {
+          if (!stale) setError(errorMessage(e));
+        })
+        .finally(() => {
+          if (!stale) setBusy(false);
+        });
     }, 300);
-    return () => clearTimeout(handle);
+    return () => {
+      stale = true;
+      clearTimeout(handle);
+    };
   }, [text, focused, near, value?.address]);
 
   async function choose(suggestion: AutocompleteSuggestion) {

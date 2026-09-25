@@ -1,4 +1,4 @@
-import type { RideView } from '@neomoov/domain';
+import { clientCancellationFeeCents, type RideView } from '@neomoov/domain';
 import { Body, Button, Card, Sheet } from '@neomoov/mobile-core/components';
 import { colors, spacing, typography } from '@neomoov/mobile-core/theme';
 import { useLocalSearchParams } from 'expo-router';
@@ -43,10 +43,13 @@ export default function RideScreen() {
   if (!ride) return <Screen back title={t('ride.title')}><ErrorState message={errorMessage(query.error)} onRetry={() => void query.refetch()} /></Screen>;
 
   const money = (cents: number) => formatMoney(cents, language);
-  const assignedAt = ride.timestamps.assigned ? new Date(ride.timestamps.assigned).getTime() : null;
-  const freeWindow = (config.data?.booking.freeCancellationSeconds ?? 120) * 1000;
-  const cancelFree = assignedAt === null || Date.now() - assignedAt <= freeWindow;
-  const cancelFee = config.data?.booking.cancellationFeeCents ?? 500;
+  // Frais annoncés avec la règle du domaine et les réglages de l'API : le montant affiché est celui qui sera facturé.
+  const cancelFee = config.data
+    ? clientCancellationFeeCents(
+        { state: ride.state, assignedAt: ride.timestamps.assigned ? new Date(ride.timestamps.assigned) : null, now: new Date() },
+        { freeCancellationSeconds: config.data.booking.freeCancellationSeconds, cancellationFeeCents: config.data.booking.cancellationFeeCents, noShowFeeCents: 0, noShowMinWaitSeconds: 0, noShowMinContacts: 0 },
+      )
+    : null;
   const showNegotiation = Boolean(config.data?.features.negotiation && ride.negotiation && (ride.state === 'requested' || ride.state === 'offering'));
 
   async function run(action: () => Promise<void>) {
@@ -125,8 +128,8 @@ export default function RideScreen() {
       {error ? <ErrorState message={error} /> : null}
 
       <Sheet visible={sheet === 'cancel'} onClose={() => setSheet(null)} title={t('ride.cancel')} closeLabel={t('core:close')}>
-        <Body>{cancelFree ? t('ride.cancelFree') : t('ride.cancelFee', { amount: money(cancelFee) })}</Body>
-        <Button label={t('ride.cancelConfirm')} variant="danger" onPress={() => void cancel()} disabled={busy} />
+        {cancelFee !== null ? <Body>{cancelFee === 0 ? t('ride.cancelFree') : t('ride.cancelFee', { amount: money(cancelFee) })}</Body> : null}
+        <Button label={t('ride.cancelConfirm')} variant="danger" onPress={() => void cancel()} disabled={busy || cancelFee === null} />
       </Sheet>
       <Sheet visible={sheet === 'sos'} onClose={() => setSheet(null)} title={t('ride.sos')} closeLabel={t('core:close')}>
         <Body>{t('ride.sosConfirm')}</Body>

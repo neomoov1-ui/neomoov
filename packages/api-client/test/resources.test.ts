@@ -104,6 +104,45 @@ describe('file hors ligne', () => {
     expect(JSON.parse(storage.data.get('neomoov.offline-queue')!)).toEqual([]);
   });
 
+  it('ne perd pas une écriture ajoutée pendant un rejeu ; garde un refus passager (429) ; clear() vide la file', async () => {
+    const storage = memoryStorage();
+    let releaseFirst!: () => void;
+    const firstReplay = new Promise<Response>((resolve) => {
+      releaseFirst = () => resolve(json(200, {}));
+    });
+    let call = 0;
+    const fetch = (async () => {
+      call += 1;
+      if (call === 1) throw new TypeError('réseau');
+      if (call === 2) return firstReplay;
+      if (call === 3) throw new TypeError('réseau');
+      if (call === 4) return json(429, { code: 'RATE_LIMITED', message: 'Trop de demandes' });
+      return json(200, {});
+    }) as unknown as typeof globalThis.fetch;
+    const queue = new OfflineQueue(createApiClient({ baseUrl: 'https://api', fetch }), storage);
+    await queue.send('POST', '/rides/r1/rate', { score: 5 });
+    const flushing = queue.flush();
+    await new Promise((r) => setTimeout(r, 10));
+    // Pendant le rejeu de la première, une seconde écriture est mise en file.
+    expect((await queue.send('POST', '/rides/r1/messages', { body: 'Merci' })).status).toBe('queued');
+    releaseFirst();
+    expect(await flushing).toEqual({ sent: 1, remaining: 1, dropped: 0 });
+    expect((await queue.pending()).map((w) => w.path)).toEqual(['/rides/r1/messages']);
+    // 429 : l'écriture reste, avec une tentative de plus.
+    expect(await queue.flush()).toEqual({ sent: 0, remaining: 1, dropped: 0 });
+    expect((await queue.pending())[0]!.attempts).toBe(2);
+    await queue.clear();
+    expect(await queue.pending()).toEqual([]);
+  });
+
+  it('un délai dépassé n\'est pas mis en file (l\'API a pu traiter la requête) : l\'erreur revient à l\'appelant', async () => {
+    const neverAnswers = ((_input: unknown, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('annulée', 'AbortError'))))) as unknown as typeof fetch;
+    const queue = new OfflineQueue(createApiClient({ baseUrl: 'https://api', fetch: neverAnswers, timeoutMs: 20 }), memoryStorage());
+    await expect(queue.send('POST', '/rides/r1/messages', { body: 'Allo' })).rejects.toMatchObject({ code: 'TIMEOUT' });
+    expect(await queue.pending()).toEqual([]);
+  });
+
   it('rend à l\'appelant une erreur de l\'API sans la mettre en file', async () => {
     const { fetch } = fakeFetch(json(400, { code: 'VALIDATION_FAILED', message: 'Note invalide' }));
     const queue = new OfflineQueue(createApiClient({ baseUrl: 'https://api', fetch }), memoryStorage());

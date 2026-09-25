@@ -5,6 +5,9 @@ import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
 import { api } from './api';
+import { secureStorage } from './storage';
+
+const DEVICE_KEY = 'neomoov.device';
 
 /**
  * Notifications push (prompt 10, tâche 4) : affichage au premier plan, canal Android, enregistrement du jeton Expo auprès
@@ -32,8 +35,17 @@ export async function registerForPush(): Promise<string | null> {
   const status = current.granted ? 'granted' : (await Notifications.requestPermissionsAsync()).status;
   if (status !== 'granted') return null;
   const token = (await Notifications.getExpoPushTokenAsync({ projectId: id })).data;
-  await api.me.registerDevice({ platform: Platform.OS === 'ios' ? 'ios' : 'android', pushToken: token, ...(Application.nativeApplicationVersion ? { appVersion: Application.nativeApplicationVersion } : {}) });
+  const device = await api.me.registerDevice({ platform: Platform.OS === 'ios' ? 'ios' : 'android', pushToken: token, ...(Application.nativeApplicationVersion ? { appVersion: Application.nativeApplicationVersion } : {}) });
+  await secureStorage.setItem(DEVICE_KEY, device.id);
   return token;
+}
+
+/** Avant la déconnexion : l'appareil est retiré du compte (plus de notifications de ce compte sur ce téléphone). */
+export async function unregisterPush(): Promise<void> {
+  const deviceId = await secureStorage.getItem(DEVICE_KEY);
+  if (!deviceId) return;
+  await api.me.removeDevice(deviceId).catch(() => undefined);
+  await secureStorage.removeItem(DEVICE_KEY);
 }
 
 /** Toucher une notification qui porte `rideId` ouvre la course (application ouverte, en arrière-plan ou fermée). */

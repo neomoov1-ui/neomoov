@@ -228,9 +228,16 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     expect(tracking.body).toMatchObject({ state: 'assigned' });
     // Le client garde le même lien s'il partage lui-même le trajet.
     expect((await request(server()).post(`/v1/rides/${created.body.id}/share`).set(bearer(client)).expect(200)).body.token).toBe(token);
-    // Réattribution sans nouveau texto de suivi en double pour le même chauffeur.
-    await assign(admin.tokens, created.body.id, driver);
+    // Le chauffeur se retire, un autre est attribué : le passager n'est pas prévenu une seconde fois.
+    await request(server()).post(`/v1/driver/rides/${created.body.id}/cancel`).set(bearer(driver.tokens)).send({ reason: 'Panne de véhicule' }).expect(200);
+    const second = await createDriver(app);
+    await assign(admin.tokens, created.body.id, second);
     expect(await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, passengerPhone), eq(schema.notifications.template, 'ride.passenger_tracking')))).toHaveLength(1);
+    // Un passager qui est le client lui-même ne reçoit rien.
+    const ownQuote = await quoteFor(client);
+    const self = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key()).send({ quoteId: ownQuote.id, type: 'scheduled', requestedAt: inThreeHours(), paymentMethod: 'card_app', maxConsentedCents: ownQuote.maxConsentedCents, passenger: { name: 'Moi', phone: client.user.phone } }).expect(201);
+    await assign(admin.tokens, self.body.id, await createDriver(app));
+    expect(await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, client.user.phone), eq(schema.notifications.template, 'ride.passenger_tracking')))).toHaveLength(0);
   });
 
   it('création par l\'opérateur avec fiche minimale, garantie modèle et présence du chauffeur', async ({ skip }) => {

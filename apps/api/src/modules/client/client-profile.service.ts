@@ -31,6 +31,7 @@ export class ClientProfileService {
       s.number('pricing.negotiation_floor_ppm', 700_000), s.number('negotiation.window_seconds', 600), s.get<string | null>('support.phone', null), s.get<string | null>('support.email', null),
       s.string('legal.privacy_policy_version', '1.0'), s.string('legal.terms_url', 'https://neomoov.net/conditions-d-utilisation/'), s.string('legal.privacy_url', 'https://neomoov.net/politique-de-confidentialite/'),
     ]);
+    const [tipSuggestions, tipMax] = await Promise.all([s.get<unknown>('rides.tip_suggestions_cents', [0, 200, 300, 500]), s.number('rides.tip_max_cents', 10_000)]);
     const categories = await this.db
       .select({ code: schema.vehicleCategories.code, name: schema.vehicleCategories.name, seats: schema.vehicleCategories.seats, description: schema.vehicleCategories.description, allowedModels: schema.vehicleCategories.allowedModels })
       .from(schema.vehicleCategories)
@@ -40,6 +41,10 @@ export class ClientProfileService {
       features: { negotiation: this.env.FEATURE_NEGOTIATION, negotiationAboveMax: this.env.FEATURE_NEGOTIATION_ABOVE_MAX, immediateRides: this.env.FEATURE_IMMEDIATE_RIDES, installments: this.env.FEATURE_INSTALLMENTS },
       booking: { minLeadSeconds, maxLeadDays, freeCancellationSeconds, cancellationFeeCents },
       negotiation: { floorPpm, windowSeconds },
+      tips: {
+        suggestedCents: Array.isArray(tipSuggestions) ? tipSuggestions.filter((v): v is number => Number.isInteger(v) && v >= 0 && v <= tipMax) : [0, 200, 300, 500],
+        maxCents: tipMax,
+      },
       support: { phone: typeof phone === 'string' && phone ? phone : null, email: typeof email === 'string' && email ? email : null },
       legal: { privacyPolicyVersion, termsUrl, privacyUrl },
       categories: categories.map((c) => ({

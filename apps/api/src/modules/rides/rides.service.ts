@@ -528,9 +528,9 @@ export class RidesService {
         { recipientUserId: driver.userId, template: 'ride.assigned_to_you', data: { rideId } },
       ]);
       // Course réservée pour un tiers (parcours 4) : le passager reçoit par texto le lien de suivi public.
-      if (result.ride.passengerPhone && result.ride.passengerPhone !== result.ride.guestPhone) {
+      if (await this.passengerNeedsTracking(result.ride)) {
         const trackingUrl = this.trackingUrl(await this.trackingTokenOf(result.ride, SYSTEM_ACTOR));
-        await this.outbox.queue({ recipientUserId: null, recipientAddress: result.ride.passengerPhone, channel: 'sms', language: recipient.language, template: 'ride.passenger_tracking', data: { rideId, trackingUrl, passengerName: result.ride.passengerName } });
+        await this.outbox.queue({ recipientUserId: null, recipientAddress: result.ride.passengerPhone!, channel: 'sms', language: recipient.language, template: 'ride.passenger_tracking', data: { rideId, trackingUrl, passengerName: result.ride.passengerName } });
       }
       this.audit.record({ action: actor.kind === 'operator' ? 'admin.ride_assigned' : 'ride.assigned', entity: 'rides', entityId: rideId, after: { driverId: driver.id, vehicleId: vehicle.id, note: input.note ?? null } });
     }
@@ -825,6 +825,26 @@ export class RidesService {
     const kind = await this.participantKind(ride, actor);
     const token = await this.trackingTokenOf(ride, { kind, userId: actor.userId });
     return { trackingUrl: this.trackingUrl(token), token, expiresAt: null };
+  }
+
+  /**
+   * Le passager d'un tiers reçoit le lien de suivi une seule fois par course (pas à chaque réattribution), et jamais
+   * quand son numéro est celui du client ou de l'invité qui a réservé.
+   */
+  private async passengerNeedsTracking(ride: RideRow): Promise<boolean> {
+    const phone = ride.passengerPhone;
+    if (!phone || phone === ride.guestPhone) return false;
+    const parties = await this.partiesOf(ride);
+    if (parties.clientUserId) {
+      const [client] = await this.db.select({ phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, parties.clientUserId)).limit(1);
+      if (client?.phone === phone) return false;
+    }
+    const [sent] = await this.db
+      .select({ id: schema.notifications.id })
+      .from(schema.notifications)
+      .where(and(eq(schema.notifications.template, 'ride.passenger_tracking'), eq(schema.notifications.recipientAddress, phone), sql`${schema.notifications.data}->>'rideId' = ${ride.id}`))
+      .limit(1);
+    return !sent;
   }
 
   /** Jeton du suivi public de la course, créé au premier partage (client, ou système pour le passager d'un tiers). */

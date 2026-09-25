@@ -1,9 +1,9 @@
-import type { AvailableVehicle, Place } from '@neomoov/domain';
+import { MAX_QUOTE_STOPS, type AvailableVehicle, type Place } from '@neomoov/domain';
 import { Button, Field } from '@neomoov/mobile-core/components';
 import { colors, radius, spacing, typography } from '@neomoov/mobile-core/theme';
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AddressField } from '@/components/AddressField';
@@ -15,8 +15,6 @@ import { useBooking, type BookingOptions } from '@/features/booking/store';
 import { api, errorMessage } from '@/lib/api';
 import { toE164 } from '@/lib/phone';
 import { keys, useAppConfig, usePlaces } from '@/lib/queries';
-
-const MAX_STOPS = 3;
 
 /**
  * Réservation, écran 2 sur 3 : catégories avec prix total de l'API, détail dépliable, options et arrêts qui redemandent
@@ -31,6 +29,7 @@ export default function CategoryScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addingStop, setAddingStop] = useState(false);
+  const latestRequest = useRef(0);
   const cards = useMemo(() => (draft.quotes && config.data ? categoryCards(draft.quotes, config.data.categories) : []), [draft.quotes, config.data]);
   const selected = cards.find((c) => c.code === draft.category) ?? cards[0] ?? null;
   const vehicles = useQuery({
@@ -47,6 +46,8 @@ export default function CategoryScreen() {
     const stops = patch.stops ?? draft.stops;
     draft.update({ options, stops });
     if (!draft.origin || !draft.destination || !draft.pickupAt) return;
+    // Deux changements rapides : la réponse d'une demande dépassée n'écrase pas le prix des derniers choix.
+    const request = ++latestRequest.current;
     setBusy(true);
     setError(null);
     try {
@@ -57,11 +58,11 @@ export default function CategoryScreen() {
         requestedAt: draft.pickupAt,
         options: { flex: options.flex, priority: options.priority, childSeat: options.childSeat, luggage: options.luggage, ...(options.favouriteDriverId ? { favouriteDriverId: options.favouriteDriverId } : {}) },
       });
-      draft.update({ quotes, vehicleId: null });
+      if (request === latestRequest.current) draft.update({ quotes, vehicleId: null });
     } catch (e) {
-      setError(errorMessage(e));
+      if (request === latestRequest.current) setError(errorMessage(e));
     } finally {
-      setBusy(false);
+      if (request === latestRequest.current) setBusy(false);
     }
   }
 
@@ -107,7 +108,7 @@ export default function CategoryScreen() {
             void requote({ stops: [...draft.stops, place] });
           }}
         />
-      ) : draft.stops.length < MAX_STOPS ? (
+      ) : draft.stops.length < MAX_QUOTE_STOPS ? (
         <Pressable accessibilityRole="button" onPress={() => setAddingStop(true)}>
           <Text style={styles.link}>{t('category.addStop')}</Text>
         </Pressable>

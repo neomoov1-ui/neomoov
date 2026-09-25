@@ -28,6 +28,8 @@ export const appConfigSchema = z.object({
     cancellationFeeCents: cents,
   }),
   negotiation: z.object({ floorPpm: count, windowSeconds: count }),
+  /** Pourboires proposés à la fin de course (montants en cents, 0 = aucun) ; le montant libre reste possible jusqu'au plafond. */
+  tips: z.object({ suggestedCents: z.array(cents), maxCents: cents }),
   support: z.object({ phone: z.string().nullable(), email: z.string().nullable() }),
   /** Version de la politique de confidentialité à accepter à la création du compte (5.15) et pages publiques. */
   legal: z.object({ privacyPolicyVersion: z.string(), termsUrl: z.string().url(), privacyUrl: z.string().url() }),

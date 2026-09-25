@@ -22,27 +22,46 @@ export function pickupProblem(pickup: Date, now: Date, booking: AppConfig['booki
   return null;
 }
 
-/** Jours proposés dans le sélecteur : aujourd'hui (si un créneau reste) puis les jours suivants jusqu'à la limite. */
-export function pickupDays(now: Date, booking: AppConfig['booking'], count = 14): Date[] {
-  const first = earliestPickup(now, booking.minLeadSeconds);
-  const days: Date[] = [];
-  const start = new Date(first);
-  start.setHours(0, 0, 0, 0);
-  for (let i = 0; i < Math.min(count, booking.maxLeadDays + 1); i += 1) days.push(new Date(start.getTime() + i * 86_400_000));
-  return days;
+/** Fuseau du service : les jours et les heures proposés sont ceux de Montréal, quel que soit le réglage du téléphone. */
+export const SERVICE_TIME_ZONE = 'America/Toronto';
+
+const parts = new Intl.DateTimeFormat('en-CA', { timeZone: SERVICE_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+/** Date (AAAA-MM-JJ), heure et minute d'un instant, à l'heure de Montréal. */
+export function serviceClock(instant: Date): { day: string; hour: number; minute: number } {
+  const p = Object.fromEntries(parts.formatToParts(instant).map((x) => [x.type, x.value]));
+  return { day: `${p['year']}-${p['month']}-${p['day']}`, hour: Number(p['hour']), minute: Number(p['minute']) };
 }
 
-/** Créneaux d'un jour (tous les quarts d'heure), à partir de la première heure réservable. */
-export function pickupSlots(day: Date, now: Date, booking: AppConfig['booking']): Date[] {
+export interface PickupDay {
+  /** Jour à l'heure de Montréal (AAAA-MM-JJ). */
+  day: string;
+  /** Créneaux du jour, tous les quarts d'heure, en instants exacts. */
+  slots: Date[];
+}
+
+/**
+ * Créneaux proposés, groupés par jour de Montréal : de la première heure réservable jusqu'à `days` jours ou la limite
+ * de réservation. Les instants avancent d'un quart d'heure exact : un jour de changement d'heure compte 23 ou 25 heures,
+ * sans jour répété ni perdu.
+ */
+export function pickupSchedule(now: Date, booking: AppConfig['booking'], days = 14): PickupDay[] {
   const first = earliestPickup(now, booking.minLeadSeconds);
-  const slots: Date[] = [];
-  const start = new Date(day);
-  start.setHours(0, 0, 0, 0);
-  for (let m = 0; m < 24 * 60; m += SLOT_MINUTES) {
-    const slot = new Date(start.getTime() + m * 60_000);
-    if (slot.getTime() >= first.getTime() && pickupProblem(slot, now, booking) === null) slots.push(slot);
+  const schedule: PickupDay[] = [];
+  const step = SLOT_MINUTES * 60_000;
+  for (let t = first.getTime(); ; t += step) {
+    const slot = new Date(t);
+    if (pickupProblem(slot, now, booking) !== null) break;
+    const { day } = serviceClock(slot);
+    let entry = schedule[schedule.length - 1];
+    if (!entry || entry.day !== day) {
+      if (schedule.length === days) break;
+      entry = { day, slots: [] };
+      schedule.push(entry);
+    }
+    entry.slots.push(slot);
   }
-  return slots;
+  return schedule;
 }
 
 export interface PriceRow {

@@ -6,9 +6,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddressField } from '@/components/AddressField';
 import { Choices, ErrorState, Notice, Row, Screen, SectionTitle, ToggleRow } from '@/components/ui';
-import { api, errorMessage } from '@/lib/api';
+import { api, errorMessage, offlineQueue } from '@/lib/api';
 import { displayPhone } from '@/lib/phone';
 import { keys, queryClient, useAppConfig, useConsents, usePlaces, usePreferences } from '@/lib/queries';
+import { unregisterPush } from '@/lib/push';
 import { disconnectRealtime } from '@/lib/realtime';
 import { useSession } from '@/lib/session';
 
@@ -81,7 +82,9 @@ export default function ProfileScreen() {
   const logout = () =>
     run(async () => {
       const refreshToken = useSession.getState().refreshToken;
+      await unregisterPush();
       await api.auth.logout(refreshToken ? { refreshToken } : {}).catch(() => undefined);
+      await offlineQueue.clear();
       disconnectRealtime();
       queryClient.clear();
       await useSession.getState().signOut();
@@ -91,6 +94,7 @@ export default function ProfileScreen() {
   const deleteAccount = () =>
     run(async () => {
       await api.me.remove();
+      await offlineQueue.clear();
       disconnectRealtime();
       queryClient.clear();
       await useSession.getState().signOut();

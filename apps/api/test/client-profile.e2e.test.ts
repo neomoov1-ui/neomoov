@@ -24,6 +24,7 @@ describe('configuration publique et profil client (intégration)', () => {
     expect(res.body.features).toMatchObject({ negotiation: true, negotiationAboveMax: false, immediateRides: false, installments: false });
     expect(res.body.booking).toMatchObject({ minLeadSeconds: 7200, maxLeadDays: 30, freeCancellationSeconds: 120, cancellationFeeCents: 500 });
     expect(res.body.negotiation.floorPpm).toBe(700_000);
+    expect(res.body.tips).toEqual({ suggestedCents: [0, 200, 300, 500], maxCents: 10_000 });
     expect(res.body.legal).toMatchObject({ privacyPolicyVersion: expect.any(String), termsUrl: expect.stringContaining('neomoov.net'), privacyUrl: expect.stringContaining('neomoov.net') });
     const codes = res.body.categories.map((c: { code: string }) => c.code);
     expect(codes.slice(0, 3)).toEqual(['neo_premium', 'neo_prestige', 'neo_xl']);

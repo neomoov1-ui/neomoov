@@ -45,12 +45,15 @@ export const rideOptionsSchema = z.object({
   promoCode: z.string().trim().toUpperCase().max(30).optional(),
 });
 
+/** Arrêts intermédiaires d'une course, au plus (limite du contrat de l'API, partagée par les applications). */
+export const MAX_QUOTE_STOPS = 3;
+
 /** Demande de devis (POST /v1/quotes) : sans catégorie, toutes les catégories actives sont tarifées. */
 export const quoteRequestSchema = z.object({
   category: z.enum(VEHICLE_CATEGORIES).optional(),
   origin: placeSchema,
   destination: placeSchema,
-  stops: z.array(placeSchema).max(3).default([]),
+  stops: z.array(placeSchema).max(MAX_QUOTE_STOPS).default([]),
   /** Heure de prise en charge demandée (au moins 2 heures après la demande, D32) ; absente : course immédiate, si le drapeau l'autorise. */
   requestedAt: isoDate.optional(),
   options: rideOptionsSchema.prefault({}),
