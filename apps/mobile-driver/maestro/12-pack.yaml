@@ -1,0 +1,15 @@
+# Parcours 12 (9.2) : pack de courses. Activation immédiate facturée au relevé, renouvellement automatique, changement
+# programmé à l'épuisement. La consommation, l'alerte à 3 courses restantes et le report arrivent avec l'étape 8.
+appId: com.neomoov.driver
+---
+- launchApp
+- tapOn: "Profil"
+- tapOn: "Packs de courses"
+- assertVisible: "Un pack s'active tout de suite.*"
+- tapOn:
+    id: "activate-pro"
+- assertVisible: "Pack actif"
+- assertVisible: "Renouvellement automatique"
+- tapOn:
+    id: "activate-elite"
+- assertVisible: "Pack suivant : Élite"

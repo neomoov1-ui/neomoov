@@ -1,0 +1,110 @@
+# Parcours 10 (9.2) : inscription chauffeur avec documents, formation, compte de versement. La validation humaine
+# (My Hub, étape 12) et l'extraction par l'agent de recrutement (étape 13) se font hors de l'application.
+appId: com.neomoov.driver
+env:
+  PHONE: "9995550301"
+  OTP_CODE: ""
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "start"
+- tapOn:
+    id: "phone-input"
+- inputText: ${PHONE}
+- tapOn:
+    id: "send-code"
+- assertVisible: "Code de vérification"
+- runFlow:
+    when:
+      true: ${OTP_CODE == ""}
+    commands:
+      - stopApp
+- tapOn:
+    id: "code-input"
+- inputText: ${OTP_CODE}
+- tapOn:
+    id: "accept-terms"
+- tapOn:
+    id: "verify"
+- assertVisible: "Devenir chauffeur"
+- tapOn:
+    id: "first-name"
+- inputText: "Awa"
+- tapOn:
+    id: "last-name"
+- inputText: "Diallo"
+- tapOn: "Chauffeur inscrit auprès d'un répondant"
+- tapOn:
+    id: "apply-submit"
+- assertVisible: "Mon inscription"
+# Identité et taxes.
+- tapOn:
+    id: "step-profile"
+- tapOn:
+    id: "gst"
+- inputText: "123456789 RT0001"
+- tapOn:
+    id: "qst"
+- inputText: "1234567890 TQ0001"
+- tapOn:
+    id: "experience"
+- inputText: "6"
+- tapOn:
+    id: "profile-save"
+# Véhicule : modèle admis, catégorie déduite par l'API.
+- tapOn:
+    id: "step-vehicle"
+- tapOn:
+    id: "model-search"
+- inputText: "Model Y"
+- tapOn:
+    id: "model-Tesla Model Y"
+- tapOn:
+    id: "vehicle-year"
+- inputText: "2023"
+- tapOn:
+    id: "vehicle-colour"
+- inputText: "Blanc"
+- tapOn:
+    id: "vehicle-plate"
+- inputText: "MAE 301"
+- tapOn:
+    id: "vehicle-add"
+- assertVisible: "Catégorie : Neo Premium"
+- back
+# Documents : photo par l'appareil (le simulateur fournit une image), échéance.
+- tapOn:
+    id: "step-documents"
+- tapOn:
+    id: "upload-licence"
+- tapOn: "Prendre une photo"
+- tapOn:
+    text: "(Utiliser la photo|Use Photo|OK)"
+    optional: true
+- tapOn:
+    id: "expiry-licence"
+- inputText: "2028-06-30"
+- tapOn:
+    id: "send-licence"
+- assertVisible: "Document envoyé : il est en vérification."
+- back
+# Formation : premier module (réponses du réglage training.modules).
+- tapOn:
+    id: "step-training"
+- tapOn:
+    id: "module-service"
+- tapOn: "Sur la fiche de course dans l'application"
+- tapOn: "Eau, chargeurs, parapluie"
+- tapOn: "Non, le prix est fixé à la réservation"
+- tapOn:
+    id: "training-submit"
+- assertVisible: "Réussi.*"
+- back
+- back
+# Compte de versement (simulé tant que Stripe n'est pas branché).
+- tapOn:
+    id: "step-payout"
+- tapOn:
+    id: "payout-start"
+- assertVisible: "Compte de versement prêt."

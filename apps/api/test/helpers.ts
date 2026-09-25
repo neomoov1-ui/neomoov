@@ -79,6 +79,12 @@ export async function resetIpLimits(app: NestExpressApplication): Promise<void> 
   await Promise.all(['127.0.0.1', '::1', '1'].map((ip) => limits.reset(`otp:ip:${ip}`)));
 }
 
+/** Le test d'autorisation appelle chaque route : la limite de requêtes par adresse (300 par minute) est remise à zéro entre ses scénarios. */
+export async function resetHttpLimits(app: NestExpressApplication): Promise<void> {
+  const limits = app.get(RateLimitService);
+  await Promise.all(['127.0.0.1', '::1', '::ffff:127.0.0.1', '1'].map((ip) => limits.reset(`ip:${ip}`)));
+}
+
 export async function currentPolicyVersion(app: NestExpressApplication): Promise<string> {
   return app.get(UsersService).currentPrivacyPolicyVersion();
 }
@@ -169,7 +175,7 @@ export async function createDriver(app: NestExpressApplication, category: 'neo_p
     .insert(schema.drivers)
     .values({
       userId: first.user.id, publicNumber: numberRow!.n, status: 'active', qualification: 'saaq_authorized', acceptsCash: true, acceptsInterac: true, acceptsTerminal: options.acceptsTerminal ?? false,
-      acceptsScheduled: options.acceptsScheduled ?? true, ratingAverage: (options.rating ?? 5).toFixed(2), ratingCount: options.rating !== undefined ? 10 : 0, activatedAt: new Date(),
+      acceptsScheduled: options.acceptsScheduled ?? true, ratingAverage: (options.rating ?? 5).toFixed(2), ratingCount: options.rating !== undefined ? 10 : 0, activatedAt: new Date(), trainingCertifiedAt: new Date(),
     })
     .returning({ id: schema.drivers.id });
   const plate = `T${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
@@ -205,6 +211,8 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   if (rides.length) {
     const rideIds = rides.map((r) => r.id);
     await database.delete(schema.incidents).where(inArray(schema.incidents.rideId, rideIds));
+    await database.delete(schema.packConsumptions).where(inArray(schema.packConsumptions.rideId, rideIds));
+    await database.delete(schema.payments).where(inArray(schema.payments.rideId, rideIds));
     // `ride_events` est en ajout seul (déclencheur) : le nettoyage des courses de test le suspend le temps d'une transaction.
     await database.transaction(async (tx) => {
       await tx.execute(sql`ALTER TABLE ride_events DISABLE TRIGGER ride_events_append_only`);
@@ -212,7 +220,12 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
       await tx.execute(sql`ALTER TABLE ride_events ENABLE TRIGGER ride_events_append_only`);
     });
   }
-  if (drivers.length) await database.execute(sql`DELETE FROM driver_locations WHERE driver_id IN ${drivers.map((d) => d.id)}`);
+  if (drivers.length) {
+    const driverIds = drivers.map((d) => d.id);
+    await database.execute(sql`DELETE FROM driver_locations WHERE driver_id IN ${driverIds}`);
+    await database.delete(schema.packPurchases).where(inArray(schema.packPurchases.driverId, driverIds));
+    await database.delete(schema.weeklyStatements).where(inArray(schema.weeklyStatements.driverId, driverIds));
+  }
   if (clients.length) await database.delete(schema.quotes).where(inArray(schema.quotes.clientId, clients.map((c) => c.id)));
   await database.delete(schema.competitorBenchmarks).where(inArray(schema.competitorBenchmarks.recordedByUserId, ids));
   await database.delete(schema.apiKeys).where(inArray(schema.apiKeys.createdByUserId, ids));

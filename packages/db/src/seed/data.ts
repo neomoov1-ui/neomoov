@@ -3,6 +3,7 @@
  * Les polygones des zones sont approximatifs mais réalistes (longitude, latitude, WGS 84).
  */
 
+import { TRAINING_MODULES } from './training.js';
 import type { GeoPolygon } from '../schema/_helpers.js';
 
 export const CITY = { code: 'montreal', name: 'Montréal', timeZone: 'America/Toronto' } as const;
@@ -97,6 +98,19 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'rides.share_link_ttl_hours', value: 24, description: 'Validité du lien public de suivi d\'une course' },
   { key: 'drivers.required_documents', value: ['licence', 'insurance', 'registration'], description: 'Documents approuvés et non expirés exigés pour passer en ligne' },
   { key: 'drivers.require_active_pack', value: false, description: 'Exiger un pack actif pour passer en ligne (activé à l\'étape 8, packs)' },
+  // Espace chauffeur (prompt 11) : inscription, documents, formation, tableau de conduite.
+  { key: 'drivers.onboarding_documents', value: ['profile_photo', 'licence', 'training', 'background_check', 'insurance', 'registration', 'mechanical_check'], description: 'Documents demandés à l\'inscription, dans l\'ordre de l\'assistant' },
+  { key: 'drivers.expiring_documents', value: ['licence', 'training', 'background_check', 'insurance', 'registration', 'mechanical_check'], description: 'Documents qui portent une date d\'échéance (exigée au dépôt)' },
+  { key: 'drivers.document_reminder_days', value: [30, 7, 1], description: 'Rappels avant l\'échéance d\'un document (J-30, J-7, J-1)' },
+  { key: 'drivers.require_training', value: true, description: 'Attestation de la formation Neomoov exigée pour passer en ligne' },
+  { key: 'drivers.require_payout_account', value: false, description: 'Compte de versement Stripe Connect exigé pour passer en ligne (activé avec l\'étape 7)' },
+  { key: 'drivers.max_document_bytes', value: 10_485_760, description: 'Taille maximale d\'un document téléversé (10 Mo)' },
+  { key: 'training.pass_score_pct', value: 80, description: 'Score minimal pour réussir le quiz d\'un module de formation' },
+  { key: 'training.modules', value: TRAINING_MODULES, description: 'Modules de la formation Neomoov (contenu bilingue, quiz corrigé par l\'API)' },
+  { key: 'driving.thresholds', value: { harshAccelerationMps2: 2.5, harshBrakingMps2: 3, minGapSeconds: 1, maxGapSeconds: 10 }, description: 'Accélération et freinage brusques : moyenne sur l\'intervalle entre deux positions (m/s²)' },
+  { key: 'driving.score_targets', value: { minRating: 4.6, restrictionRating: 4.4, minPunctualityPct: 90, maxCancellations: 2, maxHarshPer100Km: 2 }, description: 'Objectifs du tableau de conduite (5.11 : note minimale 4,60, restriction sous 4,40)' },
+  { key: 'driving.score_period_days', value: 30, description: 'Période glissante du tableau de conduite' },
+  { key: 'driving.punctuality_tolerance_seconds', value: 120, description: 'Arrivée sur place jugée ponctuelle jusqu\'à 2 minutes après l\'heure de prise en charge' },
   { key: 'presence.expiry_seconds', value: 60, description: 'Présence d\'un chauffeur expirée sans position depuis ce délai' },
   { key: 'presence.location_batch_ms', value: 2000, description: 'Écriture par lots des positions dans driver_locations' },
   { key: 'presence.min_distance_meters', value: 50, description: "Position ignorée si le déplacement est inférieur et que l'intervalle minimal n'est pas écoulé" },

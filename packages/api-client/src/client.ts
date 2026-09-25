@@ -1,5 +1,5 @@
 import { ApiError } from './errors.js';
-import { authResource, configResource, meResource, placesResource, quotesResource, ridesResource } from './resources.js';
+import { authResource, configResource, driverResource, meResource, placesResource, quotesResource, ridesResource } from './resources.js';
 import type { HealthReport } from './types.js';
 
 export type Language = 'fr-CA' | 'en';
@@ -118,6 +118,7 @@ export class ApiClient {
   readonly places = placesResource(this);
   readonly quotes = quotesResource(this);
   readonly rides = ridesResource(this);
+  readonly driver = driverResource(this);
 
   /** Santé de l'API : base, Redis, files (`GET /v1/health`). */
   readonly health = {
@@ -171,7 +172,10 @@ export class ApiClient {
     if (options.idempotencyKey) headers['idempotency-key'] = options.idempotencyKey;
 
     const init: RequestInit = { method, headers };
-    if (options.body !== undefined) {
+    if (typeof FormData !== 'undefined' && options.body instanceof FormData) {
+      // Formulaire (téléversement de documents) : le navigateur ou React Native fixe lui-même la frontière multipart.
+      init.body = options.body;
+    } else if (options.body !== undefined) {
       headers['content-type'] = 'application/json';
       init.body = JSON.stringify(options.body);
     }

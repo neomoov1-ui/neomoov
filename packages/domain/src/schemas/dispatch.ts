@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { EXCEPTIONAL_REASONS, NEGOTIATION_MODES } from '../dispatch/negotiation.js';
 import { OFFER_STATES, OFFER_TYPES, PAYMENT_METHODS, RIDE_TYPES, VEHICLE_CATEGORIES } from '../enums.js';
 import { cents, isoDate, uuid } from './common.js';
-import { placeSchema } from './quotes.js';
+import { placeSchema, ridePreferencesSchema } from './quotes.js';
 import { PAYMENT_CHOICES } from './rides.js';
 
 const count = z.number().int().min(0);
@@ -49,6 +49,11 @@ export const offerRideSummarySchema = z.object({
   paymentMethod: z.enum(PAYMENT_METHODS),
   paymentChoice: z.enum(PAYMENT_CHOICES),
   specialRequests: z.string().nullable(),
+  /** Trajet estimé au devis (distance et durée), arrêts et préférences du client, affichés sur l'offre. */
+  distanceMeters: count.nullable(),
+  durationSeconds: count.nullable(),
+  stops: count,
+  preferences: ridePreferencesSchema.nullable(),
 });
 
 /** Offre telle que le chauffeur la voit (`GET /driver/offers`, événement `offer.new`). */

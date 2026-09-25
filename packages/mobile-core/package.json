@@ -10,17 +10,27 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@neomoov/domain": "workspace:*",
     "i18next": "26.4.2",
-    "react-i18next": "17.0.15"
+    "react-i18next": "17.0.15",
+    "zustand": "5.0.15"
   },
   "peerDependencies": {
+    "@expo/vector-icons": "*",
+    "expo-router": "*",
+    "expo-secure-store": "*",
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-safe-area-context": "*"
   },
   "devDependencies": {
+    "@expo/vector-icons": "15.1.1",
     "@types/react": "19.2.14",
+    "expo-router": "57.0.22",
+    "expo-secure-store": "57.0.4",
     "react": "19.2.3",
     "react-native": "0.86.3",
+    "react-native-safe-area-context": "5.7.0",
     "typescript": "7.0.2",
     "vitest": "5.0.1"
   },
@@ -28,6 +38,11 @@
     ".": "./src/index.ts",
     "./theme": "./src/theme.ts",
     "./i18n": "./src/i18n.ts",
-    "./components": "./src/components.tsx"
+    "./components": "./src/components.tsx",
+    "./ui": "./src/ui.tsx",
+    "./format": "./src/format.ts",
+    "./phone": "./src/phone.ts",
+    "./storage": "./src/storage.ts",
+    "./session": "./src/session.ts"
   }
 }

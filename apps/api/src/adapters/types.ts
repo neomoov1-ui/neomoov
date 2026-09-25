@@ -65,6 +65,10 @@ export interface PaymentProvider {
   chargeOffSession(input: { amountCents: number; customerRef: string; paymentMethodRef: string; idempotencyKey: string; description: string }): Promise<PaymentAuthorization>;
   /** Vérifie la signature d'un webhook et renvoie l'événement typé ; lance une erreur si la signature est invalide. */
   verifyWebhook(rawBody: string | Buffer, signature: string): Promise<{ id: string; type: string; data: unknown }>;
+  /** Stripe Connect Express (5.6, versements aux chauffeurs) : compte, lien d'inscription hébergé par Stripe, état. */
+  createConnectAccount(input: { externalId: string; email?: string; phone?: string }): Promise<{ accountRef: string }>;
+  createConnectOnboardingLink(input: { accountRef: string; returnUrl: string; refreshUrl: string }): Promise<{ url: string; expiresAt: Date }>;
+  connectAccountStatus(accountRef: string): Promise<{ onboarded: boolean; payoutsEnabled: boolean }>;
 }
 
 export interface SmsProvider {

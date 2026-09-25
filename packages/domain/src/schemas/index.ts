@@ -17,7 +17,9 @@ export * from './quotes.js';
 export * from './rides.js';
 export * from './dispatch.js';
 export * from './client.js';
+export * from './driver.js';
 import { PAYMENT_CHOICES } from './rides.js';
+import { driverJobSchema } from './driver.js';
 import { dispatchSummarySchema, negotiationSummarySchema } from './dispatch.js';
 import { coordinatesSchema, placeSchema, quoteLineSchema, quoteSchema, ridePreferencesSchema } from './quotes.js';
 
@@ -74,6 +76,10 @@ export const rideSchema = z.object({
   negotiation: negotiationSummarySchema.nullable(),
 });
 export type RideView = z.infer<typeof rideSchema>;
+
+/** Course vue par son chauffeur : la vue commune et la fiche de service (préférences, paiement, contact masqué). */
+export const driverRideSchema = rideSchema.extend({ job: driverJobSchema });
+export type DriverRideView = z.infer<typeof driverRideSchema>;
 
 /** Offre faite à un chauffeur (ou contre-proposition, V1.1). */
 export const offerSchema = z.object({
