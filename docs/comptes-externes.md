@@ -4,6 +4,8 @@ Version 1.4, 25 septembre 2026 : connexion Google et Apple dans les applications
 
 Tous les comptes s'ouvrent au nom de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.**, avec l'adresse **`neomoov1@gmail.com`** (décision du 22 septembre 2026). Les clés vont dans **`C:\Users\PC\code\neomoov\.env`**, sous le nom de variable indiqué, jamais dans une conversation, un courriel ou un document. Les fichiers (`.p8`, JSON, mot de passe du serveur) vont dans **`C:\Users\PC\cles-neomoov\`**, jamais dans le dépôt.
 
+**Suite (25 septembre 2026, les 14 comptes existent) :** le guide pas à pas des clés et réglages, compte par compte, est dans `docs/cles-comptes-externes.md`. Bilan du fichier `.env` sans afficher une valeur : `pnpm env:check`.
+
 ## Déjà fait (rien à refaire)
 
 | Compte | État |

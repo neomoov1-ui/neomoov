@@ -40,6 +40,7 @@ export const ROLES_KEY = 'neomoov:roles';
 export const SCOPES_KEY = 'neomoov:scopes';
 export const OWNS_KEY = 'neomoov:owns';
 export const AUDIT_KEY = 'neomoov:audit';
+export const NO_AUDIT_KEY = 'neomoov:audit:skip';
 
 /** Route sans authentification (santé, demande de code SMS, connexion). */
 export const Public = () => SetMetadata(PUBLIC_KEY, true);
@@ -66,6 +67,9 @@ export interface AuditOptions {
   idFrom?: string;
 }
 /** Journalise la mutation dans `audit_log` avec ce nom d'action (l'intercepteur le fait aussi sans décorateur, avec `<méthode> <route>`). */
+/** Mutation à haute fréquence sans valeur d'audit (positions de secours) : aucune ligne dans audit_log. */
+export const NoAudit = () => SetMetadata(NO_AUDIT_KEY, true);
+
 export const Audit = (action: string, entity: string, idFrom?: string) => SetMetadata(AUDIT_KEY, { action, entity, ...(idFrom ? { idFrom } : {}) } satisfies AuditOptions);
 
 export const STAFF_READ_ROLES: UserRole[] = [...STAFF_ROLES];

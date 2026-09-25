@@ -17,6 +17,7 @@ export const rides = pgTable('rides', {
   /** Réservation sans compte (web, téléphone) : fiche minimale. */
   guestName: varchar('guest_name', { length: 120 }),
   guestPhone: varchar('guest_phone', { length: 20 }),
+  guestLanguage: varchar('guest_language', { length: 2 }),
   driverId: uuid('driver_id').references(() => drivers.id),
   vehicleId: uuid('vehicle_id').references(() => vehicles.id),
   quoteId: uuid('quote_id').references(() => quotes.id),
@@ -34,6 +35,7 @@ export const rides = pgTable('rides', {
   destinationPosition: geoPoint('destination_position').notNull(),
   stops: jsonb('stops').notNull().default(sql`'[]'::jsonb`),
   preferences: jsonb('preferences').notNull().default(sql`'{}'::jsonb`),
+  specialRequests: text('special_requests'),
   options: jsonb('options').notNull().default(sql`'{}'::jsonb`),
   paymentMethod: paymentMethodEnum('payment_method').notNull(),
   /** D36 : payé d'avance dans l'application, ou payé au chauffeur après la course. */
@@ -51,6 +53,9 @@ export const rides = pgTable('rides', {
   gstCents: cents('gst_cents'),
   qstCents: cents('qst_cents'),
   waitChargeCents: cents('wait_charge_cents').notNull().default(0),
+  /** Attente mesurée sur place (secondes) et tentatives de contact du chauffeur avant une non-présentation (5.2). */
+  waitedSeconds: integer('waited_seconds').notNull().default(0),
+  contactAttempts: smallint('contact_attempts').notNull().default(0),
   tipCents: cents('tip_cents').notNull().default(0),
   promotionId: uuid('promotion_id'),
   promotionDiscountCents: cents('promotion_discount_cents').notNull().default(0),
@@ -63,6 +68,8 @@ export const rides = pgTable('rides', {
   /** Horodatage de chaque état atteint : { requested: ISO, assigned: ISO, ... }. */
   stateTimestamps: jsonb('state_timestamps').notNull().default(sql`'{}'::jsonb`),
   trackingToken: varchar('tracking_token', { length: 24 }),
+  /** En-tête Idempotency-Key de la création (section 7.1) : la même clé renvoie la même course. */
+  idempotencyKey: varchar('idempotency_key', { length: 80 }),
   distanceMeters: integer('distance_meters'),
   durationSeconds: integer('duration_seconds'),
   createdByUserId: uuid('created_by_user_id'),
@@ -71,6 +78,9 @@ export const rides = pgTable('rides', {
 }, (t) => [
   uniqueIndex('rides_public_number_unique').on(t.publicNumber),
   uniqueIndex('rides_tracking_token_unique').on(t.trackingToken).where(sql`${t.trackingToken} IS NOT NULL`),
+  uniqueIndex('rides_idempotency_key_unique').on(t.idempotencyKey).where(sql`${t.idempotencyKey} IS NOT NULL`),
+  /** Un devis ne sert qu'à une seule course, même sous deux demandes concurrentes. */
+  uniqueIndex('rides_quote_unique').on(t.quoteId).where(sql`${t.quoteId} IS NOT NULL`),
   index('rides_client_idx').on(t.clientId, t.createdAt),
   index('rides_driver_idx').on(t.driverId, t.createdAt),
   index('rides_state_idx').on(t.state).where(sql`${t.state} IN ('requested', 'offering', 'assigned', 'en_route', 'arrived', 'in_progress')`),

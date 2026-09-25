@@ -7,7 +7,7 @@ import { Injectable, type CallHandler, type ExecutionContext, type NestIntercept
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { catchError, from, mergeMap, Observable, throwError } from 'rxjs';
-import { AUDIT_KEY, requestContext, type AuditOptions } from '../auth/actor.js';
+import { AUDIT_KEY, NO_AUDIT_KEY, requestContext, type AuditOptions } from '../auth/actor.js';
 import { AuditService, maskSensitive, type AuditEntry } from './audit.service.js';
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -24,8 +24,10 @@ export class AuditInterceptor implements NestInterceptor {
    * exception, les entrées déjà enregistrées par les services (changements effectifs) sont écrites aussi, puis l'erreur suit.
    */
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    if (context.getType() !== 'http') return next.handle();
     const req = context.switchToHttp().getRequest<Request>();
     if (!MUTATING.has(req.method)) return next.handle();
+    if (this.reflector.getAllAndOverride<boolean>(NO_AUDIT_KEY, [context.getHandler(), context.getClass()]) === true) return next.handle();
     const store = { entries: [] as AuditEntry[] };
     return new Observable((subscriber) => {
       const subscription = this.audit.storage.run(store, () =>

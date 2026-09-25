@@ -193,12 +193,15 @@ describe('devis, lieux et tarification (intégration)', () => {
     expect(res.body.benchmark[0]).toEqual({ category: 'neo_premium', referenceCents: null, exceeded: false });
     const count = await db(app).select({ n: sql<number>`count(*)::int` }).from(schema.quotes).where(eq(schema.quotes.fingerprint, res.body.quotes[0].fingerprint));
     expect(count[0]!.n).toBe(0);
-    const withTolls = await request(server()).post('/v1/admin/pricing/simulate').set(bearer(operator.tokens)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, distanceMeters: 8000, durationSeconds: 1080, tollsCents: 350, ignoreLeadTime: true }).expect(200);
+    const withTolls = await request(server()).post('/v1/admin/pricing/simulate').set(bearer(operator.tokens)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt: '2026-10-06T14:00:00Z', distanceMeters: 8000, durationSeconds: 1080, tollsCents: 350, ignoreLeadTime: true }).expect(200);
     expect(withTolls.body.quotes[0].tollsCents).toBe(350);
     expect(withTolls.body.quotes[0].fareCents).toBe(2455);
     const partial = await request(server()).post('/v1/admin/pricing/simulate').set(bearer(operator.tokens)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, distanceMeters: 8000, ignoreLeadTime: true });
     expect(partial.status).toBe(400);
-    const farAhead = await request(server()).post('/v1/admin/pricing/simulate').set(bearer(operator.tokens)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt: new Date(Date.now() + 45 * 86_400_000).toISOString(), distanceMeters: 8000, durationSeconds: 1080, ignoreLeadTime: true }).expect(200);
+    // Heure fixée en journée (14 h UTC) : la majoration de nuit (23 h à 5 h, heure de Montréal) ne doit pas dépendre de l'heure du test.
+    const farAheadAt = new Date(Date.now() + 45 * 86_400_000);
+    farAheadAt.setUTCHours(14, 0, 0, 0);
+    const farAhead = await request(server()).post('/v1/admin/pricing/simulate').set(bearer(operator.tokens)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt: farAheadAt.toISOString(), distanceMeters: 8000, durationSeconds: 1080, ignoreLeadTime: true }).expect(200);
     expect(farAhead.body.quotes[0].fareCents).toBe(2455);
     const rules = await request(server()).get('/v1/admin/pricing/rules').set(bearer(operator.tokens)).expect(200);
     expect(rules.body.rules.categories).toHaveLength(3);

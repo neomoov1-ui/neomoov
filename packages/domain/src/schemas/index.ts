@@ -14,6 +14,8 @@ export * from './auth.js';
 import { cents, isoDate, localDateString, phoneE164, signedCents, uuid } from './common.js';
 
 export * from './quotes.js';
+export * from './rides.js';
+import { PAYMENT_CHOICES } from './rides.js';
 import { coordinatesSchema, placeSchema, quoteLineSchema, quoteSchema, ridePreferencesSchema } from './quotes.js';
 
 export const thirdPartyPassengerSchema = z.object({ name: z.string().min(2).max(120), phone: phoneE164 });
@@ -28,6 +30,9 @@ export const createRideSchema = z.object({
   paymentMethodId: z.string().max(100).optional().describe('Identifiant Stripe de la méthode, pour la carte'),
   passenger: thirdPartyPassengerSchema.optional(),
   preferences: ridePreferencesSchema.prefault({}),
+  /** D36 : payé d'avance dans l'application, ou payé au chauffeur après la course. */
+  paymentChoice: z.enum(PAYMENT_CHOICES).default('prepaid'),
+  specialRequests: z.string().trim().max(500).optional(),
   maxConsentedCents: cents,
 }).refine((r) => r.type === 'immediate' || r.requestedAt !== undefined, { message: 'Une course planifiée a une heure demandée', path: ['requestedAt'] });
 export type CreateRide = z.infer<typeof createRideSchema>;

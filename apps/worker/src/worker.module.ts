@@ -1,6 +1,6 @@
 import {
-  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, PrivacyJobsService, PrivacyModule, QueueModule, QueueService, RedisModule,
-  SettingsModule, UsersModule, type AppEnv,
+  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DomainEventsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule, QueueService,
+  RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
 import type { Logger } from 'pino';
@@ -40,13 +40,34 @@ export class PrivacyWorker implements OnModuleInit {
   }
 }
 
+/** Courses planifiées : une passe par minute (rappel J-1, attribution à 60 minutes, alerte opérateur à 30 minutes). */
+@Injectable()
+export class SchedulingWorker implements OnModuleInit {
+  constructor(
+    private readonly scheduled: ScheduledService,
+    private readonly queues: QueueService,
+    @Inject(APP_LOGGER) private readonly logger: Logger,
+  ) {}
+
+  onModuleInit() {
+    this.queues.process(
+      'scheduling',
+      async () => {
+        const report = await this.scheduled.tick(new Date());
+        if (report.reminders.length || report.dispatchDue.length || report.operatorAlerts.length) this.logger.info(report, 'courses planifiées');
+      },
+      { everyMs: 60_000, jobName: 'tick', concurrency: 1 },
+    );
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, UsersModule, AuthModule, AuditModule, PrivacyModule],
-      providers: [HeartbeatService, PrivacyWorker],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker],
     };
   }
 }

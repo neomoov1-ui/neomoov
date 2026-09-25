@@ -1,7 +1,7 @@
 import { schema } from '@neomoov/db';
 import type { StaffRole, TokensView } from '@neomoov/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { eq, inArray, or, sql } from 'drizzle-orm';
 import { pino } from 'pino';
 import request from 'supertest';
 import type { MockSmsProvider } from '../src/adapters/mock/index.js';
@@ -130,6 +130,41 @@ export async function createStaffAndLogin(app: NestExpressApplication, roles: St
   return { tokens, backupCodes, secret: enroll.body.secret as string, email, password, userId: user.id };
 }
 
+export interface TestDriver {
+  tokens: TokensView;
+  userId: string;
+  driverId: string;
+  vehicleId: string;
+  phone: string;
+}
+
+/**
+ * Crée un chauffeur actif complet (compte, rôle, fiche, véhicule actif, documents approuvés) et le connecte ; le
+ * jeton porte le rôle `driver`.
+ */
+export async function createDriver(app: NestExpressApplication, category: 'neo_premium' | 'neo_prestige' | 'neo_xl' = 'neo_premium'): Promise<TestDriver> {
+  const phone = testPhone();
+  const first = await loginByOtp(app, phone);
+  const database = db(app);
+  await app.get(UsersService).grantRole(first.user.id, 'driver');
+  const [numberRow] = await database.execute<{ n: string }>(sql`SELECT next_driver_public_number() AS n`);
+  const [driver] = await database
+    .insert(schema.drivers)
+    .values({ userId: first.user.id, publicNumber: numberRow!.n, status: 'active', qualification: 'saaq_authorized', acceptsCash: true, acceptsInterac: true, activatedAt: new Date() })
+    .returning({ id: schema.drivers.id });
+  const plate = `T${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const [vehicle] = await database
+    .insert(schema.vehicles)
+    .values({ driverId: driver!.id, category, make: 'Tesla', model: 'Model 3', year: 2024, colour: 'blanche', plate, seats: 4, status: 'active' })
+    .returning({ id: schema.vehicles.id });
+  await database.update(schema.drivers).set({ currentVehicleId: vehicle!.id }).where(eq(schema.drivers.id, driver!.id));
+  await database.insert(schema.driverDocuments).values(
+    (['licence', 'insurance', 'registration'] as const).map((type) => ({ driverId: driver!.id, type, fileKey: `test/${driver!.id}/${type}`, status: 'approved' as const, verifiedAt: new Date(), expiresOn: '2030-01-01' })),
+  );
+  const tokens = await loginByOtp(app, phone);
+  return { tokens, userId: first.user.id, driverId: driver!.id, vehicleId: vehicle!.id, phone };
+}
+
 /**
  * Retire les comptes créés par ce fichier de test (les enfants suivent en cascade ; le journal d'audit, en ajout seul,
  * reste). Jamais par motif de téléphone : les fichiers tournent en parallèle sur la même base.
@@ -142,6 +177,22 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   const ids = [...createdUserIds];
   if (!ids.length) return;
   const clients = await database.select({ id: schema.clients.id }).from(schema.clients).where(inArray(schema.clients.userId, ids));
+  const drivers = await database.select({ id: schema.drivers.id }).from(schema.drivers).where(inArray(schema.drivers.userId, ids));
+  const rideConditions = [inArray(schema.rides.createdByUserId, ids)];
+  if (clients.length) rideConditions.push(inArray(schema.rides.clientId, clients.map((c) => c.id)));
+  if (drivers.length) rideConditions.push(inArray(schema.rides.driverId, drivers.map((d) => d.id)));
+  const rides = await database.select({ id: schema.rides.id }).from(schema.rides).where(or(...rideConditions));
+  if (rides.length) {
+    const rideIds = rides.map((r) => r.id);
+    await database.delete(schema.incidents).where(inArray(schema.incidents.rideId, rideIds));
+    // `ride_events` est en ajout seul (déclencheur) : le nettoyage des courses de test le suspend le temps d'une transaction.
+    await database.transaction(async (tx) => {
+      await tx.execute(sql`ALTER TABLE ride_events DISABLE TRIGGER ride_events_append_only`);
+      await tx.delete(schema.rides).where(inArray(schema.rides.id, rideIds));
+      await tx.execute(sql`ALTER TABLE ride_events ENABLE TRIGGER ride_events_append_only`);
+    });
+  }
+  if (drivers.length) await database.execute(sql`DELETE FROM driver_locations WHERE driver_id IN ${drivers.map((d) => d.id)}`);
   if (clients.length) await database.delete(schema.quotes).where(inArray(schema.quotes.clientId, clients.map((c) => c.id)));
   await database.delete(schema.competitorBenchmarks).where(inArray(schema.competitorBenchmarks.recordedByUserId, ids));
   await database.delete(schema.apiKeys).where(inArray(schema.apiKeys.createdByUserId, ids));

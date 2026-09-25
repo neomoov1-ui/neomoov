@@ -11,6 +11,9 @@ import { correlationMiddleware } from './common/correlation.middleware.js';
 import { createLogger, currentCorrelationId, PinoNestLogger } from './common/logger.js';
 import type { AppEnv } from './config/env.js';
 import { assertRoutePolicies } from './modules/auth/route-policies.js';
+import { AppIoAdapter } from './common/app-io.adapter.js';
+import { REDIS } from './infra/redis.module.js';
+import type { Redis } from 'ioredis';
 
 const documents = new WeakMap<object, OpenAPIObject>();
 
@@ -47,6 +50,10 @@ export async function createApp(env: AppEnv, logger: Logger = createLogger('api'
   app.enableCors({ origin: corsOrigins(env), credentials: true, exposedHeaders: ['x-correlation-id'], maxAge: 600 });
   app.useGlobalFilters(new AppExceptionFilter(logger));
   app.enableShutdownHooks();
+  // Temps réel : mêmes origines CORS que le HTTP ; avec Redis, les salles Socket.IO sont partagées entre les instances.
+  const adapter = new AppIoAdapter(app, corsOrigins(env), app.get<Redis | null>(REDIS));
+  await adapter.connect();
+  app.useWebSocketAdapter(adapter);
 
   const document = SwaggerModule.createDocument(
     app,

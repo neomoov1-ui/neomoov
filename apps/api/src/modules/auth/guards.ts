@@ -39,6 +39,8 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Les gardes HTTP ne s'appliquent pas aux messages Socket.IO (authentifiés à la connexion, dans les passerelles).
+    if (context.getType() !== 'http') return true;
     const req = context.switchToHttp().getRequest<Request>();
     const res = context.switchToHttp().getResponse<Response>();
     const { ip } = requestContext(req);
@@ -66,6 +68,7 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (context.getType() !== 'http') return true;
     const req = context.switchToHttp().getRequest<Request>();
     const res = context.switchToHttp().getResponse<Response>();
     const targets = [context.getHandler(), context.getClass()];
@@ -134,6 +137,7 @@ export class OwnershipGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (context.getType() !== 'http') return true;
     const owns = this.reflector.getAllAndOverride<OwnsOptions | undefined>(OWNS_KEY, [context.getHandler(), context.getClass()]);
     if (!owns) return true;
     const req = context.switchToHttp().getRequest<Request>();
