@@ -4,7 +4,10 @@ import { buildStatement, classifyRideForStatement, mulDivRound, packBillingLines
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { eq, inArray } from 'drizzle-orm';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { MockPaymentProvider } from '../src/adapters/mock/index.js';
+import { PAYMENT_PROVIDER } from '../src/adapters/types.js';
+import { AppError } from '../src/common/app-error.js';
 import { SettlementJobsService } from '../src/modules/settlement/settlement-jobs.service.js';
 import { SettlementPayoutsService } from '../src/modules/settlement/settlement-payouts.service.js';
 import { StatementsService } from '../src/modules/settlement/statements.service.js';
@@ -249,6 +252,33 @@ describe('règlement hebdomadaire (intégration)', () => {
     const late = new Date('2026-07-11T12:00:00Z');
     await payouts().refreshBalance(small.driverId, late);
     expect((await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, small.driverId)))[0]!.suspendedForBalanceAt?.toISOString()).toBe(late.toISOString());
+  });
+
+  it("prélèvement en erreur (Stripe indisponible) : relevé en échec, repris le lundi, jamais laissé « émis »", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : une exception du prélèvement laissait le relevé « issued » ; ni la reprise du lundi (relevés
+    // « failed ») ni la passe du vendredi suivant (autre période) ne le reprenaient : dette jamais prélevée.
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    await pack(driver, 'elite', '2026-06-30T13:00:00Z');
+    await db(app).update(schema.drivers).set({ stripeDebitPaymentMethodId: 'pm_test_debit_ok' }).where(eq(schema.drivers.id, driver.driverId));
+    const draft = (await statements().generate({ periodStart: '2026-06-29', driverId: driver.driverId })).statements[0]!;
+    expect(draft.netCents).toBeLessThan(0);
+    const friday = new Date('2026-07-10T10:30:00Z');
+    await statements().issue(draft.id!, friday);
+    const provider = app.get<MockPaymentProvider>(PAYMENT_PROVIDER);
+    const outage = vi.spyOn(provider, 'chargeOffSession').mockRejectedValueOnce(new AppError('PAYMENT_PROVIDER_ERROR', 'Stripe indisponible (panne simulée)', 502));
+    try {
+      const failed = await payouts().settle(draft.id!, friday);
+      expect(failed).toMatchObject({ status: 'failed', attempts: 1, failureCode: 'charge_failed' });
+    } finally {
+      outage.mockRestore();
+    }
+    const [balance] = await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.driverId));
+    expect(balance).toMatchObject({ balanceCents: draft.netCents });
+    await db(app).update(schema.weeklyStatements).set({ updatedAt: friday }).where(eq(schema.weeklyStatements.id, draft.id!));
+    expect(await payouts().retryFailed(new Date('2026-07-13T11:00:00Z'))).toBeGreaterThanOrEqual(1);
+    const [after] = await db(app).select({ status: schema.weeklyStatements.status }).from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, draft.id!));
+    expect(after!.status).toBe('charged');
   });
 
   it('passe du vendredi 6 h : relevés de la semaine précédente générés, émis et réglés ; rien la veille ni deux fois', async ({ skip }) => {
