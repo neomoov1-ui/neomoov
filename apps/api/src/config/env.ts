@@ -62,6 +62,11 @@ export const envSchema = z.object({
   CLAMAV_PORT: z.coerce.number().int().min(1).max(65_535).default(3310),
   // Vérification des jetons Apple et Google : simulée (jetons « mock-apple:<sujet>:<courriel> ») ou réelle (JWKS des fournisseurs).
   SOCIAL_LOGIN_PROVIDER: providerMode,
+  /**
+   * Production : fournisseurs laissés en simulation, déclarés un par un (ex. `payment,sev,whatsapp,voice` pendant la
+   * bêta). Tout autre `*_PROVIDER=mock` empêche le démarrage : jamais de retour silencieux aux simulateurs.
+   */
+  ALLOW_MOCK_PROVIDERS: optionalString,
   // Identifiants acceptés (audience) : bundle ids iOS et identifiant de service web pour Apple, client ids OAuth pour Google, séparés par des virgules.
   APPLE_CLIENT_IDS: optionalString,
   GOOGLE_CLIENT_IDS: optionalString,
@@ -146,6 +151,14 @@ export const envSchema = z.object({
 
 export type AppEnv = z.infer<typeof envSchema>;
 
+type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER';
+/** Nom court de chaque fournisseur dans `ALLOW_MOCK_PROVIDERS`. */
+const PROVIDER_ALIASES: Record<ProviderKey, string> = {
+  PAYMENT_PROVIDER: 'payment', MAPS_PROVIDER: 'maps', SMS_PROVIDER: 'sms', EMAIL_PROVIDER: 'email', PUSH_PROVIDER: 'push', WHATSAPP_PROVIDER: 'whatsapp',
+  VOICE_PROVIDER: 'voice', LLM_PROVIDER: 'llm', SEV_PROVIDER: 'sev', STORAGE_PROVIDER: 'storage', VIRUS_SCANNER_PROVIDER: 'antivirus',
+};
+const MOCKABLE_PROVIDERS = (Object.keys(PROVIDER_ALIASES) as ProviderKey[]).map((key) => [PROVIDER_ALIASES[key], key] as const);
+
 /**
  * Carte proposée aux clients : forcée par `CARD_PAYMENTS`, sinon partout sauf en production avec le simulateur de
  * paiement (bêta sans Stripe : paiement au chauffeur seulement, aucune carte fictive acceptée).
@@ -195,6 +208,11 @@ export function loadEnv(source?: Record<string, string | undefined>, { dotenv = 
     if (!env.REDIS_URL) throw new Error('Configuration invalide en production : REDIS_URL est obligatoire.');
     // Le mode simulé accepte des jetons forgés (« mock-apple:<sujet> ») : jamais en production.
     if (env.SOCIAL_LOGIN_PROVIDER !== 'real') throw new Error('Configuration invalide en production : SOCIAL_LOGIN_PROVIDER doit valoir « real ».');
+    const allowed = new Set((env.ALLOW_MOCK_PROVIDERS ?? '').split(',').map((p) => p.trim().toLowerCase()).filter(Boolean));
+    const simulated = MOCKABLE_PROVIDERS.filter(([, key]) => env[key] === 'mock' && !allowed.has(PROVIDER_ALIASES[key]));
+    if (simulated.length) {
+      throw new Error(`Configuration invalide en production : fournisseurs simulés non déclarés (${simulated.map(([, key]) => key).join(', ')}). Passer chacun à « real » avec ses clés, ou l'autoriser explicitement dans ALLOW_MOCK_PROVIDERS (${simulated.map(([, key]) => PROVIDER_ALIASES[key]).join(',')}).`);
+    }
   }
   return {
     ...env,
