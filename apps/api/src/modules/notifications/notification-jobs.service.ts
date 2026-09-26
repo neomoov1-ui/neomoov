@@ -4,6 +4,7 @@
  * perdu, PDF attendu) et, tous les quarts d'heure, consulte les reçus push. Avec Redis, le worker porte la file ; sans
  * Redis, l'API. En test, rien n'est automatique : les tests appellent l'envoi directement.
  */
+import { notificationRule } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import type { Logger } from 'pino';
 import { DomainEventsService } from '../../common/domain-events.js';
@@ -31,9 +32,11 @@ export class NotificationJobsService implements OnModuleInit {
     if (this.env.NODE_ENV === 'test') return;
     if (this.queues.mode === 'memory') this.register({ everyMs: 30_000 });
     this.events.on('notification.queued', (p) => {
-      for (const id of p.ids) {
-        this.queues.add('notifications', 'deliver', { kind: 'deliver', id } satisfies NotificationJob, { jobId: `deliver:${id}` }).catch((error: unknown) => this.logger.error({ err: error, notificationId: id }, 'Envoi de notification non mis en file'));
-      }
+      p.ids.forEach((id, i) => {
+        // Événements critiques (attribution, arrivée, SOS) avant les autres : priorité 1 chez BullMQ.
+        const priority = notificationRule(p.templates[i] ?? '')?.critical ? 1 : 5;
+        this.queues.add('notifications', 'deliver', { kind: 'deliver', id } satisfies NotificationJob, { jobId: `deliver:${id}`, priority }).catch((error: unknown) => this.logger.error({ err: error, notificationId: id }, 'Envoi de notification non mis en file'));
+      });
     });
   }
 

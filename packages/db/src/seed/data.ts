@@ -167,6 +167,8 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'invoices.catchup_days', value: 2, description: 'Reprise des factures manquantes (événement perdu) : courses terminées depuis moins de 2 jours' },
   { key: 'sev.retry_delay_seconds', value: 60, description: 'Délai avant de reprendre une transmission au SEV en attente' },
   { key: 'sev.error_retry_seconds', value: 3600, description: 'Délai entre deux reprises automatiques d\'une facture en erreur au SEV' },
+  { key: 'alerts.founder_phone', value: '', description: 'Numéro du fondateur appelé par l\'agent vocal en cas de SOS (vide : pas d\'appel)' },
+  { key: 'voice.sos_assistant_id', value: '', description: 'Assistant Vapi qui appelle le fondateur en cas de SOS (vide : pas d\'appel)' },
   { key: 'voice.transfer_number', value: '+15145550100', description: 'Numéro vers lequel l\'agent vocal transfère un appel (humain de garde), à remplacer par le vrai numéro' },
   { key: 'notifications.approach_meters', value: 700, description: 'Distance au point de départ qui déclenche « votre chauffeur approche » (environ 2 minutes en ville)' },
   { key: 'sev.max_attempts', value: 5, description: 'Tentatives de transmission au SEV avant erreur visible dans My Hub' },

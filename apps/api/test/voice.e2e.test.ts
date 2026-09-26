@@ -3,7 +3,11 @@ import { schema } from '@neomoov/db';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { and, eq, sql } from 'drizzle-orm';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { MockVoiceProvider } from '../src/adapters/mock/index.js';
+import { VOICE_PROVIDER } from '../src/adapters/types.js';
+import { SettingsService } from '../src/common/settings.service.js';
+import { SosCallService } from '../src/modules/voice/sos-call.service.js';
 import { cleanupTestData, db, loginByOtp, startTestApp } from './helpers.js';
 
 const inHours = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
@@ -96,5 +100,28 @@ describe('agent vocal Vapi (intégration)', () => {
     expect(runs[0]).toMatchObject({ status: 'succeeded', costMicros: 120_000, durationMs: 95_000, output: { summary: 'Réservation pour demain.', endedReason: 'customer-ended-call' } });
     // Numéro masqué dans le journal (quatre derniers chiffres seulement).
     expect(JSON.stringify(runs[0]!.input)).not.toContain(client.user.phone);
+  });
+  it('SOS : le fondateur est appelé une seule fois par incident, jamais sans numéro ni assistant configurés', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const phone = `+1999${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
+    guestPhones.push(phone);
+    const [quote] = (await tools(phone, [{ name: 'quote', args: { pickupAddress: '4500 rue Saint-Denis, Montréal', dropoffAddress: '1000 rue De La Gauchetière Ouest, Montréal', pickupTime: inHours(7) } }])).results;
+    await tools(phone, [{ name: 'createRide', args: { quoteId: quote!['quoteId'], name: 'Marie Tremblay' } }]);
+    const [ride] = await db(app).select({ id: schema.rides.id }).from(schema.rides).where(eq(schema.rides.guestPhone, phone));
+    const sos = app.get(SosCallService);
+    expect(await sos.call(ride!.id, 'incident-sans-reglage')).toBeNull();
+    const settings = app.get(SettingsService);
+    const original = settings.string.bind(settings);
+    const spy = vi.spyOn(settings, 'string').mockImplementation(async (k: string, fallback: string) => (k === 'alerts.founder_phone' ? '+15145550199' : k === 'voice.sos_assistant_id' ? 'asst-sos' : original(k, fallback)));
+    try {
+      const voice = app.get<MockVoiceProvider>(VOICE_PROVIDER);
+      const callId = await sos.call(ride!.id, 'incident-1');
+      expect(callId).toMatch(/^call_mock/);
+      expect(voice.calls.at(-1)).toMatchObject({ to: '+15145550199', assistantId: 'asst-sos' });
+      expect(await sos.call(ride!.id, 'incident-1')).toBeNull();
+      expect(await sos.call(ride!.id, 'incident-2')).toMatch(/^call_mock/);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

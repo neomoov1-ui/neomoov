@@ -51,7 +51,7 @@ export interface DomainEvents {
   'ride.incident': { rideId: string; incidentId: string; type: string; severity: string; reportedByUserId: string | null };
   'dispatch.updated': { rideId: string; status: string; wave: number; offersSent: number; nextActionAt: Date | null };
   /** Notifications (étape 13) : lignes mises en file, à envoyer. */
-  'notification.queued': { ids: string[] };
+  'notification.queued': { ids: string[]; templates: string[] };
   /**
    * Message entrant d'un client hors de l'application (WhatsApp, agent vocal, réservation web) ou dans l'application
    * (assistance) : l'agent relation client le prend en charge. `externalId` rend le traitement idempotent.

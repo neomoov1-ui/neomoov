@@ -46,8 +46,8 @@ export class NotificationsOutbox {
           language: m.language ?? 'fr',
           data: m.data ?? {},
         })),
-      ).returning({ id: schema.notifications.id });
-      this.events.emit('notification.queued', { ids: rows.map((r) => r.id) });
+      ).returning({ id: schema.notifications.id, template: schema.notifications.template });
+      this.events.emit('notification.queued', { ids: rows.map((r) => r.id), templates: rows.map((r) => r.template) });
     } catch (error) {
       this.logger.error({ err: error, templates: list.map((m) => m.template) }, 'Notification non mise en file');
     }
