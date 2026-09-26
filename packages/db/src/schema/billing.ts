@@ -139,6 +139,29 @@ export const sanctions = pgTable('sanctions', {
   createdAt: createdAt(),
 }, (t) => [index('sanctions_driver_idx').on(t.driverId, t.startsAt)]);
 
+/**
+ * Charte d'équité (D7) : réponse ou appel du chauffeur sur une sanction, une seule demande ouverte par sanction.
+ * Décision d'une personne sous 4 heures ouvrables ; l'appel, par une autre personne que celle qui a décidé la sanction.
+ */
+export const sanctionAppeals = pgTable('sanction_appeals', {
+  id: id(),
+  sanctionId: uuid('sanction_id').notNull().references(() => sanctions.id),
+  driverId: uuid('driver_id').notNull().references(() => drivers.id),
+  kind: varchar('kind', { length: 10 }).notNull(),
+  message: text('message').notNull(),
+  status: varchar('status', { length: 12 }).notNull().default('open'),
+  decidedByUserId: uuid('decided_by_user_id'),
+  decidedAt: tz('decided_at'),
+  decisionNote: text('decision_note'),
+  createdAt: createdAt(),
+}, (t) => [
+  index('sanction_appeals_status_idx').on(t.status, t.createdAt),
+  index('sanction_appeals_driver_idx').on(t.driverId),
+  uniqueIndex('sanction_appeals_one_open').on(t.sanctionId).where(sql`${t.status} = 'open'`),
+  check('sanction_appeals_kind', sql`${t.kind} IN ('response', 'appeal')`),
+  check('sanction_appeals_status', sql`${t.status} IN ('open', 'upheld', 'overturned')`),
+]);
+
 export const dataRequests = pgTable('data_requests', {
   id: id(),
   userId: uuid('user_id').notNull().references(() => users.id),

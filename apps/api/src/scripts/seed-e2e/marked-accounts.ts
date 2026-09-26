@@ -69,6 +69,7 @@ export async function removeMarked(db: Db, marker: Pick<SeedMarker, 'phonePrefix
     // Usages de promotions (courses faites pendant une démonstration) : rendus au budget de la promotion.
     await db.execute(sql`WITH removed AS (DELETE FROM promotion_uses WHERE ride_id IN ${rideIds} RETURNING promotion_id, discount_cents)
       UPDATE promotions p SET spent_cents = GREATEST(0, p.spent_cents - r.total) FROM (SELECT promotion_id, sum(discount_cents)::int AS total FROM removed GROUP BY promotion_id) r WHERE p.id = r.promotion_id`);
+    await db.execute(sql`DELETE FROM sanction_appeals WHERE sanction_id IN (SELECT id FROM sanctions WHERE incident_id IN (SELECT id FROM incidents WHERE ride_id IN ${rideIds}))`);
     await db.execute(sql`DELETE FROM sanctions WHERE incident_id IN (SELECT id FROM incidents WHERE ride_id IN ${rideIds})`);
     note('incidents', await count(db.delete(schema.incidents).where(inArray(schema.incidents.rideId, rideIds)).returning({ id: schema.incidents.id })));
     await db.delete(schema.packConsumptions).where(inArray(schema.packConsumptions.rideId, rideIds));
@@ -99,6 +100,7 @@ export async function removeMarked(db: Db, marker: Pick<SeedMarker, 'phonePrefix
     await db.execute(sql`DELETE FROM scheduled_assignments WHERE driver_id IN ${driverIds}`);
     await db.delete(schema.packPurchases).where(inArray(schema.packPurchases.driverId, driverIds));
     note('weekly_statements', await count(db.delete(schema.weeklyStatements).where(inArray(schema.weeklyStatements.driverId, driverIds)).returning({ id: schema.weeklyStatements.id })));
+    await db.delete(schema.sanctionAppeals).where(inArray(schema.sanctionAppeals.driverId, driverIds));
     await db.delete(schema.sanctions).where(inArray(schema.sanctions.driverId, driverIds));
     await db.delete(schema.staffNotes).where(inArray(schema.staffNotes.entityId, driverIds));
     await db.execute(sql`DELETE FROM favorite_drivers WHERE driver_id IN ${driverIds}`);

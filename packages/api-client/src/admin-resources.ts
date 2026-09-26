@@ -13,6 +13,7 @@ import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
 import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration, StatementSettleOffline } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
+import type { AdminSanctionAppealView, AppealStatus, SanctionAppealDecision } from '@neomoov/domain';
 import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeView, PrivacyBreachInput, PrivacyBreachView, StaffCreate } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
@@ -174,6 +175,10 @@ export function adminResource(t: Transport) {
     /** Qualité des chauffeurs (5.11) : mesures, propositions de l'agent qualité, passe à la demande. */
     quality: () => t.get<QualityReviewView[]>('/admin/quality'),
     runQuality: () => t.post<QualityRunResult>('/admin/quality/run', {}),
+    /** Charte d'équité (D7) : réponses et appels des chauffeurs, décision motivée, exclusion d'une note. */
+    sanctionAppeals: (query: { status?: AppealStatus } = {}) => t.get<AdminSanctionAppealView[]>('/admin/fairness/appeals', { query }),
+    decideSanctionAppeal: (appealId: string, body: SanctionAppealDecision) => t.post<AdminSanctionAppealView>(`/admin/fairness/appeals/${id(appealId)}/decide`, body),
+    excludeRating: (ratingId: string, reason: string) => t.post<{ id: string; excludedAt: string; driverRating: { average: number; count: number } | null }>(`/admin/ratings/${id(ratingId)}/exclude`, { reason }),
     audit: (query: AuditFilters & { limit?: number; cursor?: string } = {}) => t.get<{ items: AuditEntryView[]; nextCursor: string | null }>('/admin/audit', { query }),
     /** Chemin de l'export CSV filtré du journal d'audit (administrateur), avec sa chaîne de requête. */
     auditExportPath: (filters: AuditFilters = {}) => {

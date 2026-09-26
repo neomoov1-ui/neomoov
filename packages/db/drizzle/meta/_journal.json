@@ -134,6 +134,13 @@
       "when": 1790456643470,
       "tag": "0018_rating-exclusion",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790458149497,
+      "tag": "0019_sanction-appeals",
+      "breakpoints": true
     }
   ]
 }

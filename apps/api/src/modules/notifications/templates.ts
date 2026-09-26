@@ -264,13 +264,29 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Suspension temporaire', body: (d) => `${str(d['reason'])}. Vous ne recevez plus de courses${d['endsAt'] ? ` jusqu'au ${str(d['endsAt']).slice(0, 10)}` : ''} ; l'équipe vous contacte.` },
     en: { title: 'Temporary suspension', body: (d) => `${str(d['reason'])}. You no longer receive rides${d['endsAt'] ? ` until ${str(d['endsAt']).slice(0, 10)}` : ''}; the team will contact you.` },
   },
+  'fairness.appeal_decided': {
+    fr: { title: 'Réponse à votre demande', body: (d) => `Après examen par une personne, ${d['decision'] === 'overturned' ? 'la sanction est levée' : 'la sanction est maintenue'} : ${str(d['note'])}` },
+    en: { title: 'Answer to your request', body: (d) => `After review by a person, ${d['decision'] === 'overturned' ? 'the sanction is lifted' : 'the sanction is upheld'}: ${str(d['note'])}` },
+  },
   'quality.reinstated': {
     fr: { title: 'Sanction terminée', body: () => 'Votre sanction est terminée : vous recevez de nouveau toutes les courses.' },
     en: { title: 'Sanction ended', body: () => 'Your sanction has ended: you receive all rides again.' },
   },
   'alert.benchmark_exceeded': {
-    fr: { title: 'Veille prix : devis au-dessus des concurrents', body: (d) => `${str(d['count'])} devis des dernières 24 heures dépassaient la référence Uber ou Lyft (${Array.isArray(d['categories']) ? (d['categories'] as unknown[]).map(str).join(', ') : ''}). Remise d'alignement appliquée sur les frais de service quand la marge le permettait. Voir My Hub.` },
-    en: { title: 'Price watch: quotes above competitors', body: (d) => `${str(d['count'])} quotes in the last 24 hours exceeded the Uber or Lyft reference (${Array.isArray(d['categories']) ? (d['categories'] as unknown[]).map(str).join(', ') : ''}). Alignment discount applied on service fees when the margin allowed. See My Hub.` },
+    fr: { title: 'Veille prix : devis au-dessus des concurrents', body: (d) => `${str(d['count'])} devis des dernières 24 heures dépassaient la cible (au moins 1 $ sous le moins cher d'Uber, de Lyft et du taxi) (${Array.isArray(d['categories']) ? (d['categories'] as unknown[]).map(str).join(', ') : ''}). Remise d'alignement appliquée sur les frais de service quand la marge le permettait. Voir My Hub.` },
+    en: { title: 'Price watch: quotes above competitors', body: (d) => `${str(d['count'])} quotes in the last 24 hours exceeded the target (at least $1 below the cheapest of Uber, Lyft and taxi) (${Array.isArray(d['categories']) ? (d['categories'] as unknown[]).map(str).join(', ') : ''}). Alignment discount applied on service fees when the margin allowed. See My Hub.` },
+  },
+  'alert.appeal_received': {
+    fr: { title: 'Chauffeur : demande à traiter', body: (d) => `${d['kind'] === 'appeal' ? 'Appel' : 'Réponse'} du chauffeur ${str(d['driverPublicNumber'])} sur une sanction (${str(d['sanctionType'])}). Une personne lui répond sous 4 heures ouvrables (Charte d'équité) ; un appel est tranché par une autre personne que celle qui a décidé. Voir My Hub.` },
+    en: { title: 'Driver: request to handle', body: (d) => `${d['kind'] === 'appeal' ? 'Appeal' : 'Response'} from driver ${str(d['driverPublicNumber'])} on a sanction (${str(d['sanctionType'])}). A person answers within 4 business hours (Fairness charter); an appeal is decided by someone other than the original decider. See My Hub.` },
+  },
+  'alert.appeal_overdue': {
+    fr: { title: 'Charte d\'équité : délai dépassé', body: (d) => `${d['kind'] === 'appeal' ? 'L\'appel' : 'La réponse'} du chauffeur ${str(d['driverPublicNumber'])} attend une décision depuis plus de 4 heures ouvrables. Rappelez-le et tranchez dans My Hub.` },
+    en: { title: 'Fairness charter: deadline missed', body: (d) => `The ${d['kind'] === 'appeal' ? 'appeal' : 'response'} from driver ${str(d['driverPublicNumber'])} has waited more than 4 business hours for a decision. Call them back and decide in My Hub.` },
+  },
+  'alert.precautionary_review_overdue': {
+    fr: { title: 'Suspension de précaution à réexaminer', body: (d) => `Le chauffeur ${str(d['driverPublicNumber'])} est suspendu à titre préventif depuis ${str(d['hours'])} heures sans décision humaine. La Charte d'équité prévoit un réexamen sous 24 heures : levez ou maintenez le blocage dans My Hub.` },
+    en: { title: 'Precautionary suspension to review', body: (d) => `Driver ${str(d['driverPublicNumber'])} has been suspended as a precaution for ${str(d['hours'])} hours without a human decision. The Fairness charter requires a review within 24 hours: lift or keep the hold in My Hub.` },
   },
   'alert.stuck_ride': {
     fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
