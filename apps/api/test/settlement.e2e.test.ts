@@ -184,6 +184,7 @@ describe('règlement hebdomadaire (intégration)', () => {
 
   it('versement Connect d\'un net positif, rejouable ; net nul réglé sans mouvement', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
+    const operator = await createStaffAndLogin(app, ['operator']);
     const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     await ride(driver, { at: '2026-06-16T15:00:00Z', fareCents: 3_000 });
     const draft = (await statements().generate({ periodStart: '2026-06-15', driverId: driver.driverId })).statements[0]!;
@@ -199,7 +200,7 @@ describe('règlement hebdomadaire (intégration)', () => {
     // Versement : un seul avis au chauffeur, même rejoué ; l'échec précédent (compte absent) a alerté l'exploitation.
     const notices = (template: string) => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.template, template), sql`${schema.notifications.data}->>'statementId' = ${draft.id!}`));
     expect((await notices('statement.paid')).filter((n) => n.recipientUserId === driver.userId && n.channel === 'push')).toHaveLength(1);
-    expect((await notices('alert.settlement_failed')).some((n) => n.recipientUserId === staff.userId)).toBe(true);
+    expect((await notices('alert.settlement_failed')).some((n) => n.recipientUserId === operator.userId)).toBe(true);
     const [balance] = await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.driverId));
     expect(balance).toMatchObject({ balanceCents: 0, suspendedForBalanceAt: null });
   });
