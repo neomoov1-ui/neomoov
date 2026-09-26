@@ -351,7 +351,9 @@ export class AgentToolsService {
       const approvalId = await this.createApproval(ctx, 'refund', data, input.justification);
       return { ok: true, status: 'pending_approval', approvalId, data: { rideId: ride.id, amountCents: input.amountCents, mode: input.mode }, message: 'Remboursement proposé à l\'approbation humaine ; le client sera prévenu de la décision' };
     }
-    const result = await this.executeAction('refund', data, { approvalId: null, approverUserId: null, agentCode: ctx.agent.code, idempotencyKey: `run-${ctx.runId}` });
+    // Une clé par geste (course, mode, montant) : un second remboursement de la même exécution n'est plus le rejeu du
+    // premier (revue 17.B) ; une exécution reprise rejoue les mêmes clés, donc sans doublon.
+    const result = await this.executeAction('refund', data, { approvalId: null, approverUserId: null, agentCode: ctx.agent.code, idempotencyKey: `run-${ctx.runId}-${input.mode}-${input.amountCents}` });
     return done(result, 'Remboursement effectué');
   }
 

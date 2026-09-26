@@ -12,6 +12,7 @@ import { RateLimitService } from '../src/common/rate-limit.service.js';
 import { SettingsService } from '../src/common/settings.service.js';
 import { AgentJobsService } from '../src/modules/agents/agent-jobs.service.js';
 import { AgentRunnerService } from '../src/modules/agents/agent-runner.service.js';
+import { AgentToolsService } from '../src/modules/agents/agent-tools.service.js';
 import { AnalyticsAgent } from '../src/modules/agents/back-office.agents.js';
 import { ConversationsService } from '../src/modules/agents/conversations.service.js';
 import { ApiKeysService } from '../src/modules/auth/api-keys.service.js';
@@ -482,6 +483,27 @@ describe('agents IA : exécuteur, outils, file d\'approbation, agents V1 (intég
       statuses.push(res.body.status);
     }
     expect(statuses).toEqual(['done', 'pending_approval', 'pending_approval']);
+  });
+
+  it("mode automatique : deux remboursements dans une même exécution sont deux remboursements", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : chaque remboursement d'une exécution portait la clé run-<exécution> ; le second rejouait le premier et
+    // le client était prévenu d'un montant jamais rendu.
+    const { client, rideId } = await paidRide();
+    const code = `t17b_${rand()}`;
+    tempAgents.push(code);
+    const database = db(app);
+    await database.insert(schema.agents).values({ code, name: 'Agent automatique de test', mode: 'auto', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: `${code}.v1`, tools: ['refund'], thresholds: { maxAutoRefundCents: 1_000 } });
+    await database.insert(schema.agentPrompts).values({ key: `${code}.v1`, agentCode: code, version: 1, body: 'Agent de test.', sha256: '0'.repeat(64) });
+    const tools = app.get(AgentToolsService);
+    const both = await runner().execute(code, { name: 'test', ref: `refunds-${code}`, input: {} }, async (ctx) => [
+      await tools.call(ctx, 'refund', { rideId, amountCents: 300, mode: 'credit', reason: 'Retard', justification: 'Retard au départ' }),
+      await tools.call(ctx, 'refund', { rideId, amountCents: 200, mode: 'credit', reason: 'Attente', justification: 'Attente sur place' }),
+    ], { subjectUserId: client.user.id });
+    track(both.run.id);
+    expect(both.result!.map((r) => r.status)).toEqual(['done', 'done']);
+    const refunds = await database.select({ amountCents: schema.refunds.amountCents }).from(schema.refunds).where(eq(schema.refunds.decidedByAgentCode, code));
+    expect(refunds.map((r) => r.amountCents).sort((a, b) => a - b)).toEqual([200, 300]);
   });
 
   it('agent recrutement : extraction par la vision, cohérence avec le profil, proposition soumise à la validation humaine (mode verrouillé)', async ({ skip }) => {
