@@ -2,7 +2,7 @@ export * from './enums.js';
 export * from './pricing/types.js';
 export {
   PricingError, applyPromotion, applySurcharges, computeQuote, computeWaitChargeCents, finalizeQuote,
-  isNightTime, isPeakHours, localTimeParts, matchFlatRate, mulDivRound, subtotalForTotal, subtotalForTotalAtMost,
+  isNightTime, isPeakHours, isPetAllowed, localTimeParts, matchFlatRate, mulDivRound, subtotalForTotal, subtotalForTotalAtMost,
 } from './pricing/quote.js';
 export * from './pricing/benchmark.js';
 export * from './packs/packs.js';

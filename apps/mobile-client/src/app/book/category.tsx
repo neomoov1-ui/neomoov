@@ -56,7 +56,7 @@ export default function CategoryScreen() {
         destination: draft.destination,
         stops,
         requestedAt: draft.pickupAt,
-        options: { flex: options.flex, priority: options.priority, childSeat: options.childSeat, luggage: options.luggage, ...(options.favouriteDriverId ? { favouriteDriverId: options.favouriteDriverId } : {}) },
+        options: { flex: options.flex, priority: options.priority, childSeat: options.childSeat, luggage: options.luggage, pet: options.pet, ...(options.favouriteDriverId ? { favouriteDriverId: options.favouriteDriverId } : {}) },
       });
       if (request === latestRequest.current) draft.update({ quotes, vehicleId: null });
     } catch (e) {
@@ -84,6 +84,8 @@ export default function CategoryScreen() {
       <SectionTitle>{t('category.options')}</SectionTitle>
       <ToggleRow label={t('category.childSeat')} value={draft.options.childSeat} onChange={(v) => void setOption('childSeat', v)} />
       <ToggleRow label={t('category.luggage')} value={draft.options.luggage} onChange={(v) => void setOption('luggage', v)} />
+      <ToggleRow label={t('category.pet')} value={draft.options.pet} onChange={(v) => void setOption('pet', v)} />
+      {draft.options.pet ? <Notice>{t('category.petHint')}</Notice> : null}
       <ToggleRow label={t('category.flex')} value={draft.options.flex} onChange={(v) => void setOption('flex', v)} />
       <ToggleRow label={t('category.priority')} value={draft.options.priority} onChange={(v) => void setOption('priority', v)} />
 

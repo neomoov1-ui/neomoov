@@ -1,0 +1,1 @@
+ALTER TYPE "public"."surcharge_code" ADD VALUE 'pet';

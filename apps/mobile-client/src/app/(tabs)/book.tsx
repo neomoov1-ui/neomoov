@@ -45,7 +45,7 @@ export default function BookScreen() {
         destination: draft.destination,
         stops: draft.stops,
         requestedAt: draft.pickupAt,
-        options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage },
+        options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage, pet: draft.options.pet },
       });
       draft.update({ quotes, category: quotes.quotes[0]?.category ?? null, vehicleId: null });
       router.push('/book/category');

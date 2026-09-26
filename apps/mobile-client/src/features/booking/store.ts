@@ -4,6 +4,8 @@ import { create } from 'zustand';
 export interface BookingOptions {
   childSeat: boolean;
   luggage: boolean;
+  /** Animal de compagnie en cage (D8) : Neo XL et Neo Prestige seulement. */
+  pet: boolean;
   flex: boolean;
   priority: boolean;
   favouriteDriverId?: string;
@@ -51,7 +53,7 @@ const initial = () => ({
   quotes: null,
   category: null,
   vehicleId: null,
-  options: { childSeat: false, luggage: false, flex: false, priority: false },
+  options: { childSeat: false, luggage: false, pet: false, flex: false, priority: false },
   preferences: null,
   specialRequests: '',
   paymentChoice: 'pay_driver_after' as PaymentChoice,

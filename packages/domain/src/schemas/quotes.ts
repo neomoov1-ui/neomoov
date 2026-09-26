@@ -33,6 +33,8 @@ export const ridePreferencesSchema = z.object({
   luggageSize: z.enum(['small', 'medium', 'large']).optional(),
   childSeat: z.boolean().optional(),
   accessibility: z.boolean().optional(),
+  /** Animal de compagnie en cage (D8), repris de l'option du devis pour le chauffeur. */
+  pet: z.boolean().optional(),
 });
 export type RidePreferences = z.infer<typeof ridePreferencesSchema>;
 
@@ -42,6 +44,8 @@ export const rideOptionsSchema = z.object({
   favouriteDriverId: uuid.optional(),
   childSeat: z.boolean().default(false),
   luggage: z.boolean().default(false),
+  /** Animal de compagnie en cage (D8) : Neo XL et Neo Prestige seulement, supplément fixe. */
+  pet: z.boolean().default(false),
   promoCode: z.string().trim().toUpperCase().max(30).optional(),
 });
 
@@ -61,7 +65,7 @@ export const quoteRequestSchema = z.object({
 export type QuoteRequest = z.infer<typeof quoteRequestSchema>;
 
 export const QUOTE_LINE_CODES = [
-  'base_fare', 'distance', 'duration', 'minimum_fare', 'night', 'airport', 'child_seat', 'bulky_luggage', 'stops', 'flex', 'priority',
+  'base_fare', 'distance', 'duration', 'minimum_fare', 'night', 'airport', 'child_seat', 'bulky_luggage', 'pet', 'stops', 'flex', 'priority',
   'favourite_driver', 'flat_rate', 'tolls', 'benchmark_alignment', 'wait_time', 'promotion', 'service_fee', 'regulatory_fee', 'gst', 'qst', 'credits',
 ] as const;
 

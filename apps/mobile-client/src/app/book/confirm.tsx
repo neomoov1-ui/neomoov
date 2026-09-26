@@ -88,7 +88,7 @@ export default function ConfirmScreen() {
       if (REQUOTE_CODES.has(errorCode(e) ?? '') && draft.origin && draft.destination) {
         // Prix expiré ou carte fermée : nouveau devis, même catégorie ; le client revoit le prix et les modes de paiement
         // avant de confirmer.
-        const quotes = await api.quotes.create({ origin: draft.origin, destination: draft.destination, stops: draft.stops, requestedAt: draft.pickupAt, options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage } }).catch(() => null);
+        const quotes = await api.quotes.create({ origin: draft.origin, destination: draft.destination, stops: draft.stops, requestedAt: draft.pickupAt, options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage, pet: draft.options.pet } }).catch(() => null);
         if (quotes) {
           draft.update({ quotes });
           draft.renewKey();

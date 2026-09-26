@@ -62,8 +62,14 @@ export function applySurcharges(input: QuoteInput, rules: PricingRules): QuoteLi
   if (input.airport) push('airport', s.airportCents);
   if (o.childSeat) push('child_seat', s.childSeatCents);
   if (o.bulkyLuggage) push('bulky_luggage', s.bulkyLuggageCents);
+  if (o.pet) push('pet', s.petCents ?? 0);
   if (o.stops) push('stops', s.perStopCents * o.stops);
   return lines;
+}
+
+/** Vrai si la catégorie accepte un animal de compagnie en cage (D8). */
+export function isPetAllowed(category: string, rules: PricingRules): boolean {
+  return (rules.surcharges.petCategories ?? []).includes(category);
 }
 
 /** Remise de la promotion sur le tarif, ou une erreur si ses conditions ne sont pas remplies. */
@@ -111,6 +117,8 @@ export function computeQuote(input: QuoteInput, rules: PricingRules): Quote {
   const rule = rules.categories.find((c) => c.category === input.category);
   if (!rule) throw new PricingError('UNKNOWN_CATEGORY', `Catégorie inconnue : ${input.category}`);
   const options = input.options ?? {};
+  // Animal en cage (D8) : seulement dans les catégories admises, forfait compris (le forfait ignore le supplément).
+  if (options.pet && !isPetAllowed(input.category, rules)) throw new PricingError('PET_NOT_ALLOWED', `Animal en cage non accepté en ${input.category}`);
   const lines: QuoteLine[] = [];
   const ignoredOptions: string[] = [];
   let fareCents: number;

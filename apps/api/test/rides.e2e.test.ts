@@ -178,6 +178,9 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     const admin = await createStaffAndLogin(app, ['operator']);
     const YUL = { address: 'Aéroport international Montréal-Trudeau, Dorval', coordinates: { lat: 45.468, lng: -73.742 } };
     const early = (await requestRide(client, await quoteFor(client, 'neo_premium', CENTRE, YUL))).body;
+    // L'application annonce les frais avec la même règle : vue de course et configuration portent la règle aéroport.
+    expect(early.airportTransfer).toBe(true);
+    expect((await request(server()).get('/v1/config').expect(200)).body.booking.airportFreeCancellationBeforeSeconds).toBe(3600);
     await assign(admin.tokens, early.id, driver);
     // Attribution antidatée de trois minutes : hors de la fenêtre générale, mais à près de 3 heures du départ.
     await db(app).update(schema.rides).set({ stateTimestamps: sql`${schema.rides.stateTimestamps} || ${JSON.stringify({ assigned: new Date(Date.now() - 180_000).toISOString() })}::jsonb` }).where(eq(schema.rides.id, early.id));

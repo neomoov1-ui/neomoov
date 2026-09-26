@@ -6,7 +6,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  benchmarkCheck, benchmarkTimeWindow, computeQuote, PricingError, type CompetitorBenchmark, type Language, type Place, type Promotion, type Quote, type QuoteDetail,
+  benchmarkCheck, benchmarkTimeWindow, computeQuote, isPetAllowed, PricingError, type CompetitorBenchmark, type Language, type Place, type Promotion, type Quote, type QuoteDetail,
   type PaymentMethod, type QuoteRequest, type QuoteView, type QuotesResponse, type SimulateQuote, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -110,7 +110,10 @@ export class QuotesService {
     ]);
     if (!originZone && !destinationZone) throw new AppError('OUT_OF_SERVICE_AREA', 'Ce trajet est hors de notre zone de service', 400);
 
-    const categories: VehicleCategory[] = input.category ? [input.category] : (loaded.rules.categories.map((c) => c.category) as VehicleCategory[]);
+    // Animal en cage (D8) : sans catégorie demandée, seules les catégories qui l'acceptent sont tarifées.
+    const allCategories = input.category ? [input.category] : (loaded.rules.categories.map((c) => c.category) as VehicleCategory[]);
+    const categories = input.options.pet && !input.category ? allCategories.filter((c) => isPetAllowed(c, loaded.rules)) : allCategories;
+    if (!categories.length) throw new AppError('PET_NOT_ALLOWED', 'Aucune catégorie n\'accepte un animal en cage pour le moment', 400);
     const [route, client] = await Promise.all([this.routeFor(origin, destination, stops, pickupAt, overrides), this.clientOf(actor.userId)]);
     const promotionCandidates = await this.promotions.candidates(input.options.promoCode, client?.id ?? null);
     const clientCompletedRides = overrides.clientCompletedRides ?? client?.rideCount ?? 0;
@@ -149,6 +152,7 @@ export class QuotesService {
               favouriteDriver: Boolean(input.options.favouriteDriverId) && favourite !== 'unavailable',
               childSeat: input.options.childSeat,
               bulkyLuggage: input.options.luggage,
+              pet: input.options.pet,
               stops: stops.length,
             },
             promotion: applicablePromotion,

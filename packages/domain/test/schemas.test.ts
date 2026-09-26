@@ -12,7 +12,7 @@ describe('devis', () => {
   it('accepte une demande minimale et applique les valeurs par défaut', () => {
     const q = quoteRequestSchema.parse({ category: 'neo_premium', origin: place('A'), destination: place('B') });
     expect(q.stops).toEqual([]);
-    expect(q.options).toEqual({ flex: false, priority: false, childSeat: false, luggage: false });
+    expect(q.options).toEqual({ flex: false, priority: false, childSeat: false, luggage: false, pet: false });
   });
 
   it('refuse Flex avec des arrêts, une catégorie inconnue et des coordonnées hors limites', () => {

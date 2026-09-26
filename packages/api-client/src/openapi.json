@@ -7505,6 +7505,10 @@
                         "default": false,
                         "type": "boolean"
                       },
+                      "pet": {
+                        "default": false,
+                        "type": "boolean"
+                      },
                       "promoCode": {
                         "type": "string",
                         "maxLength": 30
@@ -8881,6 +8885,10 @@
                         "type": "boolean"
                       },
                       "luggage": {
+                        "default": false,
+                        "type": "boolean"
+                      },
+                      "pet": {
                         "default": false,
                         "type": "boolean"
                       },
@@ -10581,6 +10589,9 @@
                       },
                       "accessibility": {
                         "type": "boolean"
+                      },
+                      "pet": {
+                        "type": "boolean"
                       }
                     }
                   },
@@ -11070,6 +11081,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -11548,6 +11562,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -12229,6 +12246,9 @@
                               "endsAt",
                               "openOffers"
                             ]
+                          },
+                          "airportTransfer": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -12800,6 +12820,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -13954,6 +13977,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -15700,6 +15726,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -16668,6 +16697,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -17673,6 +17705,9 @@
                               },
                               "accessibility": {
                                 "type": "boolean"
+                              },
+                              "pet": {
+                                "type": "boolean"
                               }
                             }
                           }
@@ -18275,6 +18310,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -18959,6 +18997,9 @@
                               "type": "boolean"
                             },
                             "accessibility": {
+                              "type": "boolean"
+                            },
+                            "pet": {
                               "type": "boolean"
                             }
                           }
@@ -20515,6 +20556,9 @@
                             "endsAt",
                             "openOffers"
                           ]
+                        },
+                        "airportTransfer": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
@@ -20988,6 +21032,9 @@
                               "endsAt",
                               "openOffers"
                             ]
+                          },
+                          "airportTransfer": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -21580,6 +21627,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -22219,6 +22269,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -23039,6 +23092,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -23722,6 +23778,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -24622,6 +24681,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -25770,6 +25832,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -26604,6 +26669,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -27664,6 +27732,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -28926,6 +28997,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -30249,6 +30323,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -30935,6 +31012,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -31601,6 +31681,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -32027,6 +32110,11 @@
                           "minimum": 0,
                           "maximum": 9007199254740991,
                           "description": "Montant en cents"
+                        },
+                        "airportFreeCancellationBeforeSeconds": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
                         }
                       },
                       "required": [
@@ -32280,6 +32368,9 @@
                     },
                     "accessibility": {
                       "type": "boolean"
+                    },
+                    "pet": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -32449,6 +32540,9 @@
                   },
                   "accessibility": {
                     "type": "boolean"
+                  },
+                  "pet": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -32523,6 +32617,9 @@
                       "type": "boolean"
                     },
                     "accessibility": {
+                      "type": "boolean"
+                    },
+                    "pet": {
                       "type": "boolean"
                     }
                   }
@@ -39897,6 +39994,9 @@
                         "openOffers"
                       ]
                     },
+                    "airportTransfer": {
+                      "type": "boolean"
+                    },
                     "job": {
                       "type": "object",
                       "properties": {
@@ -39980,6 +40080,9 @@
                               "type": "boolean"
                             },
                             "accessibility": {
+                              "type": "boolean"
+                            },
+                            "pet": {
                               "type": "boolean"
                             }
                           }
@@ -40735,6 +40838,9 @@
                         "openOffers"
                       ]
                     },
+                    "airportTransfer": {
+                      "type": "boolean"
+                    },
                     "job": {
                       "type": "object",
                       "properties": {
@@ -40818,6 +40924,9 @@
                               "type": "boolean"
                             },
                             "accessibility": {
+                              "type": "boolean"
+                            },
+                            "pet": {
                               "type": "boolean"
                             }
                           }
@@ -41648,6 +41757,9 @@
                         "openOffers"
                       ]
                     },
+                    "airportTransfer": {
+                      "type": "boolean"
+                    },
                     "job": {
                       "type": "object",
                       "properties": {
@@ -41731,6 +41843,9 @@
                               "type": "boolean"
                             },
                             "accessibility": {
+                              "type": "boolean"
+                            },
+                            "pet": {
                               "type": "boolean"
                             }
                           }
@@ -56961,6 +57076,10 @@
                         "type": "boolean"
                       },
                       "luggage": {
+                        "default": false,
+                        "type": "boolean"
+                      },
+                      "pet": {
                         "default": false,
                         "type": "boolean"
                       },

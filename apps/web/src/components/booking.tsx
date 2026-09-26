@@ -17,7 +17,7 @@ import { formatDateTime, formatMoney, montrealToIso } from '@/lib/format';
 import type { Language } from '@/lib/i18n-resources';
 import { createGuestApi, errorCode, publicApi } from '@/lib/site-api';
 
-const OPTIONS = { flex: false, priority: false, childSeat: false, luggage: false };
+const OPTIONS = { flex: false, priority: false, childSeat: false, luggage: false, pet: false };
 const PREFERENCES: RidePreferences = { conversation: 'indifferent', music: 'indifferent', temperature: 'neutral', luggageHelp: false };
 type Step = 'trip' | 'price' | 'contact' | 'done';
 

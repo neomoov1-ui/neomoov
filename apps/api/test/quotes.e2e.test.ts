@@ -164,6 +164,24 @@ describe('devis, lieux et tarification (intégration)', () => {
     }
   });
 
+  it('animal en cage (D8) : Neo XL et Neo Prestige seulement, supplément, préférence transmise au chauffeur', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const requestedAt = inThreeHours();
+    const res = await request(server()).post('/v1/quotes').set(bearer(client)).send({ origin: PLATEAU, destination: CENTRE, requestedAt, options: { pet: true } }).expect(201);
+    expect((res.body.quotes as Array<{ category: string }>).map((q) => q.category).sort()).toEqual(['neo_prestige', 'neo_xl']);
+    const xl = res.body.quotes.find((q: { category: string }) => q.category === 'neo_xl');
+    expect(xl.lines.find((l: { code: string }) => l.code === 'pet')).toMatchObject({ amountCents: 500, label: 'Animal en cage' });
+    const refused = await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt, options: { pet: true } });
+    expect(refused.status).toBe(400);
+    expect(refused.body.code).toBe('PET_NOT_ALLOWED');
+    const ride = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', `pet-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
+      .send({ quoteId: xl.id, type: 'scheduled', requestedAt, paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: xl.maxConsentedCents }).expect(201);
+    const [row] = await db(app).select({ preferences: schema.rides.preferences, options: schema.rides.options }).from(schema.rides).where(eq(schema.rides.id, ride.body.id));
+    expect(row!.preferences).toMatchObject({ pet: true });
+    expect(row!.options).toMatchObject({ pet: true });
+  });
+
   it('temps d\'arrivée estimé à partir des chauffeurs en ligne de la catégorie', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);

@@ -81,6 +81,8 @@ export const rideSchema = z.object({
   dispatch: dispatchSummarySchema.nullable(),
   /** Négociation encadrée : toujours null quand le drapeau `FEATURE_NEGOTIATION` est désactivé. */
   negotiation: negotiationSummarySchema.nullable(),
+  /** Transfert vers ou depuis l'aéroport (règle d'annulation D3) ; absent d'une API antérieure. */
+  airportTransfer: z.boolean().optional(),
 });
 export type RideView = z.infer<typeof rideSchema>;
 

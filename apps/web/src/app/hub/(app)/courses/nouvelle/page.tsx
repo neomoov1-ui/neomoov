@@ -13,7 +13,7 @@ import { montrealToIso } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
 import { toE164 } from '@/lib/site-api';
 
-const OPTIONS = { flex: false, priority: false, childSeat: false, luggage: false };
+const OPTIONS = { flex: false, priority: false, childSeat: false, luggage: false, pet: false };
 
 /** Heure proposée par défaut : dans 2 h 30, arrondie aux 5 minutes, à l'heure de Montréal. */
 function defaultPickup(): { date: string; time: string } {

@@ -26,6 +26,8 @@ export function buildPricingRules(src: PricingSources): PricingRules {
   const s = src.settings;
   const surcharge = (code: string) => src.surcharges.find((x) => x.code === code);
   const night = surcharge('night');
+  const pet = surcharge('pet');
+  const petConditions = (pet?.conditions ?? {}) as { categories?: unknown };
   const nightConditions = (night?.conditions ?? {}) as { from?: unknown; to?: unknown };
   const peakRaw = (s['pricing.peak_windows'] ?? []) as { days: number[]; from: string; to: string }[];
   const peakWindows: PeakWindow[] = peakRaw.map((w) => ({ days: w.days, startMinute: minuteOf(w.from), endMinute: w.to <= w.from ? minuteOf(w.to) + 1440 : minuteOf(w.to) }));
@@ -51,6 +53,8 @@ export function buildPricingRules(src: PricingSources): PricingRules {
       bulkyLuggageCents: surcharge('luggage')?.amountCents ?? 0,
       perStopCents: surcharge('stop')?.amountCents ?? 0,
       favouriteDriverCents: num(s, 'pricing.favourite_driver_cents'),
+      petCents: pet?.amountCents ?? 0,
+      petCategories: pet && Array.isArray(petConditions.categories) ? petConditions.categories.filter((c): c is string => typeof c === 'string') : [],
     },
     flexMultiplierBps: num(s, 'pricing.flex_multiplier_bps'),
     priorityMultiplierBps: num(s, 'pricing.priority_multiplier_bps'),

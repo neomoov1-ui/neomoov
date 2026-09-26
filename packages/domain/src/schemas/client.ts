@@ -33,6 +33,8 @@ export const appConfigSchema = z.object({
     maxLeadDays: count,
     freeCancellationSeconds: count,
     cancellationFeeCents: cents,
+    /** Transfert aéroport (D3) : annulation gratuite jusqu'à ce délai avant l'heure prévue, en secondes ; absent d'une API antérieure. */
+    airportFreeCancellationBeforeSeconds: count.optional(),
   }),
   negotiation: z.object({ floorPpm: count, windowSeconds: count }),
   /** Pourboires proposés à la fin de course (montants en cents, 0 = aucun) ; le montant libre reste possible jusqu'au plafond. */

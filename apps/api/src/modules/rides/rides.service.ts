@@ -137,7 +137,9 @@ export class RidesService {
         .groupBy(schema.rideOffers.rideId);
       for (const c of counts) openOffers.set(c.rideId, c.count);
     }
-    return rides.map((r) => {
+    // Zones en mémoire : aucun aller-retour en base pour la règle d'annulation aéroport (D3).
+    const airport = await Promise.all(rides.map((r) => this.context.isAirportTransfer(r)));
+    return rides.map((r, i) => {
       const dispatch = dispatches.get(r.id) ?? null;
       const negotiation: NegotiationSummary | null = this.env.FEATURE_NEGOTIATION
         ? {
@@ -148,7 +150,7 @@ export class RidesService {
             openOffers: openOffers.get(r.id) ?? 0,
           }
         : null;
-      return toRideView(r, r.driverId ? (drivers.get(r.driverId) ?? null) : null, { webBaseUrl: this.env.WEB_BASE_URL, dispatch: dispatch ? dispatchSummaryOf(dispatch, radii) : null, negotiation });
+      return { ...toRideView(r, r.driverId ? (drivers.get(r.driverId) ?? null) : null, { webBaseUrl: this.env.WEB_BASE_URL, dispatch: dispatch ? dispatchSummaryOf(dispatch, radii) : null, negotiation }), airportTransfer: airport[i]! };
     });
   }
 
@@ -421,6 +423,8 @@ export class RidesService {
         organizationId: org?.id ?? null,
         stateTimestamps: { requested: now.toISOString() },
         ...fields,
+        // Animal en cage (D8) : l'option du devis devient une préférence que le chauffeur voit dans l'offre et la course.
+        ...((quote.options as { pet?: boolean } | null)?.pet ? { preferences: { ...((fields.preferences ?? {}) as Record<string, unknown>), pet: true } } : {}),
       })
       .returning({ id: schema.rides.id });
     await tx.insert(schema.rideEvents).values({ rideId: inserted!.id, type: 'client_confirms', fromState: 'quoted', toState: 'requested', actorUserId: actor.userId, actorKind: actor.kind, data: { quoteId: quote.id, type: fields.type }, occurredAt: now });

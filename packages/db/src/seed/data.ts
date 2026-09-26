@@ -38,6 +38,8 @@ export const SURCHARGES = [
   { code: 'luggage', amountCents: 200, perUnit: false, conditions: {} },
   { code: 'stop', amountCents: 200, perUnit: true, conditions: { unit: 'stop', maxStops: 3 } },
   { code: 'waiting', amountCents: 50, perUnit: true, conditions: { unit: 'minute', freeSeconds: 300 } },
+  // D8 (fondateur, 26 septembre 2026) : animal de compagnie en cage, Neo XL et Neo Prestige seulement.
+  { code: 'pet', amountCents: 500, perUnit: false, conditions: { categories: ['neo_xl', 'neo_prestige'] } },
 ] as const;
 
 /** Forfaits centre-ville et aéroport, prix total affiché, dans les deux sens. */

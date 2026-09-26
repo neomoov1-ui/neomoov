@@ -75,7 +75,7 @@ export type VehicleStatus = (typeof VEHICLE_STATUSES)[number];
 export const ZONE_TYPES = ['service_area', 'airport', 'downtown', 'district'] as const;
 export type ZoneType = (typeof ZONE_TYPES)[number];
 
-export const SURCHARGE_CODES = ['night', 'airport', 'child_seat', 'luggage', 'stop', 'waiting'] as const;
+export const SURCHARGE_CODES = ['night', 'airport', 'child_seat', 'luggage', 'stop', 'waiting', 'pet'] as const;
 export type SurchargeCode = (typeof SURCHARGE_CODES)[number];
 
 export const OFFER_TYPES = ['fixed', 'client_proposal', 'driver_counter'] as const;
