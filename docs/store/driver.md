@@ -16,7 +16,7 @@ Préparée pour App Store Connect et Google Play Console (prompt 11, tâche 9 ; 
 | Assistance | Page d'assistance de neomoov.net : **à créer ou à confirmer** |
 | Conditions d'utilisation | https://neomoov.net/conditions-d-utilisation/ |
 | Politique de confidentialité | https://neomoov.net/politique-de-confidentialite/ (doit décrire la localisation en arrière-plan, les documents, la conservation de 90 jours des positions et l'export réglementaire) |
-| Suppression de compte hors de l'application | Même page que l'application client (`client.md`) : **à créer** |
+| Suppression de compte hors de l'application | https://reserver.neomoov.net/supprimer-mon-compte, même page que l'application client (`client.md`, « Exigences des magasins ») : elle nomme Neomoov Chauffeur et précise ce qui est gardé pour les chauffeurs |
 | Classement | 4+ (App Store) ; IARC de Google : communications entre utilisateurs, partage de la position avec d'autres utilisateurs |
 | Visuels (D46) | Captures réelles de l'application ; aucune illustration dessinée |
 
@@ -74,10 +74,11 @@ Full description:
 | Photos | iOS (`NSPhotoLibraryUsageDescription`) | Au toucher de « Choisir une photo » | Joindre un document déjà photographié |
 | Notifications | iOS, Android 13 et plus | Après la connexion | Offres de course (canal prioritaire, son distinct), courses planifiées, relevés, échéances de documents, packs |
 | Vibration, maintien de l'écran | Android (`VIBRATE`, `WAKE_LOCK`) | Pendant une offre et une course | Sonnerie et vibration de l'offre ; écran allumé sur le support pendant la course |
+| Lecture audio en arrière-plan | iOS (mode `audio` de `UIBackgroundModes`), Android (service de premier plan `FOREGROUND_SERVICE_MEDIA_PLAYBACK`), ajoutés par `expo-audio` | À l'arrivée d'une offre | La sonnerie de l'offre joue en boucle même si le chauffeur est dans Google Maps ou Waze (`shouldPlayInBackground`), jusqu'à sa réponse ou l'expiration de l'offre |
 
 Aucun accès aux contacts, au microphone (refusé explicitement dans `app.json`) ni au calendrier.
 
-Point à vérifier avant la revue d'Apple : `UIBackgroundModes` déclare aussi `fetch` et `remote-notification`. Aucun code de rafraîchissement en arrière-plan ni de notification silencieuse n'a été trouvé dans l'application : Apple refuse les modes d'arrière-plan non utilisés (règle 2.5.4). Retirer ces deux modes ou justifier leur usage (manque signalé).
+Modes d'arrière-plan iOS (règle 2.5.4 d'Apple : un mode déclaré doit servir) : depuis le 26 septembre 2026, seulement `location` et `audio`. `fetch` et `remote-notification` sont retirés : aucun rafraîchissement en arrière-plan ni notification silencieuse dans le code (`fetch`, ajouté d'office par le greffon d'`expo-task-manager`, est retiré par un mod de `app.config.ts` ; contrôle : `npx expo config --type introspect`). Le mode `audio` sert à la sonnerie d'une offre reçue pendant la navigation : si Apple le conteste (usage d'alerte plutôt que de lecture), le retirer (option `enableBackgroundPlayback: false` du greffon `expo-audio`, nouveau build) et compter sur le son de la notification push de l'offre, qui joue sans ce mode. Google Play : déclarer aussi le type de service de premier plan « lecture multimédia » (`FOREGROUND_SERVICE_MEDIA_PLAYBACK`) dans la console, avec la même justification.
 
 ## Données réellement collectées par l'application (V1)
 
@@ -118,7 +119,7 @@ Aucune donnée utilisée pour le suivi (tracking).
 | Question | Réponse |
 |---|---|
 | Données chiffrées en transit | Oui |
-| Suppression des données | Dans l'application (Profil) et par l'URL de suppression (à créer) ; certaines données sont conservées par obligation légale (factures et registres 7 ans, documents 12 mois après la fin de la relation) : le préciser dans la fiche |
+| Suppression des données | Dans l'application (Profil) et par l'URL de suppression https://reserver.neomoov.net/supprimer-mon-compte ; certaines données sont conservées par obligation légale (factures et registres 7 ans, documents 12 mois après la fin de la relation) : le préciser dans la fiche |
 | Partage | Non au sens de Google : la position et le prénom montrés au client découlent de la course acceptée ; l'export de géolocalisation pseudonymisé est une obligation légale, exemptée de la déclaration de partage. À faire valider par l'avocat |
 
 | Catégorie Google | Types | Facultatif | Finalités |
@@ -149,7 +150,7 @@ Aucune donnée utilisée pour le suivi (tracking).
 
 > Neomoov Driver is the app professional drivers use to receive and complete ride bookings. Background location is the core feature: while the driver is **online**, the app sends their location every 5 seconds (or 50 metres) so that (1) the dispatch can offer them the nearest bookings, (2) the client can see the driver approaching and (3) safety features (SOS) know where the driver is. Drivers typically navigate in Google Maps or Waze, so Neomoov Driver runs in the background during the ride. As soon as the driver goes **offline**, location updates stop completely and no location leaves the device. An in-app explanation screen is shown before the system permission prompt. On Android, a persistent foreground-service notification ("Neomoov Driver online") is displayed while location is shared.
 >
-> Demo account: phone number and fixed code in the "Sign-In Information" fields; the account is an approved driver with a vehicle and approved documents. Ride offers are only sent for bookings inside the Montréal service area: the attached video shows an offer being received and completed. Account deletion: Profile > "Delete my account".
+> Demo account: phone number and fixed code in the "Sign-In Information" fields; the account is an approved driver with a vehicle and approved documents. Ride offers are only sent for bookings inside the Montréal service area: the attached video shows an offer being received and completed. Account deletion: Profile > "Delete my account", or without the app at https://reserver.neomoov.net/supprimer-mon-compte.
 
 Version française (fiche Google Play en français) : la justification de la section « Autorisations » ci-dessus.
 
@@ -171,7 +172,7 @@ Les examinateurs ne reçoivent pas les textos. **Bloquant** : l'API n'a aucun m�
 
 ## Captures d'écran
 
-Les captures de `docs/screens/driver/` viennent de la version web (même limite que pour l'application client : tailles refusées par les deux magasins). Les refaire sur appareils réels avec le compte de démonstration : accueil en ligne, offre, course acceptée, en route, fin de course, revenus, relevé, documents, formation, tableau de conduite.
+Les captures de `docs/screens/driver/` viennent de la version web (même limite que pour l'application client : tailles refusées par les deux magasins). Les refaire sur appareils réels avec le compte de démonstration : accueil en ligne, offre, course acceptée, en route, fin de course, revenus, relevé, documents, formation, tableau de conduite. Tailles exactes et procédure : `verification-soumission.md`, section 7.
 
 ## Builds (EAS)
 

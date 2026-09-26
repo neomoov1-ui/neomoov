@@ -14,8 +14,8 @@ import { disconnectRealtime } from '@/lib/realtime';
 import { useSession } from '@/lib/session';
 
 /**
- * Profil : langue, préférences de confort, lieux enregistrés, consentements, droits (copie des données), assistance,
- * déconnexion et suppression du compte dans l'application (exigence des magasins).
+ * Profil : langue, préférences de confort, lieux enregistrés, consentements, droits (copie des données), factures,
+ * assistance, déconnexion et suppression du compte dans l'application (exigence des magasins).
  */
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -153,6 +153,7 @@ export default function ProfileScreen() {
         await api.me.createDataRequest({ type: 'access' });
       }, t('profile.dataRequested'))} disabled={busy} />
 
+      <Button label={t('profile.invoices')} variant="ghost" onPress={() => router.push('/invoices')} />
       <Button label={t('profile.support')} variant="ghost" onPress={() => router.push('/support')} />
       <Button label={t('profile.logout')} variant="ghost" onPress={() => void logout()} disabled={busy} />
       <Button label={t('profile.deleteAccount')} variant="danger" onPress={() => setConfirmDelete(true)} disabled={busy} />

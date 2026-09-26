@@ -7,9 +7,11 @@
 // d'où le code SMS simulé est lu), export web servi sur le port 8081 (`npx expo export --platform web` puis
 // `node e2e/serve-web.cjs dist 8081`).
 // Usage : API_LOG=<journal de l'API> node e2e/web-journeys.cjs [dossier des captures, défaut docs/screens/client]
+// Taille d'écran : SHOT_DEVICE=iphone-6.9, iphone-6.5 ou android pour les captures des magasins (scripts/e2e/cdp.cjs).
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { screenMetrics } = require('../../../scripts/e2e/cdp.cjs');
 
 const API_LOG = process.env.API_LOG;
 if (!API_LOG) throw new Error("API_LOG : chemin du journal de l'API locale, requis pour lire le code SMS simulé");
@@ -187,7 +189,7 @@ async function main() {
     page = new Page(ws);
     await page.send('Page.enable');
     await page.send('Runtime.enable');
-    await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await page.send('Emulation.setDeviceMetricsOverride', screenMetrics());
     await page.send('Emulation.setTimezoneOverride', { timezoneId: 'America/Toronto' }).catch(() => undefined);
 
     // Parcours 1 (9.2) : accueil, création du compte par code SMS, conditions, consentements.

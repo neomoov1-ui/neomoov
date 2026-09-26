@@ -1,8 +1,8 @@
 /**
  * Règles d'affichage de la réservation, sans React Native (testées par vitest) : créneaux de prise en charge selon le
- * préavis (D32), lignes du détail de prix telles que l'API les renvoie, cartes des catégories.
+ * préavis (D32), lignes du détail de prix telles que l'API les renvoie, cartes des catégories, modes de paiement.
  */
-import type { AppConfig, QuoteView, QuotesResponse, VehicleCategory } from '@neomoov/domain';
+import type { AppConfig, PaymentChoice, PaymentMethod, QuoteView, QuotesResponse, VehicleCategory } from '@neomoov/domain';
 
 export const SLOT_MINUTES = 15;
 
@@ -111,6 +111,39 @@ export function categoryCards(response: Pick<QuotesResponse, 'quotes'>, categori
     cards.push({ code: category.code, name: category.name, seats: category.seats, models: category.allowedModels, quote, etaSeconds: quote.eta.status === 'estimated' ? quote.eta.seconds : null });
   }
   return cards;
+}
+
+/** Paiement au chauffeur après la course (D35, amendement v1.1) : modes que le chauffeur peut accepter. */
+const PAY_AFTER_METHODS: readonly PaymentMethod[] = ['cash', 'interac', 'terminal'];
+
+/** Prépaiement dans l'application : la carte partout, Apple Pay sur iPhone, Google Pay sur Android. */
+function prepaidMethodsFor(platform: string): readonly PaymentMethod[] {
+  return ['card_app', ...(platform === 'ios' ? (['apple_pay'] as const) : platform === 'android' ? (['google_pay'] as const) : [])];
+}
+
+export interface PaymentOptions {
+  prepaid: PaymentMethod[];
+  payAfter: PaymentMethod[];
+}
+
+/**
+ * Modes de paiement proposés (5.6, D35), jamais codés en dur : seulement ceux que renvoie le devis (`paymentMethods`).
+ * L'API retire la carte quand le paiement réel n'est pas branché, et le paiement au chauffeur quand aucun chauffeur ne
+ * l'accepte ; un véhicule choisi (D37) limite en plus le paiement au chauffeur aux modes que son chauffeur accepte.
+ */
+export function paymentOptions(offered: readonly PaymentMethod[], platform: string, vehicleMethods: readonly PaymentMethod[] | null = null): PaymentOptions {
+  return {
+    prepaid: prepaidMethodsFor(platform).filter((m) => offered.includes(m)),
+    payAfter: PAY_AFTER_METHODS.filter((m) => offered.includes(m) && (!vehicleMethods || vehicleMethods.includes(m))),
+  };
+}
+
+/** Choix retenu : celui du client s'il est encore proposé, sinon l'autre ; null quand aucun mode n'est disponible. */
+export function effectivePaymentChoice(options: PaymentOptions, wanted: PaymentChoice): PaymentChoice | null {
+  const available = (choice: PaymentChoice) => (choice === 'prepaid' ? options.prepaid : options.payAfter).length > 0;
+  if (available(wanted)) return wanted;
+  const other: PaymentChoice = wanted === 'prepaid' ? 'pay_driver_after' : 'prepaid';
+  return available(other) ? other : null;
 }
 
 /** Proposition de négociation (V1.1) : bornes du curseur, au dollar, entre le plancher et le prix affiché. */

@@ -1,6 +1,7 @@
 import type { RideView } from '@neomoov/domain';
-import { MutationCache, QueryCache, QueryClient, useQuery } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient, useQueries, useQuery } from '@tanstack/react-query';
 import { ApiError } from '@neomoov/api-client';
+import { sortInvoices } from '@/features/invoices/logic';
 import { api } from './api';
 import { POLL_FALLBACK_MS } from './config';
 import { reportMobileError } from './observability';
@@ -30,6 +31,8 @@ export const keys = {
   offers: (id: string) => ['offers', id] as const,
   messages: (id: string) => ['messages', id] as const,
   vehicles: (quoteId: string) => ['vehicles', quoteId] as const,
+  invoices: ['invoice'] as const,
+  invoice: (rideId: string) => ['invoice', rideId] as const,
 };
 
 /** Configuration publique (drapeaux distants, préavis, catégories), relue au plus toutes les 5 minutes. */
@@ -56,6 +59,32 @@ export function useConsents() {
 /** Dernières courses du client (la liste est triée par l'API, la plus récente d'abord). */
 export function useRides() {
   return useQuery({ queryKey: keys.rides, queryFn: async () => (await api.rides.list({ limit: 50 })).items, enabled: useSignedIn() });
+}
+
+/**
+ * Factures des courses données, la plus récente d'abord : une requête par course, faute de liste des factures du client
+ * dans l'API. Une course sans facture (404) donne null ; une facture émise ne change plus, seuls son PDF et ses notes de
+ * crédit sont relus à l'actualisation.
+ */
+export function useRideInvoices(rideIds: readonly string[]) {
+  const signedIn = useSignedIn();
+  return useQueries({
+    queries: rideIds.map((rideId) => ({
+      queryKey: keys.invoice(rideId),
+      queryFn: () =>
+        api.invoicing.rideInvoice(rideId).catch((error: unknown) => {
+          if (error instanceof ApiError && error.status === 404) return null;
+          throw error;
+        }),
+      enabled: signedIn,
+      staleTime: 5 * 60_000,
+    })),
+    combine: (results) => ({
+      invoices: sortInvoices(results.map((r) => r.data)),
+      loading: results.some((r) => r.isPending),
+      failed: results.some((r) => r.isError),
+    }),
+  });
 }
 
 const TERMINAL: ReadonlyArray<RideView['state']> = ['completed', 'rated', 'disputed', 'no_driver', 'cancelled_by_client', 'no_show', 'interrupted', 'expired'];

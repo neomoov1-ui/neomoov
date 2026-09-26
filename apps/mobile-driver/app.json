@@ -13,7 +13,7 @@
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
         "CFBundleDevelopmentRegion": "fr-CA",
-        "UIBackgroundModes": ["location", "fetch", "remote-notification"],
+        "UIBackgroundModes": ["location"],
         "LSApplicationQueriesSchemes": ["comgooglemaps", "waze"]
       }
     },

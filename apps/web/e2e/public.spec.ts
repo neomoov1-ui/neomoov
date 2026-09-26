@@ -35,7 +35,10 @@ test('réservation web sans compte : prix garanti, vérification SMS, confirmati
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: 'Vérifier le code' }).click();
   await expect(page.getByText('Numéro vérifié.')).toBeVisible();
-  await expect(page.getByLabel(/Payer par carte/)).toBeDisabled();
+  // Modes du devis seulement : paiement au chauffeur (le premier proposé est choisi), jamais de carte sur le web.
+  const payment = page.getByRole('group', { name: 'Paiement' });
+  await expect(payment.getByRole('radio').first()).toBeChecked();
+  await expect(page.getByLabel(/par carte/)).toHaveCount(0);
   await page.getByLabel('Demandes spéciales (facultatif)').fill('Deux valises');
   await shot(page, '27-reservation-coordonnees');
   await page.getByRole('button', { name: 'Confirmer la réservation' }).click();
@@ -89,6 +92,32 @@ test('page des droits : vérification du numéro, dépôt et suivi d\'une demand
   await expect(page.getByText('Demande reçue.')).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Accès à mes données' }).first()).toBeVisible();
   await shot(page, '31-droits');
+});
+
+test('suppression du compte sans l\'application : démarche, données gardées, confirmation', async ({ page }) => {
+  const phone = randomPhone('+1438565');
+  await signUp(phone);
+  await sql()`UPDATE otp_codes SET created_at = created_at - interval '5 minutes' WHERE phone = ${phone}`;
+  const [account] = await sql()`SELECT id FROM users WHERE phone = ${phone}`;
+  await page.goto('/supprimer-mon-compte');
+  await expect(page.getByRole('heading', { name: 'Supprimer votre compte Neomoov' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ce qui est supprimé' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ce qui est conservé, et combien de temps' })).toBeVisible();
+  await page.getByLabel('Téléphone mobile').fill(phone);
+  const since = Date.now() - 1000;
+  await page.getByRole('button', { name: 'Recevoir le code' }).click();
+  await page.getByLabel('Code reçu par texto').fill(await smsCode(phone, since));
+  await page.getByRole('button', { name: 'Vérifier le code' }).click();
+  const confirm = page.getByRole('button', { name: 'Supprimer définitivement mon compte' });
+  await expect(confirm).toBeDisabled();
+  await page.getByLabel(/Je comprends que la suppression est définitive/).check();
+  await shot(page, '32-suppression-compte');
+  await confirm.click();
+  await expect(page.getByRole('heading', { name: 'Votre compte est supprimé' })).toBeVisible();
+  // Accès coupé tout de suite (statut), anonymisation ensuite par la file `privacy`.
+  const [user] = await sql()`SELECT status FROM users WHERE id = ${account?.['id']}`;
+  await closeSql();
+  expect(user?.['status']).toBe('deleted');
 });
 
 test('en-têtes : réservation intégrable sur les domaines autorisés, le reste jamais en iframe', async ({ request }) => {
