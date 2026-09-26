@@ -30,6 +30,8 @@ export { RidesModule } from './modules/rides/rides.module.js';
 export { PaymentsModule } from './modules/payments/payments.module.js';
 export { PaymentsService } from './modules/payments/payments.service.js';
 export { PaymentJobsService } from './modules/payments/payment-jobs.service.js';
+export { SettlementModule } from './modules/settlement/settlement.module.js';
+export { SettlementJobsService } from './modules/settlement/settlement-jobs.service.js';
 export { RidesService } from './modules/rides/rides.service.js';
 export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';

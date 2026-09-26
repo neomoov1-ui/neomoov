@@ -21,6 +21,7 @@ export * from './driver.js';
 export * from './admin.js';
 export * from './payments.js';
 export * from './growth.js';
+export * from './settlement.js';
 import { PAYMENT_CHOICES } from './rides.js';
 import { driverJobSchema } from './driver.js';
 import { dispatchSummarySchema, negotiationSummarySchema } from './dispatch.js';
