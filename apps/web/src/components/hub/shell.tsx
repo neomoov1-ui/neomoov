@@ -16,7 +16,7 @@ const NAV: Array<{ group: string; items: Array<{ key: string; href: string }> }>
   { group: 'drivers', items: [{ key: 'drivers', href: '/hub/chauffeurs' }, { key: 'documents', href: '/hub/documents' }, { key: 'vehicles', href: '/hub/vehicules' }] },
   { group: 'clients', items: [{ key: 'clients', href: '/hub/clients' }, { key: 'leads', href: '/hub/prospects' }] },
   { group: 'offer', items: [{ key: 'tariffs', href: '/hub/tarifs' }, { key: 'zones', href: '/hub/zones' }, { key: 'offers', href: '/hub/offres' }] },
-  { group: 'finance', items: [{ key: 'statements', href: '/hub/releves' }, { key: 'invoices', href: '/hub/factures' }] },
+  { group: 'finance', items: [{ key: 'statements', href: '/hub/releves' }, { key: 'invoices', href: '/hub/factures' }, { key: 'ledgers', href: '/hub/registres' }] },
   { group: 'safety', items: [{ key: 'incidents', href: '/hub/incidents' }, { key: 'dataRequests', href: '/hub/demandes' }] },
   { group: 'intelligence', items: [{ key: 'agents', href: '/hub/agents' }, { key: 'reports', href: '/hub/rapports' }] },
   { group: 'admin', items: [{ key: 'settings', href: '/hub/parametres' }, { key: 'staff', href: '/hub/equipe' }, { key: 'audit', href: '/hub/journal' }] },

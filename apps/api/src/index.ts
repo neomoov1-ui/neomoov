@@ -37,3 +37,5 @@ export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';
 export { PackLifecycleService } from './modules/rides/pack-lifecycle.service.js';
 export { DispatchService } from './modules/rides/dispatch.service.js';
+export { LedgersModule } from './modules/ledgers/ledgers.module.js';
+export { LedgerJobsService } from './modules/ledgers/ledger-jobs.service.js';

@@ -1,5 +1,5 @@
 import {
-  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
   QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
@@ -125,13 +125,30 @@ export class SettlementWorker implements OnModuleInit {
   }
 }
 
+/**
+ * Registres et exports (étape 9) : avec Redis, le worker traite la file `exports` (lignes des registres à la fin des
+ * courses, rapports de synthèse PDF, exports de géolocalisation) et porte la passe horaire (reprise des registres,
+ * export de géolocalisation du mois précédent dès le 1er). Sans Redis, c'est l'API.
+ */
+@Injectable()
+export class LedgersWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: LedgerJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register({ everyMs: 3_600_000 });
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker],
     };
   }
 }
