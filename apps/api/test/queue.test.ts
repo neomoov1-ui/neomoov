@@ -1,7 +1,15 @@
 import { pino } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
-import { QueueService } from '../src/infra/queue.module.js';
+import { bullJobId, QueueService } from '../src/infra/queue.module.js';
 import { CHECK_TIMEOUT_MS, withTimeout } from '../src/modules/health/health.service.js';
+
+describe('identifiants de tâche BullMQ', () => {
+  it('un identifiant lisible à deux segments devient acceptable pour BullMQ (aucun « : »)', () => {
+    expect(bullJobId('completed:5b0c')).toBe('completed-5b0c');
+    expect(bullJobId('released:5b0c:1790000000')).toBe('released-5b0c-1790000000');
+    expect(bullJobId('pdf-5b0c')).toBe('pdf-5b0c');
+  });
+});
 
 describe('files en mode mémoire (sans Redis)', () => {
   it('compte et journalise les tâches ajoutées sans traitement enregistré, au lieu de les perdre en silence', async () => {

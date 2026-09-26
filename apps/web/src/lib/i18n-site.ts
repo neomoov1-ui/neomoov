@@ -24,6 +24,10 @@ const fr = {
     title: 'Suivi de la course {{number}}', driver: 'Chauffeur', vehicle: 'Véhicule', eta: 'Arrivée estimée dans {{minutes}} min', destination: 'Destination', pickup: 'Prise en charge prévue',
     updated: 'Mis à jour à {{time}}', notFound: 'Ce lien de suivi est invalide.', expired: 'Ce lien de suivi a expiré.', waiting: 'Un chauffeur sera attribué avant la prise en charge.', live: 'Position en direct',
   },
+  verifyInvoice: {
+    title: 'Vérification d\'une facture', subtitle: 'Code QR imprimé sur une facture ou une note de crédit Neomoov.', valid: 'Facture authentique', number: 'Numéro',
+    kind: 'Nature', issued: 'Émise le', supplier: 'Fournisseur du transport', total: 'Total', sev: 'Enregistrement des ventes', invalid: 'Ce code de vérification est invalide ou altéré.', missing: 'Aucun code de vérification dans le lien.',
+  },
   driversPage: {
     title: 'Devenez chauffeur Neomoov',
     subtitle: 'Une application conçue par un chauffeur pour les chauffeurs : prix fixes connus avant d\'accepter, négociation encadrée, versements rapides et une vraie équipe derrière vous.',
@@ -69,6 +73,10 @@ const en: typeof fr = {
   track: {
     title: 'Tracking ride {{number}}', driver: 'Driver', vehicle: 'Vehicle', eta: 'Estimated arrival in {{minutes}} min', destination: 'Destination', pickup: 'Scheduled pickup',
     updated: 'Updated at {{time}}', notFound: 'This tracking link is invalid.', expired: 'This tracking link has expired.', waiting: 'A driver will be assigned before pickup.', live: 'Live position',
+  },
+  verifyInvoice: {
+    title: 'Invoice verification', subtitle: 'QR code printed on a Neomoov invoice or credit note.', valid: 'Authentic invoice', number: 'Number',
+    kind: 'Type', issued: 'Issued on', supplier: 'Transport supplier', total: 'Total', sev: 'Sales recording', invalid: 'This verification code is invalid or has been altered.', missing: 'No verification code in the link.',
   },
   driversPage: {
     title: 'Drive with Neomoov',

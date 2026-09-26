@@ -459,6 +459,9 @@ export class PaymentsService {
       if (already + input.amountCents >= payment.capturedCents) await this.db.update(schema.payments).set({ status: 'refunded' }).where(eq(schema.payments.id, payment.id));
       await this.journal(rideId, 'payment_refunded', { amountCents: input.amountCents, mode: 'refund' });
       this.audit.record({ action: 'payment.refunded', entity: 'refunds', entityId: row!.id, after: { rideId, amountCents: input.amountCents, reason: input.reason, mode: 'refund' } });
+      // Étape 9 : la facturation émet la note de crédit d'un remboursement réussi ; un remboursement encore en attente chez
+      // Stripe la reçoit quand le webhook le confirme (`refund.updated`, `charge.refunded`).
+      if (row!.status === 'succeeded') this.events.emit('payment.refunded', { refundId: row!.id, rideId, paymentId: payment.id, amountCents: input.amountCents, mode: 'refund', occurredAt: row!.createdAt });
       return this.refundView(row!);
     }
 
@@ -477,6 +480,8 @@ export class PaymentsService {
     });
     await this.journal(rideId, 'payment_refunded', { amountCents: input.amountCents, mode: 'credit' });
     this.audit.record({ action: 'payment.credited', entity: 'refunds', entityId: row.id, after: { rideId, amountCents: input.amountCents, reason: input.reason, mode: 'credit' } });
+    // Étape 9 : un remboursement en crédit donne aussi une note de crédit.
+    this.events.emit('payment.refunded', { refundId: row.id, rideId, paymentId: payment.id, amountCents: input.amountCents, mode: 'credit', occurredAt: row.createdAt });
     return this.refundView(row);
   }
 
@@ -623,7 +628,20 @@ export class PaymentsService {
         const refundIds = event.type === 'refund.updated' ? [id] : ((object['refunds'] as { data?: Array<{ id: string; status: string }> } | undefined)?.data ?? []).map((r) => r.id);
         const status = event.type === 'refund.updated' ? String(object['status']) : 'succeeded';
         if (!refundIds.length) return false;
-        await this.db.update(schema.refunds).set({ status: status === 'succeeded' ? 'succeeded' : status === 'failed' || status === 'canceled' ? 'failed' : 'pending' }).where(inArray(schema.refunds.stripeRefundId, refundIds));
+        const next = status === 'succeeded' ? 'succeeded' : status === 'failed' || status === 'canceled' ? 'failed' : 'pending';
+        const changed = await this.db
+          .update(schema.refunds)
+          .set({ status: next })
+          .where(and(inArray(schema.refunds.stripeRefundId, refundIds), ne(schema.refunds.status, next)))
+          .returning({ id: schema.refunds.id, paymentId: schema.refunds.paymentId, amountCents: schema.refunds.amountCents, mode: schema.refunds.mode });
+        // Étape 9 : un remboursement qui devient réussi reçoit sa note de crédit (facturation).
+        if (next === 'succeeded' && changed.length) {
+          const owners = await this.db.select({ id: schema.payments.id, rideId: schema.payments.rideId }).from(schema.payments).where(inArray(schema.payments.id, changed.map((r) => r.paymentId)));
+          for (const r of changed) {
+            const rideId = owners.find((p) => p.id === r.paymentId)?.rideId;
+            if (rideId) this.events.emit('payment.refunded', { refundId: r.id, rideId, paymentId: r.paymentId, amountCents: r.amountCents, mode: r.mode === 'credit' ? 'credit' : 'refund', occurredAt: new Date() });
+          }
+        }
         return true;
       }
       case 'charge.dispute.created': {

@@ -176,20 +176,54 @@ export interface VoiceProvider {
   verifyWebhook(rawBody: string | Buffer, signature: string): Promise<{ type: string; payload: unknown }>;
 }
 
-export interface SevInvoiceInput {
-  invoiceNumber: string;
-  supplier: { name: string; gstNumber?: string; qstNumber?: string };
-  totalCents: number;
+/**
+ * Document transmis au système d'enregistrement des ventes (SEV, section 5.13) : facture d'une course, facture de frais
+ * d'annulation ou de non-présentation, note de crédit. Contrat de l'adaptateur réel : docs/sev-adapter.md.
+ */
+export interface SevDocument {
+  /** Identifiant de la facture chez Neomoov : clé d'idempotence (une facture rejouée n'est enregistrée qu'une fois). */
+  invoiceId: string;
+  kind: 'ride' | 'cancellation' | 'no_show' | 'credit_note';
+  /** Numéro global (NM-0001841) et numéro séquentiel du fournisseur (le chauffeur). */
+  number: string;
+  supplierSequence: number;
+  issuedAt: Date;
+  supplier: { name: string; publicNumber: string; gstNumber: string | null; qstNumber: string | null };
+  platform: { name: string; gstNumber: string | null; qstNumber: string | null };
+  paymentMethod: string;
+  /** Lignes signées ; `party` dit qui facture (chauffeur ou Neomoov). Montants positifs sur une note de crédit. */
+  lines: Array<{ code: string; label: string; amountCents: number; party: 'driver' | 'platform' }>;
   gstCents: number;
   qstCents: number;
-  issuedAt: Date;
-  lines: Array<{ label: string; amountCents: number }>;
+  tipCents: number;
+  totalCents: number;
+  /** Note de crédit : facture d'origine et sa transaction au SEV. */
+  original: { number: string; transactionId: string } | null;
 }
 
+export interface SevReceipt {
+  transactionId: string;
+  /** `acknowledged` : enregistrée et accusée ; `sent` : reçue, accusé attendu (fournisseur asynchrone). */
+  status: 'acknowledged' | 'sent';
+  /** Données de code QR imposées par le SEV, s'il y en a (à confirmer avec le fournisseur). */
+  qrPayload?: string | null;
+  /** Réponse brute utile au support, sans secret. */
+  raw?: Record<string, unknown>;
+}
+
+/**
+ * Facturation certifiée (SEV) : simulée en V1, fournisseur certifié à choisir (docs/sev-adapter.md). Chaque méthode
+ * lance une erreur quand l'enregistrement échoue (réseau, refus) : l'appelant la consigne et réessaie plus tard.
+ */
 export interface SevProvider {
   readonly name: string;
-  transmitInvoice(invoice: SevInvoiceInput): Promise<{ transactionId: string; qrPayload: string }>;
-  transmitCancellation(input: { originalTransactionId: string; reason: string }): Promise<{ transactionId: string }>;
+  /** Facture d'une course terminée. */
+  registerSale(document: SevDocument): Promise<SevReceipt>;
+  /** Facture de frais d'annulation ou de non-présentation. */
+  registerCancellation(document: SevDocument): Promise<SevReceipt>;
+  /** Note de crédit (remboursement), rattachée à la transaction de la facture d'origine. */
+  registerCredit(document: SevDocument): Promise<SevReceipt>;
+  healthcheck(): Promise<{ ok: boolean; latencyMs: number | null; detail: string | null }>;
 }
 
 export interface LlmMessage {

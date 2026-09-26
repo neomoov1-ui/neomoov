@@ -7,6 +7,7 @@ import { schema } from '@neomoov/db';
 import {
   localDate, maskEmail, maskPhone, validateRing, type AdminApproval, type AdminClient, type AdminIncident, type AdminListQuery, type Page, type UserRole, type VehicleCategory,
 } from '@neomoov/domain';
+import { SEV_STATUSES, type AdminInvoice } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, or, sql, type SQL } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
@@ -236,14 +237,16 @@ export class AdminDirectoryService {
   }
 
   async invoices(query: AdminListQuery) {
-    const where = query.status ? eq(schema.invoices.sevStatus, query.status as typeof schema.invoices.$inferSelect['sevStatus']) : undefined;
+    // Étape 9 : un état SEV inconnu ne filtre rien (plutôt qu'une erreur de la base) ; recherche par numéro de facture.
+    const status = (SEV_STATUSES as readonly string[]).includes(query.status ?? '') ? (query.status as typeof schema.invoices.$inferSelect['sevStatus']) : null;
+    const where = and(status ? eq(schema.invoices.sevStatus, status) : undefined, query.q ? ilike(schema.invoices.number, like(query.q)) : undefined);
     const { limit, offset } = pageArgs(query);
     const [rows, [total]] = await Promise.all([
       this.db.select().from(schema.invoices).where(where).orderBy(desc(schema.invoices.issuedAt)).limit(limit).offset(offset),
       this.db.select({ n: count() }).from(schema.invoices).where(where),
     ]);
     return {
-      items: rows.map((i) => ({ id: i.id, number: i.number, rideId: i.rideId, supplierName: i.supplierName, totalCents: i.totalCents, paymentMethod: i.paymentMethod, sevStatus: i.sevStatus, sevTransactionId: i.sevTransactionId, issuedAt: i.issuedAt.toISOString() })),
+      items: rows.map((i) => ({ id: i.id, number: i.number, kind: i.kind as AdminInvoice['kind'], rideId: i.rideId, supplierName: i.supplierName, totalCents: i.totalCents, paymentMethod: i.paymentMethod, sevStatus: i.sevStatus, sevTransactionId: i.sevTransactionId, issuedAt: i.issuedAt.toISOString() })),
       total: total?.n ?? 0, page: query.page, pageSize: query.pageSize,
     };
   }

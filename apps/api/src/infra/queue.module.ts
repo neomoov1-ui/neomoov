@@ -17,6 +17,15 @@ export interface QueueStats {
   dropped?: number;
 }
 
+/**
+ * Identifiant de tâche accepté par BullMQ : un « : » n'y est permis que pour trois segments exactement (compatibilité des
+ * anciennes tâches répétées), sinon l'ajout échoue (« Custom Id cannot contain : »). Les appelants gardent des
+ * identifiants lisibles (`completed:<course>`), normalisés ici.
+ */
+export function bullJobId(id: string): string {
+  return id.replace(/:/g, '-');
+}
+
 interface MemoryJob {
   name: string;
   data: unknown;
@@ -57,7 +66,7 @@ export class QueueService implements OnModuleDestroy {
   async add(name: QueueName, jobName: string, data: unknown, options?: JobsOptions): Promise<void> {
     const q = this.queue(name);
     if (q) {
-      await q.add(jobName, data, options);
+      await q.add(jobName, data, options?.jobId ? { ...options, jobId: bullJobId(options.jobId) } : options);
       return;
     }
     const handler = this.memoryHandlers.get(name);
