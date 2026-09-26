@@ -35,9 +35,7 @@ Un ajustement (crédit ou débit, motif obligatoire, repris comme libellé de la
 
 ### Relevé déjà émis
 
-Un relevé émis ne change plus (il est parti au chauffeur avec son PDF). La correction se fait sur le brouillon de la semaine suivante : générer la semaine en cours (lundi de cette semaine) pour ce chauffeur, puis ajuster ce brouillon avec un motif qui cite le relevé corrigé.
-
-Limite connue : un brouillon n'existe que si le chauffeur a au moins une ligne (course ou pack) sur la semaine. Un chauffeur sans activité la semaine suivante n'a pas de brouillon à ajuster ; la correction attend sa prochaine activité. Signalé comme manque au code.
+Un relevé émis ne change plus (il est parti au chauffeur avec son PDF). La correction se fait sur le brouillon de la semaine en cours : sur la fiche du relevé émis, **Préparer une correction** ouvre ce brouillon pour le chauffeur (créé même s'il n'a encore aucune course cette semaine), puis **Ajuster** avec un motif qui cite le relevé corrigé. L'ajustement part avec le relevé de la semaine, émis le vendredi suivant.
 
 ## Émettre et régler à la main
 

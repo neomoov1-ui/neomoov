@@ -3,13 +3,20 @@
 import type { StatementLineView } from '@neomoov/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EnumBadge, ErrorBlock, Loading, useErrorText, useHubUser, useLang } from '@/components/hub/common';
 import { Action, Card, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, focus, type Column } from '@/components/ui/kit';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 import { FINANCE_ROLES, hubApi } from '@/lib/hub-api';
+
+/** Lundi (AAAA-MM-JJ) de la semaine d'une date, heure locale du navigateur. */
+function mondayOf(date: Date): string {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 /** Détail d'un relevé : lignes, totaux, règlement ; émission, règlement, ajustement motivé et PDF (étape 9). */
 export default function StatementDetailPage() {
@@ -20,6 +27,15 @@ export default function StatementDetailPage() {
   const queryClient = useQueryClient();
   const finance = useHubUser().roles.some((r) => FINANCE_ROLES.includes(r));
   const [adjusting, setAdjusting] = useState(false);
+  const router = useRouter();
+  // Correction d'un relevé émis : brouillon de la semaine en cours pour ce chauffeur (créé vide s'il le faut), puis ajustement.
+  const correction = useMutation({
+    mutationFn: (driverId: string) => hubApi.admin.generateStatements({ periodStart: mondayOf(new Date()), driverId, allowEmpty: true }),
+    onSuccess: (data) => {
+      const draft = data.statements[0];
+      if (draft?.id) router.push(`/hub/releves/${draft.id}`);
+    },
+  });
   const detail = useQuery({ queryKey: ['hub', 'statement', id], queryFn: () => hubApi.admin.statement(id) });
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ['hub', 'statement', id] });
@@ -49,11 +65,14 @@ export default function StatementDetailPage() {
         actions={<EnumBadge group="statementStatus" value={s.status} />}
       />
       {action.isError ? <Notice tone="danger">{errorText(action.error)}</Notice> : null}
+      {correction.isError ? <Notice tone="danger">{errorText(correction.error)}</Notice> : null}
+      {finance && s.status !== 'draft' ? <Notice tone="info">{t('hub.statements.correctionHint')}</Notice> : null}
 
       <div className="flex flex-wrap items-center gap-2">
         {finance && s.status === 'draft' ? <Action busy={action.isPending} onClick={() => action.mutate(() => hubApi.admin.issueStatement(id))}>{t('hub.statements.issue')}</Action> : null}
         {finance && (s.status === 'issued' || s.status === 'failed') ? <Action busy={action.isPending} onClick={() => action.mutate(() => hubApi.admin.payStatement(id))}>{t('hub.statements.pay')}</Action> : null}
         {finance && s.status === 'draft' ? <Action tone="secondary" onClick={() => setAdjusting(true)}>{t('hub.statements.adjust')}</Action> : null}
+        {finance && s.status !== 'draft' ? <Action tone="secondary" busy={correction.isPending} onClick={() => correction.mutate(s.driverId)}>{t('hub.statements.prepareCorrection')}</Action> : null}
         {s.pdfAvailable ? (
           <a className={`rounded-md px-3 py-2 text-sm font-semibold text-brand-blue-dark underline ${focus}`} href={`/api/v1${hubApi.admin.statementPdfPath(id)}`} target="_blank" rel="noreferrer">{t('hub.statements.pdf')}</a>
         ) : s.status !== 'draft' ? <span className="text-sm text-neutral-600">{t('hub.statements.pdfPending')}</span> : null}
