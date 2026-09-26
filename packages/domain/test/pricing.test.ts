@@ -123,6 +123,16 @@ describe('Offre Flex, Priorité et chauffeur favori', () => {
   ])('isPeakHours, %s', (_label, iso, expected) => {
     expect(isPeakHours(new Date(iso), rules.peakWindows, rules.timeZone)).toBe(expected);
   });
+  // Revue 17.B : plage de pointe qui passe minuit (vendredi et samedi, 22 h à 2 h, réglage D29) ; la partie après minuit
+  // appartient au lendemain et n'était jamais reconnue (Offre Flex accordée avec sa remise en pleine pointe).
+  it.each([
+    ['vendredi 23 h', '2026-09-26T03:00:00Z', true], ['samedi 1 h (nuit de vendredi)', '2026-09-26T05:00:00Z', true],
+    ['samedi 2 h, fin exclue', '2026-09-26T06:00:00Z', false], ['dimanche 1 h (nuit de samedi)', '2026-09-27T05:00:00Z', true],
+    ['lundi 1 h (dimanche hors plage)', '2026-09-28T05:00:00Z', false], ['vendredi 1 h (jeudi hors plage)', '2026-09-25T05:00:00Z', false],
+    ['samedi 21 h 59', '2026-09-27T01:59:00Z', false],
+  ])('isPeakHours, plage qui passe minuit, %s', (_label, iso, expected) => {
+    expect(isPeakHours(new Date(iso), [{ days: [5, 6], startMinute: 1320, endMinute: 1560 }], 'America/Toronto')).toBe(expected);
+  });
   it('localTimeParts : dimanche vaut 0', () => {
     expect(localTimeParts(new Date('2026-09-27T16:05:00Z'), 'America/Toronto')).toEqual({ weekday: 0, hour: 12, minute: 5 });
   });
