@@ -27,6 +27,16 @@ type StatementRow = typeof schema.weeklyStatements.$inferSelect;
 const LOOKBACK_DAYS = 56;
 const NO_STATEMENT = '00000000-0000-4000-8000-000000000000';
 const ADJUSTMENTS = new Set(['adjustment_positive', 'adjustment_negative']);
+/**
+ * Éléments d'une course qui peuvent arriver après l'émission de son relevé : pourboire laissé plus tard, garantie modèle
+ * validée plus tard (reprise du tarif). Seule la différence avec ce que portent déjà les relevés émis passe au relevé
+ * suivant (revue 17.B) ; les autres natures d'une course réglée ne sont jamais recalculées.
+ */
+const LATE_KINDS = ['tip_platform', 'adjustment_negative'] as const;
+const LATE_LABELS: Record<(typeof LATE_KINDS)[number], string> = {
+  tip_platform: 'Pourboire reçu après le relevé',
+  adjustment_negative: 'Garantie modèle validée après le relevé, course remboursée',
+};
 
 type RideRow = {
   id: string;
@@ -45,6 +55,8 @@ type RideRow = {
   guarantee_outcome: string | null;
   driver_fare_protected: boolean;
   at: string;
+  /** La course figure déjà sur un relevé émis (seuls ses éléments arrivés en retard peuvent encore passer). */
+  on_issued: boolean;
 };
 
 interface DriverInfo {
@@ -147,6 +159,17 @@ export class StatementsService {
         AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
         AND NOT EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND ws.status <> 'draft')
       UNION
+      SELECT DISTINCT r.driver_id FROM rides r
+      WHERE r.driver_id IS NOT NULL AND r.state IN ('completed', 'rated', 'disputed')
+        AND (r.state_timestamps->>'completed')::timestamptz < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})
+        AND (r.state_timestamps->>'completed')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
+        AND EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND ws.status <> 'draft')
+        AND (
+          r.tip_cents > COALESCE((SELECT sum(sl.amount_cents) FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.kind = 'tip_platform' AND ws.status <> 'draft'), 0)
+          OR (r.guarantee_outcome = 'validated' AND NOT r.driver_fare_protected
+            AND NOT EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.kind = 'adjustment_negative' AND ws.status <> 'draft'))
+        )
+      UNION
       SELECT DISTINCT p.driver_id FROM pack_purchases p
       WHERE p.billing = 'to_bill' AND p.statement_id IS NULL AND p.activated_at < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})`);
     return rows.map((r) => r.driver_id);
@@ -173,21 +196,41 @@ export class StatementsService {
     const rides = await tx.execute<RideRow>(sql`
       SELECT r.id, r.public_number, r.state, r.payment_choice, r.fare_cents, r.service_fee_cents, r.regulatory_fee_cents, r.gst_cents, r.qst_cents, r.tip_cents,
         r.promotion_discount_cents, r.tolls_cents, r.cancellation_fee_cents, r.guarantee_outcome, r.driver_fare_protected,
-        COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client') AS at
+        COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client') AS at,
+        EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.statement_id <> ${self}::uuid AND ws.status <> 'draft') AS on_issued
       FROM rides r
       WHERE r.driver_id = ${driver.id}::uuid
         AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('no_show', 'cancelled_by_client') AND r.cancellation_fee_cents > 0))
         AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})
         AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
-        AND NOT EXISTS (SELECT 1 FROM statement_lines sl WHERE sl.ride_id = r.id AND sl.statement_id <> ${self}::uuid)`);
+        AND NOT EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.statement_id <> ${self}::uuid AND ws.status = 'draft')`);
+    // Ce que les relevés émis portent déjà pour les éléments tardifs des courses réglées.
+    const settled = [...rides].filter((r) => r.on_issued).map((r) => r.id);
+    const recorded = new Map<string, number>();
+    if (settled.length) {
+      const rows = await tx.execute<{ ride_id: string; kind: string; total: number }>(sql`
+        SELECT sl.ride_id, sl.kind, sum(sl.amount_cents)::int AS total FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id
+        WHERE sl.ride_id IN (${sql.join(settled.map((id) => sql`${id}::uuid`), sql`, `)}) AND sl.statement_id <> ${self}::uuid AND ws.status <> 'draft'
+          AND sl.kind IN ('tip_platform', 'adjustment_negative')
+        GROUP BY sl.ride_id, sl.kind`);
+      for (const row of rows) recorded.set(`${row.ride_id}:${row.kind}`, Number(row.total));
+    }
     const lines: StatementLine[] = [];
     for (const r of rides) {
       const ride = this.settlementRide(r);
-      for (const line of classifyRideForStatement(ride, rates)) lines.push({ ...line, label: `${line.label ?? line.kind} · ${r.public_number}` });
+      const rideLines: StatementLine[] = classifyRideForStatement(ride, rates).map((line) => ({ ...line, label: `${line.label ?? line.kind} · ${r.public_number}` }));
       // Garantie modèle validée, chauffeur en faute : le tarif et ses taxes ne lui sont pas dus (course remboursée au client).
       if (ride.status === 'completed' && r.guarantee_outcome === 'validated' && !r.driver_fare_protected) {
         const amount = ride.fareCents + splitTaxes(ride, rates).fareTaxesCents;
-        if (amount > 0) lines.push({ kind: 'adjustment_negative', amountCents: amount, rideId: r.id, occurredAt: ride.completedAt, label: `Garantie modèle, course remboursée · ${r.public_number}` });
+        if (amount > 0) rideLines.push({ kind: 'adjustment_negative', amountCents: amount, rideId: r.id, occurredAt: ride.completedAt, label: `Garantie modèle, course remboursée · ${r.public_number}` });
+      }
+      if (!r.on_issued) {
+        lines.push(...rideLines);
+        continue;
+      }
+      for (const kind of LATE_KINDS) {
+        const due = rideLines.filter((l) => l.kind === kind).reduce((sum, l) => sum + l.amountCents, 0) - (recorded.get(`${r.id}:${kind}`) ?? 0);
+        if (due > 0) lines.push({ kind, amountCents: due, rideId: r.id, occurredAt: ride.completedAt, label: `${LATE_LABELS[kind]} · ${r.public_number}` });
       }
     }
 

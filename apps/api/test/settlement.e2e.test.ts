@@ -185,6 +185,28 @@ describe('règlement hebdomadaire (intégration)', () => {
     expect((await request(server()).post('/v1/admin/statements/generate').set(bearer(readonly.tokens)).send({ periodStart: '2026-06-08' })).status).toBe(403);
   });
 
+  it("pourboire et garantie arrivés après l'émission : portés par le relevé suivant, une seule fois", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : une course déjà portée par un relevé émis était exclue de tous les relevés suivants ; un pourboire
+    // laissé ou une garantie validée après l'émission n'étaient jamais versés ni débités au chauffeur.
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const late = await ride(driver, { at: '2026-07-14T15:00:00Z', fareCents: 2_500 });
+    const first = (await statements().generate({ periodStart: '2026-07-13', driverId: driver.driverId })).statements[0]!;
+    await statements().issue(first.id!);
+    await db(app).update(schema.rides).set({ tipCents: 400, guaranteeOutcome: 'validated' }).where(eq(schema.rides.id, late.id));
+    // La passe de tous les chauffeurs (aperçu, sans écriture) retient ce chauffeur ; puis son brouillon est créé.
+    const pass = await statements().generate({ periodStart: '2026-07-20', preview: true });
+    expect(pass.statements.some((s) => s.driverId === driver.driverId)).toBe(true);
+    const next = (await statements().generate({ periodStart: '2026-07-20', driverId: driver.driverId })).statements[0];
+    expect(next).toBeDefined();
+    const guaranteeCents = late.settlement.fareCents + splitTaxes(late.settlement, rates).fareTaxesCents;
+    expect(sortLines(next!.lines.map((l) => ({ kind: l.kind, amountCents: Math.abs(l.amountCents) })))).toEqual(sortLines([{ kind: 'tip_platform', amountCents: 400 }, { kind: 'adjustment_negative', amountCents: guaranteeCents }]));
+    expect(next!.netCents).toBe(400 - guaranteeCents);
+    await statements().issue(next!.id!);
+    const after = await statements().generate({ periodStart: '2026-07-27', driverId: driver.driverId });
+    expect(after.statements).toHaveLength(0);
+  });
+
   it('versement Connect d\'un net positif, rejouable ; net nul réglé sans mouvement', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
