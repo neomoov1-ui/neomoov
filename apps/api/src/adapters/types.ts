@@ -109,26 +109,63 @@ export interface PaymentProvider {
   transfer(input: { accountRef: string; amountCents: number; idempotencyKey: string; description: string }): Promise<{ transferId: string }>;
 }
 
+/** État de livraison d'un texto rapporté par le webhook du fournisseur. */
+export interface SmsDeliveryStatus {
+  messageId: string;
+  status: 'pending' | 'delivered' | 'failed';
+  errorCode: string | null;
+}
+
 export interface SmsProvider {
   readonly name: string;
   send(input: { to: string; body: string; idempotencyKey?: string }): Promise<{ messageId: string }>;
+  /** Signature du webhook de statut (Twilio : `X-Twilio-Signature` sur l'adresse et les paramètres). */
+  verifyStatusWebhook(input: { url: string; params: Record<string, string>; signature: string }): boolean;
+  parseStatus(params: Record<string, string>): SmsDeliveryStatus | null;
 }
 
 export interface EmailProvider {
   readonly name: string;
-  send(input: { to: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }> }): Promise<{ messageId: string }>;
+  send(input: { to: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }>;
+}
+
+export interface PushTicket {
+  token: string;
+  status: 'ok' | 'error';
+  /** Identifiant du ticket, pour consulter le reçu de livraison plus tard. */
+  ticketId?: string;
+  /** Motif d'un refus (`DeviceNotRegistered` : appareil à retirer). */
+  detail?: string;
+}
+
+export interface PushReceipt {
+  ticketId: string;
+  status: 'ok' | 'error';
+  detail?: string;
 }
 
 export interface PushProvider {
   readonly name: string;
-  send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string>; sound?: boolean }): Promise<{ tickets: Array<{ token: string; status: 'ok' | 'error'; detail?: string }> }>;
+  send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string>; sound?: boolean }): Promise<{ tickets: PushTicket[] }>;
+  receipts(ticketIds: string[]): Promise<PushReceipt[]>;
+}
+
+export interface WhatsAppInbound {
+  from: string;
+  text: string;
+  messageId: string;
+  timestamp: Date;
 }
 
 export interface WhatsAppProvider {
   readonly name: string;
   sendText(input: { to: string; text: string }): Promise<{ messageId: string }>;
+  /** Gabarit approuvé par Meta (obligatoire hors de la fenêtre de 24 heures d'une conversation). */
+  sendTemplate(input: { to: string; template: string; language: string; parameters: string[] }): Promise<{ messageId: string }>;
   verifyWebhook(query: Record<string, string | undefined>): string | null;
-  parseInbound(body: unknown): Array<{ from: string; text: string; messageId: string; timestamp: Date }>;
+  /** Signature `X-Hub-Signature-256` du corps brut. */
+  verifySignature(rawBody: string | Buffer, header: string | undefined): boolean;
+  parseInbound(body: unknown): WhatsAppInbound[];
 }
 
 export interface VoiceProvider {

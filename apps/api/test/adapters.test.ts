@@ -47,7 +47,7 @@ describe('adaptateurs simulés', () => {
   });
 
   it('un adaptateur réel est un objet ordinaire pour NestJS et le journal (pas de crochets fantômes)', () => {
-    const env = loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://x', STRIPE_SECRET_KEY: 'sk_test_x', TWILIO_ACCOUNT_SID: 'AC_x', S3_ACCESS_KEY: 'k' }, { dotenv: false });
+    const env = loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://x', STRIPE_SECRET_KEY: 'sk_test_x', TWILIO_ACCOUNT_SID: 'AC_x', TWILIO_AUTH_TOKEN: 'tw_secret_x', TWILIO_FROM_NUMBER: '+15145550100', S3_ACCESS_KEY: 'k' }, { dotenv: false });
     const provider = realPayment(env) as unknown as Record<string, unknown>;
     // NestJS appelle onModuleInit / onModuleDestroy s'ils existent : ils ne doivent pas exister.
     expect(provider['onModuleInit']).toBeUndefined();
@@ -59,6 +59,8 @@ describe('adaptateurs simulés', () => {
     expect(JSON.stringify(provider)).not.toContain('sk_test_x');
     expect(inspect(provider, { depth: 5, showHidden: true })).not.toContain('sk_test_x');
     expect(realSms(env).name).toBe('twilio');
+    expect(inspect(realSms(env), { depth: 5, showHidden: true })).not.toContain('tw_secret_x');
+    expect(() => realSms(loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://x', TWILIO_ACCOUNT_SID: 'AC_x' }, { dotenv: false }))).toThrow(/TWILIO_AUTH_TOKEN/);
     expect(realStorage(env).name).toBe('s3');
   });
 });

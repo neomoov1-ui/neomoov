@@ -11,8 +11,12 @@ import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { AppEnv } from '../../config/env.js';
 import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider } from '../types.js';
+import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
+import { ResendEmailProvider } from './resend.js';
 import { StripePaymentProvider } from './stripe.js';
+import { TwilioSmsProvider } from './twilio.js';
+import { WhatsAppCloudProvider } from './whatsapp-cloud.js';
 
 const notConfigured = (service: string, variable: string) =>
   new AppError('PROVIDER_NOT_CONFIGURED', `Le fournisseur ${service} n'est pas configuré (${variable} absente ou adaptateur réel non livré à cette étape).`, HttpStatus.NOT_IMPLEMENTED);
@@ -39,22 +43,15 @@ abstract class NotDelivered {
   }
 }
 
+/** Telnyx (abandonné par la décision D50) et Brevo : non livrés, Twilio et Resend le sont. */
 class RealSmsProvider extends NotDelivered implements SmsProvider {
   send(): Promise<never> { return this.reject(); }
+  verifyStatusWebhook(): boolean { return this.fail(); }
+  parseStatus(): never { return this.fail(); }
 }
 
 class RealEmailProvider extends NotDelivered implements EmailProvider {
   send(): Promise<never> { return this.reject(); }
-}
-
-class RealPushProvider extends NotDelivered implements PushProvider {
-  send(): Promise<never> { return this.reject(); }
-}
-
-class RealWhatsAppProvider extends NotDelivered implements WhatsAppProvider {
-  sendText(): Promise<never> { return this.reject(); }
-  verifyWebhook(): string | null { return this.fail(); }
-  parseInbound(): never { return this.fail(); }
 }
 
 class RealVoiceProvider extends NotDelivered implements VoiceProvider {
@@ -91,16 +88,26 @@ export const realPayment = (env: AppEnv): PaymentProvider => {
   requireKey('paiements (Stripe)', 'STRIPE_SECRET_KEY', env);
   return new StripePaymentProvider(env.STRIPE_SECRET_KEY!, env.STRIPE_WEBHOOK_SECRET);
 };
-export const realSms = (env: AppEnv): SmsProvider =>
-  env.TWILIO_ACCOUNT_SID
-    ? build(RealSmsProvider, 'twilio', 'textos (Twilio)', 'TWILIO_ACCOUNT_SID', env)
-    : build(RealSmsProvider, 'telnyx', 'textos (Telnyx ou Twilio)', 'TELNYX_API_KEY', env);
-export const realEmail = (env: AppEnv): EmailProvider =>
-  env.BREVO_API_KEY
-    ? build(RealEmailProvider, 'brevo', 'courriels (Brevo)', 'BREVO_API_KEY', env)
-    : build(RealEmailProvider, 'resend', 'courriels (Resend ou Brevo)', 'RESEND_API_KEY', env);
-export const realPush = (env: AppEnv): PushProvider => build(RealPushProvider, 'expo-push', 'notifications push (Expo)', 'EXPO_TOKEN', env);
-export const realWhatsApp = (env: AppEnv): WhatsAppProvider => build(RealWhatsAppProvider, 'meta-whatsapp', 'WhatsApp (Meta)', 'WHATSAPP_TOKEN', env);
+/** Textos : Twilio (D50), statut de livraison rapporté à `/v1/webhooks/twilio/status`. */
+export const realSms = (env: AppEnv): SmsProvider => {
+  if (!env.TWILIO_ACCOUNT_SID && env.TELNYX_API_KEY) return build(RealSmsProvider, 'telnyx', 'textos (Telnyx, remplacé par Twilio)', 'TELNYX_API_KEY', env);
+  requireKey('textos (Twilio)', 'TWILIO_ACCOUNT_SID', env);
+  requireKey('textos (Twilio)', 'TWILIO_AUTH_TOKEN', env);
+  requireKey('textos (Twilio)', 'TWILIO_FROM_NUMBER', env);
+  return new TwilioSmsProvider(env.TWILIO_ACCOUNT_SID!, env.TWILIO_AUTH_TOKEN!, env.TWILIO_FROM_NUMBER!, `${env.APP_BASE_URL.replace(/\/+$/, '')}/v1/webhooks/twilio/status`);
+};
+export const realEmail = (env: AppEnv): EmailProvider => {
+  if (!env.RESEND_API_KEY && env.BREVO_API_KEY) return build(RealEmailProvider, 'brevo', 'courriels (Brevo, non livré : utiliser Resend)', 'BREVO_API_KEY', env);
+  requireKey('courriels (Resend)', 'RESEND_API_KEY', env);
+  return new ResendEmailProvider(env.RESEND_API_KEY!, env.EMAIL_FROM);
+};
+/** Push Expo : aucune clé exigée ; le jeton d'accès n'est requis que si la sécurité renforcée est activée chez Expo. */
+export const realPush = (env: AppEnv): PushProvider => new ExpoPushProvider(env.EXPO_PUSH_ACCESS_TOKEN ?? null);
+export const realWhatsApp = (env: AppEnv): WhatsAppProvider => {
+  requireKey('WhatsApp (Meta)', 'WHATSAPP_TOKEN', env);
+  requireKey('WhatsApp (Meta)', 'WHATSAPP_PHONE_ID', env);
+  return new WhatsAppCloudProvider(env.WHATSAPP_TOKEN!, env.WHATSAPP_PHONE_ID!, env.WHATSAPP_VERIFY_TOKEN ?? null, env.WHATSAPP_APP_SECRET ?? null);
+};
 export const realVoice = (env: AppEnv): VoiceProvider => build(RealVoiceProvider, 'vapi', 'voix (Vapi)', 'VAPI_API_KEY', env);
 export const realSev = (env: AppEnv): SevProvider => build(RealSevProvider, 'sev', 'facturation certifiée (SEV)', 'SEV_API_KEY', env);
 export const realLlm = (env: AppEnv): LlmProvider => build(RealLlmProvider, 'anthropic', 'modèles de langage (Anthropic)', 'ANTHROPIC_API_KEY', env);

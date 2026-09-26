@@ -7,7 +7,7 @@ import { AppError } from '../../common/app-error.js';
 import { haversineMeters } from '../../common/geo.js';
 import type {
   AutocompleteSuggestion, CardDetails, EmailProvider, GeoPoint, GeocodeResult, LlmProvider, MapsProvider, PaymentAuthorization, PaymentProvider, SetupIntentResult, WebhookEvent,
-  PushProvider, RouteRequest, RouteResult, SevInvoiceInput, SevProvider, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider,
+  PushProvider, RouteRequest, RouteResult, SevInvoiceInput, SevProvider, SmsDeliveryStatus, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider,
 } from '../types.js';
 
 let counter = 0;
@@ -225,30 +225,49 @@ export class MockPaymentProvider implements PaymentProvider {
   }
 }
 
+/** Textos simulés : un numéro qui finit par `0000` est refusé (tests du repli et des erreurs). */
 export class MockSmsProvider implements SmsProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ to: string; body: string }> = [];
+  readonly sent: Array<{ to: string; body: string; messageId: string }> = [];
   async send(input: { to: string; body: string }) {
-    this.sent.push(input);
-    return { messageId: nextId('sms_mock') };
+    if (input.to.endsWith('0000')) throw new Error('Numéro refusé (simulé)');
+    const messageId = nextId('sms_mock');
+    this.sent.push({ to: input.to, body: input.body, messageId });
+    return { messageId };
+  }
+  verifyStatusWebhook(input: { signature: string }) {
+    return input.signature === 'mock-signature';
+  }
+  parseStatus(params: Record<string, string>): SmsDeliveryStatus | null {
+    const messageId = params['MessageSid'];
+    const status = params['MessageStatus'];
+    if (!messageId || !status) return null;
+    return { messageId, status: status === 'delivered' ? 'delivered' : status === 'failed' || status === 'undelivered' ? 'failed' : 'pending', errorCode: params['ErrorCode'] ?? null };
   }
 }
 
 export class MockEmailProvider implements EmailProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ to: string; subject: string; html: string }> = [];
-  async send(input: { to: string; subject: string; html: string }) {
-    this.sent.push({ to: input.to, subject: input.subject, html: input.html });
-    return { messageId: nextId('email_mock') };
+  readonly sent: Array<{ to: string; subject: string; html: string; attachments: string[]; messageId: string }> = [];
+  async send(input: { to: string; subject: string; html: string; attachments?: Array<{ filename: string }> }) {
+    const messageId = nextId('email_mock');
+    this.sent.push({ to: input.to, subject: input.subject, html: input.html, attachments: (input.attachments ?? []).map((a) => a.filename), messageId });
+    return { messageId };
   }
 }
 
+/** Push simulé : un jeton qui contient `dead` est refusé (`DeviceNotRegistered`), comme un appareil désinstallé. */
 export class MockPushProvider implements PushProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ tokens: string[]; title: string; body: string }> = [];
-  async send(input: { tokens: string[]; title: string; body: string }) {
+  readonly sent: Array<{ tokens: string[]; title: string; body: string; data?: Record<string, string> }> = [];
+  async send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string> }) {
     this.sent.push(input);
-    return { tickets: input.tokens.map((token) => ({ token, status: 'ok' as const })) };
+    return {
+      tickets: input.tokens.map((token) => (token.includes('dead') ? { token, status: 'error' as const, detail: 'DeviceNotRegistered' } : { token, status: 'ok' as const, ticketId: nextId('ticket_mock') })),
+    };
+  }
+  async receipts(ticketIds: string[]) {
+    return ticketIds.map((ticketId) => ({ ticketId, status: 'ok' as const }));
   }
 }
 
@@ -259,8 +278,15 @@ export class MockWhatsAppProvider implements WhatsAppProvider {
     this.sent.push(input);
     return { messageId: nextId('wa_mock') };
   }
+  async sendTemplate(input: { to: string; template: string; language: string; parameters: string[] }) {
+    this.sent.push({ to: input.to, text: `[${input.template}] ${input.parameters.join(' | ')}` });
+    return { messageId: nextId('wa_mock') };
+  }
   verifyWebhook(query: Record<string, string | undefined>) {
     return query['hub.verify_token'] === 'mock-verify' ? (query['hub.challenge'] ?? null) : null;
+  }
+  verifySignature(_rawBody: string | Buffer, header: string | undefined) {
+    return header === 'mock-signature';
   }
   parseInbound(body: unknown) {
     const b = body as { messages?: Array<{ from: string; text: string; id: string }> };
