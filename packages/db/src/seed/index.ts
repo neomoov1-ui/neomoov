@@ -8,6 +8,7 @@ import { eq, sql } from 'drizzle-orm';
 import { createDatabase, databaseUrlFromEnv, type Database } from '../index.js';
 import * as s from '../schema/index.js';
 import { AGENTS, CITY, DEMO_USERS, FEATURE_FLAGS, FLAT_RATES, PACKS, PRICING_RULES, PROMOTIONS, SETTINGS, SURCHARGES, VEHICLE_CATEGORIES, ZONES } from './data.js';
+import { readAgentPrompts } from './prompts.js';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -68,8 +69,24 @@ export async function seed(db: Database): Promise<Record<string, number>> {
   }
 
   for (const a of AGENTS) {
-    const r = await db.insert(s.agents).values({ code: a.code, name: a.name, mode: a.mode, effort: a.effort, tools: [...a.tools], thresholds: a.thresholds }).onConflictDoNothing().returning({ code: s.agents.code });
+    const r = await db.insert(s.agents).values({ code: a.code, name: a.name, mode: a.mode, model: a.model, effort: a.effort, tools: [...a.tools], thresholds: a.thresholds }).onConflictDoNothing().returning({ code: s.agents.code });
     if (r.length) count('agents');
+  }
+
+  // Prompts système versionnés (docs/agents) : une version déjà chargée n'est jamais réécrite ; un agent sans prompt
+  // reçoit celui des données de départ.
+  for (const p of readAgentPrompts()) {
+    const r = await db.insert(s.agentPrompts).values(p).onConflictDoNothing().returning({ key: s.agentPrompts.key });
+    if (r.length) count('agent_prompts');
+  }
+  for (const a of AGENTS) {
+    if (!a.systemPromptKey) continue;
+    const r = await db
+      .update(s.agents)
+      .set({ systemPromptKey: a.systemPromptKey })
+      .where(sql`${s.agents.code} = ${a.code} AND ${s.agents.systemPromptKey} IS NULL AND EXISTS (SELECT 1 FROM agent_prompts WHERE key = ${a.systemPromptKey})`)
+      .returning({ code: s.agents.code });
+    if (r.length) count('agents.system_prompt_key');
   }
 
   // Utilisateurs de démonstration.

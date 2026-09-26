@@ -1,14 +1,15 @@
 /**
  * My Hub (prompt 12, section 7.2 groupe Admin) : tableau de bord, courses, chauffeurs, documents, véhicules, clients,
- * incidents, approbations, paramètres, personnel, demandes de droits, prospects, catalogue, tarifs et zones, rapports.
+ * incidents, paramètres, personnel, demandes de droits, prospects, catalogue, tarifs et zones, rapports. Les agents IA
+ * et la file d'approbation sont servis par le module des agents (étape 13), sous les mêmes chemins.
  * Lecture : tout le personnel ; écriture : administrateur et opérateur ; réglages et personnel : administrateur.
  * Chaque action est journalisée avec l'acteur (intercepteur d'audit et entrées explicites des services).
  */
 import {
-  adminAgentSchema, adminApprovalSchema, adminCancelRideSchema, adminClientSchema, adminDashboardSchema, adminDataRequestSchema, adminDocumentSchema,
+  adminCancelRideSchema, adminClientSchema, adminDashboardSchema, adminDataRequestSchema, adminDocumentSchema,
   adminDriverDetailSchema, adminDriverListItemSchema, adminIncidentSchema, adminInvoiceSchema, adminLeadSchema, adminListQuerySchema, adminPromotionSchema,
   adminReportSchema, adminRideListItemSchema, adminRideListQuerySchema, adminSettingSchema, adminStaffSchema, adminStatementSchema, adminVehicleSchema,
-  approvalDecisionSchema, cancellationResultSchema, documentReviewSchema, driverProgramsSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
+  cancellationResultSchema, documentReviewSchema, driverProgramsSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
   pricingRuleInputSchema, pricingRuleSchema, reportQuerySchema, sanctionInputSchema, settingUpdateSchema, staffNoteInputSchema, staffNoteSchema, uuid,
   vehicleReviewSchema, zoneUpdateSchema,
 } from '@neomoov/domain';
@@ -304,28 +305,6 @@ export class AdminDirectoryController {
     return this.directory.decideIncident(id, body, user);
   }
 
-  @Get('approvals')
-  @Roles(...STAFF_READ_ROLES)
-  @NoAudit()
-  @ApiOperation({ summary: 'File d\'approbation des actions proposées par les agents (en attente par défaut)' })
-  @ZodQuery(adminListQuerySchema)
-  @ZodResponse(200, pageOf(adminApprovalSchema))
-  @ApiErrors(400, 401, 403, 429)
-  approvals(@Query(zodPipe(adminListQuerySchema)) query: ListQuery) {
-    return this.directory.approvals(query);
-  }
-
-  @Post('approvals/:id/decide')
-  @Roles('admin', 'operator')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Approuve ou refuse une action proposée par un agent' })
-  @ZodBody(approvalDecisionSchema)
-  @ZodResponse(200, adminApprovalSchema)
-  @ApiErrors(400, 401, 403, 404, 409, 429)
-  decideApproval(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(approvalDecisionSchema)) body: z.infer<typeof approvalDecisionSchema>, @CurrentUser() user: UserActor) {
-    return this.directory.decideApproval(id, body, user);
-  }
-
   @Get('settings')
   @Roles(...STAFF_READ_ROLES)
   @NoAudit()
@@ -426,16 +405,6 @@ export class AdminDirectoryController {
   @ApiErrors(400, 401, 403, 429)
   statements(@Query(zodPipe(adminListQuerySchema)) query: ListQuery) {
     return this.directory.statements(query);
-  }
-
-  @Get('agents')
-  @Roles(...STAFF_READ_ROLES)
-  @NoAudit()
-  @ApiOperation({ summary: 'Agents IA : mode, modèle, exécutions sur 7 jours, approbations en attente' })
-  @ZodResponse(200, z.array(adminAgentSchema))
-  @ApiErrors(401, 403, 429)
-  agents() {
-    return this.directory.agents();
   }
 
   @Get('tariffs')

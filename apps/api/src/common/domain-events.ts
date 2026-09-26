@@ -59,6 +59,8 @@ export interface DomainEvents {
   'conversation.inbound': { channel: 'whatsapp' | 'voice' | 'web' | 'app'; externalId: string; userId: string | null; phone: string | null; text: string; language: 'fr' | 'en' | null; rideId: string | null; receivedAt: Date };
   /** Règlement (étape 9) : relevé hebdomadaire émis. */
   'statement.issued': { statementId: string; driverId: string; periodStart: string; netCents: number };
+  /** Document de chauffeur téléversé, en attente de vérification (agent recrutement, puis humain). */
+  'driver.document_uploaded': { documentId: string; driverId: string; type: string };
 }
 
 type Handler<K extends keyof DomainEvents> = (payload: DomainEvents[K]) => void | Promise<void>;

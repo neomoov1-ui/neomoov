@@ -1,14 +1,14 @@
 /**
- * My Hub, annuaire et réglages (prompt 12) : clients, incidents et décisions, approbations des agents, paramètres,
- * personnel, demandes de droits, prospects, catalogue (packs, promotions, factures, relevés, agents), tarifs datés et
+ * My Hub, annuaire et réglages (prompt 12) : clients, incidents et décisions, paramètres, personnel, demandes de
+ * droits, prospects, catalogue (packs, promotions, factures, relevés), tarifs datés et
  * polygones de zones (validés avant tout enregistrement). Données sensibles masquées ; décisions journalisées.
  */
 import { schema } from '@neomoov/db';
 import {
-  localDate, maskEmail, maskPhone, validateRing, type AdminApproval, type AdminClient, type AdminIncident, type AdminListQuery, type Page, type UserRole, type VehicleCategory,
+  localDate, maskEmail, maskPhone, validateRing, type AdminClient, type AdminIncident, type AdminListQuery, type Page, type UserRole, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, gte, ilike, inArray, isNotNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, inArray, isNotNull, or, sql, type SQL } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -106,44 +106,6 @@ export class AdminDirectoryService {
     this.audit.record({ action: `admin.incident_${input.status}`, entity: 'incidents', entityId: id, before: { status: incident.status }, after: { status: input.status, decision: input.decision ?? null } });
     const [ride] = row!.rideId ? await this.db.select({ publicNumber: schema.rides.publicNumber }).from(schema.rides).where(eq(schema.rides.id, row!.rideId)).limit(1) : [];
     return this.incidentView(row!, ride?.publicNumber ?? null);
-  }
-
-  async approvals(query: AdminListQuery): Promise<Page<AdminApproval>> {
-    const decision = (query.status ?? 'pending') as AdminApproval['decision'];
-    const { limit, offset } = pageArgs(query);
-    const [rows, [total]] = await Promise.all([
-      this.db
-        .select({ approval: schema.approvals, agentCode: schema.agentRuns.agentCode })
-        .from(schema.approvals)
-        .leftJoin(schema.agentRuns, eq(schema.agentRuns.id, schema.approvals.agentRunId))
-        .where(eq(schema.approvals.decision, decision))
-        .orderBy(desc(schema.approvals.createdAt))
-        .limit(limit)
-        .offset(offset),
-      this.db.select({ n: count() }).from(schema.approvals).where(eq(schema.approvals.decision, decision)),
-    ]);
-    return { items: rows.map(({ approval: a, agentCode }) => this.approvalView(a, agentCode)), total: total?.n ?? 0, page: query.page, pageSize: query.pageSize };
-  }
-
-  private approvalView(a: typeof schema.approvals.$inferSelect, agentCode: string | null): AdminApproval {
-    return { id: a.id, agentCode, proposedAction: a.proposedAction, data: a.data, justification: a.justification, decision: a.decision, decidedAt: a.decidedAt?.toISOString() ?? null, createdAt: a.createdAt.toISOString() };
-  }
-
-  /** Approbation d'une action proposée par un agent (mode approbation) ; l'exécution de l'action suit à l'étape 13. */
-  async decideApproval(id: string, input: { decision: 'approved' | 'rejected'; note?: string | undefined }, actor: UserActor): Promise<AdminApproval> {
-    const [row] = await this.db
-      .update(schema.approvals)
-      .set({ decision: input.decision, decidedByUserId: actor.userId, decidedAt: new Date() })
-      .where(and(eq(schema.approvals.id, id), eq(schema.approvals.decision, 'pending')))
-      .returning();
-    if (!row) {
-      const [existing] = await this.db.select({ id: schema.approvals.id }).from(schema.approvals).where(eq(schema.approvals.id, id)).limit(1);
-      if (!existing) throw AppError.notFound('APPROVAL_NOT_FOUND', 'Approbation introuvable');
-      throw AppError.conflict('APPROVAL_ALREADY_DECIDED', 'Cette action a déjà été décidée');
-    }
-    this.audit.record({ action: `admin.approval_${input.decision}`, entity: 'approvals', entityId: id, after: { decision: input.decision, note: input.note ?? null } });
-    const [run] = await this.db.select({ agentCode: schema.agentRuns.agentCode }).from(schema.agentRuns).where(eq(schema.agentRuns.id, row.agentRunId)).limit(1);
-    return this.approvalView(row, run?.agentCode ?? null);
   }
 
   // Paramètres ------------------------------------------------------------------------------------------------------
@@ -270,16 +232,6 @@ export class AdminDirectoryService {
       })),
       total: total?.n ?? 0, page: query.page, pageSize: query.pageSize,
     };
-  }
-
-  async agents() {
-    const since = new Date(Date.now() - 7 * 86_400_000);
-    const [agents, runs, pending] = await Promise.all([
-      this.db.select().from(schema.agents).orderBy(schema.agents.code),
-      this.db.select({ code: schema.agentRuns.agentCode, n: count() }).from(schema.agentRuns).where(gte(schema.agentRuns.startedAt, since)).groupBy(schema.agentRuns.agentCode),
-      this.db.select({ code: schema.agentRuns.agentCode, n: count() }).from(schema.approvals).innerJoin(schema.agentRuns, eq(schema.agentRuns.id, schema.approvals.agentRunId)).where(eq(schema.approvals.decision, 'pending')).groupBy(schema.agentRuns.agentCode),
-    ]);
-    return agents.map((a) => ({ code: a.code, name: a.name, mode: a.mode, model: a.model, effort: a.effort, runs7d: runs.find((r) => r.code === a.code)?.n ?? 0, pendingApprovals: pending.find((p) => p.code === a.code)?.n ?? 0 }));
   }
 
   // Tarifs et zones ---------------------------------------------------------------------------------------------------

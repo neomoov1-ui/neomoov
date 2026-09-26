@@ -1,5 +1,5 @@
 import {
-  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  AdaptersModule, AgentJobsService, AgentsModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
   QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
@@ -138,13 +138,29 @@ export class NotificationsWorker implements OnModuleInit {
   }
 }
 
+/**
+ * Agents IA (étape 13) : avec Redis, le worker traite la file `agents` (messages entrants, documents, relevés) et la
+ * passe des rapports toutes les 5 minutes (quotidien à 07 h, hebdomadaire le lundi). Sans Redis, c'est l'API.
+ */
+@Injectable()
+export class AgentsWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: AgentJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis' && this.jobs.triggersEnabled) this.jobs.register({ tickEveryMs: 300_000 });
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, NotificationsModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, NotificationsWorker],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, NotificationsModule, AgentsModule],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, NotificationsWorker, AgentsWorker],
     };
   }
 }
