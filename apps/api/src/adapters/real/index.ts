@@ -62,9 +62,12 @@ class RealVoiceProvider extends NotDelivered implements VoiceProvider {
   verifyWebhook(): Promise<never> { return this.reject(); }
 }
 
+/** Fournisseur certifié à choisir : contrat attendu et champs à confirmer dans docs/sev-adapter.md. */
 class RealSevProvider extends NotDelivered implements SevProvider {
-  transmitInvoice(): Promise<never> { return this.reject(); }
-  transmitCancellation(): Promise<never> { return this.reject(); }
+  registerSale(): Promise<never> { return this.reject(); }
+  registerCancellation(): Promise<never> { return this.reject(); }
+  registerCredit(): Promise<never> { return this.reject(); }
+  healthcheck(): Promise<never> { return this.reject(); }
 }
 
 class RealLlmProvider extends NotDelivered implements LlmProvider {

@@ -95,6 +95,12 @@ const fr = {
       done: 'Garantie tranchée : {{amount}} rendus au client.', rejected: 'Garantie refusée : le client est prévenu.', protected: 'Tarif normal maintenu au chauffeur.', sanction: 'Sanction proposée sur la fiche du chauffeur.',
     },
   },
+  sev: {
+    subtitle: 'Numérotation séquentielle sans trou, par chauffeur. Tout remboursement donne lieu à une note de crédit numérotée.',
+    title: 'Transmission au SEV', kind: 'Nature', pdf: 'PDF', retry: 'Reprendre', retried: 'Reprise demandée : {{number}}, {{status}}.',
+    adapter: 'Adaptateur {{name}}', healthy: 'Disponible', down: 'Indisponible', maxAttempts: 'Erreur après {{count}} tentatives ; reprise automatique ensuite, plus espacée.',
+    lastErrors: 'Dernières erreurs', attempt: 'Tentative', error: 'Erreur', when: 'Date', noErrors: 'Aucune erreur récente.',
+  },
   dataRequests: { title: 'Demandes de droits (Loi 25)', type: 'Demande', received: 'Reçue le', due: 'Échéance', processed: 'Traitée le', outcome: 'Suite donnée', statuses: { open: 'Ouverte', overdue: 'En retard', done: 'Traitée' } },
   agents: { title: 'Agents IA', mode: 'Mode', model: 'Modèle', effort: 'Effort', runs: 'Exécutions (7 jours)', pending: 'À approuver', approvals: 'File d\'approbation', action: 'Action proposée', justification: 'Justification', agent: 'Agent', approve: 'Approuver', reject: 'Refuser', decided: 'Décision enregistrée.', wiring: 'Le branchement complet des agents arrive à l\'étape 13.' },
   reports: {
@@ -219,6 +225,12 @@ const en: typeof fr = {
       done: 'Guarantee decided: {{amount}} returned to the customer.', rejected: 'Guarantee rejected: the customer is notified.', protected: 'Normal fare kept for the driver.', sanction: 'Sanction proposed on the driver record.',
     },
   },
+  sev: {
+    subtitle: 'Gapless sequential numbering, per driver. Every refund gets a numbered credit note.',
+    title: 'SEV transmission', kind: 'Type', pdf: 'PDF', retry: 'Retry', retried: 'Retry requested: {{number}}, {{status}}.',
+    adapter: '{{name}} adapter', healthy: 'Available', down: 'Unavailable', maxAttempts: 'Error after {{count}} attempts; automatic retries continue, less often.',
+    lastErrors: 'Latest errors', attempt: 'Attempt', error: 'Error', when: 'Date', noErrors: 'No recent errors.',
+  },
   dataRequests: { title: 'Privacy requests (Law 25)', type: 'Request', received: 'Received on', due: 'Due', processed: 'Processed on', outcome: 'Outcome', statuses: { open: 'Open', overdue: 'Overdue', done: 'Processed' } },
   agents: { title: 'AI agents', mode: 'Mode', model: 'Model', effort: 'Effort', runs: 'Runs (7 days)', pending: 'To approve', approvals: 'Approval queue', action: 'Proposed action', justification: 'Rationale', agent: 'Agent', approve: 'Approve', reject: 'Reject', decided: 'Decision saved.', wiring: 'Full agent wiring comes with step 13.' },
   reports: {
@@ -276,6 +288,8 @@ const enumFr = {
   approval: { pending: 'En attente', approved: 'Approuvée', rejected: 'Refusée' },
   paymentKind: { ride: 'Course', tip: 'Pourboire', cancellation_fee: 'Frais d\'annulation', no_show_fee: 'Frais d\'absence', balance: 'Règlement du solde' },
   paymentStatus: { pending: 'En attente', authorized: 'Autorisé', captured: 'Encaissé', paid_direct: 'Payé au chauffeur', refunded: 'Remboursé', failed: 'En échec', cancelled: 'Annulé' },
+  sevStatus: { pending: 'En attente', sent: 'Envoyée', acknowledged: 'Transmise', error: 'En erreur' },
+  invoiceKind: { ride: 'Course', cancellation: 'Annulation', no_show: 'Non-présentation', credit_note: 'Note de crédit' },
   rideEvent: { client_confirms: 'Réservation confirmée', quote_expires: 'Devis expiré', offers_sent: 'Offres envoyées', new_wave: 'Nouvelle vague d\x27offres', no_driver_found: 'Aucun chauffeur trouvé', driver_accepts: 'Chauffeur attribué', driver_departs: 'Chauffeur en route', driver_arrives: 'Chauffeur arrivé', ride_starts: 'Course commencée', client_no_show: 'Client absent', ride_ends: 'Course terminée', incident: 'Incident', client_rates: 'Évaluation du client', client_disputes: 'Contestation', client_cancels: 'Annulée par le client', driver_cancels: 'Annulée par le chauffeur', reassign: 'Réattribution', sos: 'SOS', dispatch_started: 'Répartition lancée', dispatch_wave: 'Vague de répartition', dispatch_held: 'Répartition en attente', dispatch_released: 'Répartition relancée', no_candidates: 'Aucun candidat disponible', offer_sent: 'Offre envoyée', offer_accepted: 'Offre acceptée', offer_declined: 'Offre refusée', offer_expired: 'Offre expirée', offer_countered: 'Contre-proposition', offer_window_closed: 'Fenêtre d\x27offres close', no_movement_reassign: 'Retrait (aucun déplacement)', negotiation_opened: 'Négociation ouverte', negotiation_agreed: 'Prix négocié convenu', negotiation_fallback: 'Retour au prix affiché', scheduled_reminder: 'Rappel envoyé au chauffeur', scheduled_dispatch_due: 'Répartition planifiée due', scheduled_operator_alert: 'Alerte à l\x27opérateur', vehicle_mismatch_reported: 'Véhicule non conforme signalé', favourite_unavailable: 'Favori indisponible' },
   offerState: { sent: 'Envoyée', accepted: 'Acceptée', declined: 'Refusée', expired: 'Expirée', withdrawn: 'Retirée' },
   actor: { client: 'Client', driver: 'Chauffeur', operator: 'Opérateur', system: 'Système', agent: 'Agent IA', passenger: 'Passager' },
@@ -307,6 +321,8 @@ const enumEn: typeof enumFr = {
   approval: { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' },
   paymentKind: { ride: 'Ride', tip: 'Tip', cancellation_fee: 'Cancellation fee', no_show_fee: 'No-show fee', balance: 'Balance payment' },
   paymentStatus: { pending: 'Pending', authorized: 'Authorized', captured: 'Collected', paid_direct: 'Paid to driver', refunded: 'Refunded', failed: 'Failed', cancelled: 'Cancelled' },
+  sevStatus: { pending: 'Pending', sent: 'Sent', acknowledged: 'Transmitted', error: 'Error' },
+  invoiceKind: { ride: 'Ride', cancellation: 'Cancellation', no_show: 'No-show', credit_note: 'Credit note' },
   rideEvent: { client_confirms: 'Booking confirmed', quote_expires: 'Quote expired', offers_sent: 'Offers sent', new_wave: 'New offer wave', no_driver_found: 'No driver found', driver_accepts: 'Driver assigned', driver_departs: 'Driver on the way', driver_arrives: 'Driver arrived', ride_starts: 'Ride started', client_no_show: 'Customer no-show', ride_ends: 'Ride ended', incident: 'Incident', client_rates: 'Customer rating', client_disputes: 'Dispute', client_cancels: 'Cancelled by customer', driver_cancels: 'Cancelled by driver', reassign: 'Reassignment', sos: 'SOS', dispatch_started: 'Dispatch started', dispatch_wave: 'Dispatch wave', dispatch_held: 'Dispatch on hold', dispatch_released: 'Dispatch resumed', no_candidates: 'No candidate available', offer_sent: 'Offer sent', offer_accepted: 'Offer accepted', offer_declined: 'Offer declined', offer_expired: 'Offer expired', offer_countered: 'Counter-offer', offer_window_closed: 'Offer window closed', no_movement_reassign: 'Removed (no movement)', negotiation_opened: 'Negotiation opened', negotiation_agreed: 'Negotiated price agreed', negotiation_fallback: 'Back to displayed price', scheduled_reminder: 'Reminder sent to driver', scheduled_dispatch_due: 'Scheduled dispatch due', scheduled_operator_alert: 'Operator alert', vehicle_mismatch_reported: 'Vehicle mismatch reported', favourite_unavailable: 'Favourite unavailable' },
   offerState: { sent: 'Sent', accepted: 'Accepted', declined: 'Declined', expired: 'Expired', withdrawn: 'Withdrawn' },
   actor: { client: 'Customer', driver: 'Driver', operator: 'Operator', system: 'System', agent: 'AI agent', passenger: 'Passenger' },

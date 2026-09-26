@@ -245,6 +245,14 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     // Registres de la redevance et des taxes (étape 9) : une ligne par course terminée, retirée dans la même transaction que
     // la course (une ligne écrite entre-temps par la réaction à `ride.completed` bloquerait la suppression).
     await database.transaction(async (tx) => {
+      // Étape 9 : factures et transmissions au SEV des courses de test, notes de crédit d'abord. Les courses puis leurs
+      // factures sont verrouillées avant : une facture émise en même temps par la file `invoicing` attend, puis échoue
+      // (course supprimée) au lieu de bloquer la suppression.
+      await tx.execute(sql`SELECT id FROM rides WHERE id IN ${rideIds} FOR UPDATE`);
+      await tx.execute(sql`SELECT id FROM invoices WHERE ride_id IN ${rideIds} FOR UPDATE`);
+      await tx.execute(sql`DELETE FROM sev_transmissions WHERE invoice_id IN (SELECT id FROM invoices WHERE ride_id IN ${rideIds})`);
+      await tx.execute(sql`DELETE FROM invoices WHERE ride_id IN ${rideIds} AND credit_note_of_id IS NOT NULL`);
+      await tx.execute(sql`DELETE FROM invoices WHERE ride_id IN ${rideIds}`);
       await tx.delete(schema.redevanceLedger).where(inArray(schema.redevanceLedger.rideId, rideIds));
       await tx.delete(schema.taxLedger).where(inArray(schema.taxLedger.rideId, rideIds));
       await tx.execute(sql`ALTER TABLE ride_events DISABLE TRIGGER ride_events_append_only`);

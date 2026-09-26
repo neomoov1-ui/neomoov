@@ -8,6 +8,7 @@ import {
   PAYMENT_METHODS, RIDE_STATES, RIDE_TYPES, SANCTION_TYPES, USER_ROLES, VEHICLE_CATEGORIES, VEHICLE_STATUSES,
 } from '../enums.js';
 import { cents, isoDate, localDateString, phoneE164, uuid } from './common.js';
+import { INVOICE_KINDS } from '../invoicing/invoice.js';
 
 const count = z.number().int().min(0);
 
@@ -349,6 +350,8 @@ export const leadCreatedSchema = z.object({ id: uuid, status: z.literal('receive
 export const adminInvoiceSchema = z.object({
   id: uuid,
   number: z.string(),
+  /** Facture de course, d'annulation, de non-présentation, ou note de crédit (étape 9). */
+  kind: z.enum(INVOICE_KINDS),
   rideId: uuid,
   supplierName: z.string(),
   totalCents: cents,

@@ -7,7 +7,7 @@ import { AppError } from '../../common/app-error.js';
 import { haversineMeters } from '../../common/geo.js';
 import type {
   AutocompleteSuggestion, CardDetails, EmailProvider, GeoPoint, GeocodeResult, LlmProvider, MapsProvider, PaymentAuthorization, PaymentProvider, SetupIntentResult, WebhookEvent,
-  PushProvider, RouteRequest, RouteResult, SevInvoiceInput, SevProvider, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider,
+  PushProvider, RouteRequest, RouteResult, SevDocument, SevProvider, SevReceipt, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider,
 } from '../types.js';
 
 let counter = 0;
@@ -281,16 +281,45 @@ export class MockVoiceProvider implements VoiceProvider {
   }
 }
 
+/**
+ * SEV simulé (5.13) : garde chaque document reçu (`calls`) et renvoie un identifiant de transaction fictif, le même pour
+ * une facture rejouée (idempotence par facture). Le service de transmission journalise chaque envoi. `failures` fait
+ * échouer les N prochains envois (tests des reprises, comme `captureFailures` des paiements) ; `healthy` faux simule
+ * une panne au `healthcheck`.
+ */
 export class MockSevProvider implements SevProvider {
   readonly name = 'mock';
-  readonly transmitted: SevInvoiceInput[] = [];
-  async transmitInvoice(invoice: SevInvoiceInput) {
-    this.transmitted.push(invoice);
-    const transactionId = nextId('sev_mock');
-    return { transactionId, qrPayload: `MOCK-SEV|${invoice.invoiceNumber}|${invoice.totalCents}|${transactionId}` };
+  readonly calls: Array<{ method: 'registerSale' | 'registerCancellation' | 'registerCredit'; document: SevDocument }> = [];
+  private readonly transactions = new Map<string, string>();
+  failures = 0;
+  healthy = true;
+
+  registerSale(document: SevDocument) {
+    return this.register('registerSale', document);
   }
-  async transmitCancellation() {
-    return { transactionId: nextId('sev_mock') };
+  registerCancellation(document: SevDocument) {
+    return this.register('registerCancellation', document);
+  }
+  registerCredit(document: SevDocument) {
+    return this.register('registerCredit', document);
+  }
+  async healthcheck() {
+    return this.healthy ? { ok: true, latencyMs: 0, detail: 'SEV simulé' } : { ok: false, latencyMs: null, detail: 'Panne simulée du SEV' };
+  }
+
+  private async register(method: 'registerSale' | 'registerCancellation' | 'registerCredit', document: SevDocument): Promise<SevReceipt> {
+    this.calls.push({ method, document });
+    if (this.failures > 0) {
+      this.failures -= 1;
+      throw new Error('SEV indisponible (simulation)');
+    }
+    if (method === 'registerCredit' && !document.original) throw new Error('Note de crédit sans transaction d\'origine (simulation)');
+    let transactionId = this.transactions.get(document.invoiceId);
+    if (!transactionId) {
+      transactionId = nextId('sev_mock');
+      this.transactions.set(document.invoiceId, transactionId);
+    }
+    return { transactionId, status: 'acknowledged', raw: { simulated: true, operation: method } };
   }
 }
 
