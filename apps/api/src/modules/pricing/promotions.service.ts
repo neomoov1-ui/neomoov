@@ -165,12 +165,20 @@ export class PromotionsService implements OnModuleInit {
 
   /**
    * Réservation de l'usage à la création de la course (même transaction) : ligne `promotion_uses`, course reliée à la
-   * promotion, dépense du budget. Compensation du chauffeur : 100 % de la remise (il garde son tarif normal).
+   * promotion, dépense du budget. Compensation du chauffeur : 100 % de la remise (il garde son tarif normal). La promotion
+   * est verrouillée et ses limites (activité, budget, limite globale, par client, clients distincts) revérifiées avec
+   * l'usage réel (revue 17.B) : un devis fait avant l'épuisement ne donne plus la remise au-delà des limites ; la
+   * réservation est alors refusée (409) et le client refait son devis.
    */
   async reserve(tx: Executor, input: { rideId: string; clientId: string | null; promotionCode: string | null; discountCents: number }): Promise<void> {
     if (!input.promotionCode || !input.clientId || input.discountCents <= 0) return;
-    const [promotion] = await tx.select({ id: schema.promotions.id }).from(schema.promotions).where(eq(schema.promotions.code, input.promotionCode)).limit(1);
+    const [promotion] = await tx.select().from(schema.promotions).where(eq(schema.promotions.code, input.promotionCode)).for('update').limit(1);
     if (!promotion) return;
+    const [usage] = await tx.execute<{ total: number; mine: number; clients: number }>(sql`
+      SELECT count(*)::int AS total, count(*) FILTER (WHERE client_id = ${input.clientId}::uuid)::int AS mine, count(DISTINCT client_id)::int AS clients
+      FROM promotion_uses WHERE promotion_id = ${promotion.id}::uuid AND ride_id <> ${input.rideId}::uuid`);
+    const refusal = usageRefusal(this.toRecord(promotion), { globalUses: Number(usage?.total ?? 0), clientUses: Number(usage?.mine ?? 0), distinctClients: Number(usage?.clients ?? 0) });
+    if (refusal) throw new AppError('PROMOTION_NOT_APPLICABLE', `${REFUSAL_MESSAGES[refusal]} : refaites votre devis`, 409, { code: promotion.code, reason: refusal });
     const inserted = await tx
       .insert(schema.promotionUses)
       .values({ promotionId: promotion.id, clientId: input.clientId, rideId: input.rideId, discountCents: input.discountCents, driverCompensationCents: input.discountCents })
@@ -192,6 +200,16 @@ export class PromotionsService implements OnModuleInit {
       return removed.length > 0;
     });
   }
+}
+
+/** Limites qui dépendent de l'usage réel, dans l'ordre du moteur du domaine (`evaluatePromotion`). */
+function usageRefusal(record: PromotionRecord, usage: PromotionUsage): PromotionRefusal | null {
+  if (!record.active) return 'inactive';
+  if (record.budgetCents !== null && record.spentCents >= record.budgetCents) return 'budget_exhausted';
+  if (record.globalLimit !== null && usage.globalUses >= record.globalLimit) return 'global_limit';
+  if (usage.clientUses >= record.perClientLimit) return 'client_limit';
+  if (record.conditions.maxClients !== undefined && usage.clientUses === 0 && usage.distinctClients >= record.conditions.maxClients) return 'max_clients';
+  return null;
 }
 
 /** Jour de la semaine (0 dimanche) et minute du jour à l'heure locale du service. */

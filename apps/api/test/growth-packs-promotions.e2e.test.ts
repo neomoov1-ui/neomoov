@@ -325,4 +325,34 @@ describe('packs et promotions (intégration)', () => {
     expect(exhausted.body).toMatchObject({ code: 'PROMOTION_NOT_APPLICABLE', details: { reason: 'budget_exhausted' } });
     await db(app).update(schema.promotions).set({ spentCents: 0 }).where(eq(schema.promotions.id, promotion!.id));
   });
+
+  it("promotions : limites revérifiées à la réservation (devis faits avant que la limite soit atteinte)", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : les limites (globale, par client, budget) n'étaient évaluées qu'au devis ; deux devis faits avant
+    // l'épuisement donnaient tous les deux la remise à la réservation.
+    const code = `T17${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+    promotionCodes.push(code);
+    await db(app).insert(schema.promotions).values({ code, name: 'Test limite 1', type: 'percent', value: 1000, conditions: {}, globalLimit: 1, perClientLimit: 1, budgetCents: 100_000, validFrom: new Date(Date.now() - DAY) });
+    const quoteFor = async (client: TokensView) => {
+      hour += 2;
+      const requestedAt = inHours(hour);
+      const res = await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt, options: { promoCode: code } }).expect(201);
+      const quote = res.body.quotes[0] as { id: string; maxConsentedCents: number; promotionCode: string | null };
+      expect(quote.promotionCode).toBe(code);
+      return { quote, requestedAt };
+    };
+    const book = (client: TokensView, q: { quote: { id: string; maxConsentedCents: number }; requestedAt: string }) =>
+      request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key())
+        .send({ quoteId: q.quote.id, type: 'scheduled', requestedAt: q.requestedAt, paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: q.quote.maxConsentedCents });
+    const first = await loginByOtp(app);
+    const second = await loginByOtp(app);
+    const a = await quoteFor(first);
+    const b = await quoteFor(second);
+    await book(first, a).expect(201);
+    const late = await book(second, b);
+    expect(late.status).toBe(409);
+    expect(late.body).toMatchObject({ code: 'PROMOTION_NOT_APPLICABLE', details: { code, reason: 'global_limit' } });
+    const uses = await db(app).select().from(schema.promotionUses).innerJoin(schema.promotions, eq(schema.promotions.id, schema.promotionUses.promotionId)).where(eq(schema.promotions.code, code));
+    expect(uses).toHaveLength(1);
+  });
 });
