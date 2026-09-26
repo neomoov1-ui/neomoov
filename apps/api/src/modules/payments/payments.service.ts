@@ -500,14 +500,22 @@ export class PaymentsService {
 
   // --- Solde dû ---
 
+  /**
+   * Courses dont le montant dû n'est pas encaissé : capture refusée (`failed`), ou capture réussie mais plafonnée par
+   * l'autorisation (`captured` avec un reste, le dépassement ajouté au solde dû). Sans ce second cas, le règlement
+   * remettait le solde à zéro sans prélever le dépassement (revue 17.B).
+   */
   private async unsettled(clientId: string) {
     const rows = await this.db.execute<{ payment_id: string; ride_id: string; public_number: string; due: number }>(sql`
-      SELECT p.id AS payment_id, p.ride_id, r.public_number,
-             GREATEST(0, CASE WHEN p.kind = 'ride' THEN COALESCE(r.final_price_cents, r.quoted_total_cents) - r.credits_applied_cents ELSE r.cancellation_fee_cents END - p.captured_cents)::int AS due
-      FROM payments p JOIN rides r ON r.id = p.ride_id
-      WHERE p.client_id = ${clientId} AND p.status = 'failed' AND p.kind IN ('ride', 'cancellation_fee', 'no_show_fee')
-        AND NOT EXISTS (SELECT 1 FROM payments b WHERE b.ride_id = p.ride_id AND b.kind = 'balance' AND b.status = 'captured')
-      ORDER BY p.created_at`);
+      SELECT payment_id, ride_id, public_number, due FROM (
+        SELECT p.id AS payment_id, p.ride_id, r.public_number, p.status, p.created_at,
+               GREATEST(0, CASE WHEN p.kind = 'ride' THEN COALESCE(r.final_price_cents, r.quoted_total_cents) - r.credits_applied_cents ELSE r.cancellation_fee_cents END - p.captured_cents)::int AS due
+        FROM payments p JOIN rides r ON r.id = p.ride_id
+        WHERE p.client_id = ${clientId} AND p.status IN ('failed', 'captured') AND p.kind IN ('ride', 'cancellation_fee', 'no_show_fee')
+          AND NOT EXISTS (SELECT 1 FROM payments b WHERE b.ride_id = p.ride_id AND b.kind = 'balance' AND b.status = 'captured')
+      ) AS u
+      WHERE u.status = 'failed' OR u.due > 0
+      ORDER BY u.created_at`);
     return [...rows].map((r) => ({ paymentId: r.payment_id, rideId: r.ride_id, publicNumber: r.public_number, amountDueCents: Number(r.due) }));
   }
 

@@ -259,6 +259,34 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect((await book(client, await quote(client))).status).toBe(201);
   });
 
+  it("dépassement de l'autorisation : le solde dû est prélevé au règlement, jamais effacé sans paiement", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : settle() recalculait le solde à partir des seuls paiements « failed » ; le dépassement d'une capture
+    // réussie (paiement « captured ») était remis à zéro sans aucun prélèvement.
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await book(client, await quote(client)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, driver);
+    const authorized = await until(() => ridePayment(ride.id), (p) => p?.status === 'authorized', 'autorisation');
+    // Autorisation ramenée à 10 $ : le prix final la dépasse.
+    await db(app).update(schema.payments).set({ authorizedCents: 1000 }).where(eq(schema.payments.id, authorized!.id));
+    const done = await drive(driver, ride.id);
+    const shortfall = done.finalPriceCents - 1000;
+    expect(shortfall).toBeGreaterThan(0);
+    await until(() => ridePayment(ride.id), (p) => p?.status === 'captured', 'capture partielle');
+    await until(() => db(app!).select({ balance: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, client.user.id)), (rows) => rows[0]?.balance === shortfall, 'solde dû du dépassement');
+    const balance = (await request(server()).get('/v1/me/balance').set(bearer(client)).expect(200)).body;
+    expect(balance).toMatchObject({ balanceDueCents: shortfall, rides: [{ rideId: ride.id, amountDueCents: shortfall }] });
+
+    const settled = (await request(server()).post('/v1/me/settle').set(bearer(client)).send({}).expect(200)).body;
+    expect(settled).toEqual({ paidCents: shortfall, balanceDueCents: 0 });
+    const extra = (await paymentsOf(ride.id)).filter((p) => p.kind === 'balance');
+    expect(extra.map((p) => [p.status, p.capturedCents])).toEqual([['captured', shortfall]]);
+    const replay = (await request(server()).post('/v1/me/settle').set(bearer(client)).send({}).expect(200)).body;
+    expect(replay).toEqual({ paidCents: 0, balanceDueCents: 0 });
+  });
+
   it('annulation après le départ du chauffeur : frais capturés sur l\'autorisation ; annulation gratuite : autorisation levée', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
