@@ -3,6 +3,7 @@
  * parrainage, chauffeurs favoris. Les montants viennent des données (promotions, réglages), jamais du code.
  */
 import { z } from 'zod';
+import { CREDIT_ORIGINS } from '../enums.js';
 import { PROMOTION_REFUSALS } from '../promotions/promotions.js';
 import { cents, isoDate, uuid } from './common.js';
 
@@ -26,7 +27,7 @@ export type PromotionValidation = z.infer<typeof promotionValidationSchema>;
 
 export const creditViewSchema = z.object({
   id: uuid,
-  origin: z.enum(['referral', 'promotion', 'goodwill', 'guarantee', 'refund']),
+  origin: z.enum(CREDIT_ORIGINS),
   amountCents: cents,
   remainingCents: cents,
   reference: z.string().nullable(),

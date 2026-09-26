@@ -275,7 +275,7 @@ describe('crédits et parrainage : consommation à la fin de course, parrainage 
     const client = await loginByOtp(app);
     const admin = await createStaffAndLogin(app, ['operator']);
     const events = app.get(CreditsEventsService);
-    const sponsorCredits = async () => (await creditsOf(sponsor.userId)).filter((c) => c.origin === 'referral');
+    const sponsorCredits = async () => (await creditsOf(sponsor.userId)).filter((c) => c.origin === 'driver_pack');
 
     const first = await completeRide(client, admin.tokens, referred);
     await events.onRideCompleted(first.id);
@@ -293,7 +293,11 @@ describe('crédits et parrainage : consommation à la fin de course, parrainage 
     expect(credits).toHaveLength(1);
     expect(credits[0]).toMatchObject({ amountCents: sponsorCents, remainingCents: sponsorCents, reference: sponsorView.code, note: 'Crédit de pack' });
     expectExpiryAround(credits[0]!.expiresAt, validityDays);
-    expect((await creditsOf(candidate.user.id)).filter((c) => c.origin === 'referral')).toHaveLength(0);
+    expect((await creditsOf(candidate.user.id)).filter((c) => c.origin === 'driver_pack' || c.origin === 'referral')).toHaveLength(0);
+    // Crédit de pack : listé, mais jamais déduit d'une course que le parrain réserverait comme client.
+    const wallet = await request(app.getHttpServer()).get('/v1/me/credits').set(bearer(sponsor.tokens)).expect(200);
+    expect(wallet.body.availableCents).toBe(0);
+    expect(wallet.body.credits.map((c: { origin: string }) => c.origin)).toEqual(['driver_pack']);
     expect((await referralView(sponsor.tokens)).stats).toEqual({ invited: 1, completed: 1, earnedCents: sponsorCents });
     const [check] = await database.execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM referrals WHERE referred_user_id = ${candidate.user.id}::uuid`);
     expect(Number(check!.n)).toBe(1);

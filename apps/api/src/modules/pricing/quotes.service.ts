@@ -10,7 +10,7 @@ import {
   type PaymentMethod, type QuoteRequest, type QuoteView, type QuotesResponse, type SimulateQuote, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, getTableColumns, gt, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, gt, gte, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { MAPS_PROVIDER, type GeoPoint, type MapsProvider, type RouteResult } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
@@ -307,7 +307,7 @@ export class QuotesService {
     const [row] = await this.db
       .select({ total: sql<number>`coalesce(sum(${schema.credits.remainingCents}), 0)::int` })
       .from(schema.credits)
-      .where(and(eq(schema.credits.userId, userId), gt(schema.credits.remainingCents, 0), or(isNull(schema.credits.expiresAt), gt(schema.credits.expiresAt, new Date()))));
+      .where(and(eq(schema.credits.userId, userId), ne(schema.credits.origin, 'driver_pack'), gt(schema.credits.remainingCents, 0), or(isNull(schema.credits.expiresAt), gt(schema.credits.expiresAt, new Date()))));
     return row?.total ?? 0;
   }
 

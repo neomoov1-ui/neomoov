@@ -228,8 +228,10 @@ export class ReferralsService {
         .returning({ id: schema.referrals.id });
       if (!updated) return false;
       const note = kind === 'driver' ? DRIVER_PACK_CREDIT_NOTE : 'Parrainage';
-      if (rules.referrerCents > 0) await this.credits.grant(tx, { userId: referral.referrerUserId, amountCents: rules.referrerCents, origin: 'referral', reference: referral.code, note });
-      if (rules.referredCents > 0) await this.credits.grant(tx, { userId: referredUserId, amountCents: rules.referredCents, origin: 'referral', reference: referral.code, note });
+      // Parrainage chauffeur : crédit de pack (origine propre), déduit des packs au relevé, jamais d'une course.
+      const origin = kind === 'driver' ? 'driver_pack' : 'referral';
+      if (rules.referrerCents > 0) await this.credits.grant(tx, { userId: referral.referrerUserId, amountCents: rules.referrerCents, origin, reference: referral.code, note });
+      if (rules.referredCents > 0) await this.credits.grant(tx, { userId: referredUserId, amountCents: rules.referredCents, origin, reference: referral.code, note });
       return true;
     });
     if (done) {

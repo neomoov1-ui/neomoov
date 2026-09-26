@@ -79,7 +79,8 @@ export class CreditsService {
         sql`${schema.credits.createdAt} DESC`,
       )
       .limit(LIST_LIMIT);
-    const usable = (r: (typeof rows)[number]) => r.remainingCents > 0 && (!r.expiresAt || r.expiresAt.getTime() > now.getTime());
+    // Les crédits de pack d'un chauffeur sont listés mais ne comptent pas dans le disponible des courses.
+    const usable = (r: (typeof rows)[number]) => r.origin !== 'driver_pack' && r.remainingCents > 0 && (!r.expiresAt || r.expiresAt.getTime() > now.getTime());
     return {
       availableCents: rows.filter(usable).reduce((sum, r) => sum + r.remainingCents, 0),
       credits: rows.map((r) => ({
@@ -111,7 +112,7 @@ export class CreditsService {
     const result = await this.db.transaction(async (tx) => {
       const credits = await tx.execute<{ id: string; remaining_cents: number }>(sql`
         SELECT id, remaining_cents FROM credits
-        WHERE user_id = ${client.userId}::uuid AND remaining_cents > 0 AND (expires_at IS NULL OR expires_at > ${ride.bookedAt.toISOString()}::timestamptz)
+        WHERE user_id = ${client.userId}::uuid AND origin <> 'driver_pack' AND remaining_cents > 0 AND (expires_at IS NULL OR expires_at > ${ride.bookedAt.toISOString()}::timestamptz)
         ORDER BY expires_at ASC NULLS LAST, created_at ASC, id ASC
         FOR UPDATE`);
       // Relu après le verrou : un traitement concurrent du même événement a pu terminer entre-temps.

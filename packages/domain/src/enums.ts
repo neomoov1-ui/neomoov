@@ -99,7 +99,8 @@ export type StatementStatus = (typeof STATEMENT_STATUSES)[number];
 export const PROMOTION_TYPES = ['percent', 'fixed', 'free_ride', 'nth_ride'] as const;
 export type PromotionType = (typeof PROMOTION_TYPES)[number];
 
-export const CREDIT_ORIGINS = ['referral', 'promotion', 'goodwill', 'guarantee', 'refund'] as const;
+/** `driver_pack` : crédit de pack d'un chauffeur (parrainage chauffeur), déduit de ses packs au relevé, jamais d'une course. */
+export const CREDIT_ORIGINS = ['referral', 'promotion', 'goodwill', 'guarantee', 'refund', 'driver_pack'] as const;
 export type CreditOrigin = (typeof CREDIT_ORIGINS)[number];
 
 export const CONSENT_PURPOSES = ['geolocation', 'marketing', 'audio_recording', 'biometrics', 'data_transfer'] as const;

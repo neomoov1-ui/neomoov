@@ -1,0 +1,1 @@
+ALTER TYPE "public"."credit_origin" ADD VALUE 'driver_pack';
