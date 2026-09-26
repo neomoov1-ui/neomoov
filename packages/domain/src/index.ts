@@ -21,3 +21,6 @@ export * from './privacy/masking.js';
 export * from './payments/payments.js';
 export * from './promotions/promotions.js';
 export * from './schemas/index.js';
+// Facturation certifiée (étape 9) : contenu des factures et schémas propres.
+export * from './invoicing/invoice.js';
+export * from './schemas/invoicing.js';

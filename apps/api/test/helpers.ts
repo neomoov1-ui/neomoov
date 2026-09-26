@@ -243,6 +243,14 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     await database.delete(schema.payments).where(inArray(schema.payments.rideId, rideIds));
     // `ride_events` est en ajout seul (déclencheur) : le nettoyage des courses de test le suspend le temps d'une transaction.
     await database.transaction(async (tx) => {
+      // Étape 9 : factures et transmissions au SEV des courses de test, notes de crédit d'abord. Les courses puis leurs
+      // factures sont verrouillées avant : une facture émise en même temps par la file `invoicing` attend, puis échoue
+      // (course supprimée) au lieu de bloquer la suppression.
+      await tx.execute(sql`SELECT id FROM rides WHERE id IN ${rideIds} FOR UPDATE`);
+      await tx.execute(sql`SELECT id FROM invoices WHERE ride_id IN ${rideIds} FOR UPDATE`);
+      await tx.execute(sql`DELETE FROM sev_transmissions WHERE invoice_id IN (SELECT id FROM invoices WHERE ride_id IN ${rideIds})`);
+      await tx.execute(sql`DELETE FROM invoices WHERE ride_id IN ${rideIds} AND credit_note_of_id IS NOT NULL`);
+      await tx.execute(sql`DELETE FROM invoices WHERE ride_id IN ${rideIds}`);
       await tx.execute(sql`ALTER TABLE ride_events DISABLE TRIGGER ride_events_append_only`);
       await tx.delete(schema.rides).where(inArray(schema.rides.id, rideIds));
       await tx.execute(sql`ALTER TABLE ride_events ENABLE TRIGGER ride_events_append_only`);

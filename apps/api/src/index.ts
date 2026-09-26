@@ -35,3 +35,7 @@ export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';
 export { PackLifecycleService } from './modules/rides/pack-lifecycle.service.js';
 export { DispatchService } from './modules/rides/dispatch.service.js';
+export { InvoicingModule } from './modules/invoicing/invoicing.module.js';
+export { InvoicingService } from './modules/invoicing/invoicing.service.js';
+export { SevService } from './modules/invoicing/sev.service.js';
+export { InvoiceJobsService } from './modules/invoicing/invoice-jobs.service.js';
