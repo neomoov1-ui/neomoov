@@ -23,8 +23,10 @@
     "db:rollback": "pnpm --filter @neomoov/db db:rollback",
     "db:reset": "pnpm --filter @neomoov/db db:reset",
     "db:seed": "pnpm --filter @neomoov/db db:seed",
+    "seed:e2e": "pnpm --filter @neomoov/api seed:e2e",
     "openapi": "pnpm --filter @neomoov/api-client generate",
-    "env:check": "node scripts/env-check.mjs"
+    "env:check": "node scripts/env-check.mjs",
+    "test:load": "node scripts/load/run-load.mjs"
   },
   "devDependencies": {
     "turbo": "2.11.2",
