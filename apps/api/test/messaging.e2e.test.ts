@@ -8,6 +8,7 @@ import type { MockSmsProvider } from '../src/adapters/mock/index.js';
 import { SMS_PROVIDER } from '../src/adapters/types.js';
 import { DomainEventsService } from '../src/common/domain-events.js';
 import { NotificationDeliveryService } from '../src/modules/notifications/notification-delivery.service.js';
+import { ApproachNotifierService } from '../src/modules/rides/approach-notifier.service.js';
 import { bearer, cleanupTestData, createDriver, db, loginByOtp, startTestApp } from './helpers.js';
 
 const PLATEAU = { address: '4500 rue Saint-Denis, Montréal', coordinates: { lat: 45.523, lng: -73.582 } };
@@ -89,5 +90,27 @@ describe('messagerie masquée et messages entrants (intégration)', () => {
       expect.objectContaining({ channel: 'sms', userId: client.user.id, phone: client.user.phone, text: 'Bonjour, j\'ai oublié mon parapluie', externalId: 'SM-lost-item' }),
       expect.objectContaining({ channel: 'whatsapp', userId: null, phone: '+19995550111', text: 'Je veux réserver pour demain 8 h', externalId: 'wamid.test-1' }),
     ]);
+  });
+  it('chauffeur en approche : le client est prévenu une seule fois sous 700 m du départ, jamais hors de la phase « en route »', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const requestedAt = new Date(Date.now() + 5 * 3_600_000).toISOString();
+    const quote = (await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt }).expect(201)).body.quotes[0];
+    const ride = (await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key())
+      .send({ quoteId: quote.id, type: 'scheduled', requestedAt, paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: quote.maxConsentedCents }).expect(201)).body;
+    const approach = app.get(ApproachNotifierService);
+    // Course pas encore en route : rien, même tout près.
+    expect(await approach.onPosition(ride.id, { lat: 45.5232, lng: -73.5822 })).toBe(false);
+    await db(app).update(schema.rides).set({ driverId: driver.driverId, state: 'en_route' }).where(eq(schema.rides.id, ride.id));
+    const later = Date.now() + 120_000;
+    expect(await approach.onPosition(ride.id, CENTRE.coordinates, later)).toBe(false);
+    expect(await approach.onPosition(ride.id, { lat: 45.5245, lng: -73.5835 }, later)).toBe(true);
+    expect(await approach.onPosition(ride.id, { lat: 45.5232, lng: -73.5822 }, later)).toBe(false);
+    const notices = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, client.user.id), eq(schema.notifications.template, 'ride.driver_approaching')));
+    expect(notices.map((n) => n.channel)).toEqual(['push']);
+    const events = await db(app).select().from(schema.rideEvents).where(and(eq(schema.rideEvents.rideId, ride.id), eq(schema.rideEvents.type, 'driver_approaching')));
+    expect(events).toHaveLength(1);
+    await db(app).delete(schema.notifications).where(eq(schema.notifications.recipientUserId, client.user.id));
   });
 });
