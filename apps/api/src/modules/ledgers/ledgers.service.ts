@@ -175,11 +175,12 @@ export class LedgersService {
     const [existing] = await this.db.select({ n: count() }).from(l).where(eq(l.remittancePeriod, input.period));
     if (!existing?.n) throw AppError.notFound('LEDGER_PERIOD_EMPTY', 'Aucune course au registre de la redevance pour ce mois', { period: input.period });
     const remittedAt = input.remittedOn ? sql`((${input.remittedOn}::date + time '12:00') AT TIME ZONE ${tz})` : sql`now()`;
+    const iso = (column: typeof l.remittedAt) => sql<string | null>`to_char(${column} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
     const updated = await this.db
       .update(l)
       .set({ remittedAt })
       .where(and(eq(l.remittancePeriod, input.period), isNull(l.remittedAt)))
-      .returning({ amountCents: l.amountCents });
+      .returning({ amountCents: l.amountCents, remittedAt: iso(l.remittedAt) });
     const [totals] = await this.db
       .select({ n: count(), amount: sql<string>`COALESCE(sum(${l.amountCents}), 0)::bigint`, last: sql<string | null>`to_char(max(${l.remittedAt}) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')` })
       .from(l)
@@ -190,8 +191,8 @@ export class LedgersService {
       amountCents: num(totals?.amount),
       newlyRemitted: updated.length,
       newlyRemittedCents: updated.reduce((sum, row) => sum + row.amountCents, 0),
-      // Dernière remise du mois (celle qui vient d'être marquée, ou la précédente si tout était déjà remis), à la seconde.
-      remittedAt: totals?.last ?? new Date().toISOString(),
+      // Remise qui vient d'être marquée, ou la dernière du mois si tout était déjà remis (à la seconde).
+      remittedAt: updated[0]?.remittedAt ?? totals?.last ?? new Date().toISOString(),
     };
     this.audit.record({ action: 'ledger.redevance_remitted', entity: 'redevance_ledger', entityId: null, after: { ...result, reference: input.reference ?? null } });
     return result;
