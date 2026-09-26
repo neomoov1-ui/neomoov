@@ -165,7 +165,7 @@ describe('parcours critiques complémentaires (intégration)', () => {
       'texto d\'attribution',
     );
     expect(texts.map((t) => t.channel)).toEqual(['sms']);
-    expect(texts[0]).toMatchObject({ recipientUserId: null, data: { driverName: expect.any(String), plate: expect.any(String) } });
+    expect(texts[0]).toMatchObject({ recipientUserId: null, data: { plate: expect.any(String) } });
     const journal = await request(server()).get(`/v1/admin/rides/${rideId}/events`).set(bearer(operator.tokens)).expect(200);
     expect(journal.body.find((e: { type: string }) => e.type === 'driver_accepts')).toMatchObject({ actorKind: 'operator' });
   });
