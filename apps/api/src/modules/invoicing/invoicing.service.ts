@@ -464,6 +464,21 @@ export class InvoicingService {
     return [...rows].map((r) => r.id);
   }
 
+  /**
+   * Remboursements réussis sans note de crédit depuis plus de 2 minutes (tâche perdue : file sans Redis, trois échecs,
+   * facture d'origine en erreur), dans la même fenêtre de rattrapage que les factures de course.
+   */
+  async refundsMissingCreditNote(limit = 50): Promise<string[]> {
+    const days = await this.settings.number('invoices.catchup_days', 2);
+    const rows = await this.db.execute<{ id: string }>(sql`
+      SELECT f.id FROM refunds f
+      WHERE f.status = 'succeeded'
+        AND f.created_at > now() - make_interval(days => ${days}::int) AND f.created_at < now() - interval '2 minutes'
+        AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.kind = 'credit_note' AND i.lines -> 'creditNote' ->> 'refundId' = f.id::text)
+      ORDER BY f.created_at LIMIT ${limit}`);
+    return [...rows].map((r) => r.id);
+  }
+
   /** Factures sans PDF depuis plus de 2 minutes (rendu interrompu) : rendues par la passe périodique. */
   async invoicesMissingPdf(limit = 50): Promise<string[]> {
     const rows = await this.db.execute<{ id: string }>(sql`SELECT id FROM invoices WHERE pdf_key IS NULL AND issued_at < now() - interval '2 minutes' ORDER BY issued_at LIMIT ${limit}`);
