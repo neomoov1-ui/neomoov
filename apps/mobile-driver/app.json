@@ -13,8 +13,13 @@
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
         "CFBundleDevelopmentRegion": "fr-CA",
-        "UIBackgroundModes": ["location"],
-        "LSApplicationQueriesSchemes": ["comgooglemaps", "waze"]
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "LSApplicationQueriesSchemes": [
+          "comgooglemaps",
+          "waze"
+        ]
       }
     },
     "android": {
@@ -34,6 +39,9 @@
         "CAMERA",
         "VIBRATE",
         "WAKE_LOCK"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -53,7 +61,13 @@
       "expo-secure-store",
       "expo-localization",
       "expo-web-browser",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       [
         "expo-location",
         {
@@ -76,7 +90,9 @@
         "expo-notifications",
         {
           "color": "#1485E0",
-          "sounds": ["./assets/sounds/offer.wav"]
+          "sounds": [
+            "./assets/sounds/offer.wav"
+          ]
         }
       ]
     ],
