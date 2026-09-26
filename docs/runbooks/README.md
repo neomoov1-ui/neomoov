@@ -8,7 +8,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel tient
 | `personnel-my-hub.md` | Premier administrateur (`create-staff`), connexion avec second facteur, codes de secours, autres membres du personnel, téléphone perdu, clés de service, journal d'audit | Écrit le 25 septembre 2026 |
 | `sauvegardes.md` | Sauvegarde logique chiffrée quotidienne (`infra/scripts/backup.sh`), vérification, confirmation qui autorise les purges de conservation, restauration (`restore.sh`) dans une base de secours ou en production | Écrit le 26 septembre 2026 ; essai de restauration à faire sur le serveur |
 | `base-de-donnees.md` | Migrations (`pnpm db:migrate`), retour arrière (`pnpm db:rollback`), données de départ, sauvegardes Supabase, restauration | À écrire à l'étape 16 |
-| `incidents.md` | Que faire quand l'API est injoignable, quand Redis tombe, quand Stripe ou Google Maps refusent, quand un règlement hebdomadaire échoue | À écrire à l'étape 15 |
+| `degraded-mode.md` | Ce qui continue quand un fournisseur tombe (Routes, Stripe, Twilio, Expo, Resend, modèles de langage, Vapi, SEV, Redis, base), ce que voit et fait l'exploitation, disjoncteurs et santé | Écrit le 26 septembre 2026 |
 | `secrets-et-cles.md` | Où vivent les clés, comment les faire tourner (rotation), qui y a accès | À écrire à l'étape 14 |
 
 ## Commandes de base

@@ -154,4 +154,19 @@ describe('notifications (intégration)', () => {
     expect((await db(app).select().from(schema.notifications).where(eq(schema.notifications.id, texted!.id)))[0]!.deliveredAt).not.toBeNull();
     await db(app).delete(schema.notifications).where(eq(schema.notifications.recipientUserId, client.user.id));
   });
+  it('panne passagère du fournisseur : deux nouveaux essais par la reprise, puis erreur définitive', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Le texto simulé refuse les numéros qui finissent par 0000.
+    await outbox().queue({ recipientUserId: null, recipientAddress: '+19995550000', template: 'ride.passenger_tracking', data: { trackingUrl: 'https://neomoov.net/suivi/y' } });
+    const [row] = await db(app).select().from(schema.notifications).where(eq(schema.notifications.recipientAddress, '+19995550000'));
+    created.push(row!.id);
+    expect(await delivery().deliver(row!.id)).toBe('deferred');
+    expect(await delivery().deliver(row!.id)).toBe('deferred');
+    const [pending] = await db(app).select().from(schema.notifications).where(eq(schema.notifications.id, row!.id));
+    expect(pending).toMatchObject({ error: null, providerMessageId: null, data: expect.objectContaining({ attempts: 2 }) });
+    expect(await delivery().deliver(row!.id)).toBe('failed');
+    const [failed] = await db(app).select().from(schema.notifications).where(eq(schema.notifications.id, row!.id));
+    expect(failed!.error).toContain('refusé');
+    expect(await delivery().deliver(row!.id)).toBe('skipped');
+  });
 });

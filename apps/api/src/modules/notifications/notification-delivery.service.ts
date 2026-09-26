@@ -26,6 +26,8 @@ export type DeliveryOutcome = 'sent' | 'failed' | 'deferred' | 'skipped';
 const ATTACHMENT_WAIT_MS = 10 * 60_000;
 /** Une réservation plus vieille que ce délai est réputée abandonnée (processus arrêté pendant l'envoi). */
 const STALE_CLAIM_MS = 10 * 60_000;
+/** Essais d'envoi avant l'erreur définitive (pannes passagères d'un fournisseur). */
+const MAX_ATTEMPTS = 3;
 
 interface Recipient {
   language: string;
@@ -64,7 +66,14 @@ export class NotificationDeliveryService {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn({ err: error, notificationId: id, channel: row.channel, template: row.template }, 'Notification non envoyée');
-      await this.finish(row.id, { error: message.slice(0, 500) });
+      // Panne passagère du fournisseur : la ligne redevient disponible pour la reprise (30 s), 3 essais au plus.
+      const data = (row.data ?? {}) as Record<string, unknown>;
+      const attempts = (typeof data['attempts'] === 'number' ? data['attempts'] : 0) + 1;
+      if (attempts < MAX_ATTEMPTS) {
+        await this.db.update(schema.notifications).set({ providerMessageId: null, data: { ...data, attempts, lastError: message.slice(0, 200) } }).where(eq(schema.notifications.id, row.id));
+        return 'deferred';
+      }
+      await this.finish(row.id, { error: message.slice(0, 500), data: { ...data, attempts } });
       return 'failed';
     }
   }
