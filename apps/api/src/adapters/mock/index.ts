@@ -262,6 +262,9 @@ export class MockStorageProvider implements StorageProvider {
     this.objects.set(input.key, { body: input.body, contentType: input.contentType });
     return { key: input.key };
   }
+  async getObject(key: string) {
+    return this.objects.get(key) ?? null;
+  }
   async getSignedUrl(key: string, expiresInSeconds: number) {
     return `mock://storage/${encodeURIComponent(key)}?expires=${expiresInSeconds}`;
   }

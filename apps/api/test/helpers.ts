@@ -225,6 +225,8 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     await database.execute(sql`DELETE FROM driver_locations WHERE driver_id IN ${driverIds}`);
     await database.delete(schema.packPurchases).where(inArray(schema.packPurchases.driverId, driverIds));
     await database.delete(schema.weeklyStatements).where(inArray(schema.weeklyStatements.driverId, driverIds));
+    await database.delete(schema.sanctions).where(inArray(schema.sanctions.driverId, driverIds));
+    await database.delete(schema.staffNotes).where(inArray(schema.staffNotes.entityId, driverIds));
   }
   if (clients.length) await database.delete(schema.quotes).where(inArray(schema.quotes.clientId, clients.map((c) => c.id)));
   await database.delete(schema.competitorBenchmarks).where(inArray(schema.competitorBenchmarks.recordedByUserId, ids));

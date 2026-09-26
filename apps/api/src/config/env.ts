@@ -71,6 +71,8 @@ export const envSchema = z.object({
   TWILIO_ACCOUNT_SID: optionalString,
   TWILIO_AUTH_TOKEN: optionalString,
   TWILIO_FROM_NUMBER: optionalString,
+  /** Cloudflare Turnstile (anti-robots des formulaires publics) ; absent en développement : jeton accepté sauf « fail ». */
+  TURNSTILE_SECRET_KEY: optionalString,
   RESEND_API_KEY: optionalString,
   BREVO_API_KEY: optionalString,
   WHATSAPP_TOKEN: optionalString,

@@ -85,6 +85,7 @@ class RealLlmProvider extends NotDelivered implements LlmProvider {
 }
 
 class RealStorageProvider extends NotDelivered implements StorageProvider {
+  getObject(): Promise<never> { return this.reject(); }
   putObject(): Promise<never> { return this.reject(); }
   getSignedUrl(): Promise<never> { return this.reject(); }
   deleteObject(): Promise<never> { return this.reject(); }
