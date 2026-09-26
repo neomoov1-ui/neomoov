@@ -32,7 +32,8 @@ export function getOpenApiDocument(app: INestApplication): OpenAPIObject {
 
 /** Construit l'application HTTP (utilisé par `main.ts` et par les tests d'intégration). */
 export async function createApp(env: AppEnv, logger: Logger = createLogger('api')): Promise<NestExpressApplication> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(env, logger), { logger: new PinoNestLogger(logger) });
+  // Corps brut conservé : la signature des webhooks de paiement porte sur les octets reçus (prompt 07).
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(env, logger), { logger: new PinoNestLogger(logger), rawBody: true });
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(helmet());

@@ -19,6 +19,7 @@ import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
+import { PaymentsService } from '../payments/payments.service.js';
 import { PresenceService } from '../rides/presence.service.js';
 import { parseGeoPoint, preferencesOf, selectRides, type RideRow } from '../rides/ride-view.js';
 import { RidesService } from '../rides/rides.service.js';
@@ -69,6 +70,7 @@ export class DriverActivityService {
     private readonly rides: RidesService,
     private readonly events: DomainEventsService,
     private readonly audit: AuditService,
+    private readonly payments: PaymentsService,
   ) {}
 
   private get db() {
@@ -506,19 +508,7 @@ export class DriverActivityService {
     const { ride } = await this.rideOfDriver(userId, rideId);
     if (ride.paymentChoice !== 'pay_driver_after') throw AppError.conflict('NOT_DIRECT_PAYMENT', 'Cette course est payée dans l\'application');
     if (!['completed', 'rated', 'disputed'].includes(ride.state)) throw AppError.conflict('RIDE_NOT_COMPLETED', 'La course n\'est pas terminée', { state: ride.state });
-    const [existing] = await this.db.select({ id: schema.payments.id }).from(schema.payments).where(and(eq(schema.payments.rideId, ride.id), eq(schema.payments.collectedBy, 'driver'))).limit(1);
-    if (existing) await this.db.update(schema.payments).set({ driverConfirmedCents: amountCents, status: 'paid_direct' }).where(eq(schema.payments.id, existing.id));
-    else await this.db.insert(schema.payments).values({ rideId: ride.id, clientId: ride.clientId, method: ride.paymentMethod, status: 'paid_direct', collectedBy: 'driver', driverConfirmedCents: amountCents });
-    const actor = { kind: 'driver' as const, userId };
-    await this.rides.mark(ride.id, 'payment_received_direct', actor, { amountCents, expectedCents: ride.finalPriceCents });
-    if (ride.finalPriceCents !== null && amountCents !== ride.finalPriceCents) {
-      const [incident] = await this.db
-        .insert(schema.incidents)
-        .values({ rideId: ride.id, type: 'other', severity: 'medium', reportedByUserId: userId, reportedByKind: 'driver', description: `Écart de paiement direct : ${amountCents} ¢ reçus pour ${ride.finalPriceCents} ¢ dus` })
-        .returning({ id: schema.incidents.id });
-      await this.rides.mark(ride.id, 'payment_discrepancy', actor, { amountCents, expectedCents: ride.finalPriceCents, incidentId: incident!.id });
-      this.events.emit('ride.incident', { rideId: ride.id, incidentId: incident!.id, type: 'other', severity: 'medium', reportedByUserId: userId });
-    }
+    await this.payments.recordDirect({ rideId: ride.id, driverUserId: userId, method: ride.paymentMethod, amountCents, expectedCents: ride.finalPriceCents, clientId: ride.clientId });
     return this.driverRide(userId, rideId);
   }
 
