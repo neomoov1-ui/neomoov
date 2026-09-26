@@ -1,17 +1,18 @@
 /**
  * API publique limitée (prompt 12, section 7.2 groupe Public) pour le site WordPress et les pages web : prospects
- * (préinscription des chauffeurs, demandes des entreprises et partenaires) et devis sans compte. Clé d'API à portée
+ * (préinscription des chauffeurs, demandes des entreprises et partenaires) devis et adresses sans compte. Clé d'API à portée
  * `public:write` (visible dans une page web : sa portée ne donne accès à rien d'autre), limitation par adresse IP,
  * protection anti-robots sur les formulaires. Le suivi partagé (`GET /public/track/{token}`) reste dans les courses.
  */
 import { schema } from '@neomoov/db';
-import { leadCreatedSchema, leadInputSchema, quoteRequestSchema, quotesResponseSchema } from '@neomoov/domain';
-import { Body, Controller, HttpCode, Inject, Post } from '@nestjs/common';
+import { autocompleteQuerySchema, autocompleteSuggestionSchema, leadCreatedSchema, leadInputSchema, placeDetailsQuerySchema, placeDetailsSchema, quoteRequestSchema, quotesResponseSchema } from '@neomoov/domain';
+import { Body, Controller, Get, HttpCode, Inject, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
+import { MAPS_PROVIDER, type MapsProvider } from '../../adapters/types.js';
 import { AntiBotService } from '../../common/anti-bot.service.js';
 import { AppError } from '../../common/app-error.js';
-import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
+import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
@@ -32,12 +33,13 @@ export class PublicApiController {
     private readonly rateLimit: RateLimitService,
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
+    @Inject(MAPS_PROVIDER) private readonly maps: MapsProvider,
   ) {}
 
   /** Limite par adresse IP et par heure (réglage), en plus de la limite générale par minute. */
-  private async limit(bucket: 'leads' | 'quotes', ip: string | null): Promise<void> {
+  private async limit(bucket: 'leads' | 'quotes' | 'places', ip: string | null): Promise<void> {
     if (!ip) return;
-    const max = await this.settings.number(`public.${bucket}_per_ip_per_hour`, bucket === 'leads' ? 10 : 120);
+    const max = await this.settings.number(`public.${bucket}_per_ip_per_hour`, bucket === 'leads' ? 10 : bucket === 'places' ? 600 : 120);
     const result = await this.rateLimit.hit(`public:${bucket}:${ip}`, max, 3600);
     if (!result.allowed) throw new AppError('RATE_LIMITED', 'Trop de demandes, réessayez plus tard', 429, { retryAfter: result.resetIn });
   }
@@ -72,5 +74,27 @@ export class PublicApiController {
   async quote(@Body(zodPipe(quoteRequestSchema)) body: z.infer<typeof quoteRequestSchema>, @ReqCtx() ctx: RequestContext) {
     await this.limit('quotes', ctx.ip);
     return this.quotes.createQuotes(body, { userId: null, language: ctx.language });
+  }
+
+  @Get('places/autocomplete')
+  @ApiOperation({ summary: 'Suggestions d\x27adresses pour la réservation web sans compte (même fournisseur que les applications)' })
+  @ZodQuery(autocompleteQuerySchema)
+  @ZodResponse(200, z.array(autocompleteSuggestionSchema))
+  @ApiErrors(400, 401, 403, 429, 503)
+  async autocomplete(@Query(zodPipe(autocompleteQuerySchema)) query: z.infer<typeof autocompleteQuerySchema>, @ReqCtx() ctx: RequestContext) {
+    await this.limit('places', ctx.ip);
+    const near = query.lat !== undefined && query.lng !== undefined ? { lat: query.lat, lng: query.lng } : undefined;
+    return this.maps.autocomplete(query.input, query.sessionToken, near);
+  }
+
+  @Get('places/details')
+  @ApiOperation({ summary: 'Adresse et coordonnées d\x27un lieu choisi (réservation web sans compte)' })
+  @ZodQuery(placeDetailsQuerySchema)
+  @ZodResponse(200, placeDetailsSchema)
+  @ApiErrors(400, 401, 403, 404, 429, 503)
+  async details(@Query(zodPipe(placeDetailsQuerySchema)) query: z.infer<typeof placeDetailsQuerySchema>, @ReqCtx() ctx: RequestContext) {
+    await this.limit('places', ctx.ip);
+    const place = await this.maps.placeDetails(query.placeId, query.sessionToken);
+    return { placeId: place.placeId ?? null, address: place.formattedAddress, coordinates: { lat: place.lat, lng: place.lng } };
   }
 }

@@ -378,3 +378,32 @@ export const adminStatementSchema = z.object({
   issuedAt: isoDate.nullable(),
 });
 export const adminAgentSchema = z.object({ code: z.string(), name: z.string(), mode: z.string(), model: z.string(), effort: z.string(), runs7d: count, pendingApprovals: count });
+
+// Types des réponses de My Hub, pour le client d'API.
+export type AdminStaff = z.infer<typeof adminStaffSchema>;
+export type AdminDataRequest = z.infer<typeof adminDataRequestSchema>;
+export type AdminLead = z.infer<typeof adminLeadSchema>;
+export type AdminSetting = z.infer<typeof adminSettingSchema>;
+export type AdminInvoice = z.infer<typeof adminInvoiceSchema>;
+export type AdminPromotion = z.infer<typeof adminPromotionSchema>;
+export type AdminStatement = z.infer<typeof adminStatementSchema>;
+export type AdminAgent = z.infer<typeof adminAgentSchema>;
+export type PricingRuleView = z.infer<typeof pricingRuleSchema>;
+export type PricingRuleInput = z.infer<typeof pricingRuleInputSchema>;
+export type StaffNote = z.infer<typeof staffNoteSchema>;
+export type AdminRideListQuery = Partial<z.infer<typeof adminRideListQuerySchema>>;
+export type DocumentReview = z.infer<typeof documentReviewSchema>;
+export type VehicleReview = z.infer<typeof vehicleReviewSchema>;
+export type IncidentDecision = z.infer<typeof incidentDecisionSchema>;
+export type ApprovalDecisionInput = z.infer<typeof approvalDecisionSchema>;
+export type SanctionInput = z.infer<typeof sanctionInputSchema>;
+export type ZoneUpdate = z.infer<typeof zoneUpdateSchema>;
+export type LeadStatus = z.infer<typeof leadStatusSchema>['status'];
+export interface ZoneGeometry {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  active: boolean;
+  geometry: { type: 'Polygon'; coordinates: [number, number][][] };
+}

@@ -145,6 +145,7 @@ export const simulateResponseSchema = quotesResponseSchema.extend({
   pricingRulesVersion: z.string(),
   benchmark: z.array(z.object({ category: z.enum(VEHICLE_CATEGORIES), referenceCents: cents.nullable(), exceeded: z.boolean() })),
 });
+export type SimulateResponse = z.infer<typeof simulateResponseSchema>;
 
 // --- Lieux (GET /v1/places/*) ---
 

@@ -59,6 +59,16 @@ export class AdminOverviewController {
     return this.overview.rides(query);
   }
 
+  @Get('rides/:id/summary')
+  @Roles(...STAFF_READ_ROLES)
+  @NoAudit()
+  @ApiOperation({ summary: 'En-tête d\'une course pour My Hub : numéro public, client (téléphone masqué), chauffeur, prix' })
+  @ZodResponse(200, adminRideListItemSchema)
+  @ApiErrors(401, 403, 404, 429)
+  rideSummary(@Param('id', zodPipe(uuid)) id: string) {
+    return this.overview.rideSummary(id);
+  }
+
   @Post('rides/:id/cancel')
   @Roles(...STAFF_WRITE_ROLES)
   @HttpCode(200)

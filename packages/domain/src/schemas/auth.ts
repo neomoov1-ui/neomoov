@@ -258,3 +258,8 @@ export type DataRequestView = z.infer<typeof dataRequestViewSchema>;
 export type DeviceView = z.infer<typeof deviceSchema>;
 export type OtpRequestResponse = z.infer<typeof otpRequestResponseSchema>;
 export type SocialLoginResponse = z.infer<typeof socialLoginResponseSchema>;
+
+// Types de la connexion du personnel, pour le client d'API.
+export type StaffLogin = z.infer<typeof staffLoginSchema>;
+export type StaffLoginResponse = z.infer<typeof staffLoginResponseSchema>;
+export type MfaEnrollment = z.infer<typeof mfaEnrollmentSchema>;

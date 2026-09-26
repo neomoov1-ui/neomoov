@@ -7,6 +7,7 @@ import { schema } from '@neomoov/db';
 import { localDate, maskPhone, type AdminDashboard, type AdminReport, type AdminRideListItem, type Page, type PaymentMethod, type RideState, type RideType, type VehicleCategory } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, gte, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { AppError } from '../../common/app-error.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 
@@ -92,11 +93,12 @@ export class AdminOverviewService {
    * en charge), `scheduled` (planifiées à venir), `recent` (toutes, les plus récentes d'abord). Recherche par numéro,
    * adresse, nom ou téléphone.
    */
-  async rides(query: { page: number; pageSize: number; q?: string | undefined; state?: RideState | undefined; view: 'active' | 'scheduled' | 'recent' }): Promise<Page<AdminRideListItem>> {
+  async rides(query: { page: number; pageSize: number; q?: string | undefined; state?: RideState | undefined; view: 'active' | 'scheduled' | 'recent'; rideId?: string }): Promise<Page<AdminRideListItem>> {
     const clientUser = sql.raw('cu');
     const driverUser = sql.raw('du');
     const conditions: SQL[] = [];
-    if (query.state) conditions.push(eq(schema.rides.state, query.state));
+    if (query.rideId) conditions.push(eq(schema.rides.id, query.rideId));
+    else if (query.state) conditions.push(eq(schema.rides.state, query.state));
     else if (query.view === 'active') conditions.push(inArray(schema.rides.state, ACTIVE));
     if (query.view === 'scheduled') conditions.push(and(eq(schema.rides.type, 'scheduled'), gte(schema.rides.requestedAt, new Date()))!);
     if (query.q) {
@@ -135,6 +137,14 @@ export class AdminOverviewService {
       page: query.page,
       pageSize: query.pageSize,
     };
+  }
+
+  /** En-tête My Hub d'une course (numéro public, client masqué, chauffeur) : la vue commune ne les porte pas. */
+  async rideSummary(rideId: string): Promise<AdminRideListItem> {
+    const page = await this.rides({ page: 1, pageSize: 1, view: 'recent', rideId });
+    const item = page.items[0];
+    if (!item) throw AppError.notFound('RIDE_NOT_FOUND', 'Course introuvable');
+    return item;
   }
 
   /** Rapport d'une période (dates locales incluses) : volumes, revenus, taux d'annulation et d'absence de chauffeur, note. */
