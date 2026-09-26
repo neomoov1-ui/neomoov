@@ -193,8 +193,13 @@ export const supportMessageSchema = z.object({
   text: z.string().trim().min(1).max(2000),
   rideId: uuid.optional(),
   channel: z.enum(['app', 'web']).default('app'),
+  /** `driver` : message de l'application chauffeur, remis directement à l'équipe (l'agent relation client sert les clients). */
+  audience: z.enum(['client', 'driver']).default('client'),
 });
 export type SupportMessageInput = z.input<typeof supportMessageSchema>;
+/** Réponse de l'équipe dans une conversation de l'assistance (My Hub) ; `close` la termine. */
+export const conversationReplySchema = z.object({ text: z.string().trim().min(1).max(2000), close: z.boolean().default(false) });
+export type ConversationReplyInput = z.input<typeof conversationReplySchema>;
 export const supportMessageAcceptedSchema = z.object({ accepted: z.literal(true), externalId: z.string() });
 
 /** Conversation de l'assistance, vue par My Hub et par le client (ses propres messages). */

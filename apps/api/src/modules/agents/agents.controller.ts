@@ -9,7 +9,7 @@
  */
 import {
   adminAgentSchema, adminApprovalSchema, adminListQuerySchema, agentReportSchema, agentRunListQuerySchema, agentRunRequestSchema, agentRunResultSchema, agentRunSchema, agentUpdateSchema,
-  approvalDecisionSchema, compareIdentityToolSchema, conversationSchema, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, flagAnomalyToolSchema, issueCreditToolSchema,
+  approvalDecisionSchema, compareIdentityToolSchema, conversationReplySchema, conversationSchema, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, flagAnomalyToolSchema, issueCreditToolSchema,
   listStatementLinesToolSchema, lookupClientToolSchema, lookupDriverToolSchema, lookupRideToolSchema, openIncidentToolSchema, pageOf, proposeDecisionToolSchema, queryMetricsToolSchema,
   qualityReviewSchema, qualityRunResultSchema, refundToolSchema, sendMessageRouteSchema, toolResultSchema, toolRouteContextSchema, uuid,
 } from '@neomoov/domain';
@@ -159,6 +159,17 @@ export class AgentsAdminController {
   @ApiErrors(401, 403, 404, 429)
   async conversation(@Param('id', zodPipe(uuid)) id: string) {
     return this.conversations.view(await this.conversations.get(id));
+  }
+
+  @Post('conversations/:id/messages')
+  @Roles('admin', 'operator')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Réponse de l\'équipe dans une conversation de l\'assistance (push, WhatsApp ou texto selon le canal) ; close la termine' })
+  @ZodBody(conversationReplySchema)
+  @ZodResponse(200, conversationSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  async reply(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(conversationReplySchema)) body: z.infer<typeof conversationReplySchema>) {
+    return this.conversations.reply(id, body.text, body.close);
   }
 }
 

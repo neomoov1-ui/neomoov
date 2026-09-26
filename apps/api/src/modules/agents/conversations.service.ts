@@ -143,6 +143,15 @@ export class ConversationsService {
     return row!.id;
   }
 
+  /** Réponse de l'équipe (My Hub) : message envoyé par le canal de la conversation ; `close` la termine. */
+  async reply(conversationId: string, text: string, close: boolean): Promise<ConversationView> {
+    const conversation = await this.get(conversationId);
+    if (conversation.status === 'closed') throw AppError.conflict('CONVERSATION_CLOSED', 'Cette conversation est terminée');
+    await this.send(conversation, text, 'staff');
+    if (close) await this.db.update(schema.conversations).set({ status: 'closed' }).where(eq(schema.conversations.id, conversationId));
+    return this.view(await this.get(conversationId));
+  }
+
   /** Remet la conversation à l'équipe : état `escalated`, motif, alerte au personnel d'exploitation. */
   async escalate(conversationId: string, reason: string, summary: string): Promise<boolean> {
     const [row] = await this.db

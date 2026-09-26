@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EnumBadge, ErrorBlock, ListToolbar, Loading, pageLabels, useCanWrite, useErrorText, useHubUser, useLang, usePagedList } from '@/components/hub/common';
-import { Action, Badge, Card, Checkbox, DataTable, Dialog, Field, Input, Notice, PageTitle, Pagination, Select, type BadgeTone, type Column } from '@/components/ui/kit';
+import { Action, Badge, Card, Checkbox, DataTable, Dialog, Field, Input, Notice, PageTitle, Pagination, Select, Textarea, type BadgeTone, type Column } from '@/components/ui/kit';
 import { formatDateTime } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
 
@@ -180,6 +180,7 @@ export default function AgentsPage() {
                     {c.messages.map((m) => <li key={m.id} className={m.direction === 'inbound' ? 'text-brand-night' : 'text-slate-700'}><strong>{t(`enum.actor.${AUTHOR_ACTOR[m.author] ?? 'system'}`)}</strong> : {m.body}</li>)}
                   </ol>
                 </details>
+                {writable && c.status !== 'closed' ? <ConversationReply conversationId={c.id} onSent={() => void queryClient.invalidateQueries({ queryKey: ['hub', 'conversations'] })} /> : null}
               </li>
             ))}
           </ul>
@@ -188,6 +189,32 @@ export default function AgentsPage() {
 
       {editing ? <AgentSettings agent={editing} onClose={() => setEditing(null)} onSaved={() => void queryClient.invalidateQueries({ queryKey: ['hub', 'agents'] })} /> : null}
     </div>
+  );
+}
+
+/** Réponse de l'équipe (push, WhatsApp ou texto selon le canal de la conversation) ; « terminer » la ferme. */
+function ConversationReply({ conversationId, onSent }: { conversationId: string; onSent: () => void }) {
+  const { t } = useTranslation();
+  const errorText = useErrorText();
+  const [text, setText] = useState('');
+  const [close, setClose] = useState(false);
+  const reply = useMutation({
+    mutationFn: () => hubApi.admin.replyConversation(conversationId, { text: text.trim(), close }),
+    onSuccess: () => {
+      setText('');
+      setClose(false);
+      onSent();
+    },
+  });
+  return (
+    <form className="mt-2 flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); reply.mutate(); }}>
+      <Field label={t('hub.agents.reply')}>{(p) => <Textarea {...p} required maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />}</Field>
+      <div className="flex flex-wrap items-center gap-3">
+        <Checkbox label={t('hub.agents.closeConversation')} checked={close} onChange={(e) => setClose(e.target.checked)} />
+        <Action type="submit" busy={reply.isPending} disabled={!text.trim()}>{t('hub.agents.send')}</Action>
+      </div>
+      {reply.isError ? <Notice tone="danger">{errorText(reply.error)}</Notice> : null}
+    </form>
   );
 }
 

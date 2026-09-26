@@ -43,6 +43,7 @@
     "./format": "./src/format.ts",
     "./phone": "./src/phone.ts",
     "./storage": "./src/storage.ts",
-    "./session": "./src/session.ts"
+    "./session": "./src/session.ts",
+    "./support-chat": "./src/support-chat.tsx"
   }
 }

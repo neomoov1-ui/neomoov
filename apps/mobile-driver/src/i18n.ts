@@ -478,7 +478,8 @@ const fr = {
     phone: 'Téléphone : {{phone}}',
     email: 'Courriel : {{email}}',
     noContact: 'Les coordonnées de l\'assistance seront affichées ici.',
-    assistant: 'L\'assistant répond à vos questions sur l\'application, vos relevés et vos documents, et transmet à un humain si besoin.',
+    assistant: 'Écrivez à l\'équipe ci-dessous : elle vous répond dans cet écran et par notification.',
+    chat: { title: 'Écrire à l\'équipe', field: 'Votre message', placeholder: 'Relevé, document, course, application…', send: 'Envoyer', empty: 'Aucun message pour l\'instant.', team: 'Équipe Neomoov', error: 'Message non envoyé. Vérifiez votre connexion et réessayez.', escalated: 'Votre message est entre les mains de l\'équipe.' },
   },
   face: {
     title: 'Vérification faciale',
@@ -993,7 +994,8 @@ const en: typeof fr = {
     phone: 'Phone: {{phone}}',
     email: 'Email: {{email}}',
     noContact: 'Support contact details will appear here.',
-    assistant: 'The assistant answers your questions about the app, your statements and your documents, and hands over to a human when needed.',
+    assistant: 'Write to the team below: they reply in this screen and by notification.',
+    chat: { title: 'Write to the team', field: 'Your message', placeholder: 'Statement, document, ride, app…', send: 'Send', empty: 'No messages yet.', team: 'Neomoov team', error: 'Message not sent. Check your connection and try again.', escalated: 'Your message is in the team\'s hands.' },
   },
   face: {
     title: 'Face verification',

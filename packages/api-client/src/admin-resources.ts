@@ -11,7 +11,7 @@ import type {
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
 import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration } from '@neomoov/domain';
-import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
+import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -125,6 +125,7 @@ export function adminResource(t: Transport) {
     agentReports: (query: ListQuery = {}) => t.get<Page<AgentReportView>>('/admin/agents/reports', { query }),
     conversations: (query: ListQuery = {}) => t.get<Page<ConversationView>>('/admin/conversations', { query }),
     conversation: (conversationId: string) => t.get<ConversationView>(`/admin/conversations/${id(conversationId)}`),
+    replyConversation: (conversationId: string, body: ConversationReplyInput) => t.post<ConversationView>(`/admin/conversations/${id(conversationId)}/messages`, body),
     tariffs: () => t.get<PricingRuleView[]>('/admin/tariffs'),
     addTariff: (body: PricingRuleInput) => t.post<PricingRuleView>('/admin/tariffs', body),
     zones: () => t.get<ZoneGeometry[]>('/admin/zones'),

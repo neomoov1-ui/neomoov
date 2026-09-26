@@ -228,7 +228,7 @@ export const appResources = {
         intro: 'Une question sur une course, un paiement ou un objet oublié ? Nous répondons rapidement.',
         call: 'Appeler Neomoov',
         email: 'Écrire à Neomoov',
-        agentSoon: 'La conversation avec notre agent arrive dans une prochaine version.',
+        chat: { field: 'Votre message', placeholder: 'Écrivez votre question…', send: 'Envoyer', empty: 'Posez votre question : notre assistant répond en quelques secondes, et un membre de l\'équipe prend le relais si besoin.', team: 'Neomoov', error: 'Message non envoyé. Vérifiez votre connexion et réessayez.', escalated: 'Un membre de l\'équipe a repris la conversation et vous répond ici.' },
       },
       errors: {
         network: 'Pas de connexion. Vérifiez votre réseau et réessayez.',
@@ -476,7 +476,7 @@ export const appResources = {
         intro: 'A question about a ride, a payment or a lost item? We answer quickly.',
         call: 'Call Neomoov',
         email: 'Email Neomoov',
-        agentSoon: 'Chatting with our agent arrives in an upcoming version.',
+        chat: { field: 'Your message', placeholder: 'Type your question…', send: 'Send', empty: 'Ask your question: our assistant replies within seconds, and a team member takes over when needed.', team: 'Neomoov', error: 'Message not sent. Check your connection and try again.', escalated: 'A team member has taken over the conversation and will reply here.' },
       },
       errors: {
         network: 'No connection. Check your network and try again.',

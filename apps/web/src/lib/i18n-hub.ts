@@ -130,6 +130,7 @@ const fr = {
     maxAutoRefund: 'Remboursement ou crédit automatique jusqu\'à ($, mode automatique)', active: 'Agent actif', saved: 'Réglage enregistré.',
     journal: 'Journal des exécutions', allAgents: 'Tous les agents', trigger: 'Déclencheur', tools: 'Outils appelés', tokens: 'Jetons (entrée / sortie)', cost: 'Coût', duration: 'Durée', error: 'Erreur',
     reports: 'Rapports de l\'agent d\'analyse', period: 'Période', sentTo: 'Envoyé à {{count}} destinataire(s)', readReport: 'Lire le rapport',
+    reply: 'Réponse de l\'équipe', closeConversation: 'Terminer la conversation', send: 'Envoyer',
     conversations: 'Conversations de l\'assistance', channel: 'Canal', escalation: 'Motif de l\'escalade', showMessages: 'Voir les messages', lastMessage: 'Dernier message',
   },
   reports: {
@@ -289,6 +290,7 @@ const en: typeof fr = {
     maxAutoRefund: 'Automatic refund or credit up to ($, automatic mode)', active: 'Agent active', saved: 'Settings saved.',
     journal: 'Run log', allAgents: 'All agents', trigger: 'Trigger', tools: 'Tools called', tokens: 'Tokens (input / output)', cost: 'Cost', duration: 'Duration', error: 'Error',
     reports: 'Analytics agent reports', period: 'Period', sentTo: 'Sent to {{count}} recipient(s)', readReport: 'Read the report',
+    reply: 'Team reply', closeConversation: 'Close the conversation', send: 'Send',
     conversations: 'Support conversations', channel: 'Channel', escalation: 'Escalation reason', showMessages: 'Show messages', lastMessage: 'Last message',
   },
   reports: {
