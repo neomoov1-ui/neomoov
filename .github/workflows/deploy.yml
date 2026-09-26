@@ -1,0 +1,104 @@
+# Déploiement sur le VPS LWS (décision D48) par le même chemin que le poste : la version est poussée dans le dépôt nu du
+# serveur (/opt/neomoov.git), dont le crochet extrait le code et lance infra/deploy.sh (images, migrations, démarrage,
+# santé, retour arrière automatique). Rien ici ne contient de secret : clés et hôtes sont des secrets et variables des
+# environnements GitHub, à créer par le fondateur (docs/operations/acces-a-fournir.md).
+#   - Production : déclenchement manuel, environnement « production » (approbation requise, réglée dans GitHub), version
+#     déjà passée par l'intégration continue.
+#   - Préproduction : automatique à chaque poussée sur main, seulement si la variable STAGING_HOST existe (un seul VPS en V1).
+name: Déploiement
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Version à déployer (sha complet d'un commit de main, intégration continue verte)"
+        required: true
+
+permissions:
+  contents: read
+  checks: read
+
+jobs:
+  staging:
+    name: Préproduction
+    if: github.event_name == 'push' && vars.STAGING_HOST != ''
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency: { group: deploy-staging, cancel-in-progress: false }
+    timeout-minutes: 30
+    steps:
+      - name: Code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Clé SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Pousser la version sur le serveur de préproduction
+        env:
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes
+          HOST: ${{ vars.STAGING_HOST }}
+          USER_NAME: ${{ vars.DEPLOY_USER || 'root' }}
+        run: git push "ssh://${USER_NAME}@${HOST}/opt/neomoov.git" "${GITHUB_SHA}:refs/heads/main" --force
+      - name: Santé
+        env:
+          URL: ${{ vars.STAGING_API_URL }}
+        run: |
+          [ -n "$URL" ] || { echo "STAGING_API_URL absente : santé non vérifiée"; exit 0; }
+          for i in $(seq 1 20); do curl -fsS "$URL/v1/health" && exit 0; sleep 6; done
+          exit 1
+
+  production:
+    name: Production
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: { group: deploy-production, cancel-in-progress: false }
+    timeout-minutes: 30
+    steps:
+      - name: Code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Version de main, intégration continue verte
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          git merge-base --is-ancestor "$SHA" origin/main || { echo "La version $SHA n'est pas sur main"; exit 1; }
+          conclusions=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/check-runs" --jq '[.check_runs[] | select(.app.slug == "github-actions") | .conclusion] | unique | join(",")')
+          echo "Contrôles : ${conclusions:-aucun}"
+          case ",$conclusions," in
+            *,failure,*|*,cancelled,*|*,timed_out,*|,,) echo "Intégration continue absente ou en échec pour $SHA"; exit 1 ;;
+          esac
+      - name: Clé SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Pousser la version sur le serveur
+        env:
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes
+          HOST: ${{ vars.PRODUCTION_HOST }}
+          USER_NAME: ${{ vars.DEPLOY_USER || 'root' }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          [ -n "$HOST" ] || { echo "Variable PRODUCTION_HOST absente (environnement production)"; exit 1; }
+          git push "ssh://${USER_NAME}@${HOST}/opt/neomoov.git" "${SHA}:refs/heads/main" --force
+      - name: Santé
+        run: |
+          for i in $(seq 1 20); do curl -fsS https://api.neomoov.net/v1/health && exit 0; sleep 6; done
+          exit 1

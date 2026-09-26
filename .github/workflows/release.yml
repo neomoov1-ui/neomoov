@@ -1,0 +1,68 @@
+# Publication d'une version étiquetée (vX.Y.Z ou vX.Y.Z-beta.N) : notes de version générées depuis les demandes de
+# fusion et les commits, puis builds EAS des deux applications si le jeton Expo existe (secret EXPO_TOKEN), soumis aux
+# magasins seulement si la variable EAS_AUTO_SUBMIT vaut « oui » (comptes Apple et Google prêts). Les versions natives
+# sont gérées par EAS (appVersionSource remote, autoIncrement) ; le JavaScript seul passe par les mises à jour à la volée.
+name: Publication
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  notes:
+    name: Notes de version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code
+        uses: actions/checkout@v5
+      - name: Version GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$TAG" --verify-tag --generate-notes $prerelease --title "Neomoov $TAG"
+
+  mobile:
+    name: Build ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    needs: notes
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [mobile-client, mobile-driver]
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Jeton Expo
+        id: token
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then echo "EXPO_TOKEN absent : builds EAS non lancés (docs/operations/acces-a-fournir.md)"; echo "skip=1" >> "$GITHUB_OUTPUT"; fi
+      - name: Code
+        if: steps.token.outputs.skip != '1'
+        uses: actions/checkout@v5
+      - name: pnpm
+        if: steps.token.outputs.skip != '1'
+        uses: pnpm/action-setup@v4
+      - name: Node
+        if: steps.token.outputs.skip != '1'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Dépendances
+        if: steps.token.outputs.skip != '1'
+        run: pnpm install --frozen-lockfile
+      - name: Build EAS (production)
+        if: steps.token.outputs.skip != '1'
+        working-directory: apps/${{ matrix.app }}
+        env:
+          AUTO_SUBMIT: ${{ vars.EAS_AUTO_SUBMIT }}
+        run: |
+          submit=""
+          [ "$AUTO_SUBMIT" = "oui" ] && submit="--auto-submit"
+          npx --yes eas-cli@latest build --platform all --profile production --non-interactive --no-wait $submit

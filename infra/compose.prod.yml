@@ -46,6 +46,7 @@ services:
       NODE_ENV: production
       PORT: "4000"
       REDIS_URL: redis://redis:6379
+      APP_VERSION: ${APP_VERSION:-}
     deploy:
       replicas: 2
       resources:
@@ -66,6 +67,7 @@ services:
     environment:
       NODE_ENV: production
       REDIS_URL: redis://redis:6379
+      APP_VERSION: ${APP_VERSION:-}
     deploy:
       resources:
         limits:
