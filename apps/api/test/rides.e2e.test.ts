@@ -143,11 +143,25 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     expect(row).toEqual({ fee: 500, reason: 'changed_plans' });
     const twice = await request(server()).post(`/v1/rides/${late.id}/cancel`).set(bearer(client)).send({ reason: 'changed_plans' }).expect(200);
     expect(twice.body.feeCents).toBe(500);
+    // Trois annulations en 7 jours : alerte à l'exploitation (courriel), une seule fois par fenêtre.
+    const [clientRow] = await db(app).select({ id: schema.clients.id }).from(schema.clients).where(eq(schema.clients.userId, client.user.id));
+    const cancellationAlerts = () => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.template, 'alert.client_cancellations'), sql`${schema.notifications.data}->>'clientId' = ${clientRow!.id}`));
+    const deadline = Date.now() + 10_000;
+    while (!(await cancellationAlerts()).length && Date.now() < deadline) await new Promise((r) => setTimeout(r, 150));
+    const alerts = await cancellationAlerts();
+    expect(alerts.length).toBeGreaterThan(0);
+    expect(alerts.every((a) => a.channel === 'email')).toBe(true);
+    expect(alerts[0]!.data).toMatchObject({ cancelled: 3, noShows: 0, days: 7 });
+    expect(new Set(alerts.map((a) => a.recipientUserId)).size).toBe(alerts.length);
     const enRoute = (await requestRide(client, await quoteFor(client))).body;
     await assign(admin.tokens, enRoute.id, driver);
     await request(server()).post(`/v1/driver/rides/${enRoute.id}/depart`).set(bearer(driver.tokens)).expect(200);
     const enRouteCancel = await request(server()).post(`/v1/rides/${enRoute.id}/cancel`).set(bearer(client)).send({ reason: 'driver_not_moving' }).expect(200);
     expect(enRouteCancel.body.feeCents).toBe(500);
+    // Quatrième annulation : pas de seconde alerte dans la même fenêtre.
+    await new Promise((r) => setTimeout(r, 500));
+    expect(await cancellationAlerts()).toHaveLength(alerts.length);
+    await db(app).delete(schema.notifications).where(inArray(schema.notifications.id, alerts.map((a) => a.id)));
   });
 
   it('non-présentation : refusée avant cinq minutes ou sans deux contacts, puis 7,00 $', async ({ skip }) => {

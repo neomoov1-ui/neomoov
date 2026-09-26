@@ -109,6 +109,8 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'rides.scheduled_max_lead_days', value: 30, description: 'Réservation planifiée : au plus 30 jours avant' },
   { key: 'rides.scheduled_assign_before_seconds', value: 3600, description: 'Attribution des planifiées 60 minutes avant' },
   { key: 'rides.scheduled_reassign_before_seconds', value: 1800, description: 'Réattribution si non confirmée 30 minutes avant' },
+  { key: 'alerts.client_cancellations_threshold', value: 3, description: 'Annulations ou absences d\'un client qui déclenchent une alerte à l\'exploitation (5.14)' },
+  { key: 'alerts.client_cancellations_window_days', value: 7, description: 'Fenêtre, en jours, du décompte des annulations et absences d\'un client' },
   { key: 'rides.scheduled_driver_reminder_before_seconds', value: 5400, description: 'Rappel au chauffeur 90 minutes avant une réservation (matrice 5.14)' },
   { key: 'rides.scheduled_reminder_before_seconds', value: 86_400, description: 'Rappel la veille (J-1) pour les courses à plus de 24 heures' },
   { key: 'rides.share_link_ttl_hours', value: 24, description: 'Validité du lien public de suivi d\'une course' },

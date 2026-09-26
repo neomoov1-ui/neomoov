@@ -3,6 +3,7 @@ import { PaymentsModule } from '../payments/payments.module.js';
 import { PricingModule } from '../pricing/pricing.module.js';
 import { AdminRidesController } from './admin-rides.controller.js';
 import { ApproachNotifierService } from './approach-notifier.service.js';
+import { CancellationWatchService } from './cancellation-watch.service.js';
 import { DispatchService } from './dispatch.service.js';
 import { DriverController } from './driver.controller.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
@@ -21,7 +22,7 @@ import { SocketAuthService } from './socket-auth.service.js';
 @Module({
   imports: [PricingModule, PaymentsModule],
   controllers: [RidesController, QuoteVehiclesController, PublicRidesController, DriverController, AdminRidesController],
-  providers: [NotificationsOutbox, SafetyHoldService, PackLifecycleService, ApproachNotifierService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, SocketAuthService, RealtimeService, ClientGateway, DriverGateway, AdminGateway],
+  providers: [NotificationsOutbox, CancellationWatchService, SafetyHoldService, PackLifecycleService, ApproachNotifierService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, SocketAuthService, RealtimeService, ClientGateway, DriverGateway, AdminGateway],
   exports: [NotificationsOutbox, SafetyHoldService, PackLifecycleService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, RealtimeService],
 })
 export class RidesModule {}

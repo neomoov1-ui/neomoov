@@ -93,6 +93,7 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('alert.settlement_failed', 'staff', ['email']),
   rule('alert.agent_escalation', 'staff', ['email']),
   rule('alert.agent_budget', 'staff', ['email']),
+  rule('alert.client_cancellations', 'staff', ['email']),
   rule('alert.benchmark_exceeded', 'staff', ['email']),
 ];
 

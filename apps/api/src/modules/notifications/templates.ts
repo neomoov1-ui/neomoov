@@ -298,6 +298,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Conversation à reprendre', body: (d) => `L'agent relation client transmet une conversation (${str(d['reason']) || 'escalade'}) : ${str(d['summary'])}` },
     en: { title: 'Conversation to take over', body: (d) => `The customer relations agent handed over a conversation (${str(d['reason']) || 'escalation'}): ${str(d['summary'])}` },
   },
+  'alert.client_cancellations': {
+    fr: { title: 'Annulations répétées d\'un client', body: (d) => `${str(d['clientName']) || 'Un client'}${d['clientPhone'] ? ` (${str(d['clientPhone'])})` : ''} a ${str(d['cancelled'])} annulation(s) et ${str(d['noShows'])} absence(s) sur ${str(d['days'])} jours, dernière course ${str(d['lastPublicNumber'])}. À examiner dans My Hub.` },
+    en: { title: 'Repeated client cancellations', body: (d) => `${str(d['clientName']) || 'A client'}${d['clientPhone'] ? ` (${str(d['clientPhone'])})` : ''} has ${str(d['cancelled'])} cancellation(s) and ${str(d['noShows'])} no-show(s) in ${str(d['days'])} days, last ride ${str(d['lastPublicNumber'])}. Review in My Hub.` },
+  },
   'alert.agent_budget': {
     fr: { title: 'Agent IA en mode manuel', body: (d) => `Plafond quotidien de dépense atteint : l'agent ${str(d['agentCode'])} passe en mode manuel.` },
     en: { title: 'AI agent switched to manual', body: (d) => `Daily spending cap reached: agent ${str(d['agentCode'])} is now in manual mode.` },
