@@ -12,3 +12,4 @@ export * from './billing.js';
 export * from './partners.js';
 export * from './agents.js';
 export * from './backoffice.js';
+export * from './access.js';

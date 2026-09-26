@@ -4,11 +4,13 @@
  */
 
 import '../env.js';
+import { randomUUID } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { createDatabase, databaseUrlFromEnv, type Database } from '../index.js';
 import * as s from '../schema/index.js';
 import { AGENTS, CITY, DEMO_USERS, FEATURE_FLAGS, FLAT_RATES, PACKS, PRICING_RULES, PROMOTIONS, SETTINGS, SURCHARGES, VEHICLE_CATEGORIES, ZONES } from './data.js';
 import { readAgentPrompts } from './prompts.js';
+import { seedAccess } from './access.js';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -27,8 +29,10 @@ export async function seed(db: Database, options: { demo?: boolean } = {}): Prom
   const count = (k: string) => { created[k] = (created[k] ?? 0) + 1; };
 
   await db.insert(s.cities).values({ code: CITY.code, name: CITY.name, timeZone: CITY.timeZone }).onConflictDoNothing();
-  const org = await db.insert(s.organizations).values({ code: 'neomoov', name: 'Neomoov', type: 'platform' }).onConflictDoNothing().returning({ id: s.organizations.id });
+  const rootId = randomUUID();
+  const org = await db.insert(s.organizations).values({ id: rootId, code: 'neomoov', name: 'Neomoov', type: 'platform', path: `/${rootId}/` }).onConflictDoNothing().returning({ id: s.organizations.id });
   if (org.length) count('organizations');
+  await seedAccess(db);
 
   for (const z of ZONES) {
     const r = await db.insert(s.zones).values({ cityCode: CITY.code, code: z.code, name: z.name, type: z.type, geometry: z.geometry }).onConflictDoNothing().returning({ id: s.zones.id });

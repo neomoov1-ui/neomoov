@@ -5,7 +5,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { Audit, CurrentUser, Roles, STAFF_READ_ROLES, STAFF_WRITE_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, Audit, CurrentUser, type UserActor } from '../auth/actor.js';
 import { DispatchService } from './dispatch.service.js';
 import { ScheduledService } from './scheduled.service.js';
 import { RidesService } from './rides.service.js';
@@ -23,7 +23,7 @@ export class AdminRidesController {
   ) {}
 
   @Post()
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('rides.create')
   @HttpCode(201)
   @ApiOperation({ summary: 'Création par l\'opérateur à partir d\'un devis (compte client ou fiche minimale)' })
   @ZodBody(adminCreateRideSchema)
@@ -34,7 +34,7 @@ export class AdminRidesController {
   }
 
   @Post(':id/assign')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('rides.assign')
   @HttpCode(200)
   @ApiOperation({ summary: 'Attribution forcée à un chauffeur (garantie modèle vérifiée)' })
   @ZodBody(adminAssignSchema)
@@ -45,7 +45,7 @@ export class AdminRidesController {
   }
 
   @Get(':id/messages')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('rides.read')
   @ApiOperation({ summary: 'Messagerie de la course (client, chauffeur, exploitation)' })
   @ZodResponse(200, z.array(rideMessageSchema))
   @ApiErrors(401, 403, 404, 429)
@@ -54,7 +54,7 @@ export class AdminRidesController {
   }
 
   @Post(':id/messages')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('rides.messages.write')
   @HttpCode(201)
   @ApiOperation({ summary: 'Message de l\'exploitation dans la course : visible du client et du chauffeur, tous deux prévenus (texto pour un client sans application)' })
   @ZodBody(rideMessageInputSchema)
@@ -65,7 +65,7 @@ export class AdminRidesController {
   }
 
   @Get('stuck')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('rides.read')
   @ApiOperation({ summary: 'Courses figées : arrivé sans suite, en route ou en course trop longtemps, réservation dont l\'heure est passée, recherche qui dure' })
   @ZodResponse(200, z.array(z.object({ rideId: uuid, publicNumber: z.string(), state: z.string(), since: z.string(), minutes: z.number().int().min(0) })))
   @ApiErrors(401, 403, 429)
@@ -74,7 +74,7 @@ export class AdminRidesController {
   }
 
   @Get(':id')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('rides.read')
   @ApiOperation({ summary: 'Une course, vue My Hub' })
   @ZodResponse(200, rideSchema)
   @ApiErrors(401, 403, 404, 429)
@@ -83,7 +83,7 @@ export class AdminRidesController {
   }
 
   @Get(':id/events')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('rides.read')
   @ApiOperation({ summary: 'Journal `ride_events` d\'une course' })
   @ZodResponse(200, z.array(rideEventSchema))
   @ApiErrors(401, 403, 404, 429)
@@ -92,7 +92,7 @@ export class AdminRidesController {
   }
 
   @Post('scheduled/tick')
-  @Roles('admin')
+  @Can('dispatch.run')
   @HttpCode(200)
   @Audit('admin.scheduled_tick', 'rides')
   @ApiOperation({ summary: 'Exécute une passe des tâches planifiées (rappels, attribution à 60 minutes, alertes) ; normalement faite par le worker chaque minute' })
@@ -106,7 +106,7 @@ export class AdminRidesController {
   // --- Panneau de répartition (5.4, tâche 7) ---
 
   @Get(':id/dispatch')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('rides.read')
   @ApiOperation({ summary: 'Répartition d\'une course : état de la recherche et toutes les offres faites aux chauffeurs' })
   @ZodResponse(200, adminDispatchViewSchema)
   @ApiErrors(401, 403, 404, 429)
@@ -115,7 +115,7 @@ export class AdminRidesController {
   }
 
   @Post(':id/reassign')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('rides.reassign')
   @HttpCode(200)
   @Audit('admin.ride_reassigned', 'rides')
   @ApiOperation({ summary: 'Réattribution : le chauffeur en place est retiré (sans sanction) et une nouvelle recherche prioritaire démarre' })
@@ -127,7 +127,7 @@ export class AdminRidesController {
   }
 
   @Post(':id/hold')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('rides.hold')
   @HttpCode(200)
   @Audit('admin.ride_held', 'rides')
   @ApiOperation({ summary: 'Mise en attente : les offres en cours sont retirées, aucune nouvelle recherche jusqu\'à la reprise' })
@@ -139,7 +139,7 @@ export class AdminRidesController {
   }
 
   @Post(':id/release')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('rides.reassign')
   @HttpCode(200)
   @Audit('admin.ride_released', 'rides')
   @ApiOperation({ summary: 'Reprise de la recherche après une mise en attente' })
@@ -150,7 +150,7 @@ export class AdminRidesController {
   }
 
   @Post('dispatch/tick')
-  @Roles('admin')
+  @Can('dispatch.run')
   @HttpCode(200)
   @Audit('admin.dispatch_tick', 'rides')
   @ApiOperation({ summary: 'Exécute un battement de la répartition (offres échues, vagues, fenêtres closes, surveillance du départ) ; normalement fait chaque seconde par le processus qui la porte' })

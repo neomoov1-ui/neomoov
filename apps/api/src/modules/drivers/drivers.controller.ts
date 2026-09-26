@@ -16,7 +16,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nes
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse, zodToOpenApi } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { Audit, Authenticated, CurrentUser, NoAudit, Roles, type UserActor } from '../auth/actor.js';
+import { Can, Audit, Authenticated, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
 import { DriverActivityService } from './driver-activity.service.js';
 import { DriverProfileService, type UploadedFile as DocumentFile } from './driver-profile.service.js';
 import { DriverTrainingService } from './driver-training.service.js';
@@ -46,7 +46,7 @@ export class DriverApplyController {
 
 @ApiTags('driver')
 @ApiBearerAuth()
-@Roles('driver')
+@Can('driver.app')
 @Controller('driver')
 export class DriverAccountController {
   constructor(

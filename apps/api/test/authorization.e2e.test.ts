@@ -4,6 +4,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { desc, eq } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { listRoutePolicies, type RoutePolicy } from '../src/modules/auth/route-policies.js';
 import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, resetHttpLimits, startTestApp } from './helpers.js';
 
@@ -42,6 +43,21 @@ describe('autorisation sur chaque endpoint (intégration)', () => {
     expect(byPath.get('GET /v1/admin/audit')?.roles).toEqual(['admin', 'operator', 'finance', 'readonly']);
     expect(byPath.get('GET /v1/internal/service/whoami')?.scopes).toEqual(['*']);
     for (const p of policies) expect(p.public || p.authenticated || p.roles.length > 0 || p.scopes.length > 0, `${p.method} ${p.path}`).toBe(true);
+  });
+
+  it('étape 19 : chaque route du personnel et de l\'espace chauffeur passe par @Can ; aucun accès changé par la bascule', ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const before = JSON.parse(readFileSync(new URL('./fixtures/legacy-route-roles.json', import.meta.url), 'utf8')) as Record<string, { roles: string[]; permission: string }>;
+    const byPath = new Map(policies.map((p) => [`${p.method} ${p.path}`, p]));
+    expect(Object.keys(before).length).toBeGreaterThan(180);
+    for (const [route, legacy] of Object.entries(before)) {
+      const p = byPath.get(route);
+      expect(p, route).toBeDefined();
+      expect(p!.permissions, route).toEqual([legacy.permission]);
+      expect([...p!.roles].sort(), route).toEqual([...legacy.roles].sort());
+    }
+    // Aucune route à rôles restante : toutes les routes à rôles passent désormais par une permission.
+    for (const p of policies) if (p.roles.length) expect(p.permissions.length, `${p.method} ${p.path}`).toBeGreaterThan(0);
   });
 
   it('sans jeton : 401 sur toute route non publique', async ({ skip }) => {

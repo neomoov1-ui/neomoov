@@ -7,7 +7,7 @@ import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { AuditService } from '../audit/audit.service.js';
 import { UsersService } from '../users/users.service.js';
-import { Audit, CurrentActor, CurrentUser, Roles, Scopes, type Actor, type UserActor } from './actor.js';
+import { Can, Audit, CurrentActor, CurrentUser, Scopes, type Actor, type UserActor } from './actor.js';
 import { ApiKeysService } from './api-keys.service.js';
 import { StaffAuthService } from './staff-auth.service.js';
 
@@ -22,7 +22,7 @@ export class AdminStaffController {
   ) {}
 
   @Post()
-  @Roles('admin')
+  @Can('staff.manage')
   @HttpCode(201)
   @ApiOperation({ summary: 'Crée un membre du personnel (rôles admin, operator, finance, readonly) avec un mot de passe initial' })
   @ZodBody(staffCreateSchema)
@@ -35,7 +35,7 @@ export class AdminStaffController {
   }
 
   @Post(':id/password')
-  @Roles('admin')
+  @Can('staff.manage')
   @HttpCode(204)
   @Audit('admin.staff_password_set', 'users')
   @ApiOperation({ summary: 'Remplace le mot de passe d\'un membre du personnel et révoque ses sessions' })
@@ -46,7 +46,7 @@ export class AdminStaffController {
   }
 
   @Post(':id/mfa/reset')
-  @Roles('admin')
+  @Can('staff.manage')
   @HttpCode(204)
   @Audit('admin.staff_mfa_reset', 'users')
   @ApiOperation({ summary: 'Réinitialise le second facteur (téléphone perdu) : la prochaine connexion refait l\'inscription' })
@@ -63,7 +63,7 @@ export class AdminApiKeysController {
   constructor(private readonly apiKeys: ApiKeysService) {}
 
   @Get()
-  @Roles('admin')
+  @Can('api_keys.manage')
   @ApiOperation({ summary: 'Clés de service (comptes de service des agents et intégrations)' })
   @ZodResponse(200, z.array(apiKeyViewSchema))
   @ApiErrors(401, 403, 429)
@@ -72,7 +72,7 @@ export class AdminApiKeysController {
   }
 
   @Post()
-  @Roles('admin')
+  @Can('api_keys.manage')
   @HttpCode(201)
   @Audit('admin.api_key_created', 'api_keys')
   @ApiOperation({ summary: 'Crée une clé de service à portée limitée ; le secret n\'est affiché qu\'une fois' })
@@ -84,7 +84,7 @@ export class AdminApiKeysController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Can('api_keys.manage')
   @HttpCode(204)
   @Audit('admin.api_key_revoked', 'api_keys')
   @ApiOperation({ summary: 'Révoque une clé de service' })

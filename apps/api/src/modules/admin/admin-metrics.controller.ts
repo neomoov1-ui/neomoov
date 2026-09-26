@@ -6,7 +6,7 @@ import { adminMetricsSchema } from '@neomoov/domain';
 import { Controller, Get, Header } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { ApiErrors, ZodResponse } from '../../common/openapi.js';
-import { NoAudit, Roles, Scopes, STAFF_READ_ROLES } from '../auth/actor.js';
+import { Can, NoAudit, Scopes } from '../auth/actor.js';
 import { AdminMetricsService } from './admin-metrics.service.js';
 
 @ApiTags('admin')
@@ -16,7 +16,7 @@ export class AdminMetricsController {
   constructor(private readonly metrics: AdminMetricsService) {}
 
   @Get()
-  @Roles(...STAFF_READ_ROLES)
+  @Can('metrics.read')
   @NoAudit()
   @ApiOperation({ summary: 'Métriques : courses par état, temps d\'attribution, latences de l\'API, files, échecs de paiement, erreurs des fournisseurs' })
   @ZodResponse(200, adminMetricsSchema)

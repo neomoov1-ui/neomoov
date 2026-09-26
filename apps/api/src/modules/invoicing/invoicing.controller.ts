@@ -12,7 +12,7 @@ import type { Response } from 'express';
 import type { z } from 'zod';
 import { ApiErrors, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { Audit, Authenticated, NoAudit, Owns, Public, Roles, STAFF_READ_ROLES } from '../auth/actor.js';
+import { Can, Audit, Authenticated, NoAudit, Owns, Public } from '../auth/actor.js';
 import { InvoiceJobsService } from './invoice-jobs.service.js';
 import { InvoicingService } from './invoicing.service.js';
 import { SevService } from './sev.service.js';
@@ -77,7 +77,7 @@ export class AdminSevController {
   ) {}
 
   @Get('sev/status')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('invoices.read')
   @NoAudit()
   @ApiOperation({ summary: 'Transmissions au SEV : factures par état, dernières erreurs, santé de l\'adaptateur' })
   @ZodResponse(200, sevStatusReportSchema)
@@ -87,7 +87,7 @@ export class AdminSevController {
   }
 
   @Post('sev/retry/:invoiceId')
-  @Roles('admin', 'operator', 'finance')
+  @Can('invoices.sev.retry')
   @HttpCode(200)
   @Audit('admin.sev_retry', 'invoices', 'invoiceId')
   @ApiOperation({ summary: 'Reprend la transmission d\'une facture en attente ou en erreur (par la file `invoicing`) ; 409 si elle est déjà accusée ou en cours' })
@@ -98,7 +98,7 @@ export class AdminSevController {
   }
 
   @Get('invoices/:id/pdf')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('invoices.read')
   @ApiProduces('application/pdf')
   @ApiOperation({ summary: 'PDF d\'une facture ou d\'une note de crédit pour My Hub ; 409 tant que le PDF est en préparation' })
   @ApiErrors(401, 403, 404, 409, 429)

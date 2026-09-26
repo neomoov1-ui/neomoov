@@ -5,7 +5,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { CurrentUser, Roles, STAFF_WRITE_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, CurrentUser, type UserActor } from '../auth/actor.js';
 import { GuaranteeService } from './guarantee.service.js';
 
 @ApiTags('admin')
@@ -15,7 +15,7 @@ export class GuaranteeController {
   constructor(private readonly guarantee: GuaranteeService) {}
 
   @Post('incidents/:id/guarantee')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('incidents.decide')
   @HttpCode(200)
   @ApiOperation({ summary: 'Garantie modèle : validée (remboursement intégral, tarif du chauffeur maintenu ou sanction proposée) ou refusée (clôture motivée) ; client prévenu' })
   @ZodBody(guaranteeDecisionSchema)

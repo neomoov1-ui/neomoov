@@ -7,8 +7,14 @@ import type { INestApplication } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { RequestMethod } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
-import type { UserRole } from '@neomoov/domain';
-import { AUTHENTICATED_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, type OwnsOptions } from './actor.js';
+import { LEGACY_ROLE_PERMISSIONS, type UserRole } from '@neomoov/domain';
+import { AUTHENTICATED_KEY, CAN_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, type OwnsOptions } from './actor.js';
+
+/** Anciens rôles, dans l'ordre d'affichage : ceux dont la correspondance contient une des permissions de la route. */
+const LEGACY_ORDER: UserRole[] = ['admin', 'operator', 'finance', 'readonly', 'agent', 'driver'];
+function legacyRolesFor(permissions: readonly string[]): UserRole[] {
+  return LEGACY_ORDER.filter((role) => (LEGACY_ROLE_PERMISSIONS[role] ?? []).some((code) => permissions.includes(code)));
+}
 
 export interface RoutePolicy {
   method: string;
@@ -18,6 +24,9 @@ export interface RoutePolicy {
   handler: string;
   public: boolean;
   authenticated: boolean;
+  /** Permissions exigées (`@Can`), une seule suffit. */
+  permissions: string[];
+  /** Rôles admis : ceux de `@Roles`, ou les anciens rôles qui portent une des permissions de `@Can`. */
   roles: UserRole[];
   scopes: string[];
   owns: OwnsOptions | null;
@@ -53,6 +62,7 @@ export function listRoutePolicies(app: INestApplication, globalPrefix = 'v1'): R
       const paths = Array.isArray(path) ? path : [path];
       for (const base of basePaths) {
         for (const p of paths) {
+          const permissions = reflector.getAllAndOverride<string[]>(CAN_KEY, targets) ?? [];
           policies.push({
             method: RequestMethod[method] ?? String(method),
             path: joinPath(globalPrefix, base, p),
@@ -60,7 +70,8 @@ export function listRoutePolicies(app: INestApplication, globalPrefix = 'v1'): R
             handler: name,
             public: reflector.getAllAndOverride<boolean>(PUBLIC_KEY, targets) === true,
             authenticated: reflector.getAllAndOverride<boolean>(AUTHENTICATED_KEY, targets) === true,
-            roles: reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, targets) ?? [],
+            permissions,
+            roles: permissions.length ? legacyRolesFor(permissions) : (reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, targets) ?? []),
             scopes: reflector.getAllAndOverride<string[]>(SCOPES_KEY, targets) ?? [],
             owns: reflector.getAllAndOverride<OwnsOptions | undefined>(OWNS_KEY, targets) ?? null,
           });
@@ -71,10 +82,10 @@ export function listRoutePolicies(app: INestApplication, globalPrefix = 'v1'): R
   return policies.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
 }
 
-/** Refus par défaut : une route sans `@Public`, `@Authenticated`, `@Roles` ni `@Scopes` empêche le démarrage. */
+/** Refus par défaut : une route sans `@Public`, `@Authenticated`, `@Can`, `@Roles` ni `@Scopes` empêche le démarrage. */
 export function assertRoutePolicies(app: INestApplication): RoutePolicy[] {
   const policies = listRoutePolicies(app);
-  const missing = policies.filter((p) => !p.public && !p.authenticated && !p.roles.length && !p.scopes.length);
+  const missing = policies.filter((p) => !p.public && !p.authenticated && !p.permissions.length && !p.roles.length && !p.scopes.length);
   if (missing.length) {
     const list = missing.map((p) => `${p.method} ${p.path} (${p.controller}.${p.handler})`).join(', ');
     throw new Error(`Routes sans politique d'accès (refus par défaut) : ${list}`);

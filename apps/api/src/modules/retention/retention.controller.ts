@@ -7,7 +7,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { NoAudit, Roles, STAFF_READ_ROLES } from '../auth/actor.js';
+import { Can, NoAudit } from '../auth/actor.js';
 import { RetentionService } from './retention.service.js';
 
 const jobSchema = z.object({ id: z.string().uuid(), type: z.string(), executedAt: z.string(), rowsProcessed: z.number().int(), details: z.record(z.string(), z.unknown()) });
@@ -24,7 +24,7 @@ export class AdminRetentionController {
   constructor(private readonly retention: RetentionService) {}
 
   @Get('jobs')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('retention.read')
   @NoAudit()
   @ApiOperation({ summary: 'Tâches de conservation exécutées (purges, anonymisations, blocages faute de sauvegarde vérifiée)' })
   @ZodResponse(200, z.array(jobSchema))
@@ -34,7 +34,7 @@ export class AdminRetentionController {
   }
 
   @Post('backup-verified')
-  @Roles('admin')
+  @Can('retention.run')
   @HttpCode(200)
   @ApiOperation({ summary: 'Confirme une sauvegarde vérifiée : les purges sont permises pendant 26 heures' })
   @ZodBody(backupSchema)
@@ -47,7 +47,7 @@ export class AdminRetentionController {
   }
 
   @Post('run')
-  @Roles('admin')
+  @Can('retention.run')
   @HttpCode(200)
   @ApiOperation({ summary: 'Lance les tâches de conservation maintenant (normalement chaque nuit à 3 h)' })
   @ZodResponse(200, z.array(z.object({ type: z.string(), rowsProcessed: z.number().int(), details: z.record(z.string(), z.unknown()) })))
