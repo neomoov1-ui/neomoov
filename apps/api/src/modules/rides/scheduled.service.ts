@@ -23,6 +23,7 @@ const OPEN_STATES: RideState[] = ['requested', 'offering', 'assigned'];
 
 export interface TickReport {
   reminders: string[];
+  driverReminders: string[];
   dispatchDue: string[];
   operatorAlerts: string[];
 }
@@ -49,20 +50,21 @@ export class ScheduledService {
 
   /** Passe sur les courses planifiées ouvertes dont l'heure approche ; chaque signal est enregistré une fois. */
   async tick(now = new Date()): Promise<TickReport> {
-    const [reminderBefore, assignBefore, reassignBefore] = await Promise.all([
+    const [reminderBefore, assignBefore, reassignBefore, driverReminderBefore] = await Promise.all([
       this.settings.number('rides.scheduled_reminder_before_seconds', 86_400),
       this.settings.number('rides.scheduled_assign_before_seconds', 3600),
       this.settings.number('rides.scheduled_reassign_before_seconds', 1800),
+      this.settings.number('rides.scheduled_driver_reminder_before_seconds', 5400),
     ]);
-    const horizon = new Date(now.getTime() + Math.max(reminderBefore, assignBefore, reassignBefore) * 1000 + 60_000);
+    const horizon = new Date(now.getTime() + Math.max(reminderBefore, assignBefore, reassignBefore, driverReminderBefore) * 1000 + 60_000);
     const rides = await selectRides(this.db, and(eq(schema.rides.type, 'scheduled'), inArray(schema.rides.state, OPEN_STATES), lte(schema.rides.requestedAt, horizon), gt(schema.rides.requestedAt, now)), { limit: 500 });
-    const report: TickReport = { reminders: [], dispatchDue: [], operatorAlerts: [] };
+    const report: TickReport = { reminders: [], driverReminders: [], dispatchDue: [], operatorAlerts: [] };
     if (!rides.length) return report;
     // Signaux déjà émis, en une seule requête pour toutes les courses de la passe.
     const marks = await this.db
       .select({ rideId: schema.rideEvents.rideId, type: schema.rideEvents.type })
       .from(schema.rideEvents)
-      .where(and(inArray(schema.rideEvents.rideId, rides.map((r) => r.id)), inArray(schema.rideEvents.type, ['scheduled_reminder', 'scheduled_dispatch_due', 'scheduled_operator_alert'])));
+      .where(and(inArray(schema.rideEvents.rideId, rides.map((r) => r.id)), inArray(schema.rideEvents.type, ['scheduled_reminder', 'scheduled_driver_reminder', 'scheduled_dispatch_due', 'scheduled_operator_alert'])));
     const done = new Map<string, Set<string>>();
     for (const m of marks) done.set(m.rideId, (done.get(m.rideId) ?? new Set()).add(m.type));
     const assignments = await this.db.select().from(schema.scheduledAssignments).where(and(inArray(schema.scheduledAssignments.rideId, rides.map((r) => r.id)), isNull(schema.scheduledAssignments.declinedAt)));
@@ -78,6 +80,16 @@ export class ScheduledService {
         const recipient = await this.rides.recipientOf(ride);
         await this.outbox.queue({ ...recipient, template: 'ride.scheduled_reminder', data: { rideId: ride.id, requestedAt: ride.requestedAt.toISOString() } });
         report.reminders.push(ride.id);
+      }
+      // Rappel au chauffeur 90 minutes avant (matrice 5.14) : attribué, ou proposé sans avoir encore confirmé.
+      const reminded = ride.driverId ?? assignments.find((a) => a.rideId === ride.id)?.driverId ?? null;
+      if (secondsLeft <= driverReminderBefore && reminded && !seen.has('scheduled_driver_reminder')) {
+        const [driverUser] = await this.db.select({ userId: schema.drivers.userId }).from(schema.drivers).where(eq(schema.drivers.id, reminded)).limit(1);
+        if (driverUser) {
+          await this.mark(ride, 'scheduled_driver_reminder', now, { secondsLeft: Math.round(secondsLeft), driverId: reminded });
+          await this.outbox.queue({ recipientUserId: driverUser.userId, template: 'ride.driver_reminder', data: { rideId: ride.id, publicNumber: ride.publicNumber, requestedAt: ride.requestedAt.toISOString(), confirmed: ride.state === 'assigned' } });
+          report.driverReminders.push(ride.id);
+        }
       }
       // Déclenchement de l'attribution à 60 minutes si aucun chauffeur n'est attribué.
       if (secondsLeft <= assignBefore && (ride.state === 'requested' || ride.state === 'offering') && !seen.has('scheduled_dispatch_due')) {
@@ -98,7 +110,7 @@ export class ScheduledService {
         }
       }
     }
-    if (report.reminders.length || report.dispatchDue.length || report.operatorAlerts.length) this.logger.info(report, 'Courses planifiées : signaux émis');
+    if (report.reminders.length || report.driverReminders.length || report.dispatchDue.length || report.operatorAlerts.length) this.logger.info(report, 'Courses planifiées : signaux émis');
     return report;
   }
 

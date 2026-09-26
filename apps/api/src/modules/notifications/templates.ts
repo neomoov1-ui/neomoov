@@ -88,6 +88,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Course annulée', body: (d, l) => (Number(d['feeCents']) > 0 ? `La course a été annulée. Frais d'annulation : ${money(d['feeCents'], l)}.` : 'La course a été annulée.') },
     en: { title: 'Ride cancelled', body: (d, l) => (Number(d['feeCents']) > 0 ? `The ride was cancelled. Cancellation fee: ${money(d['feeCents'], l)}.` : 'The ride was cancelled.') },
   },
+  'ride.driver_reminder': {
+    fr: { title: 'Réservation dans 90 minutes', body: (d) => (d['confirmed'] ? `Rappel : course ${str(d['publicNumber'])} à ${when(d['requestedAt'], 'fr')}. Prévoyez votre départ.` : `Course ${str(d['publicNumber'])} à ${when(d['requestedAt'], 'fr')} : confirmez-la dans l'application, sinon elle sera réattribuée.`) },
+    en: { title: 'Booking in 90 minutes', body: (d) => (d['confirmed'] ? `Reminder: ride ${str(d['publicNumber'])} at ${when(d['requestedAt'], 'en')}. Plan your departure.` : `Ride ${str(d['publicNumber'])} at ${when(d['requestedAt'], 'en')}: confirm it in the app, or it will be reassigned.`) },
+  },
   'ride.interrupted': {
     fr: { title: 'Course interrompue', body: 'Votre course a été interrompue par l\'équipe Neomoov. Aucun montant n\'est prélevé automatiquement ; nous vous contactons.' },
     en: { title: 'Ride interrupted', body: 'Your ride was interrupted by the Neomoov team. No amount is charged automatically; we will contact you.' },

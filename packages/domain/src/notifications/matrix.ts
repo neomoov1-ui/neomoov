@@ -34,6 +34,7 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('invoice.issued', 'client', ['email']),
   rule('ride.cancelled_by_client', 'driver', ['push']),
   rule('ride.cancelled_by_operator', 'client', ['push']),
+  rule('ride.driver_reminder', 'driver', ['push']),
   rule('ride.interrupted', 'client', ['push', 'sms'], true),
   rule('ride.no_show', 'client', ['push']),
   rule('ride.no_driver', 'client', ['push']),

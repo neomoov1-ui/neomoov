@@ -58,6 +58,12 @@ describe('réservation planifiée avec horloge simulée (intégration)', () => {
     const withAssignment = await request(server()).get('/v1/driver/scheduled').set(bearer(driver.tokens)).expect(200);
     expect(withAssignment.body.find((r: { id: string }) => r.id === ride.id).assignment.confirmedAt).toBeNull();
 
+    // 90 minutes avant : rappel au chauffeur proposé (pas encore confirmé), une seule fois.
+    const ninety = await scheduled.tick(at(85));
+    expect(ninety.driverReminders).toContain(ride.id);
+    expect((await scheduled.tick(at(84))).driverReminders).not.toContain(ride.id);
+    const driverReminder = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, driver.userId), eq(schema.notifications.template, 'ride.driver_reminder')));
+    expect(driverReminder).toHaveLength(1);
     // 60 minutes avant : attribution à déclencher (aucun chauffeur confirmé).
     const dispatch = await scheduled.tick(at(55));
     expect(dispatch.dispatchDue).toContain(ride.id);
