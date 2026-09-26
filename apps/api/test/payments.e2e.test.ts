@@ -46,6 +46,8 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     await app?.close();
   });
 
+  // Chauffeurs des paiements : attribués de force, jamais candidats aux réservations (liste limitée des véhicules libres
+  // du test de répartition qui tourne en même temps sur la même base).
   const paymentsOf = (rideId: string) => db(app!).select().from(schema.payments).where(eq(schema.payments.rideId, rideId));
   const ridePayment = async (rideId: string) => (await paymentsOf(rideId)).find((p) => p.kind === 'ride' || p.kind === 'cancellation_fee' || p.kind === 'no_show_fee');
   const callsFor = (method: string, match: (args: unknown[]) => boolean) => provider.calls.filter((c) => c.method === method && match(c.args)).length;
@@ -55,13 +57,13 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     return { ...(res.body.quotes[0] as { id: string; maxConsentedCents: number; totalCents: number }), paymentMethods: res.body.paymentMethods as string[] };
   }
 
-  function book(client: Tokens, q: { id: string; maxConsentedCents: number }, options: { choice?: 'prepaid' | 'pay_driver_after'; method?: string; immediate?: boolean; idem?: string } = {}) {
+  function book(client: Tokens, q: { id: string; maxConsentedCents: number }, options: { choice?: 'prepaid' | 'pay_driver_after'; method?: string; immediate?: boolean; idem?: string; requestedAt?: string } = {}) {
     return request(server())
       .post('/v1/rides')
       .set(bearer(client))
       .set('Idempotency-Key', options.idem ?? key())
       .send({
-        quoteId: q.id, type: options.immediate ? 'immediate' : 'scheduled', ...(options.immediate ? {} : { requestedAt: inThreeHours() }), paymentChoice: options.choice ?? 'prepaid',
+        quoteId: q.id, type: options.immediate ? 'immediate' : 'scheduled', ...(options.immediate ? {} : { requestedAt: options.requestedAt ?? inThreeHours() }), paymentChoice: options.choice ?? 'prepaid',
         paymentMethod: options.method ?? 'card_app', maxConsentedCents: q.maxConsentedCents,
       });
   }
@@ -114,7 +116,7 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
   it('carte, course planifiée : autorisation à l\'attribution (prix maximal + 15 %), capture du montant final (rejouée sans doublon), pourboire unique, reçu', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
-    const driver = await createDriver(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     const admin = await createStaffAndLogin(app, ['operator']);
     const q = await quote(client);
     const ride = (await book(client, q).expect(201)).body as { id: string };
@@ -177,10 +179,49 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect(callsFor('cancel', () => true)).toBe(cancelsBefore + 1);
   });
 
+  it('carte refusée à l\'attribution d\'une planifiée : paiement en échec, incident, avis au client', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    provider.nextCard = { brand: 'visa', last4: '0002', declined: true };
+    const client = await loginByOtp(app);
+    provider.nextCard = { brand: 'visa', last4: '4242' };
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await book(client, await quote(client)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, driver);
+    const failed = await until(() => ridePayment(ride.id), (p) => p?.status === 'failed', 'refus à l\'attribution');
+    expect(failed!.failureCode).toBe('card_declined');
+    // L'incident et le solde suivent de peu le passage à « failed » (même tâche) : on les attend.
+    const incidents = await until(() => db(app!).select().from(schema.incidents).where(and(eq(schema.incidents.rideId, ride.id), eq(schema.incidents.type, 'payment_failed'))), (rows) => rows.length > 0, 'incident payment_failed');
+    expect(incidents).toHaveLength(1);
+    const notices = await until(() => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, client.user.id), eq(schema.notifications.template, 'payment.authorization_failed'))), (rows) => rows.length > 0, 'avis au client');
+    expect(notices).toHaveLength(1);
+  });
+
+  it('réservation à plus de 6 jours : autorisation différée à l\'attribution, faite par la reprise quand la prise en charge approche', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const pickup = new Date(Date.now() + 10 * 86_400_000).toISOString();
+    const ride = (await book(client, await quote(client, pickup), { requestedAt: pickup }).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, driver);
+    const events = await until(
+      () => db(app!).select({ type: schema.rideEvents.type }).from(schema.rideEvents).where(eq(schema.rideEvents.rideId, ride.id)),
+      (rows) => rows.some((r) => r.type === 'payment_authorization_deferred'),
+      'autorisation différée',
+    );
+    expect(events.map((e) => e.type)).not.toContain('payment_authorized');
+    expect(await ridePayment(ride.id)).toMatchObject({ status: 'pending', authorizedCents: 0 });
+    // Cinq jours plus tard, la reprise périodique trouve la réservation à moins de 6 jours et l'autorise.
+    const authorized = await app.get(PaymentsService).authorizeDueScheduled(new Date(Date.now() + 5 * 86_400_000));
+    expect(authorized).toBeGreaterThanOrEqual(1);
+    expect(await ridePayment(ride.id)).toMatchObject({ status: 'authorized' });
+  });
+
   it('échec de capture : nouvelle tentative réussie ; deux refus : incident, solde dû, réservations bloquées, règlement idempotent', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
-    const driver = await createDriver(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     const admin = await createStaffAndLogin(app, ['operator']);
 
     const first = (await book(client, await quote(client)).expect(201)).body as { id: string };
@@ -198,9 +239,11 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     const done = await drive(driver, second.id);
     const failed = await until(() => ridePayment(second.id), (p) => p?.status === 'failed', 'capture en échec');
     expect(failed!.failureCode).toBe('insufficient_funds');
-    const incidents = await db(app).select().from(schema.incidents).where(and(eq(schema.incidents.rideId, second.id), eq(schema.incidents.type, 'payment_failed')));
+    // L'incident et le solde suivent de peu le passage à « failed » (même tâche) : on les attend.
+    const incidents = await until(() => db(app!).select().from(schema.incidents).where(and(eq(schema.incidents.rideId, second.id), eq(schema.incidents.type, 'payment_failed'))), (rows) => rows.length > 0, 'incident payment_failed');
     expect(incidents).toHaveLength(1);
 
+    await until(() => db(app!).select({ balance: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, client.user.id)), (rows) => (rows[0]?.balance ?? 0) > 0, 'solde dû');
     const blocked = await book(client, await quote(client));
     expect(blocked.status).toBe(402);
     expect(blocked.body.code).toBe('BALANCE_DUE');
@@ -218,7 +261,7 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
   it('annulation après le départ du chauffeur : frais capturés sur l\'autorisation ; annulation gratuite : autorisation levée', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
-    const driver = await createDriver(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     const admin = await createStaffAndLogin(app, ['operator']);
 
     const late = (await book(client, await quote(client)).expect(201)).body as { id: string };
@@ -242,7 +285,7 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
   it('paiement direct confirmé par le chauffeur à la fin de course ; un écart ouvre un incident ; refusé pour une course payée par carte', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
-    const driver = await createDriver(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     const admin = await createStaffAndLogin(app, ['operator']);
 
     const cash = (await book(client, await quote(client), { choice: 'pay_driver_after', method: 'cash' }).expect(201)).body as { id: string };
@@ -274,7 +317,7 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
   it('remboursement sur la carte : plafonné au capturé, idempotent (rejoué deux fois), journalisé', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
-    const driver = await createDriver(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     const admin = await createStaffAndLogin(app, ['operator']);
     const ride = (await book(client, await quote(client)).expect(201)).body as { id: string };
     await assigned(admin.tokens, ride.id, driver);
@@ -334,7 +377,7 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
 
   it('chauffeur : compte Connect Express, lien d\'inscription, état, méthode de prélèvement ; webhook account.updated', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
-    const driver = await createDriver(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     const link = (await request(server()).post('/v1/driver/connect/onboarding-link').set(bearer(driver.tokens)).expect(201)).body;
     expect(link.simulated).toBe(true);
     expect(link.url).toContain('simulated=1');

@@ -1,6 +1,6 @@
 /** Paiements (section 7.2, prompt 07) : cartes du client, pourboire, reçu, solde dû ; chauffeur (Connect, prélèvement) ; webhook ; remboursements. */
 import {
-  balanceSchema, connectStatusSchema, paymentMethodViewSchema, paymentViewSchema, payoutLinkSchema, refundInputSchema, refundViewSchema, settleInputSchema, settleResultSchema,
+  balanceSchema, connectStatusSchema, paymentMethodViewSchema, paymentViewSchema, refundInputSchema, refundViewSchema, settleInputSchema, settleResultSchema,
   setupIntentConfirmSchema, setupIntentResponseSchema, tipInputSchema, uuid,
 } from '@neomoov/domain';
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Req, type RawBodyRequest } from '@nestjs/common';
@@ -106,15 +106,7 @@ export class PaymentsController {
 export class DriverPaymentsController {
   constructor(private readonly drivers: DriverPaymentsService) {}
 
-  @Post('connect/onboarding-link')
-  @HttpCode(201)
-  @Audit('driver.connect_link', 'drivers')
-  @ApiOperation({ summary: 'Lien d\'inscription Stripe Connect Express (vérification d\'identité par Stripe) ; compte créé au premier appel' })
-  @ZodResponse(201, payoutLinkSchema)
-  @ApiErrors(401, 403, 404, 429)
-  onboarding(@CurrentUser() user: UserActor) {
-    return this.drivers.onboardingLink(user.userId);
-  }
+  // Le lien d'inscription Connect est servi par le contrôleur des chauffeurs (même route, même service).
 
   @Get('connect/status')
   @ApiOperation({ summary: 'État du compte de versement (inscription, versements possibles) et méthode de prélèvement' })

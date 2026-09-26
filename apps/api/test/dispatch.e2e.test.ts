@@ -448,7 +448,10 @@ describe('répartition automatique et négociation (intégration)', () => {
   it('sélection précise du véhicule (D37) : liste des véhicules libres sur le créneau, chauffeur choisi sollicité seul d\'abord, puis la catégorie', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const premium = await driver({ firstName: 'Premium' }, 'neo_premium');
-    const prestige = await driver({ firstName: 'Prestige', rating: 4.9 }, 'neo_prestige');
+    const prestige = await driver({ firstName: 'Prestige' }, 'neo_prestige');
+    // La liste est limitée (`dispatch.scheduled_candidates_max`) et triée par note puis nombre de courses : les autres
+    // fichiers de tests créent des chauffeurs en même temps sur la même base ; ceux-ci passent devant à note égale.
+    await db(app).update(schema.drivers).set({ rideCount: 1_000_000 }).where(inArray(schema.drivers.id, [premium.driverId, prestige.driverId]));
     const c = await client();
     const pickup = later(4 * 3600);
     const quote = (await request(server()).post('/v1/quotes').set(bearer(c)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt: pickup.toISOString() }).expect(201)).body.quotes[0] as { id: string; maxConsentedCents: number };
