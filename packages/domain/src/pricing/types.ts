@@ -23,6 +23,10 @@ export interface SurchargeRules {
   bulkyLuggageCents: number;
   perStopCents: number;
   favouriteDriverCents: number;
+  /** Animal de compagnie en cage (D8) : supplément fixe ; absent, 0. */
+  petCents?: number;
+  /** Catégories qui acceptent un animal en cage (D8 : Neo XL et Neo Prestige) ; absent ou vide, option refusée partout. */
+  petCategories?: readonly string[];
 }
 
 /** Plage de pointe, en heure locale. `days` : 0 pour dimanche à 6 pour samedi. Minutes depuis minuit, fin exclue. */
@@ -68,6 +72,8 @@ export interface QuoteOptions {
   favouriteDriver?: boolean;
   childSeat?: boolean;
   bulkyLuggage?: boolean;
+  /** Animal de compagnie en cage (D8). Un animal d'assistance n'est pas une option : il est toujours accepté, sans frais. */
+  pet?: boolean;
   stops?: number;
 }
 
@@ -149,4 +155,4 @@ export interface Quote {
 
 export type PricingErrorCode =
   | 'UNKNOWN_CATEGORY' | 'INVALID_INPUT' | 'FLEX_REFUSED_PEAK_HOURS'
-  | 'FLEX_AND_PRIORITY_EXCLUSIVE' | 'FLAT_RATE_NOT_DECOMPOSABLE' | 'PROMOTION_NOT_APPLICABLE';
+  | 'FLEX_AND_PRIORITY_EXCLUSIVE' | 'FLAT_RATE_NOT_DECOMPOSABLE' | 'PROMOTION_NOT_APPLICABLE' | 'PET_NOT_ALLOWED';

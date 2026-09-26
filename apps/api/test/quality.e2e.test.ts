@@ -46,21 +46,29 @@ describe('agent qualité : sanctions graduées (intégration)', () => {
   const statusOf = async (driverId: string) => (await db(app!).select({ status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, driverId)))[0]!.status;
   const pendingFor = (driverId: string) => db(app!).select().from(schema.approvals).where(and(eq(schema.approvals.proposedAction, 'proposeSanction'), eq(schema.approvals.decision, 'pending'), sql`${schema.approvals.data}->>'driverId' = ${driverId}`));
 
-  /** Courses terminées par ce chauffeur, notées par le client (notes données dans l'ordre). */
+  /**
+   * Courses terminées par ce chauffeur, notées par le client (notes données dans l'ordre). La première passe par l'API
+   * (devis puis réservation) ; les suivantes en sont copiées en base : 38 réservations par l'API dépassaient 120 s sur la
+   * base de développement distante, et l'agent ne lit que le chauffeur, l'état et la note.
+   */
   async function rated(client: { accessToken: string }, driver: TestDriver, scores: number[]): Promise<string[]> {
-    const ids: string[] = [];
-    for (const score of scores) {
-      hour += 2;
-      const requestedAt = new Date(Date.now() + hour * 3_600_000).toISOString();
-      const quote = (await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt }).expect(201)).body.quotes[0];
-      const ride = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key())
-        .send({ quoteId: quote.id, type: 'scheduled', requestedAt, paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: quote.maxConsentedCents }).expect(201);
-      const rideId = ride.body.id as string;
-      await db(app!).update(schema.rides).set({ state: 'rated', driverId: driver.driverId }).where(eq(schema.rides.id, rideId));
-      const [clientRow] = await db(app!).select({ userId: schema.clients.userId }).from(schema.clients).innerJoin(schema.rides, eq(schema.rides.clientId, schema.clients.id)).where(eq(schema.rides.id, rideId));
-      await db(app!).insert(schema.rideRatings).values({ rideId, authorKind: 'client', authorUserId: clientRow!.userId, score });
-      ids.push(rideId);
-    }
+    hour += 2;
+    const requestedAt = new Date(Date.now() + hour * 3_600_000).toISOString();
+    const quote = (await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt }).expect(201)).body.quotes[0];
+    const ride = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key())
+      .send({ quoteId: quote.id, type: 'scheduled', requestedAt, paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: quote.maxConsentedCents }).expect(201);
+    const first = ride.body.id as string;
+    await db(app!).update(schema.rides).set({ state: 'rated', driverId: driver.driverId }).where(eq(schema.rides.id, first));
+    const copies = scores.length > 1 ? await db(app!).execute<{ id: string }>(sql`
+      INSERT INTO rides (public_number, city_code, reserved_category, state, type, origin_address, origin_position, destination_address, destination_position,
+        payment_method, payment_choice, max_consented_cents, quoted_total_cents, client_id, created_by_user_id, requested_at, driver_id)
+      SELECT 'QT-' || substr(md5(random()::text || g::text), 1, 16), city_code, reserved_category, state, type, origin_address, origin_position, destination_address, destination_position,
+        payment_method, payment_choice, max_consented_cents, quoted_total_cents, client_id, created_by_user_id, requested_at, driver_id
+      FROM rides, generate_series(2, ${scores.length}) AS g WHERE id = ${first}::uuid
+      RETURNING id`) : [];
+    const ids = [first, ...[...copies].map((r) => r.id)];
+    const [clientRow] = await db(app!).select({ userId: schema.clients.userId }).from(schema.clients).innerJoin(schema.rides, eq(schema.rides.clientId, schema.clients.id)).where(eq(schema.rides.id, first));
+    await db(app!).insert(schema.rideRatings).values(ids.map((rideId, i) => ({ rideId, authorKind: 'client', authorUserId: clientRow!.userId, score: scores[i]! })));
     return ids;
   }
 
@@ -136,6 +144,27 @@ describe('agent qualité : sanctions graduées (intégration)', () => {
     expect(back).not.toHaveLength(0);
   });
 
+  it('Charte d\'équité : notes à cause extérieure, client en retard ou exclues ne comptent pas ; annulation pour la sécurité jamais tardive', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    // Douze bonnes notes, puis trois mauvaises qui ne comptent pas (circulation, prix, client en retard) et une exclue par une personne.
+    await rated(client, driver, [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]);
+    const bad = await rated(client, driver, [1, 1, 1, 1]);
+    await db(app).update(schema.rideRatings).set({ tags: ['traffic'] }).where(eq(schema.rideRatings.rideId, bad[0]!));
+    await db(app).update(schema.rideRatings).set({ tags: ['late', 'price'] }).where(eq(schema.rideRatings.rideId, bad[1]!));
+    await db(app).update(schema.rides).set({ waitChargeCents: 150 }).where(eq(schema.rides.id, bad[2]!));
+    await db(app).update(schema.rideRatings).set({ excludedAt: new Date(), excludedReason: 'Réponse du chauffeur admise' }).where(eq(schema.rideRatings.rideId, bad[3]!));
+    // Trois annulations pour la sécurité après le départ : jamais comptées comme tardives.
+    const [safetyRide] = await rated(client, driver, [5]);
+    for (let i = 0; i < 3; i += 1) {
+      await db(app).insert(schema.rideEvents).values({ rideId: safetyRide!, type: 'driver_cancels', fromState: 'en_route', toState: 'requested', actorUserId: driver.userId, actorKind: 'driver', occurredAt: new Date(Date.now() - DAY), data: { reason: 'safety', safety: true } });
+    }
+    const [review] = await quality().review(new Date(), [driver.driverId]);
+    expect(review!.metrics).toMatchObject({ ratingAverage: 5, ratingCount: 13, lateCancellations7d: 0 });
+    expect(review!.proposal).toBeNull();
+  });
+
   it('mode automatique : sanction appliquée sans file ; passe quotidienne unique par référence', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
@@ -154,6 +183,12 @@ describe('agent qualité : sanctions graduées (intégration)', () => {
       expect((await run([driver.driverId], ref)).replayed).toBe(true);
       // Avertissement récent : pas de nouvel avertissement le lendemain.
       expect((await run([driver.driverId], key())).result).toMatchObject({ proposed: 0 });
+      // Charte d'équité : même en mode automatique, une suspension (note de 4,08) attend une décision humaine.
+      const low = await createDriver(app);
+      await rated(client, low, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5]);
+      expect((await run([low.driverId], key())).result).toMatchObject({ proposed: 1 });
+      expect(await pendingFor(low.driverId)).toHaveLength(1);
+      expect(await statusOf(low.driverId)).toBe('active');
     } finally {
       await db(app).update(schema.agents).set({ mode: 'approval' }).where(eq(schema.agents.code, 'quality'));
     }

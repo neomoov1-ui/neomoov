@@ -6,7 +6,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  benchmarkCheck, benchmarkTimeWindow, computeQuote, PricingError, type CompetitorBenchmark, type Language, type Place, type Promotion, type Quote, type QuoteDetail,
+  benchmarkCheck, benchmarkTimeWindow, computeQuote, isPetAllowed, PricingError, type CompetitorBenchmark, type Language, type Place, type Promotion, type Quote, type QuoteDetail,
   type PaymentMethod, type QuoteRequest, type QuoteView, type QuotesResponse, type SimulateQuote, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -110,15 +110,19 @@ export class QuotesService {
     ]);
     if (!originZone && !destinationZone) throw new AppError('OUT_OF_SERVICE_AREA', 'Ce trajet est hors de notre zone de service', 400);
 
-    const categories: VehicleCategory[] = input.category ? [input.category] : (loaded.rules.categories.map((c) => c.category) as VehicleCategory[]);
+    // Animal en cage (D8) : sans catégorie demandée, seules les catégories qui l'acceptent sont tarifées.
+    const allCategories = input.category ? [input.category] : (loaded.rules.categories.map((c) => c.category) as VehicleCategory[]);
+    const categories = input.options.pet && !input.category ? allCategories.filter((c) => isPetAllowed(c, loaded.rules)) : allCategories;
+    if (!categories.length) throw new AppError('PET_NOT_ALLOWED', 'Aucune catégorie n\'accepte un animal en cage pour le moment', 400);
     const [route, client] = await Promise.all([this.routeFor(origin, destination, stops, pickupAt, overrides), this.clientOf(actor.userId)]);
     const promotionCandidates = await this.promotions.candidates(input.options.promoCode, client?.id ?? null);
     const clientCompletedRides = overrides.clientCompletedRides ?? client?.rideCount ?? 0;
     const creditsAvailableCents = overrides.creditsAvailableCents ?? (actor.userId ? await this.creditsOf(actor.userId) : 0);
-    const [marginPpm, maxAgeDays, validitySeconds] = await Promise.all([
+    const [marginPpm, maxAgeDays, validitySeconds, belowCents] = await Promise.all([
       this.settings.number('pricing.benchmark_margin_ppm', 50_000),
       this.settings.number('pricing.benchmark_max_age_days', 14),
       this.settings.number('pricing.quote_validity_seconds', 300),
+      this.settings.number('pricing.benchmark_below_cents', 100),
     ]);
     const benchmarks = originZone && destinationZone ? await this.benchmarksFor(originZone.code, destinationZone.code, categories, benchmarkTimeWindow(pickupAt, loaded.timeZone), now, maxAgeDays) : [];
     const validUntil = new Date(now.getTime() + validitySeconds * 1000);
@@ -148,6 +152,7 @@ export class QuotesService {
               favouriteDriver: Boolean(input.options.favouriteDriverId) && favourite !== 'unavailable',
               childSeat: input.options.childSeat,
               bulkyLuggage: input.options.luggage,
+              pet: input.options.pet,
               stops: stops.length,
             },
             promotion: applicablePromotion,
@@ -163,7 +168,7 @@ export class QuotesService {
       }
       // Favori indisponible : aucun supplément, et l'option est signalée ignorée (message affiché par l'application).
       if (favourite === 'unavailable' && !quote.ignoredOptions.includes('favouriteDriver')) quote.ignoredOptions.push('favouriteDriver');
-      const checked = benchmarkCheck(quote, benchmarks, loaded.rules, { originZone: originZone?.code, destinationZone: destinationZone?.code, pickupAt, now, timeZone: loaded.timeZone, marginPpm, maxAgeDays });
+      const checked = benchmarkCheck(quote, benchmarks, loaded.rules, { originZone: originZone?.code, destinationZone: destinationZone?.code, pickupAt, now, timeZone: loaded.timeZone, marginPpm, belowCents, maxAgeDays });
       return { category, before: quote, checked };
     });
 
@@ -266,7 +271,7 @@ export class QuotesService {
 
   /** Préavis (D32) : au moins `rides.min_lead_seconds` avant la prise en charge, au plus `rides.max_lead_days` ; sans heure, course immédiate seulement si le drapeau l'autorise. */
   private async resolvePickup(requestedAt: string | undefined, now: Date, ignoreLeadTime: boolean): Promise<Date> {
-    const [minLead, maxLeadDays] = await Promise.all([this.settings.number('rides.min_lead_seconds', 7200), this.settings.number('rides.max_lead_days', 30)]);
+    const [minLead, maxLeadDays] = await Promise.all([this.settings.number('rides.min_lead_seconds', 7200), this.settings.number('rides.max_lead_days', 90)]);
     const tooShort = () =>
       new AppError('LEAD_TIME_TOO_SHORT', `Réservez au moins ${describeLead(minLead)} à l'avance`, 400, { minLeadSeconds: minLead, earliestPickupAt: new Date(now.getTime() + minLead * 1000).toISOString() });
     if (!requestedAt) {
@@ -354,7 +359,7 @@ export class QuotesService {
       )
       .orderBy(desc(schema.competitorBenchmarks.observedAt))
       .limit(200);
-    return rows.map((r) => ({ category: r.category, originZone: r.originZoneCode, destinationZone: r.destinationZoneCode, timeWindow: r.timeWindow as CompetitorBenchmark['timeWindow'], uberPriceCents: r.uberPriceCents, lyftPriceCents: r.lyftPriceCents, observedAt: r.observedAt, source: r.source }));
+    return rows.map((r) => ({ category: r.category, originZone: r.originZoneCode, destinationZone: r.destinationZoneCode, timeWindow: r.timeWindow as CompetitorBenchmark['timeWindow'], uberPriceCents: r.uberPriceCents, lyftPriceCents: r.lyftPriceCents, taxiPriceCents: r.taxiPriceCents, observedAt: r.observedAt, source: r.source }));
   }
 
   /** Temps d'arrivée du chauffeur en ligne le plus proche de cette catégorie (temps provisoire), ou null. */

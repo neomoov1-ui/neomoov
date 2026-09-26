@@ -79,6 +79,9 @@ describe('recherche de la référence concurrente', () => {
     expect(referenceOf(bench())).toBe(3000);
     expect(referenceOf(bench({ uberPriceCents: null }))).toBe(3200);
     expect(referenceOf(bench({ uberPriceCents: 0, lyftPriceCents: null }))).toBeNull();
+    // Le taxi est une référence comme les autres (le moins cher l'emporte).
+    expect(referenceOf(bench({ taxiPriceCents: 2800 }))).toBe(2800);
+    expect(referenceOf(bench({ uberPriceCents: null, lyftPriceCents: null, taxiPriceCents: 4945 }))).toBe(4945);
   });
   it('exige les deux zones, la catégorie et la plage horaire ; accepte le sens inverse', () => {
     const q = { category: 'neo_premium' };
@@ -152,5 +155,23 @@ describe('remise d\'alignement (D33)', () => {
     const r = benchmarkCheck(q, [bench({ uberPriceCents: 2500, lyftPriceCents: null })], rules, context);
     expect(r.quote.creditsAppliedCents).toBe(r.quote.totalCents);
     expect(r.quote.amountDueCents).toBe(0);
+  });
+});
+
+describe('au moins 1 $ sous la concurrence (fondateur, 26 septembre 2026)', () => {
+  it('la cible est le plus bas de « référence × (1 − marge) » et « référence − écart minimal »', () => {
+    const q = computeQuote(base(), rules); // 31,56 $
+    const taxi = [bench({ uberPriceCents: null, lyftPriceCents: null, taxiPriceCents: 3250 })];
+    // Sans écart minimal ni marge, 31,56 $ reste sous la référence taxi de 32,50 $.
+    expect(benchmarkCheck(q, taxi, rules, { ...context, marginPpm: 0 }).exceeded).toBe(false);
+    // Avec l'écart de 1 $, la cible passe à 31,50 $ : remise juste suffisante sur les frais de service.
+    const below = benchmarkCheck(q, taxi, rules, { ...context, marginPpm: 0, belowCents: 100 });
+    expect(below.exceeded).toBe(true);
+    expect(below.referenceCents).toBe(3250);
+    expect(below.quote.totalCents).toBeLessThanOrEqual(3150);
+    expect(below.quote.subtotalCents).toBe(subtotalForTotalAtMost(3150, rules));
+    expect(below.quote.driverAmountCents).toBe(q.driverAmountCents);
+    // Avec la marge de 5 % (seuil 30,88 $), la plus basse des deux cibles l'emporte.
+    expect(benchmarkCheck(q, taxi, rules, { ...context, belowCents: 100 }).quote.subtotalCents).toBe(subtotalForTotalAtMost(3088, rules));
   });
 });

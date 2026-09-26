@@ -43,7 +43,7 @@ export default function TariffsPage() {
   const [sim, setSim] = useState({ km: '20', minutes: '25' });
   const simulate = useMutation({
     mutationFn: () => hubApi.admin.simulate({
-      origin: DOWNTOWN, destination: AIRPORT, stops: [], options: { flex: false, priority: false, childSeat: false, luggage: false },
+      origin: DOWNTOWN, destination: AIRPORT, stops: [], options: { flex: false, priority: false, childSeat: false, luggage: false, pet: false },
       distanceMeters: Math.round(Number(sim.km) * 1000), durationSeconds: Math.round(Number(sim.minutes) * 60), ignoreLeadTime: true,
     }),
   });

@@ -14,6 +14,7 @@ import type {
   CreditsView, FavoriteView, ReferralView,
 } from '@neomoov/domain';
 import type { ConversationView, SupportMessageInput } from '@neomoov/domain';
+import type { DriverSanctionView, SanctionAppealInput } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
 /** Ce dont les ressources ont besoin : les verbes HTTP du client. */
@@ -168,6 +169,9 @@ export function driverResource(t: Transport) {
     updatePack: (purchaseId: string, body: PackUpdate) => t.patch<DriverPacksView>(`/driver/packs/${id(purchaseId)}`, body),
     loyalClients: () => t.get<LoyalClientView[]>('/driver/loyal-clients'),
     score: () => t.get<DriverScoreView>('/driver/score'),
+    /** Charte d'équité (D7) : mes sanctions, ma réponse ou mon appel (réponse d'une personne sous 4 heures ouvrables). */
+    sanctions: () => t.get<DriverSanctionView[]>('/driver/sanctions'),
+    appealSanction: (sanctionId: string, body: SanctionAppealInput) => t.post<DriverSanctionView>(`/driver/sanctions/${id(sanctionId)}/appeals`, body),
     startShift: (photoBase64: string) => t.post<ShiftStartResult>('/driver/shifts/start', { photoBase64 }),
     // Présence et positions (secours au socket `/driver`).
     status: () => t.get<DriverStatusView>('/driver/status'),

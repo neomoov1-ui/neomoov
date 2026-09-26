@@ -591,14 +591,17 @@ export class AgentToolsService {
     return { sanctionId: applied.sanctionId, type: d.type, status: applied.status, endsAt: endsAt?.toISOString() ?? null };
   }
 
-  /** Qualité (5.11) : en mode approbation, proposition dans la file ; en mode automatique, sanction appliquée aussitôt. */
+  /**
+   * Qualité (5.11) : proposition dans la file d'approbation. En mode automatique, seul l'avertissement s'applique aussitôt :
+   * aucune restriction ni suspension sans décision humaine (Charte d'équité, D7).
+   */
   private async proposeSanction(ctx: AgentRunContext, input: z.infer<typeof proposeSanctionToolSchema>): Promise<ToolResult> {
     const [driver] = await this.db.select({ id: schema.drivers.id, status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, input.driverId)).limit(1);
     if (!driver) return notFound('Chauffeur introuvable');
     if (driver.status !== 'active' && driver.status !== 'restricted') return refused(`Chauffeur au statut ${driver.status} : aucune sanction proposée`);
     const reason = input.justification.startsWith(QUALITY_SANCTION_PREFIX) ? input.justification : `${QUALITY_SANCTION_PREFIX}${input.justification}`;
     const data = { driverId: driver.id, type: input.type, reason, reasons: input.reasons };
-    if (ctx.mode === 'auto') {
+    if (ctx.mode === 'auto' && input.type === 'warning') {
       const result = await this.executeAction('proposeSanction', data, { approvalId: null, approverUserId: null, agentCode: ctx.agent.code, idempotencyKey: `${ctx.runId}:sanction:${driver.id}` });
       return done(result, 'Sanction appliquée');
     }

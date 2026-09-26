@@ -237,6 +237,7 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   if (rides.length) {
     const rideIds = rides.map((r) => r.id);
     // Blocages préventifs (étape 14) rattachés aux incidents des courses de test.
+    await database.execute(sql`DELETE FROM sanction_appeals WHERE sanction_id IN (SELECT id FROM sanctions WHERE incident_id IN (SELECT id FROM incidents WHERE ride_id IN ${rideIds}))`);
     await database.execute(sql`DELETE FROM sanctions WHERE incident_id IN (SELECT id FROM incidents WHERE ride_id IN ${rideIds})`);
     await database.delete(schema.incidents).where(inArray(schema.incidents.rideId, rideIds));
     await database.delete(schema.packConsumptions).where(inArray(schema.packConsumptions.rideId, rideIds));
@@ -271,6 +272,7 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     await database.execute(sql`DELETE FROM scheduled_assignments WHERE driver_id IN ${driverIds}`);
     await database.delete(schema.packPurchases).where(inArray(schema.packPurchases.driverId, driverIds));
     await database.delete(schema.weeklyStatements).where(inArray(schema.weeklyStatements.driverId, driverIds));
+    await database.delete(schema.sanctionAppeals).where(inArray(schema.sanctionAppeals.driverId, driverIds));
     await database.delete(schema.sanctions).where(inArray(schema.sanctions.driverId, driverIds));
     await database.delete(schema.staffNotes).where(inArray(schema.staffNotes.entityId, driverIds));
   }

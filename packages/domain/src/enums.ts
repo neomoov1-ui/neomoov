@@ -75,7 +75,7 @@ export type VehicleStatus = (typeof VEHICLE_STATUSES)[number];
 export const ZONE_TYPES = ['service_area', 'airport', 'downtown', 'district'] as const;
 export type ZoneType = (typeof ZONE_TYPES)[number];
 
-export const SURCHARGE_CODES = ['night', 'airport', 'child_seat', 'luggage', 'stop', 'waiting'] as const;
+export const SURCHARGE_CODES = ['night', 'airport', 'child_seat', 'luggage', 'stop', 'waiting', 'pet'] as const;
 export type SurchargeCode = (typeof SURCHARGE_CODES)[number];
 
 export const OFFER_TYPES = ['fixed', 'client_proposal', 'driver_counter'] as const;
@@ -152,7 +152,8 @@ export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 export const PARTNER_TYPES = ['hotel', 'restaurant', 'mall', 'bar', 'organizer'] as const;
 export type PartnerType = (typeof PARTNER_TYPES)[number];
 
-export const RATING_TAGS = ['punctual', 'smooth_driving', 'clean_car', 'discreet', 'bilingual', 'helpful', 'late', 'detour', 'unsafe', 'dirty', 'rude'] as const;
+/** Étiquettes de la note du client ; les trois dernières signalent une cause hors du contrôle du chauffeur (Charte d'équité, D7). */
+export const RATING_TAGS = ['punctual', 'smooth_driving', 'clean_car', 'discreet', 'bilingual', 'helpful', 'late', 'detour', 'unsafe', 'dirty', 'rude', 'traffic', 'price', 'app'] as const;
 export type RatingTag = (typeof RATING_TAGS)[number];
 
 export const CANCELLATION_REASONS = ['changed_plans', 'too_long', 'wrong_address', 'driver_not_moving', 'other'] as const;

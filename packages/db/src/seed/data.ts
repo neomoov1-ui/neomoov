@@ -38,11 +38,13 @@ export const SURCHARGES = [
   { code: 'luggage', amountCents: 200, perUnit: false, conditions: {} },
   { code: 'stop', amountCents: 200, perUnit: true, conditions: { unit: 'stop', maxStops: 3 } },
   { code: 'waiting', amountCents: 50, perUnit: true, conditions: { unit: 'minute', freeSeconds: 300 } },
+  // D8 (fondateur, 26 septembre 2026) : animal de compagnie en cage, Neo XL et Neo Prestige seulement.
+  { code: 'pet', amountCents: 500, perUnit: false, conditions: { categories: ['neo_xl', 'neo_prestige'] } },
 ] as const;
 
 /** Forfaits centre-ville et aéroport, prix total affiché, dans les deux sens. */
 export const FLAT_RATES = [
-  { code: 'yul-centre-premium', category: 'neo_premium', origin: 'centre-ville', destination: 'yul', totalCents: 5500 },
+  { code: 'yul-centre-premium', category: 'neo_premium', origin: 'centre-ville', destination: 'yul', totalCents: 4820 },
   { code: 'yul-centre-prestige', category: 'neo_prestige', origin: 'centre-ville', destination: 'yul', totalCents: 6900 },
   { code: 'yul-centre-xl', category: 'neo_xl', origin: 'centre-ville', destination: 'yul', totalCents: 7500 },
 ] as const;
@@ -81,7 +83,7 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'pricing.degraded_speed_kmh', value: 30, description: 'Mode dégradé (API Routes indisponible) : vitesse moyenne de l\'estimation interne' },
   { key: 'pricing.degraded_distance_factor_bps', value: 13_000, description: 'Mode dégradé : distance à vol d\'oiseau × 1,3' },
   { key: 'rides.min_lead_seconds', value: 7200, description: 'D32 : toute course est réservée au moins 2 heures avant la prise en charge' },
-  { key: 'rides.max_lead_days', value: 30, description: 'Réservation au plus 30 jours à l\'avance' },
+  { key: 'rides.max_lead_days', value: 90, description: 'Réservation au plus 90 jours à l\'avance (décision D9 du fondateur, 26 septembre 2026)' },
   { key: 'payments.installment_min_cents', value: 15_000, description: 'D36 : paiement échelonné proposé à partir de 150 $' },
   { key: 'referral.client_referrer_cents', value: 1_000, description: 'Parrainage client : crédit du parrain à la première course terminée du filleul (10 $)' },
   { key: 'referral.client_referred_cents', value: 1_000, description: 'Parrainage client : crédit du filleul à sa première course terminée (10 $)' },
@@ -106,11 +108,19 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'rides.no_show_min_wait_seconds', value: 300, description: 'Attente minimale avant non-présentation' },
   { key: 'rides.no_show_min_contacts', value: 2, description: 'Tentatives de contact avant non-présentation' },
   { key: 'rides.scheduled_min_lead_seconds', value: 1800, description: 'Réservation planifiée : au moins 30 minutes avant' },
-  { key: 'rides.scheduled_max_lead_days', value: 30, description: 'Réservation planifiée : au plus 30 jours avant' },
+  { key: 'rides.scheduled_max_lead_days', value: 90, description: 'Réservation planifiée : au plus 90 jours avant' },
   { key: 'rides.scheduled_assign_before_seconds', value: 3600, description: 'Attribution des planifiées 60 minutes avant' },
   { key: 'rides.scheduled_reassign_before_seconds', value: 1800, description: 'Réattribution si non confirmée 30 minutes avant' },
   { key: 'alerts.client_cancellations_threshold', value: 3, description: 'Annulations ou absences d\'un client qui déclenchent une alerte à l\'exploitation (5.14)' },
   { key: 'alerts.client_cancellations_window_days', value: 7, description: 'Fenêtre, en jours, du décompte des annulations et absences d\'un client' },
+  { key: 'fairness.business_hours', value: { days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00' }, description: 'Charte d\'équité : heures ouvrables du délai de rappel (lundi à vendredi, 9 h à 17 h, heure de Montréal)' },
+  { key: 'fairness.callback_business_hours', value: 4, description: 'Charte d\'équité : une personne répond au chauffeur (réponse ou appel) sous 4 heures ouvrables' },
+  { key: 'fairness.precautionary_review_hours', value: 24, description: 'Charte d\'équité : une suspension de précaution est réexaminée par une personne sous 24 heures' },
+  { key: 'punctuality.enabled', value: false, description: 'Garantie de ponctualité (D10) : désactivée tant que le fondateur n\'a pas validé les montants proposés le 26 septembre 2026' },
+  { key: 'punctuality.rules', value: { tiers: [{ minMinutes: 10, creditCents: 500 }, { minMinutes: 20, creditCents: 1000 }], refundAfterMinutes: 30 }, description: 'Garantie de ponctualité (D10) : 5 $ de 10 à 20 minutes de retard, 10 $ de 20 à 30 minutes, course remboursée en crédit au-delà' },
+  { key: 'quality.rating_window', value: 100, description: 'Note du chauffeur : les 100 dernières courses notées qui comptent (Charte d\'équité, 26 septembre 2026)' },
+  { key: 'pricing.benchmark_below_cents', value: 100, description: 'Veille prix : au moins 1 $ sous le concurrent le moins cher (décision du fondateur, 26 septembre 2026)' },
+  { key: 'rides.airport_free_cancellation_before_seconds', value: 3600, description: 'Transfert aéroport : annulation gratuite jusqu\'à 1 heure avant l\'heure prévue (décision D3 du fondateur, 26 septembre 2026)' },
   { key: 'rides.scheduled_driver_reminder_before_seconds', value: 5400, description: 'Rappel au chauffeur 90 minutes avant une réservation (matrice 5.14)' },
   { key: 'rides.scheduled_reminder_before_seconds', value: 86_400, description: 'Rappel la veille (J-1) pour les courses à plus de 24 heures' },
   { key: 'rides.share_link_ttl_hours', value: 24, description: 'Validité du lien public de suivi d\'une course' },

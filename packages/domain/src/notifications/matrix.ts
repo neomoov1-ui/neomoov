@@ -66,6 +66,7 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('payment.authorization_failed', 'client', ['push', 'email'], true),
   rule('payment.balance_due', 'client', ['push', 'email']),
   rule('guarantee.decided', 'client', ['push', 'email']),
+  rule('punctuality.compensated', 'client', ['push', 'email']),
   // Relevés, versements, prélèvements.
   rule('statement.issued', 'driver', ['push', 'email']),
   rule('statement.paid', 'driver', ['push', 'email']),
@@ -83,6 +84,8 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('quality.restriction', 'driver', ['push', 'email']),
   rule('quality.suspension', 'driver', ['push', 'email', 'sms'], true),
   rule('quality.reinstated', 'driver', ['push', 'email']),
+  // Charte d'équité (D7) : décision motivée sur la réponse ou l'appel du chauffeur.
+  rule('fairness.appeal_decided', 'driver', ['push', 'email']),
   rule('pack.low', 'driver', ['push']),
   rule('pack.exhausted', 'driver', ['push']),
   rule('pack.renewed', 'driver', ['push']),
@@ -100,6 +103,9 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('alert.agent_budget', 'staff', ['email']),
   rule('alert.client_cancellations', 'staff', ['email']),
   rule('alert.benchmark_exceeded', 'staff', ['email']),
+  rule('alert.appeal_received', 'staff', ['email']),
+  rule('alert.appeal_overdue', 'staff', ['email']),
+  rule('alert.precautionary_review_overdue', 'staff', ['sms', 'email'], true),
 ];
 
 const BY_TEMPLATE = new Map(NOTIFICATION_MATRIX.map((r) => [r.template, r]));

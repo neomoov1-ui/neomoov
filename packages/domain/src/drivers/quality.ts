@@ -1,14 +1,31 @@
 /**
- * Sanctions graduées (cahier des charges 5.11) : à partir de la note glissante sur les 50 dernières courses notées, des
- * annulations tardives sur 7 jours et des incidents graves, l'agent qualité propose un avertissement (note sous 4,60),
+ * Sanctions graduées (cahier des charges 5.11) : à partir de la note glissante sur les 100 dernières courses notées qui
+ * comptent (Charte d'équité, D7 : `isRatingCounted`), des annulations tardives sur 7 jours (hors annulation pour la
+ * sécurité du chauffeur) et des incidents graves, l'agent qualité propose un avertissement (note sous 4,60),
  * une restriction (retrait des courses VIP et aéroport : note sous 4,40 ou 3 annulations tardives en 7 jours) ou une
  * suspension (note sous 4,20 ou 3 incidents graves). La plainte de sécurité, elle, bloque aussitôt (`safety.ts`). Seule
- * la sanction la plus forte est proposée ; la suspension définitive n'est jamais proposée : elle reste humaine.
+ * la sanction la plus forte est proposée ; la suspension définitive n'est jamais proposée : elle reste humaine. Seul
+ * l'avertissement peut s'appliquer sans personne (mode automatique) : restriction et suspension attendent une décision
+ * humaine (Charte d'équité).
  */
 import type { SanctionType } from '../enums.js';
 
+/** Étiquettes qui désignent une cause hors du contrôle du chauffeur (circulation, prix, application) : la note ne compte pas. */
+export const RATING_EXTERNAL_TAGS = ['traffic', 'price', 'app'] as const;
+
+/** Fenêtre de la note (Charte d'équité) : les 100 dernières courses notées qui comptent (réglage `quality.rating_window`). */
+export const DEFAULT_RATING_WINDOW = 100;
+
+/**
+ * Une note du client compte pour le chauffeur, sauf si une personne l'a exclue (réponse du chauffeur admise), si elle
+ * signale une cause hors de son contrôle, ou si le client l'a fait attendre au-delà du délai gratuit (attente facturée).
+ */
+export function isRatingCounted(rating: { tags: readonly string[]; waitChargeCents: number; excluded: boolean }): boolean {
+  return !rating.excluded && rating.waitChargeCents === 0 && !rating.tags.some((tag) => (RATING_EXTERNAL_TAGS as readonly string[]).includes(tag));
+}
+
 export interface QualityMetrics {
-  /** Moyenne des notes des clients sur les 50 dernières courses notées (null sans note). */
+  /** Moyenne des notes des clients sur les 100 dernières courses notées qui comptent (null sans note). */
   ratingAverage: number | null;
   ratingCount: number;
   lateCancellations7d: number;

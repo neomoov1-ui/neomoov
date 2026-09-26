@@ -25,6 +25,7 @@ export * from './settlement.js';
 export * from './ledgers.js';
 export * from './agents.js';
 export * from './metrics.js';
+export * from './fairness.js';
 import { PAYMENT_CHOICES } from './rides.js';
 import { driverJobSchema } from './driver.js';
 import { dispatchSummarySchema, negotiationSummarySchema } from './dispatch.js';
@@ -81,6 +82,8 @@ export const rideSchema = z.object({
   dispatch: dispatchSummarySchema.nullable(),
   /** Négociation encadrée : toujours null quand le drapeau `FEATURE_NEGOTIATION` est désactivé. */
   negotiation: negotiationSummarySchema.nullable(),
+  /** Transfert vers ou depuis l'aéroport (règle d'annulation D3) ; absent d'une API antérieure. */
+  airportTransfer: z.boolean().optional(),
 });
 export type RideView = z.infer<typeof rideSchema>;
 

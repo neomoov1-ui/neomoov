@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { clientCancellationFeeCents, noShowCheck, waitedSecondsBetween, type CancellationRules } from '../src/index.js';
 
-const rules: CancellationRules = { freeCancellationSeconds: 120, cancellationFeeCents: 500, noShowFeeCents: 700, noShowMinWaitSeconds: 300, noShowMinContacts: 2 };
+const rules: CancellationRules = { freeCancellationSeconds: 120, cancellationFeeCents: 500, noShowFeeCents: 700, noShowMinWaitSeconds: 300, noShowMinContacts: 2, airportFreeCancellationBeforeSeconds: 3600 };
 const T0 = new Date('2026-09-25T14:00:00Z');
 const at = (seconds: number) => new Date(T0.getTime() + seconds * 1000);
 
@@ -15,6 +15,15 @@ describe('frais d\'annulation du client (5.2)', () => {
     expect(clientCancellationFeeCents({ state: 'assigned', assignedAt: T0, now: at(120) }, rules)).toBe(0);
     expect(clientCancellationFeeCents({ state: 'assigned', assignedAt: T0, now: at(121) }, rules)).toBe(500);
     expect(clientCancellationFeeCents({ state: 'assigned', assignedAt: null, now: at(1) }, rules)).toBe(500);
+  });
+  it('transfert aéroport (D3) : gratuit jusqu\'à 1 heure avant l\'heure prévue, puis 5,00 $ (sauf les 2 minutes après l\'attribution)', () => {
+    const pickup = at(3 * 3600);
+    expect(clientCancellationFeeCents({ state: 'assigned', assignedAt: T0, now: at(2 * 3600), airportPickupAt: pickup }, rules)).toBe(0);
+    expect(clientCancellationFeeCents({ state: 'assigned', assignedAt: T0, now: at(2 * 3600 + 1), airportPickupAt: pickup }, rules)).toBe(500);
+    expect(clientCancellationFeeCents({ state: 'assigned', assignedAt: at(2 * 3600 + 60), now: at(2 * 3600 + 100), airportPickupAt: pickup }, rules)).toBe(0);
+    expect(clientCancellationFeeCents({ state: 'assigned', assignedAt: null, now: at(10), airportPickupAt: pickup }, rules)).toBe(0);
+    expect(clientCancellationFeeCents({ state: 'assigned', assignedAt: T0, now: at(2 * 3600), airportPickupAt: null }, rules)).toBe(500);
+    expect(clientCancellationFeeCents({ state: 'en_route', assignedAt: T0, now: at(10), airportPickupAt: pickup }, rules)).toBe(500);
   });
   it('5,00 $ en route et sur place ; rien dans un état terminal', () => {
     expect(clientCancellationFeeCents({ state: 'en_route', assignedAt: T0, now: at(10) }, rules)).toBe(500);

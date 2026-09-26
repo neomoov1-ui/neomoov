@@ -21,6 +21,7 @@ import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { AccountingAgent, AnalyticsAgent, RecruitmentAgent } from './back-office.agents.js';
 import { CustomerRelationsAgent } from './customer-relations.agent.js';
 import { QualityAgent } from './quality.agent.js';
+import { FairnessService } from '../fairness/fairness.service.js';
 
 @Injectable()
 export class AgentJobsService implements OnModuleInit {
@@ -40,6 +41,7 @@ export class AgentJobsService implements OnModuleInit {
     @Inject(DB) private readonly database: Database,
     private readonly audit: AuditService,
     private readonly outbox: NotificationsOutbox,
+    private readonly fairness: FairnessService,
   ) {}
 
   get triggersEnabled(): boolean {
@@ -87,6 +89,8 @@ export class AgentJobsService implements OnModuleInit {
         await this.reportTick(new Date());
         await this.qualityTick(new Date());
         await this.benchmarkTick(new Date());
+        // Charte d'équité (D7) : blocages de précaution et demandes des chauffeurs en retard sur leur délai.
+        await this.fairness.alertOverdue(new Date());
         return;
       default:
         this.logger.warn({ job: name }, 'Tâche d\'agent inconnue');

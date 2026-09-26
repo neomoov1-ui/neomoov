@@ -1,7 +1,8 @@
 /**
  * Frais d'annulation et de non-présentation (section 5.2), fonctions pures : les montants et délais viennent de
  * `settings` (`rides.free_cancellation_seconds`, `rides.cancellation_fee_cents`, `rides.no_show_fee_cents`,
- * `rides.no_show_min_wait_seconds`, `rides.no_show_min_contacts`). 100 % des frais vont au chauffeur.
+ * `rides.no_show_min_wait_seconds`, `rides.no_show_min_contacts`, `rides.airport_free_cancellation_before_seconds`).
+ * 100 % des frais vont au chauffeur.
  */
 import type { RideState } from '../enums.js';
 
@@ -14,6 +15,8 @@ export interface CancellationRules {
   noShowMinWaitSeconds: number;
   /** Tentatives de contact minimales avant une non-présentation (2). */
   noShowMinContacts: number;
+  /** Transfert vers ou depuis l'aéroport : annulation gratuite jusqu'à ce délai avant l'heure prévue, en secondes (3600, D3). */
+  airportFreeCancellationBeforeSeconds: number;
 }
 
 export interface CancellationContext {
@@ -21,9 +24,15 @@ export interface CancellationContext {
   /** Instant de l'attribution (état `assigned`), s'il a eu lieu. */
   assignedAt: Date | null;
   now: Date;
+  /** Heure prévue d'un transfert vers ou depuis l'aéroport ; `null` ou absent pour toute autre course. */
+  airportPickupAt?: Date | null | undefined;
 }
 
-/** Frais dus par le client qui annule : 0 avant l'attribution ou dans la fenêtre gratuite, sinon le tarif d'annulation. */
+/**
+ * Frais dus par le client qui annule : 0 avant l'attribution ou dans la fenêtre gratuite, sinon le tarif d'annulation.
+ * Transfert aéroport (D3) : gratuit aussi tant qu'il reste au moins `airportFreeCancellationBeforeSeconds` avant l'heure
+ * prévue ; la plus favorable des deux règles s'applique au client.
+ */
 export function clientCancellationFeeCents(context: CancellationContext, rules: CancellationRules): number {
   switch (context.state) {
     case 'quoted':
@@ -31,6 +40,7 @@ export function clientCancellationFeeCents(context: CancellationContext, rules: 
     case 'offering':
       return 0;
     case 'assigned': {
+      if (context.airportPickupAt && (context.airportPickupAt.getTime() - context.now.getTime()) / 1000 >= rules.airportFreeCancellationBeforeSeconds) return 0;
       if (!context.assignedAt) return rules.cancellationFeeCents;
       const elapsed = (context.now.getTime() - context.assignedAt.getTime()) / 1000;
       return elapsed <= rules.freeCancellationSeconds ? 0 : rules.cancellationFeeCents;

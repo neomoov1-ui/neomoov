@@ -1,7 +1,7 @@
 /**
  * Agent qualité (cahier des charges 5.11, prompt 14 tâche 2) : chaque jour, pour les chauffeurs actifs ou restreints,
- * note glissante des clients sur les 50 dernières courses notées, annulations tardives sur 7 jours (après le départ du
- * chauffeur, ou sur une course immédiate, ou à moins de `quality.late_cancellation_minutes` d'une planifiée) et incidents
+ * note glissante des clients sur les 100 dernières courses notées qui comptent (Charte d'équité, `driver-rating.ts`),
+ * annulations tardives sur 7 jours, hors annulation pour la sécurité du chauffeur (après le départ du chauffeur, ou sur une course immédiate, ou à moins de `quality.late_cancellation_minutes` d'une planifiée) et incidents
  * graves (gravité élevée ou critique, signalés par d'autres que le chauffeur) sur `quality.incident_window_days` ; la
  * règle du domaine (`qualityProposal`) choisit la sanction, l'outil `proposeSanction` la soumet à la file d'approbation
  * (ou l'applique en mode automatique). Aucune proposition si une sanction au moins aussi forte est en cours ou en attente,
@@ -10,7 +10,7 @@
  * ou la suspension de qualité est échue.
  */
 import { schema } from '@neomoov/db';
-import { localClock, parseQualityThresholds, qualityProposal, qualityReasonText, sanctionRank, type QualityMetrics, type QualityProposal, type SanctionType } from '@neomoov/domain';
+import { DEFAULT_RATING_WINDOW, localClock, parseQualityThresholds, qualityProposal, qualityReasonText, sanctionRank, type QualityMetrics, type QualityProposal, type SanctionType } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, like, lte, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -22,6 +22,7 @@ import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { AgentRunnerService, type AgentExecution } from './agent-runner.service.js';
 import { AgentToolsService, QUALITY_SANCTION_PREFIX } from './agent-tools.service.js';
 import { statusAfterSuspension } from '../drivers/driver-status.js';
+import { COUNTED_RATING } from '../drivers/driver-rating.js';
 
 export const QUALITY = 'quality';
 
@@ -70,11 +71,12 @@ export class QualityAgent {
 
   /** Mesures et proposition de chaque chauffeur actif ou restreint (My Hub et passe quotidienne). */
   async review(now = new Date(), onlyDriverIds?: string[]): Promise<QualityReview[]> {
-    const [raw, lateMinutes, incidentDays, cooldownDays] = await Promise.all([
+    const [raw, lateMinutes, incidentDays, cooldownDays, ratingWindow] = await Promise.all([
       this.settings.get<unknown>('quality.thresholds', null),
       this.settings.number('quality.late_cancellation_minutes', 60),
       this.settings.number('quality.incident_window_days', 90),
       this.settings.number('quality.warning_cooldown_days', 30),
+      this.settings.number('quality.rating_window', DEFAULT_RATING_WINDOW),
     ]);
     const thresholds = parseQualityThresholds(raw);
     const at = now.toISOString();
@@ -85,13 +87,14 @@ export class QualityAgent {
       ), ranked AS (
         SELECT r.driver_id, rr.score, row_number() OVER (PARTITION BY r.driver_id ORDER BY rr.created_at DESC) AS k
         FROM ride_ratings rr JOIN rides r ON r.id = rr.ride_id
-        WHERE rr.author_kind = 'client' AND r.driver_id IN (SELECT id FROM d)
+        WHERE ${COUNTED_RATING} AND r.driver_id IN (SELECT id FROM d)
       ), ratings AS (
-        SELECT driver_id, avg(score)::float AS rating_avg, count(*)::int AS rating_n FROM ranked WHERE k <= 50 GROUP BY driver_id
+        SELECT driver_id, avg(score)::float AS rating_avg, count(*)::int AS rating_n FROM ranked WHERE k <= ${ratingWindow} GROUP BY driver_id
       ), late AS (
         SELECT d.id AS driver_id, count(*)::int AS late_n
         FROM ride_events e JOIN rides r ON r.id = e.ride_id JOIN d ON d.user_id = e.actor_user_id
         WHERE e.type = 'driver_cancels' AND e.occurred_at >= ${at}::timestamptz - interval '7 days' AND e.occurred_at <= ${at}::timestamptz
+          AND coalesce((e.data->>'safety')::boolean, false) = false
           AND (e.from_state IN ('en_route', 'arrived') OR r.type = 'immediate'
             OR (r.requested_at IS NOT NULL AND r.requested_at - e.occurred_at < make_interval(mins => ${lateMinutes})))
         GROUP BY d.id

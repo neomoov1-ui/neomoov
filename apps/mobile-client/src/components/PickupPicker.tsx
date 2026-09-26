@@ -8,7 +8,7 @@ import { formatDay, formatTime, type UiLanguage } from '@/lib/format';
 
 /**
  * Date et heure de prise en charge (D32) : jour, heure puis quart d'heure, à l'heure de Montréal ; seuls les créneaux à
- * au moins 2 heures et à moins de 30 jours sont proposés (réglages de l'API) ; « maintenant » n'existe pas en V1.
+ * au moins 2 heures et à moins de 90 jours sont proposés (réglages de l'API) ; « maintenant » n'existe pas en V1.
  */
 export function PickupPicker({ booking, value, onChange }: { booking: AppConfig['booking']; value: string | null; onChange: (iso: string) => void }) {
   const { t, i18n } = useTranslation();

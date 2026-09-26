@@ -1,10 +1,12 @@
 import 'reflect-metadata';
 import { schema } from '@neomoov/db';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DomainEventsService } from '../src/common/domain-events.js';
+import { SettingsService } from '../src/common/settings.service.js';
+import { PunctualityService } from '../src/modules/guarantee/punctuality.service.js';
 import { ApproachNotifierService } from '../src/modules/rides/approach-notifier.service.js';
 import { bearer, cleanupTestData, createDriver, createStaffAndLogin, db, loginByOtp, startTestApp, type TestDriver } from './helpers.js';
 
@@ -169,6 +171,72 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     await new Promise((r) => setTimeout(r, 500));
     expect(await cancellationAlerts()).toHaveLength(alerts.length);
     await db(app).delete(schema.notifications).where(inArray(schema.notifications.id, alerts.map((a) => a.id)));
+  });
+
+  it('transfert aéroport (D3) : annulation gratuite jusqu\'à 1 heure avant l\'heure prévue, même après l\'attribution', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const YUL = { address: 'Aéroport international Montréal-Trudeau, Dorval', coordinates: { lat: 45.468, lng: -73.742 } };
+    const early = (await requestRide(client, await quoteFor(client, 'neo_premium', CENTRE, YUL))).body;
+    // L'application annonce les frais avec la même règle : vue de course et configuration portent la règle aéroport.
+    expect(early.airportTransfer).toBe(true);
+    expect((await request(server()).get('/v1/config').expect(200)).body.booking.airportFreeCancellationBeforeSeconds).toBe(3600);
+    await assign(admin.tokens, early.id, driver);
+    // Attribution antidatée de trois minutes : hors de la fenêtre générale, mais à près de 3 heures du départ.
+    await db(app).update(schema.rides).set({ stateTimestamps: sql`${schema.rides.stateTimestamps} || ${JSON.stringify({ assigned: new Date(Date.now() - 180_000).toISOString() })}::jsonb` }).where(eq(schema.rides.id, early.id));
+    expect((await request(server()).post(`/v1/rides/${early.id}/cancel`).set(bearer(client)).send({ reason: 'changed_plans' }).expect(200)).body.feeCents).toBe(0);
+    // Moins d'une heure avant l'heure prévue : 5,00 $.
+    const late = (await requestRide(client, await quoteFor(client, 'neo_premium', CENTRE, YUL))).body;
+    await assign(admin.tokens, late.id, driver);
+    await db(app).update(schema.rides).set({ requestedAt: new Date(Date.now() + 30 * 60_000), stateTimestamps: sql`${schema.rides.stateTimestamps} || ${JSON.stringify({ assigned: new Date(Date.now() - 180_000).toISOString() })}::jsonb` }).where(eq(schema.rides.id, late.id));
+    expect((await request(server()).post(`/v1/rides/${late.id}/cancel`).set(bearer(client)).send({ reason: 'changed_plans' }).expect(200)).body.feeCents).toBe(500);
+  });
+
+  it('annulation du chauffeur pour sa sécurité (Charte d\'équité) : marquée, jamais sanctionnée, incident ouvert pour l\'équipe', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await requestRide(client, await quoteFor(client))).body;
+    await assign(admin.tokens, ride.id, driver);
+    await request(server()).post(`/v1/driver/rides/${ride.id}/depart`).set(bearer(driver.tokens)).expect(200);
+    await request(server()).post(`/v1/driver/rides/${ride.id}/cancel`).set(bearer(driver.tokens)).send({ reason: 'safety' }).expect(200);
+    const [event] = await db(app).select({ data: schema.rideEvents.data }).from(schema.rideEvents).where(and(eq(schema.rideEvents.rideId, ride.id), eq(schema.rideEvents.type, 'driver_cancels')));
+    expect(event!.data).toMatchObject({ reason: 'safety', safety: true });
+    const incidents = await db(app).select().from(schema.incidents).where(eq(schema.incidents.rideId, ride.id));
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0]).toMatchObject({ type: 'other', severity: 'high', reportedByKind: 'driver' });
+  });
+
+  it('garantie de ponctualité (D10) : désactivée par défaut ; activée, crédit selon le retard, une seule fois', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const punctuality = app.get(PunctualityService);
+    const settings = app.get(SettingsService);
+    const ride = (await requestRide(client, await quoteFor(client))).body;
+    await assign(admin.tokens, ride.id, driver);
+    const [row] = await db(app).select({ requestedAt: schema.rides.requestedAt }).from(schema.rides).where(eq(schema.rides.id, ride.id));
+    const arrivedAt = new Date(row!.requestedAt!.getTime() + 15 * 60_000);
+    expect(await punctuality.onArrived(ride.id, arrivedAt)).toBeNull();
+    const enabled = and(eq(schema.settings.key, 'punctuality.enabled'), isNull(schema.settings.organizationId));
+    await db(app).update(schema.settings).set({ value: true }).where(enabled);
+    settings.invalidate();
+    try {
+      expect(await punctuality.onArrived(ride.id, arrivedAt)).toEqual({ kind: 'credit', minutesLate: 15, amountCents: 500 });
+      await punctuality.onArrived(ride.id, arrivedAt);
+      const credits = await db(app).select().from(schema.credits).where(eq(schema.credits.reference, `punctuality:${ride.id}`));
+      expect(credits).toHaveLength(1);
+      expect(credits[0]).toMatchObject({ amountCents: 500, origin: 'guarantee' });
+      // À l'heure : rien.
+      expect(await punctuality.onArrived(ride.id, row!.requestedAt!)).toEqual({ kind: 'none', minutesLate: 0 });
+    } finally {
+      await db(app).update(schema.settings).set({ value: false }).where(enabled);
+      settings.invalidate();
+    }
   });
 
   it('non-présentation : refusée avant cinq minutes ou sans deux contacts, puis 7,00 $', async ({ skip }) => {

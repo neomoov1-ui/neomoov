@@ -43,6 +43,21 @@ describe('données de départ et moteur de tarification', () => {
     const night = computeQuote({ category: 'neo_premium', distanceMeters: 8000, durationSeconds: 1080, pickupAt: new Date('2026-09-22T23:30:00-04:00') }, rules);
     expect(night.fareCents).toBe(2455 + 200);
   });
+
+  it('forfait aéroport Neo Premium à 48,20 $ (décision du fondateur)', () => {
+    const q = computeQuote({ category: 'neo_premium', distanceMeters: 20_000, durationSeconds: 1500, pickupAt: new Date('2026-09-22T14:00:00-04:00'), originZone: 'centre-ville', destinationZone: 'yul', airport: true }, rules);
+    expect(q.flatRate).toBe(true);
+    expect(q.totalCents).toBe(4820);
+  });
+
+  it('animal en cage (D8) : 5,00 $ en Neo XL et Neo Prestige, refusé en Neo Premium', () => {
+    expect(rules.surcharges.petCents).toBe(500);
+    expect(rules.surcharges.petCategories).toEqual(['neo_xl', 'neo_prestige']);
+    const base = { distanceMeters: 8000, durationSeconds: 1080, pickupAt: new Date('2026-09-22T14:00:00-04:00'), options: { pet: true } };
+    const without = computeQuote({ ...base, category: 'neo_xl', options: {} }, rules);
+    expect(computeQuote({ ...base, category: 'neo_xl' }, rules).fareCents).toBe(without.fareCents + 500);
+    expect(() => computeQuote({ ...base, category: 'neo_premium' }, rules)).toThrow(/Animal en cage/);
+  });
 });
 
 describe('catalogue', () => {

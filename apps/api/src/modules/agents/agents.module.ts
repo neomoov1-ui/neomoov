@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AdminModule } from '../admin/admin.module.js';
 import { ComplianceModule } from '../compliance/compliance.module.js';
+import { FairnessModule } from '../fairness/fairness.module.js';
 import { CreditsModule } from '../credits/credits.module.js';
 import { PaymentsModule } from '../payments/payments.module.js';
 import { RidesModule } from '../rides/rides.module.js';
@@ -21,7 +22,7 @@ import { SupportController } from './support.controller.js';
  * l'assistance, agents relation client, recrutement, comptabilité et analyse, déclencheurs (file `agents`).
  */
 @Module({
-  imports: [RidesModule, PaymentsModule, CreditsModule, AdminModule, ComplianceModule],
+  imports: [RidesModule, PaymentsModule, CreditsModule, AdminModule, ComplianceModule, FairnessModule],
   controllers: [AgentsAdminController, InternalAgentsController, SupportController],
   providers: [AgentRunnerService, AgentToolsService, AgentApprovalsService, ConversationsService, CustomerRelationsAgent, RecruitmentAgent, AccountingAgent, AnalyticsAgent, QualityAgent, AgentsService, AgentJobsService],
   exports: [AgentRunnerService, AgentToolsService, AgentApprovalsService, ConversationsService, CustomerRelationsAgent, RecruitmentAgent, AccountingAgent, AnalyticsAgent, QualityAgent, AgentJobsService],

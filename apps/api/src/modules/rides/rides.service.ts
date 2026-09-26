@@ -8,7 +8,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  ACTIVE_RIDE_STATES, canTransition, clientCancellationFeeCents, finalizeQuote, isCardMethod, isTerminalState, mulDivRound, noShowCheck, parseSearchRadii, RIDE_EVENTS, RIDE_TRANSITIONS, subtotalForTotal, transition,
+  ACTIVE_RIDE_STATES, canTransition, clientCancellationFeeCents, DEFAULT_RATING_WINDOW, finalizeQuote, isCardMethod, isTerminalState, mulDivRound, noShowCheck, parseSearchRadii, RIDE_EVENTS, RIDE_TRANSITIONS, subtotalForTotal, transition,
   waitedSecondsBetween, type AdminAssign, type AdminCreateRide, type CancellationRules, type CreateRide, type Language, type NegotiationSummary, type NotificationChannel, type PaymentMethod,
   type Quote, type RideEvent, type RideMessageView, type RideState, type RideView, type SosInput, type VehicleCategory,
 } from '@neomoov/domain';
@@ -26,6 +26,7 @@ import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { hasStaffRole, type UserActor } from '../auth/actor.js';
 import { AuditService } from '../audit/audit.service.js';
+import { refreshDriverRating } from '../drivers/driver-rating.js';
 import { PaymentsService, type RideAuthorization } from '../payments/payments.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { PromotionsService } from '../pricing/promotions.service.js';
@@ -137,7 +138,9 @@ export class RidesService {
         .groupBy(schema.rideOffers.rideId);
       for (const c of counts) openOffers.set(c.rideId, c.count);
     }
-    return rides.map((r) => {
+    // Zones en mémoire : aucun aller-retour en base pour la règle d'annulation aéroport (D3).
+    const airport = await Promise.all(rides.map((r) => this.context.isAirportTransfer(r)));
+    return rides.map((r, i) => {
       const dispatch = dispatches.get(r.id) ?? null;
       const negotiation: NegotiationSummary | null = this.env.FEATURE_NEGOTIATION
         ? {
@@ -148,7 +151,7 @@ export class RidesService {
             openOffers: openOffers.get(r.id) ?? 0,
           }
         : null;
-      return toRideView(r, r.driverId ? (drivers.get(r.driverId) ?? null) : null, { webBaseUrl: this.env.WEB_BASE_URL, dispatch: dispatch ? dispatchSummaryOf(dispatch, radii) : null, negotiation });
+      return { ...toRideView(r, r.driverId ? (drivers.get(r.driverId) ?? null) : null, { webBaseUrl: this.env.WEB_BASE_URL, dispatch: dispatch ? dispatchSummaryOf(dispatch, radii) : null, negotiation }), airportTransfer: airport[i]! };
     });
   }
 
@@ -215,14 +218,15 @@ export class RidesService {
   }
 
   private async cancellationRules(): Promise<CancellationRules> {
-    const [freeCancellationSeconds, cancellationFeeCents, noShowFeeCents, noShowMinWaitSeconds, noShowMinContacts] = await Promise.all([
+    const [freeCancellationSeconds, cancellationFeeCents, noShowFeeCents, noShowMinWaitSeconds, noShowMinContacts, airportFreeCancellationBeforeSeconds] = await Promise.all([
       this.settings.number('rides.free_cancellation_seconds', 120),
       this.settings.number('rides.cancellation_fee_cents', 500),
       this.settings.number('rides.no_show_fee_cents', 700),
       this.settings.number('rides.no_show_min_wait_seconds', 300),
       this.settings.number('rides.no_show_min_contacts', 2),
+      this.settings.number('rides.airport_free_cancellation_before_seconds', 3600),
     ]);
-    return { freeCancellationSeconds, cancellationFeeCents, noShowFeeCents, noShowMinWaitSeconds, noShowMinContacts };
+    return { freeCancellationSeconds, cancellationFeeCents, noShowFeeCents, noShowMinWaitSeconds, noShowMinContacts, airportFreeCancellationBeforeSeconds };
   }
 
   private async leadTimeError(): Promise<AppError> {
@@ -420,6 +424,8 @@ export class RidesService {
         organizationId: org?.id ?? null,
         stateTimestamps: { requested: now.toISOString() },
         ...fields,
+        // Animal en cage (D8) : l'option du devis devient une préférence que le chauffeur voit dans l'offre et la course.
+        ...((quote.options as { pet?: boolean } | null)?.pet ? { preferences: { ...((fields.preferences ?? {}) as Record<string, unknown>), pet: true } } : {}),
       })
       .returning({ id: schema.rides.id });
     await tx.insert(schema.rideEvents).values({ rideId: inserted!.id, type: 'client_confirms', fromState: 'quoted', toState: 'requested', actorUserId: actor.userId, actorKind: actor.kind, data: { quoteId: quote.id, type: fields.type }, occurredAt: now });
@@ -618,15 +624,21 @@ export class RidesService {
     return this.cancelAsClient(rideId, { kind, userId: actor.userId }, input);
   }
 
+  /** Heure prévue d'un transfert aéroport (règle d'annulation D3), sinon `null`. */
+  private async airportPickupAt(rideId: string): Promise<Date | null> {
+    const ride = await this.getRide(rideId);
+    return ride.requestedAt && (await this.context.isAirportTransfer(ride)) ? ride.requestedAt : null;
+  }
+
   /** Annulation du côté du client (application, opérateur au téléphone, agent vocal) : frais selon l'état lu sous verrou. */
   private async cancelAsClient(rideId: string, actorRef: ActorRef, input: { reason: string; comment?: string | undefined }): Promise<{ state: RideState; feeCents: number }> {
-    const rules = await this.cancellationRules();
+    const [rules, airportPickupAt] = await Promise.all([this.cancellationRules(), this.airportPickupAt(rideId)]);
     // Les frais dépendent de l'état lu sous verrou : une annulation qui croise « en route » paie le tarif d'annulation.
     const result = await this.applyTransition(rideId, 'client_cancels', actorRef, {
       data: { reason: input.reason },
       set: (locked) => {
         const assignedAt = timestampsOf(locked).assigned;
-        const feeCents = clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date() }, rules);
+        const feeCents = clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date(), airportPickupAt }, rules);
         return { cancellationReason: input.reason, cancellationComment: input.comment ?? null, cancellationFeeCents: feeCents };
       },
     });
@@ -644,13 +656,13 @@ export class RidesService {
    * d'annulation ne sont facturés que sur décision explicite de l'opérateur.
    */
   async cancelByOperator(rideId: string, actor: UserActor, input: { reason: string; chargeFee: boolean }): Promise<{ state: RideState; feeCents: number }> {
-    const rules = await this.cancellationRules();
+    const [rules, airportPickupAt] = await Promise.all([this.cancellationRules(), this.airportPickupAt(rideId)]);
     const operator: ActorRef = { kind: 'operator', userId: actor.userId };
     const result = await this.applyTransition(rideId, 'client_cancels', operator, {
       data: { reason: input.reason, byOperator: true, chargeFee: input.chargeFee },
       set: (locked) => {
         const assignedAt = timestampsOf(locked).assigned;
-        const feeCents = input.chargeFee ? clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date() }, rules) : 0;
+        const feeCents = input.chargeFee ? clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date(), airportPickupAt }, rules) : 0;
         return { cancellationReason: 'other', cancellationComment: input.reason, cancellationFeeCents: feeCents };
       },
     });
@@ -690,9 +702,22 @@ export class RidesService {
     return { state: result.ride.state, incidentId: incident!.id };
   }
 
-  async cancelByDriver(rideId: string, driverActor: UserActor, reason: string): Promise<RideView> {
-    await this.rideOfDriver(rideId, driverActor);
-    const released = await this.releaseDriver(rideId, { kind: 'driver', userId: driverActor.userId }, reason, { sanction: true, source: 'driver' });
+  /**
+   * Annulation par le chauffeur. Pour sa sécurité (motif `safety` de l'application ou indicateur), elle n'est jamais
+   * sanctionnée ni comptée comme tardive (Charte d'équité, D7) et ouvre un incident pour que l'équipe s'en occupe.
+   */
+  async cancelByDriver(rideId: string, driverActor: UserActor, reason: string, safetyFlag = false): Promise<RideView> {
+    const { driver } = await this.rideOfDriver(rideId, driverActor);
+    const safety = safetyFlag || reason === 'safety';
+    const released = await this.releaseDriver(rideId, { kind: 'driver', userId: driverActor.userId }, reason, { sanction: !safety, source: 'driver', safety });
+    if (safety && !released.replayed) {
+      const [incident] = await this.db
+        .insert(schema.incidents)
+        .values({ rideId, type: 'other', severity: 'high', reportedByUserId: driverActor.userId, reportedByKind: 'driver', description: `Course refusée par le chauffeur pour sa sécurité : ${reason}` })
+        .returning({ id: schema.incidents.id });
+      this.events.emit('ride.incident', { rideId, incidentId: incident!.id, type: 'other', severity: 'high', reportedByUserId: driverActor.userId });
+      this.audit.record({ action: 'ride.driver_safety_cancellation', entity: 'drivers', entityId: driver.id, after: { rideId, reason, incidentId: incident!.id } });
+    }
     return this.view(released.ride);
   }
 
@@ -701,12 +726,12 @@ export class RidesService {
    * (sanction si déjà en route), retrait par l'opérateur ou par la surveillance du départ (sans sanction). La
    * réattribution est consommée par la répartition (`ride.reassign_requested`, `data.source`).
    */
-  async releaseDriver(rideId: string, actor: ActorRef, reason: string, options: { sanction: boolean; source: 'driver' | 'operator' | 'system' }): Promise<{ ride: RideRow; previousDriverId: string; replayed: boolean }> {
+  async releaseDriver(rideId: string, actor: ActorRef, reason: string, options: { sanction: boolean; source: 'driver' | 'operator' | 'system'; safety?: boolean }): Promise<{ ride: RideRow; previousDriverId: string; replayed: boolean }> {
     const current = await this.getRide(rideId);
     const previousDriverId = current.driverId;
     if (!previousDriverId) throw AppError.conflict('RIDE_NOT_ASSIGNED', 'La course n\'a pas de chauffeur à retirer', { state: current.state });
     const cancellationReason = options.source === 'driver' ? 'driver' : options.source === 'operator' ? 'operator_reassign' : 'no_movement';
-    const cancelled = await this.applyTransition(rideId, 'driver_cancels', actor, { data: { reason, driverId: previousDriverId, source: options.source }, set: { cancellationReason, cancellationComment: reason } });
+    const cancelled = await this.applyTransition(rideId, 'driver_cancels', actor, { data: { reason, driverId: previousDriverId, source: options.source, ...(options.safety ? { safety: true } : {}) }, set: { cancellationReason, cancellationComment: reason } });
     const payload = await this.publish(cancelled, 'driver_cancels', actor, { reason, source: options.source });
     if (cancelled.replayed) return { ride: cancelled.ride, previousDriverId, replayed: true };
     if (options.source === 'driver') this.events.emit('ride.cancelled_by_driver', { ...payload, reason });
@@ -947,12 +972,8 @@ export class RidesService {
     if (input.tipCents && input.tipCents > 0) await this.payments.tip(rideId, actor.userId, input.tipCents);
     await this.db.insert(schema.rideRatings).values({ rideId, authorKind: 'client', authorUserId: actor.userId, score: input.score, tags: input.tags, comment: input.comment ?? null });
     const result = await this.applyTransition(rideId, 'client_rates', { kind: 'client', userId: actor.userId }, { data: { score: input.score, tipCents: input.tipCents ?? 0 } });
-    if (ride.driverId) {
-      await this.db
-        .update(schema.drivers)
-        .set({ ratingAverage: sql`round(((${schema.drivers.ratingAverage} * ${schema.drivers.ratingCount}) + ${input.score})::numeric / (${schema.drivers.ratingCount} + 1), 2)`, ratingCount: sql`${schema.drivers.ratingCount} + 1` })
-        .where(eq(schema.drivers.id, ride.driverId));
-    }
+    // Charte d'équité (D7) : note affichée sur les 100 dernières courses notées qui comptent.
+    if (ride.driverId) await refreshDriverRating(this.db, ride.driverId, await this.settings.number('quality.rating_window', DEFAULT_RATING_WINDOW));
     await this.publish(result, 'client_rates', { kind: 'client', userId: actor.userId }, { score: input.score });
     return this.view(result.ride);
   }

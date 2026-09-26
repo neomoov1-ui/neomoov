@@ -1,8 +1,10 @@
 /**
  * Vérification concurrentielle automatique (D33, section 5.1) : fonction pure. Aucune API d'Uber ou de Lyft n'est
  * appelée ; les références viennent des relevés hebdomadaires saisis dans My Hub (`competitor_benchmarks`).
- * Si le prix Neomoov dépasse « référence × (1 − marge) », une ligne « Remise d'alignement » réduit les frais de service
- * jusqu'à 0. Le tarif chauffeur n'est jamais réduit. Sans référence proche, aucun ajustement.
+ * Référence : le moins cher d'Uber, de Lyft et du taxi (taximètre relevé). Si le prix Neomoov dépasse le plus bas de
+ * « référence × (1 − marge) » et « référence − écart minimal » (au moins 1 $ sous la concurrence, décision du fondateur du
+ * 26 septembre 2026), une ligne « Remise d'alignement » réduit les frais de service jusqu'à 0. Le tarif chauffeur n'est
+ * jamais réduit : au-delà, le dépassement est journalisé (alerte quotidienne). Sans référence proche, aucun ajustement.
  */
 import { localTimeParts, mulDivRound, subtotalForTotalAtMost } from './quote.js';
 import type { PricingRules, Quote } from './types.js';
@@ -18,6 +20,8 @@ export interface CompetitorBenchmark {
   timeWindow: BenchmarkTimeWindow;
   uberPriceCents: number | null;
   lyftPriceCents: number | null;
+  /** Taxi au taximètre (ou forfait réglementé) pour le même trajet et la même plage. */
+  taxiPriceCents?: number | null | undefined;
   observedAt: Date;
   source?: string;
 }
@@ -30,6 +34,8 @@ export interface BenchmarkContext {
   now: Date;
   timeZone: string;
   marginPpm: number;
+  /** Écart minimal sous la référence, en cents (100 : au moins 1 $ sous la concurrence). */
+  belowCents?: number;
   maxAgeDays?: number;
 }
 
@@ -71,9 +77,9 @@ export function findBenchmark(benchmarks: readonly CompetitorBenchmark[], quote:
   return best;
 }
 
-/** Le concurrent le moins cher observé. */
+/** Le concurrent le moins cher observé (Uber, Lyft ou taxi). */
 export function referenceOf(benchmark: CompetitorBenchmark): number | null {
-  const prices = [benchmark.uberPriceCents, benchmark.lyftPriceCents].filter((p): p is number => typeof p === 'number' && p > 0);
+  const prices = [benchmark.uberPriceCents, benchmark.lyftPriceCents, benchmark.taxiPriceCents].filter((p): p is number => typeof p === 'number' && p > 0);
   return prices.length ? Math.min(...prices) : null;
 }
 
@@ -81,7 +87,7 @@ export function benchmarkCheck(quote: Quote, benchmarks: readonly CompetitorBenc
   const benchmark = findBenchmark(benchmarks, quote, context);
   const referenceCents = benchmark ? referenceOf(benchmark) : null;
   if (referenceCents === null) return { quote, referenceCents: null, exceeded: false };
-  const threshold = mulDivRound(referenceCents, 1_000_000 - context.marginPpm, 1_000_000);
+  const threshold = Math.min(mulDivRound(referenceCents, 1_000_000 - context.marginPpm, 1_000_000), referenceCents - (context.belowCents ?? 0));
   if (quote.totalCents <= threshold) return { quote, referenceCents, exceeded: false };
   // Réduction du sous-total nécessaire pour ramener le total sous le seuil, bornée par les frais de service restants.
   const needed = quote.subtotalCents - subtotalForTotalAtMost(threshold, rules);

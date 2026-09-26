@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_QUALITY_THRESHOLDS as T, parseQualityThresholds, qualityProposal, qualityReasonText, sanctionRank } from '../src/index.js';
+import { DEFAULT_QUALITY_THRESHOLDS as T, DEFAULT_RATING_WINDOW, isRatingCounted, parseQualityThresholds, qualityProposal, qualityReasonText, sanctionRank } from '../src/index.js';
 
 const metrics = (over: Partial<{ ratingAverage: number | null; ratingCount: number; lateCancellations7d: number; seriousIncidents: number }> = {}) => ({ ratingAverage: 4.9, ratingCount: 50, lateCancellations7d: 0, seriousIncidents: 0, ...over });
 
@@ -35,5 +35,17 @@ describe('sanctions graduées (5.11)', () => {
     expect(qualityReasonText(qualityProposal(w, T)!, w, T)).toContain('Avertissement proposée : note de 4.50 sur 50 courses notées (minimum 4.60)');
     const r = metrics({ ratingAverage: 4.3 });
     expect(qualityReasonText(qualityProposal(r, T)!, r, T)).toContain('Restriction (courses VIP et aéroport retirées) proposée : note de 4.30 sur 50 courses notées (seuil de restriction 4.40)');
+  });
+});
+
+describe('note juste (Charte d\'équité, D7)', () => {
+  it('100 dernières courses ; une note exclue, à cause extérieure ou avec un client en retard ne compte pas', () => {
+    expect(DEFAULT_RATING_WINDOW).toBe(100);
+    expect(isRatingCounted({ tags: ['late', 'rude'], waitChargeCents: 0, excluded: false })).toBe(true);
+    expect(isRatingCounted({ tags: [], waitChargeCents: 0, excluded: true })).toBe(false);
+    expect(isRatingCounted({ tags: ['traffic'], waitChargeCents: 0, excluded: false })).toBe(false);
+    expect(isRatingCounted({ tags: ['late', 'price'], waitChargeCents: 0, excluded: false })).toBe(false);
+    expect(isRatingCounted({ tags: ['app'], waitChargeCents: 0, excluded: false })).toBe(false);
+    expect(isRatingCounted({ tags: [], waitChargeCents: 150, excluded: false })).toBe(false);
   });
 });

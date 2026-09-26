@@ -46,8 +46,9 @@ export default function RideScreen() {
   // Frais annoncés avec la règle du domaine et les réglages de l'API : le montant affiché est celui qui sera facturé.
   const cancelFee = config.data
     ? clientCancellationFeeCents(
-        { state: ride.state, assignedAt: ride.timestamps.assigned ? new Date(ride.timestamps.assigned) : null, now: new Date() },
-        { freeCancellationSeconds: config.data.booking.freeCancellationSeconds, cancellationFeeCents: config.data.booking.cancellationFeeCents, noShowFeeCents: 0, noShowMinWaitSeconds: 0, noShowMinContacts: 0 },
+        { state: ride.state, assignedAt: ride.timestamps.assigned ? new Date(ride.timestamps.assigned) : null, now: new Date(), airportPickupAt: ride.airportTransfer && ride.requestedAt ? new Date(ride.requestedAt) : null },
+        // Transfert aéroport (D3) : sans le réglage (API antérieure), la règle ordinaire seule, jamais un montant sous-estimé.
+        { freeCancellationSeconds: config.data.booking.freeCancellationSeconds, cancellationFeeCents: config.data.booking.cancellationFeeCents, noShowFeeCents: 0, noShowMinWaitSeconds: 0, noShowMinContacts: 0, airportFreeCancellationBeforeSeconds: config.data.booking.airportFreeCancellationBeforeSeconds ?? Number.POSITIVE_INFINITY },
       )
     : null;
   const showNegotiation = Boolean(config.data?.features.negotiation && ride.negotiation && (ride.state === 'requested' || ride.state === 'offering'));

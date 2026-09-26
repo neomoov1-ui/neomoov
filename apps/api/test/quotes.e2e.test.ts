@@ -70,8 +70,11 @@ describe('devis, lieux et tarification (intégration)', () => {
     expect(soon.body.details.minLeadSeconds).toBe(7200);
     const immediate = await request(server()).post('/v1/quotes').set(bearer(client)).send({ origin: PLATEAU, destination: CENTRE });
     expect(immediate.body.code).toBe('LEAD_TIME_TOO_SHORT');
-    const late = await request(server()).post('/v1/quotes').set(bearer(client)).send({ origin: PLATEAU, destination: CENTRE, requestedAt: new Date(Date.now() + 40 * 86_400_000).toISOString() });
+    // Fenêtre de réservation de 90 jours (D9) : 60 jours acceptés, 100 jours refusés.
+    await request(server()).post('/v1/quotes').set(bearer(client)).send({ origin: PLATEAU, destination: CENTRE, requestedAt: new Date(Date.now() + 60 * 86_400_000).toISOString() }).expect(201);
+    const late = await request(server()).post('/v1/quotes').set(bearer(client)).send({ origin: PLATEAU, destination: CENTRE, requestedAt: new Date(Date.now() + 100 * 86_400_000).toISOString() });
     expect(late.body.code).toBe('LEAD_TIME_TOO_LONG');
+    expect(late.body.details.maxLeadDays).toBe(90);
     const away = await request(server()).post('/v1/quotes').set(bearer(client)).send({ origin: TORONTO, destination: { ...TORONTO, address: 'Union Station, Toronto' }, requestedAt: inThreeHours() });
     expect(away.status).toBe(400);
     expect(away.body.code).toBe('OUT_OF_SERVICE_AREA');
@@ -82,7 +85,7 @@ describe('devis, lieux et tarification (intégration)', () => {
     const client = await loginByOtp(app);
     const go = await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: CENTRE, destination: YUL, requestedAt: inThreeHours(), options: { childSeat: true } }).expect(201);
     expect(go.body.quotes).toHaveLength(1);
-    expect(go.body.quotes[0]).toMatchObject({ category: 'neo_premium', flatRateCode: 'yul-centre-premium', totalCents: 5500, tollsCents: 0 });
+    expect(go.body.quotes[0]).toMatchObject({ category: 'neo_premium', flatRateCode: 'yul-centre-premium', totalCents: 4820, tollsCents: 0 });
     expect(go.body.quotes[0].lines[0]).toMatchObject({ code: 'flat_rate', label: 'Forfait' });
     expect(go.body.quotes[0].ignoredOptions).toContain('childSeat');
     const back = await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_xl', origin: YUL, destination: CENTRE, requestedAt: inThreeHours() }).expect(201);
@@ -136,7 +139,7 @@ describe('devis, lieux et tarification (intégration)', () => {
     const recorded = await request(server())
       .post('/v1/admin/pricing/benchmarks')
       .set(bearer(admin.tokens))
-      .send({ category: 'neo_premium', originZoneCode: 'plateau', destinationZoneCode: 'centre-ville', timeWindow, uberPriceCents: 500, lyftPriceCents: 600 })
+      .send({ category: 'neo_premium', originZoneCode: 'plateau', destinationZoneCode: 'centre-ville', timeWindow, uberPriceCents: 500, lyftPriceCents: 600, taxiPriceCents: 450 })
       .expect(201);
     try {
       const res = await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt }).expect(201);
@@ -150,14 +153,33 @@ describe('devis, lieux et tarification (intégration)', () => {
       expect(res.body.pricingRulesVersion).toBeUndefined();
       const events = await db(app).select().from(schema.auditLog).where(and(eq(schema.auditLog.action, 'pricing.benchmark_exceeded'), eq(schema.auditLog.actorUserId, client.user.id)));
       expect(events.length).toBeGreaterThan(0);
-      expect(events[0]!.after).toMatchObject({ category: 'neo_premium', referenceCents: 500 });
+      // Le taxi est une référence (le moins cher des trois l'emporte).
+      expect(events[0]!.after).toMatchObject({ category: 'neo_premium', referenceCents: 450 });
       const list = await request(server()).get('/v1/admin/pricing/benchmarks').set(bearer(admin.tokens)).expect(200);
-      expect(list.body.some((b: { id: string }) => b.id === recorded.body.id)).toBe(true);
+      expect(list.body.find((b: { id: string }) => b.id === recorded.body.id)).toMatchObject({ taxiPriceCents: 450 });
       const badZone = await request(server()).post('/v1/admin/pricing/benchmarks').set(bearer(admin.tokens)).send({ category: 'neo_premium', originZoneCode: 'nulle-part', destinationZoneCode: 'yul', timeWindow, uberPriceCents: 500 });
       expect(badZone.status).toBe(400);
     } finally {
       await request(server()).delete(`/v1/admin/pricing/benchmarks/${recorded.body.id}`).set(bearer(admin.tokens)).expect(204);
     }
+  });
+
+  it('animal en cage (D8) : Neo XL et Neo Prestige seulement, supplément, préférence transmise au chauffeur', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const requestedAt = inThreeHours();
+    const res = await request(server()).post('/v1/quotes').set(bearer(client)).send({ origin: PLATEAU, destination: CENTRE, requestedAt, options: { pet: true } }).expect(201);
+    expect((res.body.quotes as Array<{ category: string }>).map((q) => q.category).sort()).toEqual(['neo_prestige', 'neo_xl']);
+    const xl = res.body.quotes.find((q: { category: string }) => q.category === 'neo_xl');
+    expect(xl.lines.find((l: { code: string }) => l.code === 'pet')).toMatchObject({ amountCents: 500, label: 'Animal en cage' });
+    const refused = await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt, options: { pet: true } });
+    expect(refused.status).toBe(400);
+    expect(refused.body.code).toBe('PET_NOT_ALLOWED');
+    const ride = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', `pet-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
+      .send({ quoteId: xl.id, type: 'scheduled', requestedAt, paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: xl.maxConsentedCents }).expect(201);
+    const [row] = await db(app).select({ preferences: schema.rides.preferences, options: schema.rides.options }).from(schema.rides).where(eq(schema.rides.id, ride.body.id));
+    expect(row!.preferences).toMatchObject({ pet: true });
+    expect(row!.options).toMatchObject({ pet: true });
   });
 
   it('temps d\'arrivée estimé à partir des chauffeurs en ligne de la catégorie', async ({ skip }) => {

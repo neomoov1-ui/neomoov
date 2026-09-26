@@ -7505,6 +7505,10 @@
                         "default": false,
                         "type": "boolean"
                       },
+                      "pet": {
+                        "default": false,
+                        "type": "boolean"
+                      },
                       "promoCode": {
                         "type": "string",
                         "maxLength": 30
@@ -8884,6 +8888,10 @@
                         "default": false,
                         "type": "boolean"
                       },
+                      "pet": {
+                        "default": false,
+                        "type": "boolean"
+                      },
                       "promoCode": {
                         "type": "string",
                         "maxLength": 30
@@ -9883,6 +9891,13 @@
                         "maximum": 9007199254740991,
                         "description": "Montant en cents"
                       },
+                      "taxiPriceCents": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991,
+                        "description": "Montant en cents"
+                      },
                       "observedAt": {
                         "type": "string",
                         "format": "date-time",
@@ -9905,6 +9920,7 @@
                       "timeWindow",
                       "uberPriceCents",
                       "lyftPriceCents",
+                      "taxiPriceCents",
                       "observedAt",
                       "source",
                       "createdAt"
@@ -10060,6 +10076,13 @@
                     "maximum": 9007199254740991,
                     "description": "Montant en cents"
                   },
+                  "taxiPriceCents": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Montant en cents"
+                  },
                   "observedAt": {
                     "type": "string",
                     "format": "date-time",
@@ -10133,6 +10156,13 @@
                       "maximum": 9007199254740991,
                       "description": "Montant en cents"
                     },
+                    "taxiPriceCents": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Montant en cents"
+                    },
                     "observedAt": {
                       "type": "string",
                       "format": "date-time",
@@ -10155,6 +10185,7 @@
                     "timeWindow",
                     "uberPriceCents",
                     "lyftPriceCents",
+                    "taxiPriceCents",
                     "observedAt",
                     "source",
                     "createdAt"
@@ -10557,6 +10588,9 @@
                         "type": "boolean"
                       },
                       "accessibility": {
+                        "type": "boolean"
+                      },
+                      "pet": {
                         "type": "boolean"
                       }
                     }
@@ -11047,6 +11081,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -11525,6 +11562,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -12206,6 +12246,9 @@
                               "endsAt",
                               "openOffers"
                             ]
+                          },
+                          "airportTransfer": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -12777,6 +12820,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -13457,7 +13503,10 @@
                         "detour",
                         "unsafe",
                         "dirty",
-                        "rude"
+                        "rude",
+                        "traffic",
+                        "price",
+                        "app"
                       ]
                     }
                   },
@@ -13931,6 +13980,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -15677,6 +15729,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -16645,6 +16700,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -17650,6 +17708,9 @@
                               },
                               "accessibility": {
                                 "type": "boolean"
+                              },
+                              "pet": {
+                                "type": "boolean"
                               }
                             }
                           }
@@ -18252,6 +18313,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -18936,6 +19000,9 @@
                               "type": "boolean"
                             },
                             "accessibility": {
+                              "type": "boolean"
+                            },
+                            "pet": {
                               "type": "boolean"
                             }
                           }
@@ -20492,6 +20559,9 @@
                             "endsAt",
                             "openOffers"
                           ]
+                        },
+                        "airportTransfer": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
@@ -20965,6 +21035,9 @@
                               "endsAt",
                               "openOffers"
                             ]
+                          },
+                          "airportTransfer": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -21557,6 +21630,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -22196,6 +22272,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -23016,6 +23095,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -23699,6 +23781,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -24138,6 +24223,10 @@
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 200
+                  },
+                  "safety": {
+                    "default": false,
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -24599,6 +24688,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -25747,6 +25839,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -26581,6 +26676,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -27641,6 +27739,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -28903,6 +29004,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -30226,6 +30330,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -30912,6 +31019,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -31578,6 +31688,9 @@
                         "endsAt",
                         "openOffers"
                       ]
+                    },
+                    "airportTransfer": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -32004,6 +32117,11 @@
                           "minimum": 0,
                           "maximum": 9007199254740991,
                           "description": "Montant en cents"
+                        },
+                        "airportFreeCancellationBeforeSeconds": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
                         }
                       },
                       "required": [
@@ -32257,6 +32375,9 @@
                     },
                     "accessibility": {
                       "type": "boolean"
+                    },
+                    "pet": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -32426,6 +32547,9 @@
                   },
                   "accessibility": {
                     "type": "boolean"
+                  },
+                  "pet": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -32500,6 +32624,9 @@
                       "type": "boolean"
                     },
                     "accessibility": {
+                      "type": "boolean"
+                    },
+                    "pet": {
                       "type": "boolean"
                     }
                   }
@@ -39874,6 +40001,9 @@
                         "openOffers"
                       ]
                     },
+                    "airportTransfer": {
+                      "type": "boolean"
+                    },
                     "job": {
                       "type": "object",
                       "properties": {
@@ -39957,6 +40087,9 @@
                               "type": "boolean"
                             },
                             "accessibility": {
+                              "type": "boolean"
+                            },
+                            "pet": {
                               "type": "boolean"
                             }
                           }
@@ -40712,6 +40845,9 @@
                         "openOffers"
                       ]
                     },
+                    "airportTransfer": {
+                      "type": "boolean"
+                    },
                     "job": {
                       "type": "object",
                       "properties": {
@@ -40795,6 +40931,9 @@
                               "type": "boolean"
                             },
                             "accessibility": {
+                              "type": "boolean"
+                            },
+                            "pet": {
                               "type": "boolean"
                             }
                           }
@@ -41625,6 +41764,9 @@
                         "openOffers"
                       ]
                     },
+                    "airportTransfer": {
+                      "type": "boolean"
+                    },
                     "job": {
                       "type": "object",
                       "properties": {
@@ -41708,6 +41850,9 @@
                               "type": "boolean"
                             },
                             "accessibility": {
+                              "type": "boolean"
+                            },
+                            "pet": {
                               "type": "boolean"
                             }
                           }
@@ -56941,6 +57086,10 @@
                         "default": false,
                         "type": "boolean"
                       },
+                      "pet": {
+                        "default": false,
+                        "type": "boolean"
+                      },
                       "promoCode": {
                         "type": "string",
                         "maxLength": 30
@@ -70760,6 +70909,1375 @@
           }
         ],
         "summary": "Lance les tâches de conservation maintenant (normalement chaque nuit à 3 h)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/driver/sanctions": {
+      "get": {
+        "operationId": "DriverFairnessController_sanctions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "warning",
+                          "restriction",
+                          "suspension"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "startsAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "endsAt": {
+                        "nullable": true,
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "decidedByPerson": {
+                        "type": "boolean"
+                      },
+                      "appeals": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "response",
+                                "appeal"
+                              ]
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "open",
+                                "upheld",
+                                "overturned"
+                              ]
+                            },
+                            "decisionNote": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "decidedAt": {
+                              "nullable": true,
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "kind",
+                            "message",
+                            "status",
+                            "decisionNote",
+                            "createdAt",
+                            "decidedAt"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "type",
+                      "reason",
+                      "startsAt",
+                      "endsAt",
+                      "active",
+                      "decidedByPerson",
+                      "appeals"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mes sanctions : motif écrit, période, décision humaine ou non, mes réponses et appels (Charte d'équité)",
+        "tags": [
+          "driver"
+        ]
+      }
+    },
+    "/v1/driver/sanctions/{id}/appeals": {
+      "post": {
+        "operationId": "DriverFairnessController_appeal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "response",
+                      "appeal"
+                    ]
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "kind",
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "warning",
+                        "restriction",
+                        "suspension"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "startsAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "endsAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "decidedByPerson": {
+                      "type": "boolean"
+                    },
+                    "appeals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "response",
+                              "appeal"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "upheld",
+                              "overturned"
+                            ]
+                          },
+                          "decisionNote": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "decidedAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "message",
+                          "status",
+                          "decisionNote",
+                          "createdAt",
+                          "decidedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "reason",
+                    "startsAt",
+                    "endsAt",
+                    "active",
+                    "decidedByPerson",
+                    "appeals"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Réponse (ma version) ou appel sur une sanction : réponse d'une personne sous 4 heures ouvrables",
+        "tags": [
+          "driver"
+        ]
+      }
+    },
+    "/v1/admin/fairness/appeals": {
+      "get": {
+        "operationId": "AdminFairnessController_appeals",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "upheld",
+                "overturned"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "response",
+                          "appeal"
+                        ]
+                      },
+                      "message": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "open",
+                          "upheld",
+                          "overturned"
+                        ]
+                      },
+                      "decisionNote": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "decidedAt": {
+                        "nullable": true,
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "sanctionId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "driverId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "driverName": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "driverPublicNumber": {
+                        "type": "string"
+                      },
+                      "sanction": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "warning",
+                              "restriction",
+                              "suspension"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "endsAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "decidedByUserId": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "reason",
+                          "startsAt",
+                          "endsAt",
+                          "decidedByUserId"
+                        ]
+                      },
+                      "overdue": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "message",
+                      "status",
+                      "decisionNote",
+                      "createdAt",
+                      "decidedAt",
+                      "sanctionId",
+                      "driverId",
+                      "driverName",
+                      "driverPublicNumber",
+                      "sanction",
+                      "overdue"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Réponses et appels des chauffeurs, les plus anciens d'abord, avec le retard sur le délai de 4 heures ouvrables",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/fairness/appeals/{id}/decide": {
+      "post": {
+        "operationId": "AdminFairnessController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "upheld",
+                      "overturned"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "decision",
+                  "note"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "response",
+                        "appeal"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "upheld",
+                        "overturned"
+                      ]
+                    },
+                    "decisionNote": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "decidedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "sanctionId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "driverId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "driverName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "driverPublicNumber": {
+                      "type": "string"
+                    },
+                    "sanction": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "warning",
+                            "restriction",
+                            "suspension"
+                          ]
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "endsAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "decidedByUserId": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "reason",
+                        "startsAt",
+                        "endsAt",
+                        "decidedByUserId"
+                      ]
+                    },
+                    "overdue": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "message",
+                    "status",
+                    "decisionNote",
+                    "createdAt",
+                    "decidedAt",
+                    "sanctionId",
+                    "driverId",
+                    "driverName",
+                    "driverPublicNumber",
+                    "sanction",
+                    "overdue"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Décision motivée sur une réponse ou un appel ; un appel est tranché par une autre personne ; « overturned » lève la sanction",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/ratings/{id}/exclude": {
+      "post": {
+        "operationId": "AdminFairnessController_excludeRating",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "excludedAt": {
+                      "type": "string"
+                    },
+                    "driverRating": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "average": {
+                          "type": "number"
+                        },
+                        "count": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "average",
+                        "count"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "excludedAt",
+                    "driverRating"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retire une note du client du calcul de la note du chauffeur, avec le motif ; note du chauffeur recalculée",
         "tags": [
           "admin"
         ]
