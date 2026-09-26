@@ -1,6 +1,6 @@
 import type { AppConfig, QuoteView, QuotesResponse } from '@neomoov/domain';
 import { describe, expect, it } from 'vitest';
-import { categoryCards, earliestPickup, pickupProblem, pickupSchedule, priceRows, proposalBounds, serviceClock, sumRows } from '../src/features/booking/logic';
+import { categoryCards, earliestPickup, effectivePaymentChoice, paymentOptions, pickupProblem, pickupSchedule, priceRows, proposalBounds, serviceClock, sumRows } from '../src/features/booking/logic';
 
 const booking: AppConfig['booking'] = { minLeadSeconds: 7200, maxLeadDays: 30, freeCancellationSeconds: 120, cancellationFeeCents: 500 };
 
@@ -88,6 +88,34 @@ describe('sélecteur de catégorie', () => {
     expect(cards[0]).toMatchObject({ name: 'Neo Premium', seats: 4, etaSeconds: 420, models: ['Tesla Model 3', 'Tesla Model Y'] });
     expect(cards[1]!.etaSeconds).toBeNull();
     expect(cards[1]!.quote.totalCents).toBe(5210);
+  });
+});
+
+describe('modes de paiement proposés (5.6, D35)', () => {
+  const all = ['card_app', 'apple_pay', 'google_pay', 'cash', 'interac', 'terminal'] as const;
+
+  it('seulement ce que renvoie le devis, portefeuille selon la plateforme', () => {
+    expect(paymentOptions(all, 'ios')).toEqual({ prepaid: ['card_app', 'apple_pay'], payAfter: ['cash', 'interac', 'terminal'] });
+    expect(paymentOptions(all, 'android')).toEqual({ prepaid: ['card_app', 'google_pay'], payAfter: ['cash', 'interac', 'terminal'] });
+    expect(paymentOptions(all, 'web').prepaid).toEqual(['card_app']);
+  });
+
+  it('paiement par carte non branché : aucun prépaiement proposé', () => {
+    const options = paymentOptions(['cash', 'terminal'], 'ios');
+    expect(options).toEqual({ prepaid: [], payAfter: ['cash', 'terminal'] });
+    expect(effectivePaymentChoice(options, 'prepaid')).toBe('pay_driver_after');
+  });
+
+  it('véhicule choisi : paiement au chauffeur limité aux modes que son chauffeur accepte', () => {
+    expect(paymentOptions(all, 'android', ['terminal']).payAfter).toEqual(['terminal']);
+    const cardOnly = paymentOptions(['card_app', 'cash'], 'android', ['interac']);
+    expect(cardOnly).toEqual({ prepaid: ['card_app'], payAfter: [] });
+    expect(effectivePaymentChoice(cardOnly, 'pay_driver_after')).toBe('prepaid');
+  });
+
+  it('aucun mode disponible : pas de choix, la réservation est bloquée', () => {
+    expect(effectivePaymentChoice(paymentOptions([], 'ios'), 'pay_driver_after')).toBeNull();
+    expect(effectivePaymentChoice(paymentOptions(all, 'ios'), 'prepaid')).toBe('prepaid');
   });
 });
 

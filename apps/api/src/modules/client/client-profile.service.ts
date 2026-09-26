@@ -38,7 +38,9 @@ export class ClientProfileService {
       .where(eq(schema.vehicleCategories.active, true))
       .orderBy(asc(schema.vehicleCategories.rank));
     return {
-      features: { negotiation: this.env.FEATURE_NEGOTIATION, negotiationAboveMax: this.env.FEATURE_NEGOTIATION_ABOVE_MAX, immediateRides: this.env.FEATURE_IMMEDIATE_RIDES, installments: this.env.FEATURE_INSTALLMENTS, faceCheck: this.env.FEATURE_FACE_CHECK },
+      // `cardPayments` : vrai comme les devis de cette branche (carte toujours proposée) ; la règle réelle (Stripe réel
+      // configuré, `CARD_PAYMENTS`) vient de la branche des paiements et remplace cette valeur à la fusion.
+      features: { negotiation: this.env.FEATURE_NEGOTIATION, negotiationAboveMax: this.env.FEATURE_NEGOTIATION_ABOVE_MAX, immediateRides: this.env.FEATURE_IMMEDIATE_RIDES, installments: this.env.FEATURE_INSTALLMENTS, faceCheck: this.env.FEATURE_FACE_CHECK, cardPayments: true },
       booking: { minLeadSeconds, maxLeadDays, freeCancellationSeconds, cancellationFeeCents },
       negotiation: { floorPpm, windowSeconds },
       tips: {

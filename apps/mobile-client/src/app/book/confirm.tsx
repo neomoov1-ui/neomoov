@@ -1,4 +1,4 @@
-import type { PaymentChoice, PaymentMethod, RidePreferences } from '@neomoov/domain';
+import type { PaymentChoice, RidePreferences } from '@neomoov/domain';
 import { Body, Button, Card, Field } from '@neomoov/mobile-core/components';
 import { useQuery } from '@tanstack/react-query';
 import { Redirect, router } from 'expo-router';
@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
 import { Choices, ErrorState, Notice, Row, Screen, SectionTitle, ToggleRow } from '@/components/ui';
+import { effectivePaymentChoice, paymentOptions } from '@/features/booking/logic';
 import { useBooking } from '@/features/booking/store';
 import { api, errorCode, errorMessage } from '@/lib/api';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
@@ -14,11 +15,8 @@ import { keys, queryClient, useAppConfig, usePreferences } from '@/lib/queries';
 
 const DEFAULT_PREFERENCES: RidePreferences = { conversation: 'indifferent', music: 'indifferent', temperature: 'neutral', luggageHelp: false };
 
-/** Modes proposés (D35) : prépaiement selon la plateforme, ou paiement au chauffeur (espèces, terminal). */
-function methodsFor(choice: PaymentChoice): PaymentMethod[] {
-  if (choice === 'pay_driver_after') return ['cash', 'terminal'];
-  return ['card_app', ...(Platform.OS === 'ios' ? (['apple_pay'] as const) : Platform.OS === 'android' ? (['google_pay'] as const) : []), 'interac'];
-}
+/** Erreurs qui appellent un nouveau devis : prix expiré, ou paiement par carte fermé depuis le devis (modes relus). */
+const REQUOTE_CODES = new Set(['QUOTE_EXPIRED', 'CARD_PAYMENTS_UNAVAILABLE']);
 
 /**
  * Réservation, écran 3 sur 3 : commodités et demandes spéciales (message D45, préférences pré-remplies depuis le profil),
@@ -45,14 +43,23 @@ export default function ConfirmScreen() {
   if (!draft.quotes || !quote || !draft.origin || !draft.destination || !draft.pickupAt) return <Redirect href="/book" />;
   const preferences = draft.preferences ?? saved.data ?? DEFAULT_PREFERENCES;
   const setPreference = (patch: Partial<RidePreferences>) => draft.update({ preferences: { ...preferences, ...patch } });
-  const methods = methodsFor(draft.paymentChoice).filter((m) => draft.paymentChoice !== 'pay_driver_after' || !vehicle || vehicle.paymentMethods.includes(m));
+  // Modes du devis (API) seulement : carte retirée quand le paiement réel n'est pas branché, paiement au chauffeur
+  // limité à ce qu'acceptent les chauffeurs (ou celui du véhicule choisi).
+  const payment = paymentOptions(draft.quotes.paymentMethods, Platform.OS, vehicle?.paymentMethods ?? null);
+  const paymentChoice = effectivePaymentChoice(payment, draft.paymentChoice);
+  const methods = paymentChoice === 'prepaid' ? payment.prepaid : paymentChoice === 'pay_driver_after' ? payment.payAfter : [];
+  const paymentMethod = methods.includes(draft.paymentMethod) ? draft.paymentMethod : (methods[0] ?? null);
+  const choiceOptions: Array<{ value: PaymentChoice; label: string }> = [
+    ...(payment.prepaid.length > 0 ? [{ value: 'prepaid' as const, label: t('confirm.prepaid') }] : []),
+    ...(payment.payAfter.length > 0 ? [{ value: 'pay_driver_after' as const, label: t('confirm.payAfter') }] : []),
+  ];
   const category = config.data?.categories.find((c) => c.code === quote.category);
   const passengerPhone = draft.forSomeoneElse ? toE164(draft.passengerPhone) : null;
   const passenger = draft.forSomeoneElse && passengerPhone && draft.passengerName.trim().length >= 2 ? { name: draft.passengerName.trim(), phone: passengerPhone } : null;
   const passengerIncomplete = draft.forSomeoneElse && !passenger;
 
   async function book() {
-    if (!quote || !draft.pickupAt) return;
+    if (!quote || !draft.pickupAt || !paymentChoice || !paymentMethod) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -63,8 +70,8 @@ export default function ConfirmScreen() {
           quoteId: quote.id,
           type: 'scheduled',
           requestedAt: draft.pickupAt,
-          paymentChoice: draft.paymentChoice,
-          paymentMethod: methods.includes(draft.paymentMethod) ? draft.paymentMethod : methods[0]!,
+          paymentChoice,
+          paymentMethod,
           maxConsentedCents: quote.maxConsentedCents,
           preferences,
           ...(flight ? { flightNumber: flight } : {}),
@@ -78,13 +85,14 @@ export default function ConfirmScreen() {
       await queryClient.invalidateQueries({ queryKey: keys.rides });
       router.replace({ pathname: '/ride/[id]', params: { id: ride.id } });
     } catch (e) {
-      if (errorCode(e) === 'QUOTE_EXPIRED' && draft.origin && draft.destination) {
-        // Prix expiré : nouveau devis, même catégorie ; le client revoit le prix avant de confirmer.
+      if (REQUOTE_CODES.has(errorCode(e) ?? '') && draft.origin && draft.destination) {
+        // Prix expiré ou carte fermée : nouveau devis, même catégorie ; le client revoit le prix et les modes de paiement
+        // avant de confirmer.
         const quotes = await api.quotes.create({ origin: draft.origin, destination: draft.destination, stops: draft.stops, requestedAt: draft.pickupAt, options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage } }).catch(() => null);
         if (quotes) {
           draft.update({ quotes });
           draft.renewKey();
-          setNotice(t('errors.codes.QUOTE_EXPIRED'));
+          setNotice(errorMessage(e));
         } else setError(errorMessage(e));
       } else {
         setError(errorMessage(e));
@@ -95,7 +103,7 @@ export default function ConfirmScreen() {
   }
 
   return (
-    <Screen back subtitle={t('book.step', { step: 3 })} title={t('confirm.title')} footer={<Button label={busy ? t('confirm.booking') : t('confirm.book')} onPress={() => void book()} disabled={busy || passengerIncomplete} />}>
+    <Screen back subtitle={t('book.step', { step: 3 })} title={t('confirm.title')} footer={<Button label={busy ? t('confirm.booking') : t('confirm.book')} onPress={() => void book()} disabled={busy || passengerIncomplete || !paymentMethod} />}>
       <Body>{t('confirm.amenitiesMessage')}</Body>
       <Notice tone="success">{t('confirm.included')}</Notice>
       <Choices label={t('confirm.conversation')} value={preferences.conversation} onChange={(conversation) => setPreference({ conversation })} options={(['silence', 'chat', 'indifferent'] as const).map((v) => ({ value: v, label: t(`confirm.conversationValues.${v}`) }))} />
@@ -113,13 +121,19 @@ export default function ConfirmScreen() {
       <Field label={t('confirm.specialRequests')} hint={t('confirm.specialRequestsHint')} value={draft.specialRequests} onChangeText={(specialRequests) => draft.update({ specialRequests })} multiline maxLength={500} />
 
       <SectionTitle>{t('confirm.payment')}</SectionTitle>
-      <Choices
-        value={draft.paymentChoice}
-        onChange={(paymentChoice) => draft.update({ paymentChoice, paymentMethod: methodsFor(paymentChoice)[0]! })}
-        options={[{ value: 'prepaid' as PaymentChoice, label: t('confirm.prepaid') }, { value: 'pay_driver_after' as PaymentChoice, label: t('confirm.payAfter') }]}
-      />
-      <Choices value={methods.includes(draft.paymentMethod) ? draft.paymentMethod : (methods[0] ?? null)} onChange={(paymentMethod) => draft.update({ paymentMethod })} options={methods.map((m) => ({ value: m, label: t(`confirm.methods.${m}`) }))} />
-      {draft.paymentChoice === 'prepaid' ? <Notice tone="warning">{t('confirm.prepaidBeta')}</Notice> : null}
+      {paymentChoice === null ? (
+        <Notice tone="warning">{t('confirm.noPaymentMethod')}</Notice>
+      ) : (
+        <>
+          <Choices
+            value={paymentChoice}
+            onChange={(choice) => draft.update({ paymentChoice: choice, paymentMethod: (choice === 'prepaid' ? payment.prepaid : payment.payAfter)[0]! })}
+            options={choiceOptions}
+          />
+          <Choices value={paymentMethod} onChange={(method) => draft.update({ paymentMethod: method })} options={methods.map((m) => ({ value: m, label: t(`confirm.methods.${m}`) }))} />
+          {paymentChoice === 'prepaid' ? <Notice tone="warning">{t('confirm.prepaidBeta')}</Notice> : null}
+        </>
+      )}
 
       <SectionTitle>{t('confirm.summary')}</SectionTitle>
       <Card>

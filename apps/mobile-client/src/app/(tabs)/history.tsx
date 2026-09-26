@@ -1,16 +1,19 @@
+import { Button } from '@neomoov/mobile-core/components';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { RideListItem } from '@/components/RideListItem';
 import { Empty, ErrorState, Loading, Screen } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
 import { isClosed, useRides } from '@/lib/queries';
 
-/** Courses terminées, annulées ou sans chauffeur, les plus récentes d'abord ; les reçus PDF arrivent avec la facturation (étape 9). */
+/** Courses terminées, annulées ou sans chauffeur, les plus récentes d'abord ; factures PDF dans « Mes factures ». */
 export default function HistoryScreen() {
   const { t } = useTranslation();
   const rides = useRides();
   const past = (rides.data ?? []).filter(isClosed);
   return (
     <Screen title={t('history.title')} onRefresh={() => void rides.refetch()} refreshing={rides.isRefetching}>
+      <Button label={t('history.invoices')} variant="ghost" onPress={() => router.push('/invoices')} />
       {rides.isLoading ? <Loading /> : null}
       {rides.isError ? <ErrorState message={errorMessage(rides.error)} onRetry={() => void rides.refetch()} /> : null}
       {rides.data && past.length === 0 ? <Empty message={t('history.empty')} /> : null}
