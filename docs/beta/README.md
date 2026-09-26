@@ -22,7 +22,7 @@ La bêta se termine quand tous les critères ci-dessous sont remplis. Propositio
 | 4 | Redémarrer, restaurer et diagnostiquer sans le développeur | Au moins un redémarrage de service et une restauration d'essai faits par le fondateur avec les manuels | `docs/runbooks/` |
 | 5 | Cibles de performance tenues | Test de charge k6 sur le serveur de préproduction ; première offre au chauffeur en moins de 3 secondes mesurée pendant la bêta | Rapport de test de charge |
 | 6 | Aucun retour de gravité « Bloquant » ouvert ; au plus 5 « Majeurs » ouverts, chacun avec un contournement connu | Tableau de suivi | `suivi-des-retours.md` |
-| 7 | Stabilité : au moins 99 % de sessions sans plantage sur les 7 derniers jours | Consoles des magasins (Sentry n'est pas encore branché dans les applications) | App Store Connect, Play Console |
+| 7 | Stabilité : au moins 99 % de sessions sans plantage sur les 7 derniers jours | Consoles des magasins ; Sentry (projet `mobile`) si `EXPO_PUBLIC_SENTRY_DSN` est posé (branché dans les applications, inactif sans DSN) | App Store Connect, Play Console, Sentry |
 | 8 | Aucun incident de confidentialité ouvert ; registre à jour | Registre | `docs/runbooks/incident-confidentialite.md` |
 | 9 | Sauvegardes vérifiées chaque jour pendant 14 jours de suite, une restauration d'essai réussie | Journal des sauvegardes, entrée d'essai dans `sauvegardes.md` | `docs/runbooks/sauvegardes.md` |
 | 10 | Relevés de deux vendredis consécutifs générés, émis et contrôlés sans correction manuelle imprévue | Relevés, file d'approbation de l'agent comptabilité | My Hub, Relevés |

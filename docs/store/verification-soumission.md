@@ -12,26 +12,26 @@ Légende de l'état au 26 septembre 2026 : **B** = bloquant aujourd'hui (manque 
 | 2 | Compte Google Play Console (organisation) validé ; fiche d'application créée | ☐ | ☐ | F |
 | 3 | Projet EAS créé et lié : `EAS_PROJECT_ID` déclaré dans les variables du projet EAS et posé dans le terminal (`docs/runbooks/publication-mobile.md`, section 4), ce qui active aussi les mises à jour à la volée et les notifications push ; `appleTeamId` et `ascAppId` remplis dans `eas.json` | ☐ | ☐ | C après 1 et 2 |
 | 4 | Clés Google Maps iOS et Android dans les variables d'environnement du projet Expo | ☐ | ☐ | F |
-| 5 | API de production en ligne et saine (`/v1/health`), fournisseurs réels branchés (Twilio indispensable à la connexion) | ☐ | ☐ | F et C |
+| 5 | API de production en ligne et saine (`/v1/health`), fournisseurs réels branchés (Twilio indispensable à la connexion hors comptes d'examen) ; seuls les fournisseurs de `ALLOW_MOCK_PROVIDERS` restent simulés (bêta proposée : `payment,sev,whatsapp,voice`, `docs/operations/acces-a-fournir.md`) | ☐ | ☐ | F et C |
 
 ## 2. Application elle-même
 
 | # | Point | Client | Chauffeur | État |
 |---|---|---|---|---|
-| 6 | Version affichée (`app.json`) à jour ; numéro de build incrémenté par EAS | ☐ | ☐ | |
+| 6 | Version affichée (`expo.version` de `app.json`, `0.1.0` dans les deux applications au 26 septembre 2026 ; `1.0.0` proposé pour la première soumission publique) à jour ; numéro de build incrémenté par EAS | ☐ | ☐ | C |
 | 7 | Build `production` installé et essayé sur un iPhone et un Android réels (parcours principaux) | ☐ | ☐ | |
 | 8 | Suppression du compte accessible dans l'application (Profil) et fonctionnelle | ☐ | ☐ | Livrée |
-| 9 | Aucune fonction visible qui ne marche pas : l'application et la réservation web n'affichent que les modes renvoyés par le devis (livré le 26 septembre 2026) ; vérifier sur l'API de production que le devis ne contient ni `card_app` ni `apple_pay` ni `google_pay` tant que la feuille de paiement Stripe (ajout de carte) n'existe pas dans l'application, et que `GET /v1/config` donne `features.cardPayments` à faux | ☐ | sans objet | C (code livré), F (réglage de production) |
-| 10 | Écran Assistance avec téléphone et courriel (réglages `support.phone`, `support.email` créés) | ☐ | ☐ | F |
+| 9 | Aucune fonction visible qui ne marche pas : l'application et la réservation web n'affichent que les modes renvoyés par le devis (livré le 26 septembre 2026) ; vérifier sur l'API de production que le devis ne contient ni `card_app` ni `apple_pay` ni `google_pay` tant que la feuille de paiement Stripe (ajout de carte) n'existe pas dans l'application, et que `GET /v1/config` donne `features.cardPayments` à faux. Restent visibles en V1 (limites connues, à assumer ou à corriger avant la revue) : « Mes chauffeurs » du profil client, texte fixe qui annonce des favoris jamais affichés (l'API `GET /v1/me/favorites` existe, l'écran non) ; bouton « Appeler » de la course côté chauffeur, qui n'affiche qu'un avis tant que le réglage `telephony.proxy_number` est absent (aucun relais d'appel masqué en V1) | ☐ | ☐ | C (code livré), F (réglage de production) |
+| 10 | Écran Assistance avec téléphone et courriel : réglages `support.phone` et `support.email` (créés vides par les données de départ) remplis dans My Hub, **Paramètres** ; la conversation d'assistance est livrée dans les deux applications | ☐ | ☐ | F |
 | 11 | Modes d'arrière-plan iOS limités à ceux réellement utilisés : `location` et `audio` (sonnerie d'une offre) ; `fetch` et `remote-notification` retirés le 26 septembre 2026 (contrôle : `npx expo config --type introspect`, ligne `UIBackgroundModes`) ; justification du mode `audio` prête dans `driver.md` | sans objet | ☐ | Livré |
-| 12 | Textes des demandes d'autorisation conformes à l'usage réel (localisation, appareil photo, photos) | ☐ | ☐ | Livrés |
+| 12 | Textes des demandes d'autorisation conformes à l'usage réel (localisation, appareil photo, photos) ; aucune autorisation du microphone (chauffeur : `npx expo config --type introspect` sans `NSMicrophoneUsageDescription` ni `RECORD_AUDIO`, corrigé le 26 septembre 2026) | ☐ | ☐ | Livrés |
 | 13 | Connexion Apple ajoutée si une connexion Google est proposée (aujourd'hui : aucune des deux, pas d'obligation) | ☐ | ☐ | |
 
 ## 3. Revue
 
 | # | Point | Client | Chauffeur | État |
 |---|---|---|---|---|
-| 14 | Compte de démonstration utilisable sans texto (code fixe) avec des données de démonstration | ☐ | ☐ | B (mécanisme absent de l'API) |
+| 14 | Compte de démonstration utilisable sans texto (code fixe) avec des données de démonstration : `REVIEW_PHONES` et `REVIEW_OTP_CODE` posés sur le serveur de production, comptes préparés (`docs/beta/comptes-de-test.md`, section 3), connexion essayée depuis un téléphone | ☐ | ☐ | Mécanisme livré le 26 septembre 2026 ; F (valeurs et comptes) |
 | 15 | Notes pour l'examen collées (anglais), informations de connexion remplies (App Store) et « Accès aux applications » (Google Play) | ☐ | ☐ | Textes prêts dans les fiches |
 | 16 | Vidéo de démonstration de la localisation en arrière-plan en ligne, lien dans la déclaration Google Play | sans objet | ☐ | F |
 | 17 | Déclaration « Autorisations de localisation » remplie dans Google Play | sans objet | ☐ | Textes prêts |
@@ -66,6 +66,7 @@ Légende de l'état au 26 septembre 2026 : **B** = bloquant aujourd'hui (manque 
 | 31 | Suivre l'état dans App Store Connect et Play Console ; répondre aux questions des examinateurs dans les 24 heures |
 | 32 | En cas de refus : noter le motif et la règle citée dans le registre d'exploitation, corriger, soumettre de nouveau |
 | 33 | Après acceptation : publication progressive, surveillance des plantages pendant 48 heures |
+| 34 | Après la publication des deux applications : vider `REVIEW_PHONES` et `REVIEW_OTP_CODE` sur le serveur, recréer `api` et `worker`, et retirer le code des consoles si aucune autre revue n'est en attente (à reposer pour la revue suivante) |
 
 ## 7. Captures d'écran : tailles exigées et procédure
 

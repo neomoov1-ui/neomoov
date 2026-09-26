@@ -8,8 +8,8 @@
 |---|---|
 | Le chauffeur annule en route | Course remise en recherche, chauffeur exclu, recherche prioritaire |
 | Le chauffeur attribué ne bouge pas (moins de 50 m en 3 minutes, réglages `dispatch.no_movement_*`) | Chauffeur retiré sans sanction, client prévenu, nouvelle recherche |
-| Aucune réponse aux offres | Vagues successives (2, 5, 10 km puis la zone), trois balayages, puis `no_driver` avec alerte |
-| Réservation planifiée non confirmée 30 minutes avant | Alerte « Planifiées non confirmées » sur le tableau de bord |
+| Aucune réponse aux offres | Vagues successives (2, 5, 10 km puis la zone), trois balayages, puis `no_driver` avec alerte (tableau de bord et courriel au personnel) |
+| Réservation planifiée non confirmée 30 minutes avant | Alerte « Planifiées non confirmées » sur le tableau de bord et courriel au personnel |
 
 Le geste manuel sert quand la situation réelle est connue de l'exploitation et pas du système : chauffeur joint au téléphone qui ne viendra pas, client qui signale un problème, course sensible.
 
@@ -21,7 +21,8 @@ Le geste manuel sert quand la situation réelle est connue de l'exploitation et 
 | **Attribuer** | Course sans chauffeur | Choix d'un chauffeur actif dans une recherche ; l'API vérifie la garantie de modèle (catégorie du véhicule au moins égale à celle réservée) |
 | **Mettre en attente** | Course sans chauffeur (`requested`, `offering`) | Retire les offres en cours ; aucune nouvelle recherche jusqu'à la reprise |
 | **Relancer la répartition** | Course en attente | Reprend la recherche automatique |
-| **Annuler la course** | Mêmes états qu'une annulation par le client (la machine à états refuse sinon) | Motif obligatoire ; case « Facturer les frais d'annulation » : frais calculés selon la règle du client (gratuit avant l'attribution et dans les 2 minutes qui la suivent) |
+| **Annuler la course** | Mêmes états qu'une annulation par le client (la machine à états refuse sinon) ; remplacé par **Interrompre la course** quand la course est `in_progress` | Motif obligatoire ; case « Facturer les frais d'annulation » : frais calculés selon la règle du client (gratuit avant l'attribution et dans les 2 minutes qui la suivent) |
+| **Interrompre la course** | Course en cours (`in_progress`) seulement | Motif obligatoire ; case « Accident (incident grave) ». La course passe à `interrupted` (état final), un incident est ouvert (gravité élevée pour un accident, moyenne sinon), l'autorisation de paiement par carte est levée, **aucune facture** n'est émise automatiquement ; client (push et texto) et chauffeur prévenus |
 
 Le bloc de répartition de la fiche montre l'état de la recherche, la vague, le rayon et chaque offre faite (chauffeur, état, heure).
 
@@ -31,7 +32,7 @@ Le bloc de répartition de la fiche montre l'état de la recherche, la vague, le
 
 1. Ouvrir la course. **Réattribuer**, motif (« Chauffeur injoignable, retard de 20 minutes »), case « Exclure le chauffeur actuel » cochée.
 2. La recherche prioritaire démarre. Suivre les offres dans le bloc de répartition.
-3. Prévenir le client si le retard change l'heure d'arrivée (messagerie de la course ou téléphone).
+3. Prévenir le client si le retard change l'heure d'arrivée, par téléphone (numéro affiché dans le résumé de la fiche de course). Limite connue : My Hub ne peut pas écrire dans la messagerie d'une course en V1 (aucune route du personnel pour ces messages).
 
 ### Donner la course à un chauffeur précis
 
@@ -55,6 +56,13 @@ L'état est final : la course ne se réattribue pas. Le client a reçu un avis e
 
 Plus de réattribution possible. Un problème en course passe par les incidents (SOS, plainte) : Sécurité et conformité, **Incidents**.
 
+Si la course ne peut pas se terminer normalement (accident, malaise, chauffeur injoignable, véhicule immobilisé) : **Interrompre la course**, motif précis, case « Accident » cochée s'il y a lieu. Ne pas la faire terminer par le chauffeur, ce qui la facturerait. Ensuite :
+
+1. **Incidents** : l'incident ouvert (« Course interrompue : … ») porte la décision humaine ; blocage préventif du chauffeur si la sécurité est en cause.
+2. Si le client doit être ramené à destination : la plateforme n'accepte que des réservations avec préavis (2 heures, D32, appliqué par l'API au devis, **Nouvelle course** comprise). Un retour immédiat s'organise hors plateforme (chauffeur ou taxi joint au téléphone), noté dans l'incident.
+3. Aucun montant n'est prélevé ni facturé par la plateforme pour la course interrompue : un éventuel paiement partiel ou un geste commercial se décide et se traite hors plateforme en V1 (aucun bouton de facturation partielle), noté dans l'incident.
+4. Accident : prévenir aussi l'assureur ; si des renseignements personnels sont en cause, suivre `incident-confidentialite.md`.
+
 ## Par l'API
 
 ```
@@ -62,11 +70,13 @@ POST /v1/admin/rides/{id}/reassign   {"reason": "…", "excludeDriver": true}
 POST /v1/admin/rides/{id}/hold       {"reason": "…"}
 POST /v1/admin/rides/{id}/release
 POST /v1/admin/rides/{id}/assign     {"driverId": "…", "note": "…"}
+POST /v1/admin/rides/{id}/cancel     {"reason": "…", "chargeFee": false}
+POST /v1/admin/rides/{id}/interrupt  {"reason": "…", "incidentType": "accident"}   (ou "other")
 GET  /v1/admin/rides/{id}/dispatch
 ```
 
-Codes de refus : `RIDE_NOT_REASSIGNABLE` (état qui ne le permet plus), `RIDE_NOT_HOLDABLE` (un chauffeur est en place), `RIDE_NOT_HELD`, `RIDE_ALREADY_ASSIGNED`.
+Codes de refus : `RIDE_NOT_REASSIGNABLE` (état qui ne le permet plus), `RIDE_NOT_HOLDABLE` (un chauffeur est en place), `RIDE_NOT_HELD`, `RIDE_ALREADY_ASSIGNED`. L'interruption d'une course qui n'est pas `in_progress` est refusée (409) ; rejouée, elle ne crée pas de second incident.
 
 ## Courses figées
 
-Le worker signale une course figée (arrivé depuis plus de 30 minutes, en route depuis plus de 90, en course depuis plus de 4 heures, réservation en retard de 15 minutes, recherche au-delà de 20 minutes). La liste s'affiche dans la carte **Courses figées** du **Tableau de bord** (relue chaque minute ; `GET /v1/admin/rides/stuck`) : numéro de la course (lien vers sa fiche), état, durée. Rien n'est corrigé automatiquement : depuis la fiche, réattribuer, annuler ou appeler. L'alerte part aussi en notification push au personnel, qui n'a pas encore d'appareil enregistré : garder le tableau de bord ouvert.
+Le worker signale une course figée (arrivé depuis plus de 30 minutes, en route depuis plus de 90, en course depuis plus de 4 heures, réservation en retard de 15 minutes, recherche au-delà de 20 minutes). La liste s'affiche dans la carte **Courses figées** du **Tableau de bord** (relue chaque minute ; `GET /v1/admin/rides/stuck`) : numéro de la course (lien vers sa fiche), état, durée. Rien n'est corrigé automatiquement : depuis la fiche, réattribuer, annuler, interrompre (course en cours) ou appeler. L'alerte part aussi par courriel aux administrateurs et opérateurs (`alert.stuck_ride`, une fois par course et par état ; envoyée seulement avec Resend réel, `docs/operations/acces-a-fournir.md`, section 6). Les alertes « aucun chauffeur » et « planifiée non confirmée » partent de la même façon, en plus de leur affichage sur le tableau de bord.

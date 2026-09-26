@@ -47,10 +47,26 @@ Motifs d'échec affichés dans le détail :
 | Motif | Cause | Geste |
 |---|---|---|
 | `payout_account_missing` | Le chauffeur n'a pas terminé son compte de versement | Lui demander de finir l'écran « Versements » de l'application chauffeur ; puis **Régler** |
-| `debit_method_missing` | Aucune méthode de prélèvement enregistrée | Même écran ; puis **Régler** |
+| `debit_method_missing` | Aucune méthode de prélèvement enregistrée | Aucun écran ne permet encore au chauffeur de l'enregistrer : voir « Limite connue : solde négatif » ci-dessous |
 | Refus de Stripe | Carte ou compte refusé | Le nouvel essai du lundi est automatique ; sinon contacter le chauffeur |
 
+Chaque règlement en échec prévient le chauffeur (push et courriel) et le personnel (courriel aux administrateurs et opérateurs, alerte `alert.settlement_failed`, envoyée seulement avec Resend réel).
+
 Bloc « Soldes des chauffeurs » : solde, date de l'impayé, date de suspension. La suspension pour solde se lève seule dès que plus rien n'est dû.
+
+### Limite connue : solde négatif (V1)
+
+Un relevé au net négatif (le chauffeur doit de l'argent à Neomoov, par exemple quand il a encaissé lui-même ses courses, comme pendant la bêta) se règle par prélèvement sur une méthode enregistrée. L'API existe (`POST /v1/driver/payment-method`, puis `.../confirm`), mais l'application chauffeur n'a pas l'écran correspondant (décision du 26 septembre 2026) : tout relevé négatif échoue donc en `debit_method_missing`, à chaque essai. Conséquences :
+
+- le relevé reste « en échec » et compte dans le solde du chauffeur ;
+- le chauffeur est suspendu pour solde 7 jours après l'émission (`settlement.unpaid_grace_days`), ou dès le nouvel essai du lundi si la dette dépasse 150 $ (`settlement.negative_balance_threshold_cents`) ;
+- aucun bouton ni route ne permet de marquer un relevé comme réglé hors plateforme.
+
+Conduite à tenir pendant la bêta, sur décision du fondateur notée au registre d'exploitation :
+
+1. Encaisser la somme due hors plateforme (virement Interac au compte de Neomoov, par exemple), avec la référence du relevé.
+2. Pour éviter une suspension injustifiée, relever dans **Paramètres** `settlement.unpaid_grace_days` et, si besoin, `settlement.negative_balance_threshold_cents` (la règle vaut pour tous les chauffeurs), le temps de la bêta.
+3. Garder la liste des relevés encaissés hors plateforme : ils resteront « en échec » dans My Hub tant que l'écran de prélèvement (ou une route « réglé hors plateforme ») n'est pas livré.
 
 ## PDF absent
 

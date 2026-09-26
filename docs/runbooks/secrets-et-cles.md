@@ -11,8 +11,11 @@
 | `C:\Users\PC\code\neomoov\.env` (poste) | Développement et tests seulement | Fondateur ; le code le lit, Claude ne l'affiche jamais |
 | Bitwarden, dossier `Neomoov` | Copie des secrets irremplaçables (`ENCRYPTION_KEY`, `BACKUP_PASSPHRASE`, anciennes clés encore utiles), mots de passe des comptes, codes de secours | Fondateur |
 | `C:\Users\PC\cles-neomoov\` | Fichiers : clé `.p8` d'Apple, JSON du compte de service Google Play, notes du serveur | Fondateur |
-| Expo, projet, « Environment variables » | Clés Google Maps iOS et Android lues au build (`GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY`) | Fondateur, jeton `EXPO_TOKEN` |
-| GitHub Actions | Aucun secret propre aujourd'hui (le jeton `GITHUB_TOKEN` est fourni par GitHub) | |
+| Expo, projet, « Environment variables » | Clés Google Maps iOS et Android lues au build (`GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY`), identifiant du projet (`EAS_PROJECT_ID`, public), DSN Sentry des mobiles (`EXPO_PUBLIC_SENTRY_DSN`, public) | Fondateur, jeton `EXPO_TOKEN` |
+| GitHub, environnement `production` (secrets et variables) | Secrets `DEPLOY_SSH_KEY` (clé privée dédiée au déploiement) et `DEPLOY_KNOWN_HOSTS` ; variable `PRODUCTION_HOST` (et `DEPLOY_USER`, facultative) ; lus par `deploy.yml` après l'approbation du fondateur | Administrateurs du dépôt ; les valeurs des secrets ne se relisent pas |
+| GitHub, dépôt (secrets et variables) | Secret `EXPO_TOKEN` (jeton dédié à GitHub, lu par `release.yml`) ; variables publiques `EAS_PROJECT_ID_CLIENT`, `EAS_PROJECT_ID_DRIVER`, `EAS_AUTO_SUBMIT`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT` (`images.yml`) ; le jeton `GITHUB_TOKEN` est fourni par GitHub | Idem |
+
+Liste complète, avec où créer chaque valeur : `docs/operations/acces-a-fournir.md`, section 4.
 
 Vérifier le contenu d'un `.env` sans afficher une valeur : `pnpm env:check` sur le poste (affiche `OK` ou `--` par variable).
 
@@ -47,13 +50,19 @@ Règles : aucune valeur dans le dépôt, un message, un courriel, un ticket ou u
 | `ANTHROPIC_API_KEY` | Console Anthropic, Clés d'API | Procédure générale |
 | `GOOGLE_MAPS_SERVER_KEY` | Google Cloud, Identifiants | Garder les restrictions (API, adresse IP du serveur) sur la nouvelle clé |
 | `GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY` | Google Cloud, puis variables d'environnement du projet Expo | Exigent un nouveau build des applications (`publication-mobile.md`) : la clé est compilée dans l'application |
-| `S3_ACCESS_KEY`, `S3_SECRET_KEY` | Supabase, Storage, Settings, S3 Access Keys | Procédure générale ; supprimer l'ancienne clé ensuite |
+| `S3_ACCESS_KEY`, `S3_SECRET_KEY` | Supabase, Storage, Settings, S3 Access Keys | Procédure générale (recréer `api` et `worker`, qui lisent tous deux le stockage), puis contrôle par l'ouverture d'un document dans My Hub (**Documents**) ; supprimer l'ancienne clé ensuite. Même chose pour `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY` si Cloudflare R2 est utilisé |
 | `TURNSTILE_SECRET_KEY` | Cloudflare, Turnstile, le site, « Rotate secret key » | Procédure générale |
-| `NEOMOOV_PUBLIC_API_KEY` (clé de service `nmk_…`) | `POST /v1/admin/api-keys` puis `DELETE /v1/admin/api-keys/{id}` (`personnel-my-hub.md`, section 5) | Aucun écran dans My Hub : geste par l'API, avec l'aide de Claude. Le site WordPress qui l'utilise doit être mis à jour en même temps |
+| `NEOMOOV_PUBLIC_API_KEY` (clé de service `nmk_…`) | My Hub, Administration, **Clés de service** (administrateur) : **Créer une clé** (portée `public:write`), puis **Révoquer** l'ancienne ; ou `POST /v1/admin/api-keys` et `DELETE /v1/admin/api-keys/{id}` (`personnel-my-hub.md`, section 5) | Le secret n'est affiché qu'une fois : le copier aussitôt dans `.env`, recréer `web`, puis mettre à jour le site WordPress qui l'utilise avant de révoquer l'ancienne |
+| Autres clés de service (agents, métriques `metrics:read`) | Même écran | Procédure générale ; l'écran montre le dernier usage de chaque clé |
+| `REVIEW_OTP_CODE` (code fixe des comptes d'examen des magasins) | Choisir un nouveau code de 6 chiffres (ni chiffres répétés, ni `123456`, ni `654321` : refusés au démarrage) | Mettre à jour en même temps les informations de connexion dans App Store Connect et Google Play ; vider `REVIEW_PHONES` et `REVIEW_OTP_CODE` après la publication |
 | `BACKUP_PASSPHRASE` | `openssl rand -base64 30` | Les nouvelles sauvegardes utilisent la nouvelle phrase ; garder l'ancienne dans Bitwarden tant qu'une sauvegarde chiffrée avec elle existe (local et copie distante) |
-| `EXPO_TOKEN` | expo.dev, organisation, Access tokens | Poste et intégration continue |
+| `EXPO_TOKEN` | expo.dev, organisation, Access tokens | Deux jetons distincts : celui du poste, et le secret du dépôt GitHub (`release.yml`) ; remplacer l'un puis révoquer l'ancien chez Expo |
+| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_SENTRY_DSN` | Sentry, projet, « Client Keys (DSN) » | Publics (ils ne permettent que d'envoyer des événements) : rotation seulement en cas d'abus. Le DSN du web exige un nouveau build (`infra/deploy.sh build`), celui des mobiles un nouveau build ou une mise à jour à la volée |
+| `BETTERSTACK_HEARTBEAT_URL` | Better Stack, moniteur du worker | Procédure générale ; recréer `worker` |
 | Mots de passe et second facteur du personnel | `personnel-my-hub.md` | |
 | Clé SSH d'accès au serveur | `/root/.ssh/authorized_keys` | Ajouter la nouvelle clé, vérifier la connexion, retirer l'ancienne ligne |
+| Clé SSH de déploiement de GitHub (`DEPLOY_SSH_KEY`) | Nouvelle paire sur le poste (`ssh-keygen -t ed25519 -N "" -C github-deploy-neomoov -f deploy_neomoov`) | Ajouter la nouvelle clé publique à `/root/.ssh/authorized_keys`, remplacer le secret de l'environnement `production` par la nouvelle clé privée, lancer un déploiement, retirer l'ancienne ligne du serveur, supprimer le fichier privé du poste. Au départ d'un administrateur du dépôt, faire tourner cette clé |
+| `DEPLOY_KNOWN_HOSTS` | `ssh-keyscan -t ed25519 <adresse IP du VPS>` | Seulement si la clé d'hôte du serveur change (réinstallation, migration) : sinon le déploiement échoue sur un hôte inconnu |
 
 ## 4. Rotation de `ENCRYPTION_KEY`
 

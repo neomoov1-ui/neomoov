@@ -76,7 +76,7 @@ Full description:
 | Vibration, maintien de l'écran | Android (`VIBRATE`, `WAKE_LOCK`) | Pendant une offre et une course | Sonnerie et vibration de l'offre ; écran allumé sur le support pendant la course |
 | Lecture audio en arrière-plan | iOS (mode `audio` de `UIBackgroundModes`), Android (service de premier plan `FOREGROUND_SERVICE_MEDIA_PLAYBACK`), ajoutés par `expo-audio` | À l'arrivée d'une offre | La sonnerie de l'offre joue en boucle même si le chauffeur est dans Google Maps ou Waze (`shouldPlayInBackground`), jusqu'à sa réponse ou l'expiration de l'offre |
 
-Aucun accès aux contacts, au microphone (refusé explicitement dans `app.json`) ni au calendrier.
+Aucun accès aux contacts, au microphone ni au calendrier. Microphone refusé explicitement dans `apps/mobile-driver/app.json` depuis le 26 septembre 2026 : greffon `expo-audio` déclaré avec `microphonePermission: false` et `recordAudioAndroid: false` (sans ces options, il ajoutait `RECORD_AUDIO` et une description d'usage du microphone), `android.permission.RECORD_AUDIO` dans `blockedPermissions`, `expo-image-picker` avec `microphonePermission: false`. Contrôle avant chaque build soumis : `npx expo config --type introspect` dans `apps/mobile-driver` ne montre ni `NSMicrophoneUsageDescription` ni `RECORD_AUDIO` (vérifié à la livraison du changement ; seuls les builds faits après lui en profitent).
 
 Modes d'arrière-plan iOS (règle 2.5.4 d'Apple : un mode déclaré doit servir) : depuis le 26 septembre 2026, seulement `location` et `audio`. `fetch` et `remote-notification` sont retirés : aucun rafraîchissement en arrière-plan ni notification silencieuse dans le code (`fetch`, ajouté d'office par le greffon d'`expo-task-manager`, est retiré par un mod de `app.config.ts` ; contrôle : `npx expo config --type introspect`). Le mode `audio` sert à la sonnerie d'une offre reçue pendant la navigation : si Apple le conteste (usage d'alerte plutôt que de lecture), le retirer (option `enableBackgroundPlayback: false` du greffon `expo-audio`, nouveau build) et compter sur le son de la notification push de l'offre, qui joue sans ce mode. Google Play : déclarer aussi le type de service de premier plan « lecture multimédia » (`FOREGROUND_SERVICE_MEDIA_PLAYBACK`) dans la console, avec la même justification.
 
@@ -92,11 +92,12 @@ Modes d'arrière-plan iOS (règle 2.5.4 d'Apple : un mode déclaré doit servir)
 | Réponses au quiz de formation | Formation | Oui pour passer en ligne | API |
 | Position précise, en ligne seulement, y compris en arrière-plan, toutes les 5 secondes ou 50 mètres | En ligne | Oui pour travailler | API (conservée 90 jours), client de la course (pendant la course), export mensuel pseudonymisé exigé par la réglementation |
 | Messages au client, évaluation du client, signalement d'incident, SOS | Course | Non | API, client de la course |
+| Messages à l'assistance | Assistance (conversation avec l'équipe) | Non | API, équipe Neomoov |
 | Paiement direct reçu (montant confirmé) | Fin de course | Selon le mode de paiement | API |
 | Consentement de géolocalisation, demandes Loi 25 | Profil | | API |
 | Jeton de notification | Automatique | Non | API, Expo |
 
-Non collectés par l'application : coordonnées bancaires (saisies sur la page hébergée de Stripe, hors application ; versements non encore branchés), photo du visage (drapeau `FEATURE_FACE_CHECK` inactif), son (le microphone est refusé), rapports de plantage (Sentry non branché), statistiques d'usage, identifiant publicitaire. Les accélérations et freinages du tableau de conduite sont calculés par le serveur à partir des positions, pas relevés par les capteurs du téléphone.
+Non collectés par l'application : coordonnées bancaires (saisies sur la page hébergée de Stripe, hors application ; versements non encore branchés), photo du visage (drapeau `FEATURE_FACE_CHECK` inactif), son (le microphone est refusé, voir plus haut), rapports de plantage (Sentry est branché mais inactif tant que `EXPO_PUBLIC_SENTRY_DSN` n'est pas posé dans le projet EAS ; dès qu'il l'est, déclarer « Diagnostics, Données de plantage », non lié à l'identité), statistiques d'usage, identifiant publicitaire. Les messages de l'écran Assistance vont à l'équipe Neomoov (conversation, sans agent) : couverts par « Messages » et « Autre contenu » ci-dessous. Les accélérations et freinages du tableau de conduite sont calculés par le serveur à partir des positions, pas relevés par les capteurs du téléphone.
 
 ## Étiquettes de confidentialité Apple (App Privacy)
 
@@ -168,7 +169,7 @@ Mettre la vidéo en ligne (YouTube non répertorié) et en coller le lien dans l
 
 ## Compte de démonstration
 
-Les examinateurs ne reçoivent pas les textos. **Bloquant** : l'API n'a aucun mécanisme de code fixe pour un numéro de démonstration (`docs/beta/comptes-de-test.md`, section 3). Le compte à préparer : chauffeur actif, véhicule Neo Premium, documents approuvés marqués « SPÉCIMEN », formation certifiée, quelques courses terminées (revenus, relevé).
+Les examinateurs ne reçoivent pas les textos. Mécanisme livré le 26 septembre 2026 : un numéro listé dans `REVIEW_PHONES` (serveur de production) reçoit toujours le code fixe `REVIEW_OTP_CODE`, sans texto ; numéro et code se saisissent seulement dans les informations de connexion des deux consoles. Le compte à préparer sur la production, avec ce numéro : chauffeur actif, véhicule Neo Premium, documents approuvés marqués « SPÉCIMEN », formation certifiée, quelques courses terminées (revenus, relevé). Procédure et retrait après la publication : `docs/beta/comptes-de-test.md`, section 3.
 
 ## Captures d'écran
 

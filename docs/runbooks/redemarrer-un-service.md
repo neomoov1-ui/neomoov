@@ -1,6 +1,6 @@
 # Redémarrer un service sur le serveur LWS
 
-Étape 16 (prompt 16, tâche 6). Serveur VPS KVM chez LWS (décision D48), code dans `/opt/neomoov`, six conteneurs décrits par `infra/compose.prod.yml`. La base de données n'est pas sur ce serveur (Supabase, Canada central) : elle ne se redémarre pas d'ici. Aucun secret dans ce manuel.
+Étape 16 (prompt 16, tâche 6). Serveur VPS KVM chez LWS (décision D48), code dans `/opt/neomoov`, six conteneurs décrits par `infra/compose.prod.yml` (sept avec l'antivirus). La base de données n'est pas sur ce serveur (Supabase, Canada central) : elle ne se redémarre pas d'ici. Aucun secret dans ce manuel.
 
 Règle d'or : un redémarrage répare un processus bloqué, jamais la panne d'un fournisseur externe (Stripe, Twilio, Google, Supabase). Lire l'état d'abord (section 1), redémarrer ensuite.
 
@@ -26,9 +26,12 @@ curl -s https://api.neomoov.net/v1/health
 |---|---|---|
 | `neomoov-caddy-1` | Certificats TLS, aiguillage de `api`, `hub` et `reserver` | `Up` |
 | `neomoov-api-1` et `neomoov-api-2` | API (deux instances derrière Caddy) | `Up (healthy)` |
-| `neomoov-worker-1` | Files de tâches et passes planifiées : répartition automatique, notifications, paiements, factures, relevés, conservation, agents | `Up` (aucune sonde de santé) |
+| `neomoov-worker-1` | Files de tâches et passes planifiées : répartition automatique, notifications, paiements, factures, relevés, conservation, agents | `Up (healthy)` (sonde : battement de la minute) |
 | `neomoov-web-1` | My Hub, réservation web, suivi partagé | `Up (healthy)` |
 | `neomoov-redis-1` | Files, verrous, temps réel partagé entre les deux instances | `Up (healthy)` |
+| `neomoov-clamav-1` | Antivirus des documents des chauffeurs ; présent seulement avec le profil `antivirus` (`COMPOSE_PROFILES=antivirus` dans `.env`) | `Up (healthy)`, après jusqu'à 5 minutes de chargement des signatures |
+
+Les commandes `docker compose` tapées à la main ne lisent pas `/opt/neomoov/.env` pour elles-mêmes (seulement pour les conteneurs) : pour voir ou redémarrer `clamav`, ajouter `--profile antivirus` après `-f infra/compose.prod.yml`.
 
 Lecture de `/v1/health` :
 
@@ -124,7 +127,9 @@ Erreur de certificat : vérifier que les trois noms pointent vers le serveur (`n
 docker compose -f infra/compose.prod.yml up -d --force-recreate api worker
 ```
 
-Ajouter `web` à la fin si la variable concerne le web (`NEOMOOV_PUBLIC_API_KEY`, `API_INTERNAL_URL`, `BOOKING_FRAME_ANCESTORS`). Les deux instances de l'API sont recréées ensemble : coupure de 30 à 60 secondes. Les variables `NEXT_PUBLIC_*` sont figées dans l'image du web à la construction : les changer demande un nouveau déploiement (`infra/deploy.sh build`), pas un simple redémarrage.
+Ajouter `web` à la fin si la variable concerne le web (`NEOMOOV_PUBLIC_API_KEY`, `API_INTERNAL_URL`). Exception : `BOOKING_FRAME_ANCESTORS` (sites autorisés à intégrer `/reserver`) est lue par `apps/web/next.config.ts` à la construction de l'image, et ni `apps/web/Dockerfile` ni `infra/compose.prod.yml` ne la transmettent : en production, la valeur par défaut (`https://neomoov.net https://www.neomoov.net`) s'applique quoi que dise `.env` ; l'étendre à un partenaire demande une modification du code (limite connue). Les deux instances de l'API sont recréées ensemble : coupure de 30 à 60 secondes. Les variables `NEXT_PUBLIC_*` (dont `NEXT_PUBLIC_TURNSTILE_SITE_KEY` et `NEXT_PUBLIC_SENTRY_DSN`) sont figées dans l'image du web à la construction : les changer demande un nouveau déploiement (`infra/deploy.sh build`, qui relit `.env`), pas un simple redémarrage. Même chose pour `COMPOSE_PROFILES`.
+
+Si l'API ne redémarre pas, lire `docker compose -f infra/compose.prod.yml logs --tail=50 api` : une « Configuration invalide » nomme la variable en cause (clé manquante d'un fournisseur `real`, fournisseur `mock` absent d'`ALLOW_MOCK_PROVIDERS`, `REVIEW_OTP_CODE` trop simple). Corriger `.env` et recommencer.
 
 ## 8. Tout le serveur
 
@@ -151,4 +156,5 @@ docker compose -f infra/compose.prod.yml up -d
 ## Limites connues
 
 - Docker marque une instance `unhealthy` sans la redémarrer : la tâche planifiée `/etc/cron.d/neomoov-restart-unhealthy` (posée par `infra/server-setup.sh` ; sur un serveur déjà préparé, copier la ligne indiquée en tête de `infra/scripts/restart-unhealthy.sh`) relance toutes les 5 minutes les conteneurs dont la sonde échoue, et le note dans `/var/log/neomoov-restart.log`. Le worker a sa sonde : le battement de la minute écrit `/tmp/neomoov-worker-heartbeat` ; sans battement depuis 3 minutes, il est déclaré malade.
-- Aucune alerte automatique n'avertit encore d'un conteneur arrêté : la surveillance externe (Better Stack) n'est pas branchée (`docs/operations/acces-a-fournir.md`).
+- Pendant une panne de Supabase, la santé de l'API répond 503 : les deux instances passent `unhealthy` et la tâche de relance les redémarre toutes les 5 minutes, sans effet tant que la base ne revient pas. La cause est la base (section 1), pas l'API.
+- Aucune alerte automatique n'avertit encore d'un conteneur arrêté : la surveillance externe (Better Stack) n'est pas configurée (`docs/operations/acces-a-fournir.md`, section 14).

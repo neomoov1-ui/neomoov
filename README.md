@@ -8,7 +8,9 @@ Dépôt privé du Groupe NSK Inc. Monorepo de la plateforme Neomoov : API, worke
 - Design : `docs/design/`
 - Décisions : `docs/decisions.md`
 - Comptes externes et clés : `docs/comptes-externes.md`
-- Manuels d'exploitation : `docs/runbooks/`
+- Accès à fournir pour la mise en ligne (serveur, fournisseurs, GitHub, EAS, magasins) : `docs/operations/acces-a-fournir.md`
+- Manuels d'exploitation : `docs/runbooks/` ; journée type : `docs/operations/daily.md`
+- Magasins et bêta : `docs/store/`, `docs/beta/`
 - Règles pour Claude Code : `CLAUDE.md`
 
 ## Démarrer
@@ -23,6 +25,8 @@ pnpm dev:driver           # application chauffeur (Expo)
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
 
-État au 24 septembre 2026 : étapes 0, 1 et 2 faites. Monorepo complet (API NestJS avec santé, OpenAPI, adaptateurs simulés ; worker BullMQ ; web Next.js avec accueil et My Hub verrouillé ; deux applications Expo ; client d'API ; Docker Compose ; intégration continue GitHub). Schéma Drizzle de 72 tables migré et semé sur Supabase `neomoov-dev` (Canada central). Étape suivante : prompt 03 (authentification et comptes), puis l'infrastructure de déploiement LWS (décision D48) dès réception du serveur.
+`pnpm db:seed` crée des comptes de démonstration sur une base de développement, jamais en production (`docs/runbooks/base-de-donnees.md`, section 4). En production, l'API refuse de démarrer si un fournisseur est laissé simulé sans être déclaré dans `ALLOW_MOCK_PROVIDERS` (`docs/operations/acces-a-fournir.md`).
+
+État : journal daté des décisions dans `docs/decisions.md` ; au 26 septembre 2026, revue finale de la V1 (étape 17) en cours.
 
 Niveau interne : ce dépôt ne devient jamais public.

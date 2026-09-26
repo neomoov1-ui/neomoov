@@ -57,7 +57,7 @@ neomoov/
 
 ## Fournisseurs externes
 
-Chaque service externe est derrière une interface dans `apps/api/src/adapters/`, avec une implémentation réelle et une implémentation simulée choisie par variable d'environnement (`*_PROVIDER=mock|real`) : paiement (Stripe Connect), cartes (Google Maps Platform), textos (Telnyx ou Twilio), courriels (Resend ou Brevo), notifications (Expo), WhatsApp (Meta), voix (Vapi), facturation certifiée (SEV, simulée en V1), agents IA (Anthropic), stockage (S3 compatible : Supabase Storage). Les tests utilisent toujours les implémentations simulées.
+Chaque service externe est derrière une interface dans `apps/api/src/adapters/`, avec une implémentation réelle et une implémentation simulée choisie par variable d'environnement (`*_PROVIDER=mock|real`) : paiement (Stripe Connect), cartes (Google Maps Platform), textos (Telnyx ou Twilio), courriels (Resend ou Brevo), notifications (Expo), WhatsApp (Meta), voix (Vapi), facturation certifiée (SEV, simulée en V1), agents IA (Anthropic), stockage (S3 compatible : Supabase Storage, ou Cloudflare R2), antivirus des documents (ClamAV). Les tests utilisent toujours les implémentations simulées. En production, l'API refuse de démarrer si un fournisseur `real` n'a pas sa clé, ou si un fournisseur laissé `mock` n'est pas déclaré dans `ALLOW_MOCK_PROVIDERS` (`docs/operations/acces-a-fournir.md`). Brevo et Telnyx n'ont pas d'adaptateur réel livré (Resend et Twilio le sont), ni le SEV.
 
 ## Files et temps réel
 

@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Réglage d'exploitation (table `settings`) | My Hub, Administration, **Paramètres** | Une minute au plus (cache de 60 s par processus) | Administrateur |
 | Mode d'un agent IA | My Hub, Pilotage, **Agents IA**, **Régler** | Immédiat | Administrateur |
-| Drapeau `FEATURE_*` et interrupteurs d'environnement | `/opt/neomoov/.env` sur le serveur, puis recréation de l'API et du worker | 1 à 2 minutes, avec une coupure de 30 à 60 s ; les applications mobiles le voient à leur prochaine ouverture (`GET /v1/config`) | Administrateur, par SSH |
+| Drapeau `FEATURE_*` et interrupteurs d'environnement (`DISPATCH_MODE`, `AGENT_TRIGGERS`, `CARD_PAYMENTS`…) | `/opt/neomoov/.env` sur le serveur, puis recréation de l'API et du worker | 1 à 2 minutes, avec une coupure de 30 à 60 s ; les applications mobiles le voient à leur prochaine ouverture (`GET /v1/config`) | Administrateur, par SSH |
 
 ## 1. Réglages d'exploitation (My Hub, Paramètres)
 
@@ -29,6 +29,9 @@ Réglages utiles en exploitation :
 | `notifications.quiet_hours` | 22 h à 7 h | Heures silencieuses, hors course en cours |
 | `watchdog.*` | 30, 90, 240, 15, 20 minutes | Seuils des courses figées |
 | `company.gst_number`, `company.qst_number` | vides | Numéros de taxes de Neomoov sur les factures : **à remplir avant la première facture réelle** |
+| `company.legal_name`, `company.address` | « Neomoov », « Montréal (Québec) » | Dénomination et adresse sur les factures : **à remplacer avant la première facture réelle** (dénomination légale fixée par D25 : « GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC. », à confirmer avec le comptable) |
+| `support.phone`, `support.email` | vides | Coordonnées de l'écran Assistance des applications et recours de la page de suppression de compte ; vides : masquées. **À remplir avant la bêta** |
+| `settlement.unpaid_grace_days`, `settlement.negative_balance_threshold_cents` | 7 jours, 15 000 (150 $) | Suspension pour solde négatif ; voir `releves.md`, « Limite connue : solde négatif » |
 
 Ne jamais changer un réglage de tarification (`pricing.*`) pour corriger une course : corriger la course (remboursement, crédit) ; les tarifs changent par une ligne datée dans **Tarifs**.
 
@@ -72,8 +75,19 @@ La réponse de `/v1/config` montre les drapeaux vus par les applications (`featu
 | `DISPATCH_MODE` | `manual` | Plus aucune recherche automatique pour les nouvelles demandes : les attributions se font dans My Hub (`reattribution.md`). Les recherches déjà ouvertes vont à leur terme, et **Réattribuer** relance toujours une recherche. Utile si la répartition envoie des offres erronées |
 | `AGENT_TRIGGERS` | `off` | Plus aucun agent déclenché par un message, un document ou un relevé ; le worker ne traite plus du tout la file `agents`, donc les rapports planifiés s'arrêtent aussi |
 | `LLM_SERVER_FALLBACK` | `off` | Retire le repli côté serveur de l'API Claude si l'API le refuse (décision du 26 septembre) |
+| `CARD_PAYMENTS` | `off` | Plus aucun paiement par carte proposé (devis sans carte, Apple Pay ni Google Pay ; réservation prépayée refusée en 409 `CARD_PAYMENTS_UNAVAILABLE`) ; le paiement au chauffeur reste possible. Les applications le lisent dans `GET /v1/config` (`features.cardPayments`) |
 
-Ne jamais passer un `*_PROVIDER` de `real` à `mock` en production pour « couper » un fournisseur : le mode simulé fabrique de faux paiements, de faux envois et accepte des jetons forgés. Pour couper un canal, agir chez le fournisseur :
+### Interrupteurs de configuration
+
+| Variable | Valeur en V1 | Règle |
+|---|---|---|
+| `CARD_PAYMENTS` | Vide (défaut) : carte proposée seulement si `PAYMENT_PROVIDER=real` en production | **Jamais `on`** tant que les applications n'ont pas la feuille de paiement Stripe (écran d'ajout de carte, décision du 26 septembre 2026). Dès le passage à Stripe réel, poser `off` explicitement : sinon la carte est proposée et le prépaiement échoue (« Aucune carte enregistrée ») |
+| `ALLOW_MOCK_PROVIDERS` | Bêta proposée : `payment,sev,whatsapp,voice` | En production, tout fournisseur laissé `mock` sans figurer dans cette liste empêche l'API de démarrer (`docs/operations/acces-a-fournir.md`, « Démarrage de l'API en production ») |
+| `REVIEW_PHONES`, `REVIEW_OTP_CODE` | Posés pendant l'examen des magasins | Numéros d'examen qui reçoivent toujours le code fixe, sans texto ; vider les deux après la publication (`docs/beta/comptes-de-test.md`, section 3) |
+| `SEED_DEMO` | Absente | Ne concerne que le chargement des données de départ ; ne jamais la poser sur le serveur de production (`base-de-donnees.md`, section 4) |
+| `COMPOSE_PROFILES` | `antivirus` quand l'antivirus est en service | Lu par `infra/deploy.sh` ; un changement demande un déploiement (`infra/deploy.sh build`), pas une simple recréation |
+
+Ne jamais passer un `*_PROVIDER` de `real` à `mock` en production pour « couper » un fournisseur : le mode simulé fabrique de faux paiements, de faux envois et accepte des jetons forgés (l'API refuse d'ailleurs de démarrer si ce fournisseur n'est pas ajouté à `ALLOW_MOCK_PROVIDERS`, ce qu'il ne faut pas faire dans l'urgence). Pour couper un canal, agir chez le fournisseur :
 
 | Canal | Où le couper |
 |---|---|
