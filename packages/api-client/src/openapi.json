@@ -13503,7 +13503,10 @@
                         "detour",
                         "unsafe",
                         "dirty",
-                        "rude"
+                        "rude",
+                        "traffic",
+                        "price",
+                        "app"
                       ]
                     }
                   },
@@ -24220,6 +24223,10 @@
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 200
+                  },
+                  "safety": {
+                    "default": false,
+                    "type": "boolean"
                   }
                 },
                 "required": [

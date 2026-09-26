@@ -190,6 +190,10 @@ export const rideRatings = pgTable('ride_ratings', {
   score: smallint('score').notNull(),
   tags: jsonb('tags').notNull().default(sql`'[]'::jsonb`),
   comment: text('comment'),
+  /** Charte d'équité (D7) : note retirée du calcul par une personne (réponse du chauffeur admise), avec le motif. */
+  excludedAt: tz('excluded_at'),
+  excludedReason: text('excluded_reason'),
+  excludedByUserId: uuid('excluded_by_user_id'),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex('ride_ratings_unique').on(t.rideId, t.authorKind), check('ride_ratings_score', sql`${t.score} BETWEEN 1 AND 5`), check('ride_ratings_author_kind', sql`${t.authorKind} IN ('client', 'driver')`)]);
 

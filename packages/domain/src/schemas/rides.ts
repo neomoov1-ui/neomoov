@@ -37,7 +37,8 @@ export const sosResponseSchema = z.object({ incidentId: uuid, status: z.literal(
 export const shareResponseSchema = z.object({ trackingUrl: z.string(), token: z.string(), expiresAt: isoDate.nullable() });
 
 /** Déroulé chauffeur : annulation avec motif ; non-présentation ; fin de course avec compteurs. */
-export const driverCancelSchema = z.object({ reason: z.string().trim().min(3).max(200) });
+/** Annulation par le chauffeur ; `safety` (ou le motif `safety`) : pour sa sécurité, jamais sanctionnée (Charte d'équité, D7). */
+export const driverCancelSchema = z.object({ reason: z.string().trim().min(3).max(200), safety: z.boolean().default(false) });
 
 export const completeRideSchema = z.object({
   /** Distance et durée mesurées par l'application, si la trace serveur est incomplète. */

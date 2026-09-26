@@ -144,6 +144,27 @@ describe('agent qualité : sanctions graduées (intégration)', () => {
     expect(back).not.toHaveLength(0);
   });
 
+  it('Charte d\'équité : notes à cause extérieure, client en retard ou exclues ne comptent pas ; annulation pour la sécurité jamais tardive', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    // Douze bonnes notes, puis trois mauvaises qui ne comptent pas (circulation, prix, client en retard) et une exclue par une personne.
+    await rated(client, driver, [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]);
+    const bad = await rated(client, driver, [1, 1, 1, 1]);
+    await db(app).update(schema.rideRatings).set({ tags: ['traffic'] }).where(eq(schema.rideRatings.rideId, bad[0]!));
+    await db(app).update(schema.rideRatings).set({ tags: ['late', 'price'] }).where(eq(schema.rideRatings.rideId, bad[1]!));
+    await db(app).update(schema.rides).set({ waitChargeCents: 150 }).where(eq(schema.rides.id, bad[2]!));
+    await db(app).update(schema.rideRatings).set({ excludedAt: new Date(), excludedReason: 'Réponse du chauffeur admise' }).where(eq(schema.rideRatings.rideId, bad[3]!));
+    // Trois annulations pour la sécurité après le départ : jamais comptées comme tardives.
+    const [safetyRide] = await rated(client, driver, [5]);
+    for (let i = 0; i < 3; i += 1) {
+      await db(app).insert(schema.rideEvents).values({ rideId: safetyRide!, type: 'driver_cancels', fromState: 'en_route', toState: 'requested', actorUserId: driver.userId, actorKind: 'driver', occurredAt: new Date(Date.now() - DAY), data: { reason: 'safety', safety: true } });
+    }
+    const [review] = await quality().review(new Date(), [driver.driverId]);
+    expect(review!.metrics).toMatchObject({ ratingAverage: 5, ratingCount: 13, lateCancellations7d: 0 });
+    expect(review!.proposal).toBeNull();
+  });
+
   it('mode automatique : sanction appliquée sans file ; passe quotidienne unique par référence', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
@@ -162,6 +183,12 @@ describe('agent qualité : sanctions graduées (intégration)', () => {
       expect((await run([driver.driverId], ref)).replayed).toBe(true);
       // Avertissement récent : pas de nouvel avertissement le lendemain.
       expect((await run([driver.driverId], key())).result).toMatchObject({ proposed: 0 });
+      // Charte d'équité : même en mode automatique, une suspension (note de 4,08) attend une décision humaine.
+      const low = await createDriver(app);
+      await rated(client, low, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5]);
+      expect((await run([low.driverId], key())).result).toMatchObject({ proposed: 1 });
+      expect(await pendingFor(low.driverId)).toHaveLength(1);
+      expect(await statusOf(low.driverId)).toBe('active');
     } finally {
       await db(app).update(schema.agents).set({ mode: 'approval' }).where(eq(schema.agents.code, 'quality'));
     }

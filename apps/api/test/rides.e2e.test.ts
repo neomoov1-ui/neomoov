@@ -192,6 +192,22 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     expect((await request(server()).post(`/v1/rides/${late.id}/cancel`).set(bearer(client)).send({ reason: 'changed_plans' }).expect(200)).body.feeCents).toBe(500);
   });
 
+  it('annulation du chauffeur pour sa sécurité (Charte d\'équité) : marquée, jamais sanctionnée, incident ouvert pour l\'équipe', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await requestRide(client, await quoteFor(client))).body;
+    await assign(admin.tokens, ride.id, driver);
+    await request(server()).post(`/v1/driver/rides/${ride.id}/depart`).set(bearer(driver.tokens)).expect(200);
+    await request(server()).post(`/v1/driver/rides/${ride.id}/cancel`).set(bearer(driver.tokens)).send({ reason: 'safety' }).expect(200);
+    const [event] = await db(app).select({ data: schema.rideEvents.data }).from(schema.rideEvents).where(and(eq(schema.rideEvents.rideId, ride.id), eq(schema.rideEvents.type, 'driver_cancels')));
+    expect(event!.data).toMatchObject({ reason: 'safety', safety: true });
+    const incidents = await db(app).select().from(schema.incidents).where(eq(schema.incidents.rideId, ride.id));
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0]).toMatchObject({ type: 'other', severity: 'high', reportedByKind: 'driver' });
+  });
+
   it('non-présentation : refusée avant cinq minutes ou sans deux contacts, puis 7,00 $', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);

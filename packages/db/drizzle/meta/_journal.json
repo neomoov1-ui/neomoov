@@ -127,6 +127,13 @@
       "when": 1790455240026,
       "tag": "0017_pet-surcharge",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790456643470,
+      "tag": "0018_rating-exclusion",
+      "breakpoints": true
     }
   ]
 }

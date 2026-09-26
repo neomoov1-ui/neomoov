@@ -179,7 +179,7 @@ export class DriverController {
   @ZodResponse(200, rideSchema)
   @ApiErrors(400, 401, 403, 404, 409, 429)
   cancel(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(driverCancelSchema)) body: z.infer<typeof driverCancelSchema>, @CurrentUser() user: UserActor) {
-    return this.rides.cancelByDriver(id, user, body.reason);
+    return this.rides.cancelByDriver(id, user, body.reason, body.safety);
   }
 
   @Get('scheduled')
