@@ -12,6 +12,21 @@ import type {
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
+
+/** Entrée du journal d'audit (GET /v1/admin/audit). */
+export interface AuditEntryView {
+  id: string;
+  actorUserId: string | null;
+  actorAgentCode: string | null;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  before: unknown;
+  after: unknown;
+  ipAddress: string | null;
+  correlationId: string | null;
+  occurredAt: string;
+}
 type ListQuery = Partial<AdminListQuery>;
 
 export function staffAuthResource(t: Transport) {
@@ -74,7 +89,7 @@ export function adminResource(t: Transport) {
     zones: () => t.get<ZoneGeometry[]>('/admin/zones'),
     updateZone: (code: string, body: ZoneUpdate) => t.put<ZoneGeometry>(`/admin/zones/${id(code)}`, body),
     report: (from: string, to: string) => t.get<AdminReport>('/admin/reports', { query: { from, to } }),
-    audit: (query: { limit?: number } = {}) => t.get<{ items: unknown[] }>('/admin/audit', { query }),
+    audit: (query: { limit?: number; cursor?: string; entity?: string; action?: string } = {}) => t.get<{ items: AuditEntryView[]; nextCursor: string | null }>('/admin/audit', { query }),
   };
 }
 
