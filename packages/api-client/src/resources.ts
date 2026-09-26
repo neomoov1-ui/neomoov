@@ -12,6 +12,7 @@ import type {
   StatementSummary, TrainingResult, TrainingView, VehicleInputBody, VehicleView,
   BalanceView, ConnectStatus, PaymentMethodView, PaymentView, SetupIntentResponse,
 } from '@neomoov/domain';
+import type { FavoriteView } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
 /** Ce dont les ressources ont besoin : les verbes HTTP du client. */
@@ -56,6 +57,10 @@ export function meResource(t: Transport) {
     places: () => t.get<SavedPlace[]>('/me/places'),
     addPlace: (body: SavedPlaceInput) => t.post<SavedPlace>('/me/places', body),
     removePlace: (placeId: string) => t.delete(`/me/places/${id(placeId)}`),
+    /** « Mes chauffeurs » (D38) : un chauffeur devient favori après une course terminée notée 4 ou plus ; ajout et retrait idempotents. */
+    favorites: () => t.get<FavoriteView[]>('/me/favorites'),
+    addFavorite: (driverId: string) => t.post<FavoriteView>(`/me/favorites/${id(driverId)}`),
+    removeFavorite: (driverId: string) => t.delete(`/me/favorites/${id(driverId)}`),
   };
 }
 

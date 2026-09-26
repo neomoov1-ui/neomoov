@@ -76,7 +76,14 @@ const fr = {
   offers: { packs: 'Packs de courses', promotions: 'Promotions', code: 'Code', name: 'Nom', type: 'Type', value: 'Valeur', active: 'Actif', spent: 'Dépensé', budget: 'Budget', validity: 'Validité', price: 'Prix', rides: 'Courses incluses' },
   statements: { title: 'Relevés des chauffeurs', period: 'Période', driver: 'Chauffeur', status: 'État', credits: 'Crédits', debits: 'Débits', net: 'Net', issued: 'Émis le', generation: 'La génération, l\'aperçu et l\'émission des relevés hebdomadaires arrivent avec l\'étape 9 (règlement et facturation).' },
   invoices: { title: 'Factures', number: 'Numéro', ride: 'Course', supplier: 'Fournisseur', total: 'Total', payment: 'Paiement', sev: 'État SEV', issued: 'Émise le' },
-  incidents: { title: 'Incidents et sécurité', type: 'Type', severity: 'Gravité', status: 'État', reportedBy: 'Signalé par', description: 'Description', decision: 'Décision', decide: 'Décider', privacyOnly: 'Registre des incidents de confidentialité', privacy: 'Confidentialité' },
+  incidents: { title: 'Incidents et sécurité', type: 'Type', severity: 'Gravité', status: 'État', reportedBy: 'Signalé par', description: 'Description', decision: 'Décision', decide: 'Décider', privacyOnly: 'Registre des incidents de confidentialité', privacy: 'Confidentialité',
+    guarantee: {
+      action: 'Garantie modèle', title: 'Garantie modèle : décision', outcome: 'Décision', outcomes: { validated: 'Validée : remboursement intégral du client', rejected: 'Refusée : clôture motivée' },
+      motive: 'Motif communiqué au client', driverAtFault: 'Faute du chauffeur : une sanction est proposée sur sa fiche (jamais appliquée automatiquement)', refundMode: 'Remboursement',
+      refundModes: { refund: 'Sur la carte', credit: 'En crédit sur le compte du client' }, directHint: 'Une course payée directement au chauffeur est toujours remboursée en crédit.',
+      done: 'Garantie tranchée : {{amount}} rendus au client.', rejected: 'Garantie refusée : le client est prévenu.', protected: 'Tarif normal maintenu au chauffeur.', sanction: 'Sanction proposée sur la fiche du chauffeur.',
+    },
+  },
   dataRequests: { title: 'Demandes de droits (Loi 25)', type: 'Demande', received: 'Reçue le', due: 'Échéance', processed: 'Traitée le', outcome: 'Suite donnée', statuses: { open: 'Ouverte', overdue: 'En retard', done: 'Traitée' } },
   agents: { title: 'Agents IA', mode: 'Mode', model: 'Modèle', effort: 'Effort', runs: 'Exécutions (7 jours)', pending: 'À approuver', approvals: 'File d\'approbation', action: 'Action proposée', justification: 'Justification', agent: 'Agent', approve: 'Approuver', reject: 'Refuser', decided: 'Décision enregistrée.', wiring: 'Le branchement complet des agents arrive à l\'étape 13.' },
   reports: {
@@ -162,7 +169,14 @@ const en: typeof fr = {
   offers: { packs: 'Ride packs', promotions: 'Promotions', code: 'Code', name: 'Name', type: 'Type', value: 'Value', active: 'Active', spent: 'Spent', budget: 'Budget', validity: 'Validity', price: 'Price', rides: 'Rides included' },
   statements: { title: 'Driver statements', period: 'Period', driver: 'Driver', status: 'Status', credits: 'Credits', debits: 'Debits', net: 'Net', issued: 'Issued on', generation: 'Generating, previewing and issuing weekly statements comes with step 9 (settlement and invoicing).' },
   invoices: { title: 'Invoices', number: 'Number', ride: 'Ride', supplier: 'Supplier', total: 'Total', payment: 'Payment', sev: 'SEV status', issued: 'Issued on' },
-  incidents: { title: 'Incidents and safety', type: 'Type', severity: 'Severity', status: 'Status', reportedBy: 'Reported by', description: 'Description', decision: 'Decision', decide: 'Decide', privacyOnly: 'Privacy incident register', privacy: 'Privacy' },
+  incidents: { title: 'Incidents and safety', type: 'Type', severity: 'Severity', status: 'Status', reportedBy: 'Reported by', description: 'Description', decision: 'Decision', decide: 'Decide', privacyOnly: 'Privacy incident register', privacy: 'Privacy',
+    guarantee: {
+      action: 'Model guarantee', title: 'Model guarantee: decision', outcome: 'Decision', outcomes: { validated: 'Upheld: full refund to the customer', rejected: 'Rejected: closed with reasons' },
+      motive: 'Reason given to the customer', driverAtFault: 'Driver at fault: a sanction is proposed on their record (never applied automatically)', refundMode: 'Refund',
+      refundModes: { refund: 'To the card', credit: 'As credit on the customer account' }, directHint: 'A ride paid directly to the driver is always refunded as credit.',
+      done: 'Guarantee decided: {{amount}} returned to the customer.', rejected: 'Guarantee rejected: the customer is notified.', protected: 'Normal fare kept for the driver.', sanction: 'Sanction proposed on the driver record.',
+    },
+  },
   dataRequests: { title: 'Privacy requests (Law 25)', type: 'Request', received: 'Received on', due: 'Due', processed: 'Processed on', outcome: 'Outcome', statuses: { open: 'Open', overdue: 'Overdue', done: 'Processed' } },
   agents: { title: 'AI agents', mode: 'Mode', model: 'Model', effort: 'Effort', runs: 'Runs (7 days)', pending: 'To approve', approvals: 'Approval queue', action: 'Proposed action', justification: 'Rationale', agent: 'Agent', approve: 'Approve', reject: 'Reject', decided: 'Decision saved.', wiring: 'Full agent wiring comes with step 13.' },
   reports: {
