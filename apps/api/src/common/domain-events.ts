@@ -50,6 +50,8 @@ export interface DomainEvents {
   'ride.no_driver': RideEventPayload;
   'ride.incident': { rideId: string; incidentId: string; type: string; severity: string; reportedByUserId: string | null };
   'dispatch.updated': { rideId: string; status: string; wave: number; offersSent: number; nextActionAt: Date | null };
+  /** Notifications (étape 13) : lignes mises en file, à envoyer. */
+  'notification.queued': { ids: string[] };
   /** Règlement (étape 9) : relevé hebdomadaire émis. */
   'statement.issued': { statementId: string; driverId: string; periodStart: string; netCents: number };
 }

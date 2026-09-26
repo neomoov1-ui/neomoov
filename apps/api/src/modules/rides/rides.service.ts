@@ -63,7 +63,8 @@ interface Parties {
 export interface ClientRecipient {
   recipientUserId: string | null;
   recipientAddress: string | null;
-  channel: NotificationChannel;
+  /** Imposé pour un tiers sans compte (texto) ; absent : canaux de la matrice 5.14. */
+  channel?: NotificationChannel;
   language: Language;
 }
 
@@ -195,7 +196,8 @@ export class RidesService {
   /** Destinataire des notifications côté client (5.14) : compte (push) ou invité (texto). */
   async recipientOf(ride: RideRow): Promise<ClientRecipient> {
     const parties = await this.partiesOf(ride);
-    if (parties.clientUserId) return { recipientUserId: parties.clientUserId, recipientAddress: null, channel: 'push', language: parties.clientLanguage };
+    // Compte : canaux de la matrice 5.14 ; tiers sans compte : texto.
+    if (parties.clientUserId) return { recipientUserId: parties.clientUserId, recipientAddress: null, language: parties.clientLanguage };
     return { recipientUserId: null, recipientAddress: ride.guestPhone ?? ride.passengerPhone ?? null, channel: 'sms', language: parties.clientLanguage };
   }
 

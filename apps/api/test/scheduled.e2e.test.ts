@@ -44,7 +44,8 @@ describe('réservation planifiée avec horloge simulée (intégration)', () => {
     expect(reminder.reminders).toContain(ride.id);
     expect((await scheduled.tick(at(23 * 60 + 40))).reminders).not.toContain(ride.id);
     const reminderNotification = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, client.user.id), eq(schema.notifications.template, 'ride.scheduled_reminder')));
-    expect(reminderNotification).toHaveLength(1);
+    // Matrice 5.14 : rappel par push, courriel et texto, une seule fois.
+    expect(reminderNotification.map((n) => n.channel).sort()).toEqual(['email', 'push', 'sms']);
 
     // Un chauffeur se propose ; un second est refusé.
     const listed = await request(server()).get('/v1/driver/scheduled').set(bearer(driver.tokens)).expect(200);

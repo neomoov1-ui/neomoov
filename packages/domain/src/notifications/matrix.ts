@@ -26,6 +26,7 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('offer.new', 'driver', ['push'], true),
   rule('ride.assigned', 'client', ['push'], true),
   rule('ride.assigned_to_you', 'driver', ['push'], true),
+  rule('ride.driver_departed', 'client', ['push']),
   rule('ride.driver_approaching', 'client', ['push'], true),
   rule('ride.driver_arrived', 'client', ['push'], true),
   rule('ride.completed', 'client', ['push', 'email']),
