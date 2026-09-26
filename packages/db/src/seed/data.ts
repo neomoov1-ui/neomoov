@@ -145,6 +145,7 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'dispatch.scheduled_window_seconds', value: 600, description: 'D40 : fenêtre d\'offres d\'une réservation planifiée (10 minutes), diffusée aux chauffeurs disponibles sur le créneau' },
   { key: 'dispatch.scheduled_candidates_max', value: 20, description: 'Chauffeurs sollicités en même temps pour une réservation planifiée' },
   { key: 'dispatch.favourite_exclusive_seconds', value: 120, description: 'D37 : le chauffeur favori reçoit l\'offre seul pendant ce délai avant les autres' },
+  { key: 'favorites.min_rating', value: 4, description: '5.10 : note minimale d\'une course terminée pour ajouter son chauffeur aux favoris' },
   { key: 'dispatch.scheduled_conflict_minutes', value: 90, description: 'Un chauffeur déjà attribué à une planifiée à moins de ce délai n\'est pas candidat' },
   { key: 'negotiation.window_seconds', value: 600, description: 'D34 : fenêtre de négociation d\'une réservation (10 minutes), puis repli au prix affiché' },
   { key: 'negotiation.immediate_window_seconds', value: 60, description: 'Fenêtre de négociation d\'une course immédiate (60 secondes)' },

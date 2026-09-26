@@ -11,7 +11,7 @@ import type {
   LoyalClientView, OfferCounterInput, OnboardingView, PackActivate, PackUpdate, PayoutLink, PayoutStatus, RateClient, ScheduledRideView, ShiftStartResult,
   StatementSummary, TrainingResult, TrainingView, VehicleInputBody, VehicleView,
   BalanceView, ConnectStatus, PaymentMethodView, PaymentView, SetupIntentResponse,
-  CreditsView, ReferralView,
+  CreditsView, FavoriteView, ReferralView,
 } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
@@ -63,6 +63,10 @@ export function meResource(t: Transport) {
     referral: (kind?: 'client' | 'driver') => t.get<ReferralView>('/me/referral', kind ? { query: { kind } } : undefined),
     /** Saisie du code d'un parrain, à l'inscription et avant la première course. */
     applyReferral: (code: string) => t.post<ReferralView>('/me/referral/apply', { code }),
+    /** « Mes chauffeurs » (D38) : un chauffeur devient favori après une course terminée notée 4 ou plus ; ajout et retrait idempotents. */
+    favorites: () => t.get<FavoriteView[]>('/me/favorites'),
+    addFavorite: (driverId: string) => t.post<FavoriteView>(`/me/favorites/${id(driverId)}`),
+    removeFavorite: (driverId: string) => t.delete(`/me/favorites/${id(driverId)}`),
   };
 }
 

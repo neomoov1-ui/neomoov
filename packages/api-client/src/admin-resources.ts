@@ -9,6 +9,7 @@ import type {
   PricingRuleView, QuoteRequest, QuotesResponse, RideEventView, RideView, SanctionInput, StaffLogin, StaffLoginResponse, StaffNote, TokensView, VehicleReview,
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
+import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -74,6 +75,8 @@ export function adminResource(t: Transport) {
     clients: (query: ListQuery = {}) => t.get<Page<AdminClient>>('/admin/clients', { query }),
     incidents: (query: ListQuery = {}) => t.get<Page<AdminIncident>>('/admin/incidents', { query }),
     decideIncident: (incidentId: string, body: IncidentDecision) => t.post<AdminIncident>(`/admin/incidents/${id(incidentId)}/decide`, body),
+    /** Garantie modèle : validée (remboursement intégral, tarif du chauffeur maintenu ou sanction proposée) ou refusée. */
+    decideGuarantee: (incidentId: string, body: GuaranteeDecision) => t.post<GuaranteeResult>(`/admin/incidents/${id(incidentId)}/guarantee`, body),
     approvals: (query: ListQuery = {}) => t.get<Page<AdminApproval>>('/admin/approvals', { query }),
     decideApproval: (approvalId: string, body: ApprovalDecisionInput) => t.post<AdminApproval>(`/admin/approvals/${id(approvalId)}/decide`, body),
     settings: (q?: string) => t.get<AdminSetting[]>('/admin/settings', { query: { q } }),
