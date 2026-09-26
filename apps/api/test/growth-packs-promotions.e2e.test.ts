@@ -257,6 +257,24 @@ describe('packs et promotions (intégration)', () => {
     expect(back.body.quotes[0].promotionCode).toBe('BIENVENUE3');
   });
 
+  it('promotions de lancement : dixième course offerte automatiquement, LANCEMENT30 à 30 % plafonné à 15 $ par course', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const quote = async (options: Record<string, unknown> = {}) =>
+      (await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt: inHours(30), options }).expect(201)).body.quotes[0] as { promotionCode: string | null; promotionDiscountCents: number; fareCents: number };
+    expect((await quote()).promotionCode).toBeNull();
+    const [clientRow] = await db(app).select().from(schema.clients).where(eq(schema.clients.userId, client.user.id));
+    await db(app).update(schema.clients).set({ rideCount: 9 }).where(eq(schema.clients.id, clientRow!.id));
+    const tenth = await quote();
+    expect(tenth).toMatchObject({ promotionCode: 'MERCI10', promotionDiscountCents: tenth.fareCents });
+    // Onzième course : plus de promotion automatique.
+    await db(app).update(schema.clients).set({ rideCount: 10 }).where(eq(schema.clients.id, clientRow!.id));
+    expect((await quote()).promotionCode).toBeNull();
+    const launch = await quote({ promoCode: 'lancement30' });
+    expect(launch.promotionCode).toBe('LANCEMENT30');
+    expect(launch.promotionDiscountCents).toBe(Math.min(Math.round(launch.fareCents * 0.3), 1500));
+  });
+
   it('promotions : code saisi, validation avec motif stable, limite par client, budget', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const code = `T8${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
