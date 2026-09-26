@@ -14,6 +14,9 @@
 | Soumission iOS (`submit.production.ios`) | `appleTeamId` et `ascAppId` vides | À remplir après la validation du compte Apple et la création des fiches dans App Store Connect |
 | Soumission Android | Compte de service attendu dans `C:\Users\PC\cles-neomoov\google-play-service-account.json`, piste `internal` | Google Play exige en général un premier envoi manuel du fichier `.aab` dans la console avant d'accepter les envois automatiques (à vérifier au premier envoi) |
 | Clés Google Maps des applications | Lues au build (`GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY`), à déclarer dans les variables d'environnement du projet Expo | Sans clé Android, la carte n'apparaît pas dans un build autonome |
+| Suivi des plantages (Sentry) | `@sentry/react-native` lié dans les deux applications ; actif seulement avec `EXPO_PUBLIC_SENTRY_DSN` (variables des projets EAS, et terminal pour une mise à jour à la volée) | Sans DSN : aucun envoi. Dès qu'il est posé, déclarer « Diagnostics » dans les étiquettes des magasins (`docs/store/`) |
+| Microphone (application chauffeur) | Retiré le 26 septembre 2026 : `expo-audio` déclaré avec `microphonePermission: false` et `recordAudioAndroid: false`, `RECORD_AUDIO` dans `blockedPermissions`, `expo-image-picker` avec `microphonePermission: false` | Vérifier après chaque ajout de greffon : `npx expo config --type introspect` ne doit montrer ni `NSMicrophoneUsageDescription` ni `RECORD_AUDIO` |
+| Build automatique sur étiquette | `release.yml` : étiquette `v*` poussée, builds EAS des deux applications si le secret GitHub `EXPO_TOKEN` existe, soumission si la variable `EAS_AUTO_SUBMIT` vaut `oui` | Secrets et variables à créer : `docs/operations/acces-a-fournir.md`, section 4 |
 
 ## 2. Quel type de publication
 
@@ -107,5 +110,5 @@ Un build publié dans un magasin ne se retire pas : on publie un build correctif
 3. Notes de version FR et EN (quelques lignes, sans jargon).
 4. Build `preview` installé et essayé sur un iPhone et un Android réels (parcours principaux de `docs/testing/README.md`).
 5. Build `production`, soumission, testeurs internes, puis bêta ou production.
-6. Surveiller 48 heures : plantages dans App Store Connect (TestFlight, Plantages) et Play Console (Android vitals), retours des testeurs. Sentry n'est pas encore branché dans les applications.
+6. Surveiller 48 heures : plantages dans App Store Connect (TestFlight, Plantages) et Play Console (Android vitals), retours des testeurs, et Sentry (projet `mobile`) : branché dans les deux applications, inactif tant que `EXPO_PUBLIC_SENTRY_DSN` n'est pas posé dans les variables des projets EAS (`observabilite.md`, section 2).
 7. Noter la version, la date et les numéros de build au registre d'exploitation.

@@ -23,7 +23,9 @@ Données personnelles : le journal masque les secrets (mots de passe, jetons, co
 | `web` | Next.js | `NEXT_PUBLIC_SENTRY_DSN` | `/opt/neomoov/.env` (lu à la construction de l'image web) et variable GitHub `NEXT_PUBLIC_SENTRY_DSN` (images publiées par GitHub Actions) |
 | `mobile` (client et chauffeur, séparés par l'étiquette `service`) | React Native | `EXPO_PUBLIC_SENTRY_DSN` | Variables d'environnement EAS des profils `preview` et `production` (le DSN est public : il ne permet que d'envoyer des événements) |
 
-Compléments, mêmes emplacements : `SENTRY_ENVIRONMENT`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT`, `EXPO_PUBLIC_SENTRY_ENVIRONMENT` (`staging` ou `production` ; vide : `NODE_ENV`, ou `production` pour une application compilée) et `APP_VERSION` (version déployée ; vide : version du paquet). La version des applications mobiles vient de l'application elle-même (`com.neomoov.client@1.4.0+12`).
+Compléments, mêmes emplacements : `SENTRY_ENVIRONMENT`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT`, `EXPO_PUBLIC_SENTRY_ENVIRONMENT` (`staging` ou `production` ; vide : `NODE_ENV`, ou `production` pour une application compilée). `APP_VERSION` (version déployée) est posée par `infra/deploy.sh` à chaque déploiement : rien à saisir.
+
+`NEXT_PUBLIC_SENTRY_DSN` ajoutée à `/opt/neomoov/.env` ne prend effet qu'au build suivant de l'image du web (`infra/deploy.sh build`), pas par un redémarrage. La version des applications mobiles vient de l'application elle-même (`com.neomoov.client@1.4.0+12`).
 
 Réglages à faire dans Sentry, une fois par projet :
 1. « Alerts », « Create Alert », « Issues » : « A new issue is created » et « The issue changes state from resolved to unresolved », action « Send a notification to » le fondateur (courriel). Deuxième règle : « Number of events in an issue is more than 50 in 1 hour ».
@@ -84,7 +86,7 @@ Journaux centralisés : Better Stack Telemetry, source `neomoov-api` (jeton dans
 
 ## 6. Réagir à une alerte
 
-1. `GET /v1/health` : `checks.database` en erreur, voir `sauvegardes.md` et Supabase ; `checks.redis` en erreur, redémarrer Redis (`deploiement-lws.md`) ; `circuits` ouverts, fournisseur en panne, voir `degraded-mode.md`.
+1. `GET /v1/health` : `checks.database` en erreur, voir `sauvegardes.md` et Supabase ; `checks.redis` en erreur, redémarrer Redis (`redemarrer-un-service.md`, section 5) ; `circuits` ouverts, fournisseur en panne, voir `degraded-mode.md`.
 2. My Hub, « Métriques » : files en échec (relancer depuis la file concernée une fois la cause réglée), paiements en échec, notifications en erreur par canal, latences par route.
 3. Sentry : nouvelles erreurs de la version en cours ; l'étiquette `correlationId` mène aux journaux (section 3).
 4. Battement du worker absent : `docker compose -f infra/compose.prod.yml ps worker`, puis ses journaux ; sans Redis, le worker ne traite plus rien.
@@ -92,5 +94,5 @@ Journaux centralisés : Better Stack Telemetry, source `neomoov-api` (jeton dans
 ## 7. Reste à faire
 
 - Envoi des cartes de code source à Sentry : web (`withSentryConfig` et un jeton `SENTRY_AUTH_TOKEN` à la construction) et mobiles (greffon Expo `@sentry/react-native/expo` et le même jeton dans EAS) ; sans elles, les piles d'appels sont minifiées.
-- Poser `APP_VERSION` (et `NEXT_PUBLIC_APP_VERSION`) à chaque déploiement depuis `infra/deploy.sh` (la référence Git déployée) ; les images publiées par GitHub Actions portent déjà l'empreinte Git du web.
-- Acheminer les journaux Docker vers Better Stack Telemetry (section 5).
+- Poser `NEXT_PUBLIC_APP_VERSION` à la construction du web depuis `infra/deploy.sh` : le script pose déjà `APP_VERSION` (les 12 premiers caractères du commit déployé, lus par `/v1/health` et Sentry pour l'API et le worker), pas la version du web ; les images du web publiées par GitHub Actions (`images.yml`) portent déjà l'empreinte Git.
+- Acheminer les journaux Docker vers Better Stack Telemetry (section 5) : `BETTERSTACK_TOKEN` est acceptée par la configuration, mais aucun code ne l'utilise encore.

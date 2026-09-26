@@ -105,13 +105,13 @@ Relevé dans le code (`apps/mobile-client/src`, schémas de `packages/domain`) :
 | Préférences de confort, dont **accessibilité (mobilité réduite)**, siège d'enfant, bagages | Réservation, profil | Non | API, chauffeur de la course |
 | Demandes spéciales, numéro de vol | Réservation | Non | API, chauffeur |
 | Messages au chauffeur | Course | Non | API, chauffeur |
+| Messages à l'assistance | Assistance (conversation avec l'agent relation client, relais humain au besoin) | Non | API, Anthropic (modèle de langage de l'agent), équipe Neomoov |
 | Évaluation, étiquettes, commentaire, pourboire | Fin de course | Non | API |
 | Historique des courses et montants | Réservations | Oui (effet du service) | API |
 | Jeton de notification de l'appareil | Automatique après connexion | Non (refus possible) | API, Expo |
 | Identifiant de compte | Automatique | Oui | API |
 
-Non collectés par l'application aujourd'hui : nom et courriel du client lui-même (l'API les accepte, aucun écran ne les demande ; conséquence : la facture, envoyée par courriel, n'atteint pas un client sans courriel ; elle reste consultable dans l'application, Profil ou Historique, « Mes factures », depuis le 26 septembre 2026), données de carte (feuille de paiement Stripe non branchée), rapports de plantage (Sentry non branché), statistiques d'usage, identifiant publicitaire.
-
+Non collectés par l'application aujourd'hui : nom et courriel du client lui-même (l'API les accepte, aucun écran ne les demande ; conséquence : la facture, envoyée par courriel, n'atteint pas un client sans courriel ; elle reste consultable dans l'application, Profil ou Historique, « Mes factures », depuis le 26 septembre 2026), données de carte (feuille de paiement Stripe non branchée), rapports de plantage (Sentry est branché dans l'application mais inactif tant que `EXPO_PUBLIC_SENTRY_DSN` n'est pas posé dans le projet EAS ; dès qu'il l'est, déclarer « Diagnostics, Données de plantage », non lié à l'identité, section suivante), statistiques d'usage, identifiant publicitaire.
 ## Étiquettes de confidentialité Apple (App Privacy)
 
 Réponse générale : « Oui, nous collectons des données ». Aucune donnée n'est utilisée pour le suivi (tracking) : répondre « Non » partout à la question du suivi.
@@ -125,13 +125,14 @@ Réponse générale : « Oui, nous collectons des données ». Aucune donnée n'
 | Données sensibles (handicap : option « mobilité réduite ») | Oui, si l'option reste dans l'application | Oui | Fonctionnalité de l'app |
 | Achats : Historique d'achats (courses) | Oui | Oui | Fonctionnalité de l'app |
 | Contenu utilisateur : Autre contenu (messages au chauffeur, évaluations, commentaires, demandes spéciales) | Oui | Oui | Fonctionnalité de l'app |
+| Contenu utilisateur : Assistance client (conversation de l'écran Assistance) | Oui | Oui | Fonctionnalité de l'app |
 | Identifiants : Identifiant d'utilisateur | Oui | Oui | Fonctionnalité de l'app |
 | Identifiants : Identifiant de l'appareil (jeton de notification) | Oui | Oui | Fonctionnalité de l'app |
 | Informations financières, Contacts, Santé, Historique de navigation, Historique de recherche, Données d'utilisation, Diagnostics | Non (V1) | | |
 
 Décision à prendre par le fondateur : l'option « mobilité réduite » relève de la catégorie « Données sensibles » d'Apple (handicap). La déclarer, ou la remplacer par une formulation neutre qui ne décrit pas l'état de la personne (par exemple « véhicule accessible souhaité »), avec l'avis de l'avocat (Loi 25 : renseignement sensible).
 
-À ajouter quand ce sera branché : Informations financières, Informations de paiement (feuille de paiement Stripe, selon le guide de confidentialité publié par Stripe) ; Diagnostics, Données de plantage (Sentry, non lié) ; Contenu utilisateur, Assistance client (conversation d'assistance).
+À ajouter quand ce sera actif : Informations financières, Informations de paiement (feuille de paiement Stripe, selon le guide de confidentialité publié par Stripe) ; Diagnostics, Données de plantage (Sentry, non lié ; le code est branché, il s'active avec `EXPO_PUBLIC_SENTRY_DSN`).
 
 ## Sécurité des données Google Play (Data safety)
 
@@ -149,7 +150,7 @@ Décision à prendre par le fondateur : l'option « mobilité réduite » relèv
 | Informations personnelles | Nom (passager tiers), adresse (lieux enregistrés) | Oui | Oui | Fonctionnalité de l'application |
 | Informations personnelles | Autres informations (préférences de confort, accessibilité) | Oui | Oui | Fonctionnalité de l'application |
 | Informations financières | Historique d'achats | Oui | Non | Fonctionnalité de l'application |
-| Messages | Autres messages dans l'application (messages au chauffeur) | Oui | Oui | Fonctionnalité de l'application |
+| Messages | Autres messages dans l'application (messages au chauffeur, conversation avec l'assistance) | Oui | Oui | Fonctionnalité de l'application |
 | Activité dans les applications | Autres contenus générés par l'utilisateur (évaluations, commentaires, demandes spéciales) | Oui | Oui | Fonctionnalité de l'application |
 | Appareil ou autres identifiants | Jeton de notification | Oui | Oui | Fonctionnalité de l'application |
 
@@ -158,10 +159,10 @@ Décision à prendre par le fondateur : l'option « mobilité réduite » relèv
 - **Suppression du compte dans l'application** : Profil, « Supprimer mon compte » (`DELETE /v1/me`), accès coupé immédiatement, anonymisation par le worker.
 - **Suppression hors de l'application (Google Play)** : URL à déclarer dans la console (Règles, « Suppression des données ») : https://reserver.neomoov.net/supprimer-mon-compte (livrée le 26 septembre 2026). La page nomme les deux applications, donne la démarche (numéro du compte, code par texto, confirmation), ce qui est supprimé et ce qui est conservé avec les durées (courses sans coordonnées, adresses anonymisées après 12 mois, factures émises 7 ans sans modification, relevés et documents des chauffeurs), et un recours par courriel (réglage `support.email`) pour qui ne reçoit plus les textos. La suppression passe par `DELETE /v1/me` comme dans l'application : accès coupé tout de suite, anonymisation par le worker. La page `/droits` y renvoie aussi. Limite connue : la suppression n'annule pas les réservations à venir (la page demande de les annuler d'abord).
 - **Sign in with Apple** : exigé seulement si une connexion tierce (Google) est proposée. En V1, l'application ne propose que la connexion par code SMS : pas d'obligation tant qu'aucun bouton Google n'est ajouté. L'API gère déjà Apple et Google (`POST /v1/auth/apple`, `/v1/auth/google`).
-- **Compte de démonstration pour l'examen** : l'examinateur ne reçoit pas les textos. **Bloquant** : aucun mécanisme de code fixe n'existe dans l'API (`docs/beta/comptes-de-test.md`, section 3).
+- **Compte de démonstration pour l'examen** : l'examinateur ne reçoit pas les textos. Mécanisme livré le 26 septembre 2026 : les numéros listés dans `REVIEW_PHONES` (serveur de production) reçoivent toujours le code fixe `REVIEW_OTP_CODE`, sans texto ; tout autre numéro suit la règle normale. Le numéro et le code se saisissent dans les « Sign-In Information » d'App Store Connect et l'« Accès aux applications » de Google Play, nulle part ailleurs. Compte à préparer sur la production et retrait des deux variables après la publication : `docs/beta/comptes-de-test.md`, section 3.
 - **Paiement** : les courses sont des services physiques, hors achats intégrés ; Stripe est permis.
 - **Options de paiement** : depuis le 26 septembre 2026, l'application (écran 3 de la réservation) et la réservation web n'affichent que les modes renvoyés par le devis (`paymentMethods`) : l'API retire la carte, Apple Pay et Google Pay quand le paiement réel n'est pas configuré en production, et ne propose le paiement au chauffeur (espèces, Interac, terminal) que si des chauffeurs l'acceptent. Reste à faire avant d'ouvrir la carte : l'application n'a aucun écran d'ajout de carte (feuille de paiement Stripe) ; tant qu'il manque, garder le paiement par carte fermé en production, sinon un prépaiement échoue (« Aucune carte enregistrée »).
-- **Coordonnées d'assistance** : l'écran Assistance affiche le téléphone et le courriel des réglages `support.phone` et `support.email`, absents des données de départ (`docs/beta/procedure.md`, section 1).
+- **Coordonnées d'assistance** : l'écran Assistance affiche une conversation avec l'agent relation client, puis le téléphone et le courriel des réglages `support.phone` et `support.email`, créés vides par les données de départ et masqués tant qu'ils le restent : à remplir dans My Hub, **Paramètres**, avant la soumission.
 
 ## Notes pour l'examen (App Review, à coller en anglais)
 

@@ -23,7 +23,7 @@ docker compose -f infra/compose.prod.yml run --rm --no-deps api node ../../packa
 
 Cette même commande applique les migrations à la main (sans danger : une migration déjà appliquée est ignorée).
 
-Chaque migration de `packages/db/drizzle/` a son inverse dans `packages/db/drizzle/down/`, testé sur une base vide (décision du 22 septembre). Le cahier des charges (section 2.3) demande de tester chaque migration sur une copie avant la production : restaurer la dernière sauvegarde dans une base de secours (`sauvegardes.md`), y appliquer la migration, vérifier, puis déployer.
+Chaque migration de `packages/db/drizzle/` a son inverse dans `packages/db/drizzle/down/`, testé sur une base vide (décision du 22 septembre). Le cahier des charges (section 2.3) demande de tester chaque migration sur une copie avant la production : restaurer la dernière sauvegarde dans une base de secours (`sauvegardes.md`, « Essai de restauration »), y appliquer la migration, vérifier, puis déployer. Limite connue : aucune base de staging n'existe encore, et cet essai sur copie n'a jamais été fait.
 
 ## 2. Savoir quelles migrations sont appliquées
 
@@ -53,13 +53,19 @@ L'image de l'API contient `packages/db/dist` (dont `rollback.js`) et tout `packa
 
 ## 4. Données de départ (une fois par base)
 
-Villes, zones, catégories, tarifs, suppléments, forfaits, packs, promotions, réglages, agents :
+Villes, zones, catégories, tarifs, suppléments, forfaits, packs, promotions, réglages, agents et leurs prompts système :
 
 ```
 docker compose -f infra/compose.prod.yml run --rm --no-deps api node ../../packages/db/dist/seed/index.js
 ```
 
 Le chargement est idempotent (une ligne existante n'est pas réécrite). Ensuite, les tarifs et les réglages se changent dans My Hub (**Tarifs**, **Paramètres**), jamais en relançant le chargement.
+
+Contrôles :
+
+- La ligne « Données créées : … » compte `agent_prompts` au premier chargement : les prompts viennent de `docs/agents`, copié dans l'image de l'API (`apps/api/Dockerfile`). L'avertissement « Aucun prompt d'agent trouvé » signale une image construite sans ce dossier (antérieure au 26 septembre 2026) : redéployer, puis relancer le chargement, qui complète les agents restés sans prompt.
+- En production (`NODE_ENV=production`), aucun compte de démonstration n'est créé (administrateur, opérateur, chauffeurs et clients fictifs) : le premier administrateur se crée par `create-staff` (`personnel-my-hub.md`, section 1), les chauffeurs par l'inscription dans l'application. `SEED_DEMO=on` force ces comptes (`off` les omet hors production ; ni l'un ni l'autre ne supprime un compte existant) : ne jamais le poser sur la base de production.
+- Réglages créés vides ou avec une valeur de départ à remplacer dans My Hub avant l'ouverture : `support.phone`, `support.email`, `company.*`, `voice.transfer_number`, `alerts.founder_phone` (`docs/operations/acces-a-fournir.md`, sections 13 et 16).
 
 ## 5. Interdits
 

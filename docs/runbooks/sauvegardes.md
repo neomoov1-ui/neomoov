@@ -6,7 +6,7 @@ Le cahier des charges (section 8) demande une conservation de 35 jours et une re
 
 ## Mise en place (une fois, sur le serveur LWS)
 
-1. Ajouter dans `/opt/neomoov/.env` : `BACKUP_PASSPHRASE` (40 caractères aléatoires, copiée aussi dans le gestionnaire de mots de passe : sans elle, aucune sauvegarde ne se relit), facultatif `BACKUP_REMOTE` (destination rclone, par exemple un seau du stockage objet).
+1. Ajouter dans `/opt/neomoov/.env` : `BACKUP_PASSPHRASE` (`openssl rand -base64 30`, 40 caractères aléatoires, copiée aussi dans le gestionnaire de mots de passe : sans elle, aucune sauvegarde ne se relit ; `infra/server-setup.sh` ne la génère pas), facultatif `BACKUP_REMOTE` (destination rclone, par exemple un seau du stockage objet).
 2. Tâche planifiée : posée par `infra/server-setup.sh` (`/etc/cron.d/neomoov-backup`, 3 h 30, active dès que `BACKUP_PASSPHRASE` est dans `.env`). Sur un serveur préparé avant le 27 septembre 2026, l'ajouter à la main (`crontab -e` de `root`). Si `BACKUP_REMOTE` est utilisé, installer d'abord rclone (`apt-get install -y rclone`, puis `rclone config`), que le script de préparation n'installe pas :
 
 ```
@@ -37,3 +37,9 @@ Autre voie, par Supabase (restaure tout le projet, avec une coupure annoncée pa
 ## Essai de restauration
 
 À faire sur le serveur à la mise en service, puis chaque mois (cahier des charges, sections 8 et 10.4) : restaurer la dernière sauvegarde dans une base vierge, par exemple `docker run -d --name neomoov-essai -e POSTGRES_PASSWORD=essai -p 127.0.0.1:5433:5432 postgis/postgis:16-3.4`, puis `TARGET_DATABASE_URL=postgresql://postgres:essai@127.0.0.1:5433/postgres infra/scripts/restore.sh <fichier>` (les conteneurs clients du script utilisent le réseau de l'hôte, `RESTORE_DOCKER_NETWORK` pour changer) et `docker rm -f neomoov-essai` à la fin ; comparer les comptes, noter ici la date, la durée et le résultat. Premier essai : **à faire** (le poste de développement n'avait pas Docker actif au moment de l'écriture des scripts).
+
+Risque non vérifié : `backup.sh` sauvegarde toute la base du projet Supabase, y compris les schémas propres à Supabase (`auth`, `storage`, extensions du fournisseur). Une base PostGIS vierge peut refuser certains de ces objets, et `restore.sh` s'arrête à la première erreur (`--exit-on-error`). Si l'essai échoue sur un objet de Supabase, noter le message et restaurer plutôt dans le projet Supabase de staging (`TARGET_DATABASE_URL` = son adresse « Session pooler »), puis signaler le cas pour adapter les scripts.
+
+| Date | Sauvegarde restaurée | Cible | Durée | Comptes (utilisateurs, courses, factures, migrations) | Résultat |
+|---|---|---|---|---|---|
+| | | | | | |
