@@ -17,6 +17,7 @@
   },
   "peerDependencies": {
     "@expo/vector-icons": "*",
+    "@sentry/react-native": "*",
     "expo-router": "*",
     "expo-secure-store": "*",
     "react": "*",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@expo/vector-icons": "15.1.1",
+    "@sentry/react-native": "7.11.0",
     "@types/react": "19.2.14",
     "expo-router": "57.0.22",
     "expo-secure-store": "57.0.4",
@@ -43,6 +45,8 @@
     "./format": "./src/format.ts",
     "./phone": "./src/phone.ts",
     "./storage": "./src/storage.ts",
-    "./session": "./src/session.ts"
+    "./session": "./src/session.ts",
+    "./observability": "./src/observability.ts",
+    "./sentry": "./src/sentry.ts"
   }
 }

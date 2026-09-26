@@ -12,4 +12,4 @@ export { OfflineQueue } from './offline.js';
 export type { EnqueueResult, FlushReport, OfflineStorage, QueuedWrite } from './offline.js';
 export type { Transport } from './resources.js';
 export type { UrlTransport } from './invoicing-resources.js';
-export type { ApiErrorBody, CheckStatus, HealthCheck, HealthReport, QueueStats } from './types.js';
+export type { ApiErrorBody, CheckStatus, CircuitSnapshot, HealthCheck, HealthReport, QueueStats } from './types.js';

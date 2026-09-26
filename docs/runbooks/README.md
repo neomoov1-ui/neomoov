@@ -9,6 +9,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel tient
 | `sauvegardes.md` | Sauvegarde logique chiffrée quotidienne (`infra/scripts/backup.sh`), vérification, confirmation qui autorise les purges de conservation, restauration (`restore.sh`) dans une base de secours ou en production | Écrit le 26 septembre 2026 ; essai de restauration à faire sur le serveur |
 | `base-de-donnees.md` | Migrations (`pnpm db:migrate`), retour arrière (`pnpm db:rollback`), données de départ, sauvegardes Supabase, restauration | À écrire à l'étape 16 |
 | `degraded-mode.md` | Ce qui continue quand un fournisseur tombe (Routes, Stripe, Twilio, Expo, Resend, modèles de langage, Vapi, SEV, Redis, base), ce que voit et fait l'exploitation, disjoncteurs et santé | Écrit le 26 septembre 2026 |
+| `observabilite.md` | Identifiant de corrélation (du mobile aux files), suivi des erreurs Sentry (projets, variables, lecture), métriques de My Hub et format Prometheus, sondes et alertes Better Stack à créer, réaction à une alerte | Écrit le 26 septembre 2026 ; comptes Sentry et Better Stack à ouvrir |
 | `secrets-et-cles.md` | Où vivent les clés, comment les faire tourner (rotation), qui y a accès | À écrire à l'étape 14 |
 
 ## Commandes de base

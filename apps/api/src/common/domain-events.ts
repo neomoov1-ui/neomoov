@@ -3,14 +3,16 @@
  * et les étapes suivantes s'abonnent (répartition, paiements, facturation, notifications). Chaque événement de course
  * est aussi journalisé dans `ride_events` par le service des courses. Avec Redis, les événements traversent les
  * processus (API et worker, plusieurs instances) par publication et abonnement ; sans Redis, ils restent locaux.
- * Un abonné qui échoue est journalisé et n'empêche ni les autres abonnés ni la requête.
+ * Un abonné qui échoue est journalisé (et signalé au suivi des erreurs) et n'empêche ni les autres abonnés ni la
+ * requête. L'identifiant de corrélation de l'émetteur traverse Redis avec l'événement (étape 15, observabilité).
  */
 import { Global, Inject, Injectable, Module, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import type { Logger } from 'pino';
 import { REDIS } from '../infra/redis.module.js';
-import { APP_LOGGER } from './logger.js';
+import { reportError } from './error-reporting.js';
+import { APP_LOGGER, currentCorrelationId, runWithCorrelation } from './logger.js';
 
 export interface RideEventPayload {
   rideId: string;
@@ -99,10 +101,10 @@ export class DomainEventsService implements OnModuleInit, OnModuleDestroy {
       await this.subscriber.subscribe(CHANNEL);
       this.subscriber.on('message', (_channel: string, message: string) => {
         try {
-          const envelope = JSON.parse(message) as { origin: string; name: keyof DomainEvents; payload: unknown };
+          const envelope = JSON.parse(message) as { origin: string; name: keyof DomainEvents; payload: unknown; correlationId?: string };
           if (envelope.origin === this.origin) return;
           this.stats.receivedRemote += 1;
-          this.dispatch(envelope.name, revive(envelope.payload) as DomainEvents[keyof DomainEvents]);
+          runWithCorrelation(envelope.correlationId, () => this.dispatch(envelope.name, revive(envelope.payload) as DomainEvents[keyof DomainEvents]));
         } catch (error) {
           this.logger.error({ err: error }, 'Événement de domaine distant illisible');
         }
@@ -135,7 +137,7 @@ export class DomainEventsService implements OnModuleInit, OnModuleDestroy {
     this.stats.emitted += 1;
     this.dispatch(name, payload);
     if (this.redis && this.subscriber) {
-      this.redis.publish(CHANNEL, JSON.stringify({ origin: this.origin, name, payload })).catch((error: unknown) => {
+      this.redis.publish(CHANNEL, JSON.stringify({ origin: this.origin, name, payload, correlationId: currentCorrelationId() })).catch((error: unknown) => {
         this.stats.publishFailures += 1;
         this.logger.error({ err: error, event: name }, 'Publication Redis d\'un événement de domaine en échec');
       });
@@ -150,22 +152,27 @@ export class DomainEventsService implements OnModuleInit, OnModuleDestroy {
         try {
           await handler(payload as DomainEvents[keyof DomainEvents]);
         } catch (error) {
-          this.logger.error({ err: error, event: name }, 'Abonné en échec sur un événement de domaine');
+          this.subscriberFailed(name, error);
         }
       }),
     );
-    if (this.redis && this.subscriber) await this.redis.publish(CHANNEL, JSON.stringify({ origin: this.origin, name, payload })).catch(() => undefined);
+    if (this.redis && this.subscriber) await this.redis.publish(CHANNEL, JSON.stringify({ origin: this.origin, name, payload, correlationId: currentCorrelationId() })).catch(() => undefined);
   }
 
   private dispatch<K extends keyof DomainEvents>(name: K, payload: DomainEvents[K]): void {
     for (const handler of this.handlers.get(name) ?? []) {
       try {
         const result = handler(payload as DomainEvents[keyof DomainEvents]);
-        if (result instanceof Promise) result.catch((error: unknown) => this.logger.error({ err: error, event: name }, 'Abonné en échec sur un événement de domaine'));
+        if (result instanceof Promise) result.catch((error: unknown) => this.subscriberFailed(name, error));
       } catch (error) {
-        this.logger.error({ err: error, event: name }, 'Abonné en échec sur un événement de domaine');
+        this.subscriberFailed(name, error);
       }
     }
+  }
+
+  private subscriberFailed(name: keyof DomainEvents, error: unknown): void {
+    this.logger.error({ err: error, event: name }, 'Abonné en échec sur un événement de domaine');
+    reportError(error, { tags: { event: name } });
   }
 }
 

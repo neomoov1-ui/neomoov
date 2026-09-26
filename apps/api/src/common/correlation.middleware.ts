@@ -1,13 +1,16 @@
 import type { NextFunction, Request, Response } from 'express';
-import { nanoid } from 'nanoid';
-import { correlationStore } from './logger.js';
+import { currentCorrelationId, runWithCorrelation } from './logger.js';
 
 export const CORRELATION_HEADER = 'x-correlation-id';
 
-/** Un identifiant de corrélation par requête : repris de l'en-tête s'il est fourni (32 caractères sûrs au plus), sinon généré. */
+/**
+ * Un identifiant de corrélation par requête : repris de l'en-tête `X-Correlation-Id` envoyé par le web et les mobiles
+ * (`packages/api-client`) s'il est valide (8 à 64 caractères sûrs), sinon créé. Il est renvoyé dans la réponse, porté
+ * par chaque ligne de journal de la requête et transmis aux tâches mises en file pendant la requête.
+ */
 export function correlationMiddleware(req: Request, res: Response, next: NextFunction) {
-  const incoming = req.header(CORRELATION_HEADER);
-  const correlationId = incoming && /^[A-Za-z0-9_-]{8,64}$/.test(incoming) ? incoming : nanoid(16);
-  res.setHeader(CORRELATION_HEADER, correlationId);
-  correlationStore.run({ correlationId }, () => next());
+  runWithCorrelation(req.header(CORRELATION_HEADER), () => {
+    res.setHeader(CORRELATION_HEADER, currentCorrelationId()!);
+    next();
+  });
 }

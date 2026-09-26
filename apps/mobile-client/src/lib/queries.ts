@@ -1,11 +1,15 @@
 import type { RideView } from '@neomoov/domain';
-import { QueryClient, useQuery } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient, useQuery } from '@tanstack/react-query';
 import { ApiError } from '@neomoov/api-client';
 import { api } from './api';
 import { POLL_FALLBACK_MS } from './config';
+import { reportMobileError } from './observability';
 import { useSession } from './session';
 
 export const queryClient = new QueryClient({
+  // Une panne de l'API (5xx) est signalée au suivi des erreurs avec son identifiant de corrélation.
+  queryCache: new QueryCache({ onError: (error) => reportMobileError(error, { source: 'query' }) }),
+  mutationCache: new MutationCache({ onError: (error) => reportMobileError(error, { source: 'mutation' }) }),
   defaultOptions: {
     queries: {
       staleTime: 30_000,

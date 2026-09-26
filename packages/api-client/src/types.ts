@@ -23,14 +23,24 @@ export interface QueueStats {
   dropped?: number;
 }
 
+/** Disjoncteur d'un fournisseur : ouvert, il signale une panne (mode dégradé). */
+export interface CircuitSnapshot {
+  name: string;
+  state: 'closed' | 'open' | 'half_open';
+  failures: number;
+}
+
 /** Réponse de `GET /v1/health`. */
 export interface HealthReport {
   status: 'ok' | 'degraded';
+  /** Version déployée et environnement (`staging`, `production`). */
   version: string;
+  environment: string;
   uptimeSeconds: number;
   checks: {
     database: HealthCheck;
     redis: HealthCheck;
     queues: HealthCheck & { mode: 'redis' | 'memory'; stats: QueueStats[] };
   };
+  circuits: CircuitSnapshot[];
 }

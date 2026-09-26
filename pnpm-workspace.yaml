@@ -5,6 +5,8 @@ packages:
 # Scripts d'installation autorisés (pnpm 12 les bloque par défaut).
 allowBuilds:
   '@scarf/scarf': false
+  # Binaire de sentry-cli fourni par ses paquets optionnels par plateforme : le script d'installation n'est pas nécessaire.
+  '@sentry/cli': false
   '@swc/core': true
   esbuild: true
   msgpackr-extract: true
