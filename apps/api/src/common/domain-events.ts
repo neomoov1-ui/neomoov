@@ -61,6 +61,8 @@ export interface DomainEvents {
   'statement.issued': { statementId: string; driverId: string; periodStart: string; netCents: number };
   /** Remboursement enregistré (carte ou crédit, garantie modèle comprise) : la facturation émet la note de crédit (étape 9). */
   'payment.refunded': { refundId: string; rideId: string; paymentId: string; amountCents: number; mode: 'refund' | 'credit'; occurredAt: Date };
+  /** Document de chauffeur téléversé, en attente de vérification (agent recrutement, puis humain). */
+  'driver.document_uploaded': { documentId: string; driverId: string; type: string };
 }
 
 type Handler<K extends keyof DomainEvents> = (payload: DomainEvents[K]) => void | Promise<void>;

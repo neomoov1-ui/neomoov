@@ -38,6 +38,8 @@ export { ComplianceJobsService } from './modules/compliance/compliance-jobs.serv
 export { RetentionModule } from './modules/retention/retention.module.js';
 export { RetentionJobsService } from './modules/retention/retention-jobs.service.js';
 export { NotificationJobsService } from './modules/notifications/notification-jobs.service.js';
+export { AgentsModule } from './modules/agents/agents.module.js';
+export { AgentJobsService } from './modules/agents/agent-jobs.service.js';
 export { RidesService } from './modules/rides/rides.service.js';
 export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';

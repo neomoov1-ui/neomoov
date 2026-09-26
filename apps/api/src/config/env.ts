@@ -90,6 +90,13 @@ export const envSchema = z.object({
   VAPI_WEBHOOK_SECRET: optionalString,
   VAPI_PHONE_NUMBER_ID: optionalString,
   ANTHROPIC_API_KEY: optionalString,
+  /** Repli côté serveur de l'API Claude (`fallbacks: "default"`) quand le modèle d'un agent décline ; `off` le coupe. */
+  LLM_SERVER_FALLBACK: z.enum(['on', 'off']).default('on'),
+  /**
+   * Déclencheurs des agents IA (messages entrants, documents, relevés, rapports planifiés). Vide : actifs, sauf en test
+   * (les fichiers de test tournent en parallèle sur la même base ; celui des agents les active).
+   */
+  AGENT_TRIGGERS: z.enum(['on', 'off']).optional(),
   S3_ENDPOINT: optionalString,
   S3_BUCKET: optionalString,
   S3_ACCESS_KEY: optionalString,

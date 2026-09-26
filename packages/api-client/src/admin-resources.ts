@@ -11,6 +11,7 @@ import type {
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
 import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration } from '@neomoov/domain';
+import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationView } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -99,6 +100,13 @@ export function adminResource(t: Transport) {
     statementPdfPath: (statementId: string) => `/admin/statements/${id(statementId)}/pdf`,
     balances: () => t.get<AdminBalance[]>('/admin/balances'),
     agents: () => t.get<AdminAgent[]>('/admin/agents'),
+    /** Agents IA (étape 13) : réglage (administrateur), journal des exécutions, rapports, conversations de l'assistance. */
+    updateAgent: (code: string, body: AgentUpdate) => t.patch<AdminAgent>(`/admin/agents/${id(code)}`, body),
+    agentRuns: (query: Partial<AgentRunListQuery> = {}) => t.get<Page<AgentRunView>>('/admin/agents/runs', { query }),
+    agentRun: (runId: string) => t.get<AgentRunView>(`/admin/agents/runs/${id(runId)}`),
+    agentReports: (query: ListQuery = {}) => t.get<Page<AgentReportView>>('/admin/agents/reports', { query }),
+    conversations: (query: ListQuery = {}) => t.get<Page<ConversationView>>('/admin/conversations', { query }),
+    conversation: (conversationId: string) => t.get<ConversationView>(`/admin/conversations/${id(conversationId)}`),
     tariffs: () => t.get<PricingRuleView[]>('/admin/tariffs'),
     addTariff: (body: PricingRuleInput) => t.post<PricingRuleView>('/admin/tariffs', body),
     zones: () => t.get<ZoneGeometry[]>('/admin/zones'),

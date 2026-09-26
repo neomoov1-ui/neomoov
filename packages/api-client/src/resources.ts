@@ -13,6 +13,7 @@ import type {
   BalanceView, ConnectStatus, PaymentMethodView, PaymentView, SetupIntentResponse,
   CreditsView, FavoriteView, ReferralView,
 } from '@neomoov/domain';
+import type { ConversationView, SupportMessageInput } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
 /** Ce dont les ressources ont besoin : les verbes HTTP du client. */
@@ -67,6 +68,9 @@ export function meResource(t: Transport) {
     favorites: () => t.get<FavoriteView[]>('/me/favorites'),
     addFavorite: (driverId: string) => t.post<FavoriteView>(`/me/favorites/${id(driverId)}`),
     removeFavorite: (driverId: string) => t.delete(`/me/favorites/${id(driverId)}`),
+    /** Assistance (étape 13) : message à l'agent relation client (accusé immédiat, puis réponse) et conversation en cours. */
+    sendSupportMessage: (body: SupportMessageInput) => t.post<{ accepted: true; externalId: string }>('/me/support/messages', body),
+    supportConversation: () => t.get<{ conversation: ConversationView | null }>('/me/support/conversation'),
   };
 }
 

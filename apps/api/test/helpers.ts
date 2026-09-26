@@ -1,7 +1,7 @@
 import { schema } from '@neomoov/db';
 import type { StaffRole, TokensView } from '@neomoov/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { eq, inArray, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { pino } from 'pino';
 import request from 'supertest';
 import type { MockSmsProvider } from '../src/adapters/mock/index.js';
@@ -275,6 +275,9 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     await database.delete(schema.staffNotes).where(inArray(schema.staffNotes.entityId, driverIds));
   }
   if (clients.length) await database.delete(schema.quotes).where(inArray(schema.quotes.clientId, clients.map((c) => c.id)));
+  // Agents IA (étape 13) : incidents ouverts par un agent au nom d'un client de test (sans course) ; les conversations
+  // suivent la suppression des comptes (clé étrangère en cascade).
+  await database.delete(schema.incidents).where(and(inArray(schema.incidents.reportedByUserId, ids), isNull(schema.incidents.rideId)));
   await database.delete(schema.competitorBenchmarks).where(inArray(schema.competitorBenchmarks.recordedByUserId, ids));
   await database.delete(schema.apiKeys).where(inArray(schema.apiKeys.createdByUserId, ids));
   await database.delete(schema.dataRequests).where(inArray(schema.dataRequests.userId, ids));

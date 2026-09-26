@@ -250,10 +250,19 @@ export const adminApprovalSchema = z.object({
   justification: z.string().nullable(),
   decision: z.enum(['pending', 'approved', 'rejected']),
   decidedAt: isoDate.nullable(),
+  /** Motif de la décision (obligatoire pour un refus). */
+  decisionNote: z.string().nullable(),
+  /** Exécution de l'action approuvée (une seule fois) : date, résultat ou erreur (une erreur permet une nouvelle tentative). */
+  executedAt: isoDate.nullable(),
+  executionResult: z.unknown(),
+  executionError: z.string().nullable(),
   createdAt: isoDate,
 });
 export type AdminApproval = z.infer<typeof adminApprovalSchema>;
-export const approvalDecisionSchema = z.object({ decision: z.enum(['approved', 'rejected']), note: z.string().trim().max(500).optional() });
+/** Approuver exécute l'action proposée ; refuser exige un motif. */
+export const approvalDecisionSchema = z
+  .object({ decision: z.enum(['approved', 'rejected']), note: z.string().trim().max(500).optional() })
+  .refine((d) => d.decision === 'approved' || (d.note?.length ?? 0) >= 3, { message: 'Un motif est requis pour refuser', path: ['note'] });
 
 // Paramètres, tarifs, zones ------------------------------------------------------------------------------------------
 
@@ -389,7 +398,17 @@ export const adminStatementSchema = z.object({
   netCents: z.number().int(),
   issuedAt: isoDate.nullable(),
 });
-export const adminAgentSchema = z.object({ code: z.string(), name: z.string(), mode: z.string(), model: z.string(), effort: z.string(), runs7d: count, pendingApprovals: count });
+export const adminAgentSchema = z.object({
+  code: z.string(), name: z.string(), mode: z.string(), model: z.string(), effort: z.string(), runs7d: count, pendingApprovals: count,
+  active: z.boolean(),
+  thresholds: z.record(z.string(), z.unknown()),
+  systemPromptKey: z.string().nullable(),
+  /** Mode verrouillé en V1 (recrutement : validation humaine obligatoire, jamais automatique). */
+  modeLocked: z.boolean(),
+  /** Dépense LLM du jour (heure de Montréal) et plafond effectif, en micro-dollars. */
+  spentTodayMicros: count,
+  dailyCapMicros: count.nullable(),
+});
 
 // Types des réponses de My Hub, pour le client d'API.
 export type AdminStaff = z.infer<typeof adminStaffSchema>;

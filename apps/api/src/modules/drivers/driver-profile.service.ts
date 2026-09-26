@@ -15,6 +15,7 @@ import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { STORAGE_PROVIDER, VIRUS_SCANNER, type StorageProvider, type VirusScanner } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
+import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -63,6 +64,7 @@ export class DriverProfileService {
     private readonly users: UsersService,
     private readonly driverPayments: DriverPaymentsService,
     private readonly referrals: ReferralsService,
+    private readonly events: DomainEventsService,
   ) {}
 
   private get db() {
@@ -329,6 +331,8 @@ export class DriverProfileService {
       .values({ driverId: driver.id, type: fields.type, fileKey: key, number: fields.number ?? null, issuedOn: fields.issuedOn ?? null, expiresOn: fields.expiresOn ?? null, status: 'pending' })
       .returning();
     this.logger.info({ driverId: driver.id, documentId: row!.id, type: fields.type, bytes: file.buffer.length }, 'Document chauffeur téléversé');
+    // Vérification préalable par l'agent recrutement (extraction, cohérence, proposition), puis décision humaine.
+    this.events.emit('driver.document_uploaded', { documentId: row!.id, driverId: driver.id, type: fields.type });
     return this.documentView(row!);
   }
 

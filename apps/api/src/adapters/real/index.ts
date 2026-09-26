@@ -1,7 +1,7 @@
 /**
  * Implémentations réelles. À l'étape 1, chacune refuse proprement tout appel (PROVIDER_NOT_CONFIGURED, 501) :
  * elles sont remplacées par les vraies intégrations aux étapes 4 (cartes, livrée), 7 (paiements, livrée : Stripe), 13 (textos, courriels,
- * push, WhatsApp, voix, modèles de langage), 9 (SEV) et 3 (stockage), quand les clés sont dans `.env`.
+ * push, WhatsApp, voix, modèles de langage : Anthropic livré), 9 (SEV) et 3 (stockage), quand les clés sont dans `.env`.
  *
  * Chaque classe déclare explicitement ses méthodes (pas de Proxy) : NestJS sonde `onModuleInit` et consorts sur
  * chaque fournisseur, pino et util.inspect lisent `toJSON` et des symboles, et les méthodes typées Promise doivent
@@ -11,6 +11,7 @@ import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { AppEnv } from '../../config/env.js';
 import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
+import { AnthropicLlmProvider } from './anthropic.js';
 import { ClamAvScanner } from './clamav.js';
 import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
@@ -66,10 +67,6 @@ class RealSevProvider extends NotDelivered implements SevProvider {
   healthcheck(): Promise<never> { return this.reject(); }
 }
 
-class RealLlmProvider extends NotDelivered implements LlmProvider {
-  complete(): Promise<never> { return this.reject(); }
-}
-
 class RealStorageProvider extends NotDelivered implements StorageProvider {
   getObject(): Promise<never> { return this.reject(); }
   putObject(): Promise<never> { return this.reject(); }
@@ -115,7 +112,11 @@ export const realVoice = (env: AppEnv): VoiceProvider => {
   return new VapiVoiceProvider(env.VAPI_API_KEY!, env.VAPI_WEBHOOK_SECRET ?? null, env.VAPI_PHONE_NUMBER_ID ?? null);
 };
 export const realSev = (env: AppEnv): SevProvider => build(RealSevProvider, 'sev', 'facturation certifiée (SEV)', 'SEV_API_KEY', env);
-export const realLlm = (env: AppEnv): LlmProvider => build(RealLlmProvider, 'anthropic', 'modèles de langage (Anthropic)', 'ANTHROPIC_API_KEY', env);
+/** API Claude (SDK officiel) : clé `ANTHROPIC_API_KEY`, repli côté serveur selon `LLM_SERVER_FALLBACK`. */
+export const realLlm = (env: AppEnv): LlmProvider => {
+  requireKey('modèles de langage (Anthropic)', 'ANTHROPIC_API_KEY', env);
+  return new AnthropicLlmProvider(env.ANTHROPIC_API_KEY!, { serverFallback: env.LLM_SERVER_FALLBACK === 'on' });
+};
 /** Antivirus : démon ClamAV (conteneur `clamav/clamav`), adresse `CLAMAV_HOST` et port `CLAMAV_PORT` (3310). */
 export const realVirusScanner = (env: AppEnv): VirusScanner => {
   requireKey('antivirus (ClamAV)', 'CLAMAV_HOST', env);
