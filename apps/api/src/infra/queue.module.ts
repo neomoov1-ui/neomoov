@@ -120,6 +120,32 @@ export class QueueService implements OnModuleDestroy {
     });
   }
 
+  /**
+   * Tâches en échec d'une file (étape 15, My Hub) : identifiant, nom, motif, tentatives, date. En mode mémoire, rien
+   * n'est gardé (les échecs sont seulement comptés et journalisés).
+   */
+  async failedJobs(name: QueueName, limit = 50): Promise<Array<{ id: string; name: string; failedReason: string | null; attempts: number; failedAt: string | null }>> {
+    const q = this.queue(name);
+    if (!q) return [];
+    const jobs = await q.getFailed(0, Math.max(0, limit - 1));
+    return jobs.map((j) => ({ id: String(j.id ?? ''), name: j.name, failedReason: j.failedReason ?? null, attempts: j.attemptsMade, failedAt: j.finishedOn ? new Date(j.finishedOn).toISOString() : null }));
+  }
+
+  /** Relance les tâches en échec d'une file (une seule si `jobId`) ; renvoie le nombre de tâches relancées. */
+  async retryFailed(name: QueueName, jobId?: string): Promise<number> {
+    const q = this.queue(name);
+    if (!q) return 0;
+    if (jobId) {
+      const job = await q.getJob(jobId);
+      if (!job || !(await job.isFailed())) return 0;
+      await job.retry('failed');
+      return 1;
+    }
+    const failed = await q.getFailedCount();
+    if (failed) await q.retryJobs({ state: 'failed', count: 1000 });
+    return failed;
+  }
+
   private memoryStat(name: QueueName) {
     let stats = this.memoryStats.get(name);
     if (!stats) {

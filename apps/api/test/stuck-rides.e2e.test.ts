@@ -58,4 +58,17 @@ describe('surveillance des courses figées (intégration)', () => {
     expect(listed.body.map((r: { rideId: string }) => r.rideId)).not.toContain(fine);
     expect((await request(server).get('/v1/admin/rides/stuck').set(bearer(client))).status).toBe(403);
   });
+  it('files de tâches dans My Hub : état, tâches en échec, relance ; file inconnue refusée', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const server = app.getHttpServer();
+    const operator = await createStaffAndLogin(app, ['operator']);
+    const stats = await request(server).get('/v1/admin/queues').set(bearer(operator.tokens)).expect(200);
+    expect(stats.body.mode).toBe('memory');
+    expect(stats.body.queues.map((q: { name: string }) => q.name)).toEqual(expect.arrayContaining(['payments', 'notifications', 'settlements', 'invoicing', 'compliance', 'retention']));
+    expect((await request(server).get('/v1/admin/queues/payments/failed').set(bearer(operator.tokens)).expect(200)).body).toEqual([]);
+    expect((await request(server).post('/v1/admin/queues/payments/retry').set(bearer(operator.tokens)).send({}).expect(200)).body).toEqual({ retried: 0 });
+    expect((await request(server).get('/v1/admin/queues/inconnue/failed').set(bearer(operator.tokens))).status).toBe(400);
+    const client = await loginByOtp(app);
+    expect((await request(server).get('/v1/admin/queues').set(bearer(client))).status).toBe(403);
+  });
 });
