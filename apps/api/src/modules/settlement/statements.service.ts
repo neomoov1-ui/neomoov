@@ -319,7 +319,7 @@ export class StatementsService {
     this.audit.record({ action: 'statement.issued', entity: 'weekly_statements', entityId: id, after: { netCents: issued.netCents, periodStart: issued.periodStart } });
     this.events.emit('statement.issued', { statementId: id, driverId: issued.driverId, periodStart: issued.periodStart, netCents: issued.netCents });
     if (driver) {
-      await this.outbox.queue({ recipientUserId: driver.userId, channel: 'email', template: 'statement.issued', data: { statementId: id, periodStart: issued.periodStart, periodEnd: issued.periodEnd, netCents: issued.netCents } });
+      await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.issued', data: { statementId: id, periodStart: issued.periodStart, periodEnd: issued.periodEnd, netCents: issued.netCents } });
     }
     return this.detail(id);
   }

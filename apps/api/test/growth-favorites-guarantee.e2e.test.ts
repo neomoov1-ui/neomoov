@@ -211,7 +211,8 @@ describe('favoris et garantie modèle (intégration)', () => {
     expect(provider.intents.get(payment!.stripePaymentIntentId!)?.refundedCents).toBe(ride.payment.capturedCents);
     expect(await rideRow(ride.rideId)).toMatchObject({ guaranteeOutcome: 'validated', driverFareProtected: true, modelGuaranteeApplied: true });
     expect(await incidentRow(incidentId)).toMatchObject({ status: 'decided', decision: 'Plaque différente confirmée par la photo du client', decidedByUserId: operator.userId });
-    const sent = await notices(client.user.id);
+    // Push et courriel (matrice 5.14) : une seule décision, deux canaux.
+    const sent = (await notices(client.user.id)).filter((n) => n.channel === 'push');
     expect(sent).toHaveLength(1);
     expect(sent[0]!.data).toMatchObject({ rideId: ride.rideId, incidentId, outcome: 'validated', refundedCents: ride.payment.capturedCents, refundMode: 'refund' });
     const events = await db(app).select({ type: schema.rideEvents.type }).from(schema.rideEvents).where(eq(schema.rideEvents.rideId, ride.rideId));
@@ -249,7 +250,8 @@ describe('favoris et garantie modèle (intégration)', () => {
     expect(await db(app).select().from(schema.sanctions).where(eq(schema.sanctions.driverId, driver.driverId))).toHaveLength(0);
     const [driverRow] = await db(app).select({ status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, driver.driverId));
     expect(driverRow!.status).toBe('active');
-    expect(await notices(client.user.id)).toHaveLength(1);
+    // Push et courriel (matrice 5.14), une seule décision.
+    expect((await notices(client.user.id)).map((n) => n.channel).sort()).toEqual(['email', 'push']);
   });
 
   it('garantie refusée : clôture motivée sans remboursement ; incident d\'un autre type refusé ; réservée à l\'exploitation', async ({ skip }) => {
@@ -274,7 +276,8 @@ describe('favoris et garantie modèle (intégration)', () => {
     expect(await db(app).select().from(schema.refunds).where(eq(schema.refunds.paymentId, payment!.id))).toHaveLength(0);
     expect(await rideRow(ride.rideId)).toMatchObject({ guaranteeOutcome: 'rejected', driverFareProtected: false });
     expect(await incidentRow(incidentId)).toMatchObject({ status: 'decided', decision: 'Véhicule conforme à la catégorie réservée (photo de la plaque)' });
-    const sent = await notices(client.user.id);
+    // Push et courriel (matrice 5.14) : une seule décision, deux canaux.
+    const sent = (await notices(client.user.id)).filter((n) => n.channel === 'push');
     expect(sent).toHaveLength(1);
     expect(sent[0]!.data).toMatchObject({ outcome: 'rejected', refundedCents: 0 });
 

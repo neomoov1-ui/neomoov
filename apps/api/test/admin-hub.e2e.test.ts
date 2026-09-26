@@ -121,7 +121,7 @@ describe('My Hub et API publique (intégration)', () => {
     expect(pending.body.items.find((a: { id: string }) => a.id === approval!.id)).toMatchObject({ agentCode: 'customer_relations', proposedAction: 'refund', decision: 'pending' });
     const approved = await request(server()).post(`/v1/admin/approvals/${approval!.id}/decide`).set(bearer(operator.tokens)).send({ decision: 'approved' }).expect(200);
     expect(approved.body.decision).toBe('approved');
-    expect((await request(server()).post(`/v1/admin/approvals/${approval!.id}/decide`).set(bearer(operator.tokens)).send({ decision: 'rejected' })).status).toBe(409);
+    expect((await request(server()).post(`/v1/admin/approvals/${approval!.id}/decide`).set(bearer(operator.tokens)).send({ decision: 'rejected', note: 'Décision déjà prise' })).status).toBe(409);
     const agents = await request(server()).get('/v1/admin/agents').set(bearer(operator.tokens)).expect(200);
     expect(agents.body.find((a: { code: string }) => a.code === 'customer_relations').runs7d).toBeGreaterThanOrEqual(1);
     await db(app).delete(schema.approvals).where(eq(schema.approvals.id, approval!.id));

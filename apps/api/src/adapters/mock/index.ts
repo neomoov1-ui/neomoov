@@ -5,9 +5,12 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { AppError } from '../../common/app-error.js';
 import { haversineMeters } from '../../common/geo.js';
-import type {
-  AutocompleteSuggestion, CardDetails, EmailProvider, GeoPoint, GeocodeResult, LlmProvider, MapsProvider, PaymentAuthorization, PaymentProvider, SetupIntentResult, WebhookEvent,
-  PushProvider, RouteRequest, RouteResult, SevDocument, SevProvider, SevReceipt, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider,
+import { addUsage, EMPTY_USAGE, type LlmUsage } from '@neomoov/domain';
+import {
+  LlmError,
+  type AutocompleteSuggestion, type CardDetails, type EmailProvider, type GeoPoint, type GeocodeResult, type LlmMessage, type LlmProvider, type LlmStructuredRequest, type LlmStructuredResult,
+  type LlmToolsRequest, type LlmToolsResult, type MapsProvider, type PaymentAuthorization, type PaymentProvider, type SetupIntentResult, type WebhookEvent,
+  type PushProvider, type RouteRequest, type RouteResult, type SevDocument, type SevProvider, type SevReceipt, type SmsDeliveryStatus, type SmsProvider, type StorageProvider, type VoiceProvider, type WhatsAppProvider,
 } from '../types.js';
 
 let counter = 0;
@@ -225,30 +228,53 @@ export class MockPaymentProvider implements PaymentProvider {
   }
 }
 
+/** Textos simulés : un numéro qui finit par `0000` est refusé (tests du repli et des erreurs). */
 export class MockSmsProvider implements SmsProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ to: string; body: string }> = [];
+  readonly sent: Array<{ to: string; body: string; messageId: string }> = [];
   async send(input: { to: string; body: string }) {
-    this.sent.push(input);
-    return { messageId: nextId('sms_mock') };
+    if (input.to.endsWith('0000')) throw new Error('Numéro refusé (simulé)');
+    const messageId = nextId('sms_mock');
+    this.sent.push({ to: input.to, body: input.body, messageId });
+    return { messageId };
+  }
+  verifyStatusWebhook(input: { signature: string }) {
+    return input.signature === 'mock-signature';
+  }
+  parseInbound(params: Record<string, string>) {
+    const { From: from, To: to, Body: body, MessageSid: messageId } = params;
+    return from && to && body !== undefined && messageId ? { from, to, body, messageId } : null;
+  }
+  parseStatus(params: Record<string, string>): SmsDeliveryStatus | null {
+    const messageId = params['MessageSid'];
+    const status = params['MessageStatus'];
+    if (!messageId || !status) return null;
+    return { messageId, status: status === 'delivered' ? 'delivered' : status === 'failed' || status === 'undelivered' ? 'failed' : 'pending', errorCode: params['ErrorCode'] ?? null };
   }
 }
 
 export class MockEmailProvider implements EmailProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ to: string; subject: string; html: string }> = [];
-  async send(input: { to: string; subject: string; html: string }) {
-    this.sent.push({ to: input.to, subject: input.subject, html: input.html });
-    return { messageId: nextId('email_mock') };
+  readonly sent: Array<{ to: string; subject: string; html: string; attachments: string[]; messageId: string }> = [];
+  async send(input: { to: string; subject: string; html: string; attachments?: Array<{ filename: string }> }) {
+    const messageId = nextId('email_mock');
+    this.sent.push({ to: input.to, subject: input.subject, html: input.html, attachments: (input.attachments ?? []).map((a) => a.filename), messageId });
+    return { messageId };
   }
 }
 
+/** Push simulé : un jeton qui contient `dead` est refusé (`DeviceNotRegistered`), comme un appareil désinstallé. */
 export class MockPushProvider implements PushProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ tokens: string[]; title: string; body: string }> = [];
-  async send(input: { tokens: string[]; title: string; body: string }) {
+  readonly sent: Array<{ tokens: string[]; title: string; body: string; data?: Record<string, string> }> = [];
+  async send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string> }) {
     this.sent.push(input);
-    return { tickets: input.tokens.map((token) => ({ token, status: 'ok' as const })) };
+    return {
+      tickets: input.tokens.map((token) => (token.includes('dead') ? { token, status: 'error' as const, detail: 'DeviceNotRegistered' } : { token, status: 'ok' as const, ticketId: nextId('ticket_mock') })),
+    };
+  }
+  async receipts(ticketIds: string[]) {
+    return ticketIds.map((ticketId) => ({ ticketId, status: 'ok' as const }));
   }
 }
 
@@ -259,8 +285,15 @@ export class MockWhatsAppProvider implements WhatsAppProvider {
     this.sent.push(input);
     return { messageId: nextId('wa_mock') };
   }
+  async sendTemplate(input: { to: string; template: string; language: string; parameters: string[] }) {
+    this.sent.push({ to: input.to, text: `[${input.template}] ${input.parameters.join(' | ')}` });
+    return { messageId: nextId('wa_mock') };
+  }
   verifyWebhook(query: Record<string, string | undefined>) {
     return query['hub.verify_token'] === 'mock-verify' ? (query['hub.challenge'] ?? null) : null;
+  }
+  verifySignature(_rawBody: string | Buffer, header: string | undefined) {
+    return header === 'mock-signature';
   }
   parseInbound(body: unknown) {
     const b = body as { messages?: Array<{ from: string; text: string; id: string }> };
@@ -275,9 +308,11 @@ export class MockVoiceProvider implements VoiceProvider {
     this.calls.push(input);
     return { callId: nextId('call_mock') };
   }
+  /** Même forme que Vapi : secret dans l'en-tête, message JSON sous `message`. */
   async verifyWebhook(rawBody: string | Buffer, signature: string) {
     if (signature !== 'mock-signature') throw new Error('Signature de webhook invalide');
-    return JSON.parse(rawBody.toString()) as { type: string; payload: unknown };
+    const body = JSON.parse(rawBody.toString()) as { message?: { type?: string } };
+    return { type: body.message?.type ?? 'unknown', payload: body.message ?? body };
   }
 }
 
@@ -323,9 +358,104 @@ export class MockSevProvider implements SevProvider {
   }
 }
 
+/** Requête vue par un script du modèle simulé. */
+export interface MockLlmRequest {
+  kind: 'structured' | 'tools';
+  model: string;
+  effort: string;
+  system: string;
+  messages: LlmMessage[];
+  /** Sortie structurée : nom du schéma attendu (`classification`, `document_fields`…). */
+  schemaName: string | null;
+  toolNames: string[];
+  /** Boucle d'outils : résultats des appels précédents de cette exécution, dans l'ordre. */
+  toolResults: Array<{ name: string; input: unknown; result: unknown; isError: boolean }>;
+  iteration: number;
+}
+
+/** Réponse scriptée : sortie structurée, appels d'outils, texte final, jetons consommés, ou refus du modèle. */
+export interface MockLlmReply {
+  output?: unknown;
+  toolCalls?: Array<{ name: string; input: Record<string, unknown> }>;
+  text?: string;
+  usage?: Partial<LlmUsage>;
+  refuse?: boolean;
+}
+
+export type MockLlmScript = (request: MockLlmRequest) => MockLlmReply | undefined;
+
+/**
+ * Modèle simulé, déterministe et scriptable : chaque requête est confiée aux scripts (le premier qui répond l'emporte).
+ * La boucle d'outils imite le `toolRunner` du SDK : entrée validée par le schéma de l'outil, outil exécuté, résultat
+ * renvoyé au script suivant, jusqu'à un texte final ou au nombre maximal de requêtes.
+ */
 export class MockLlmProvider implements LlmProvider {
   readonly name = 'mock';
   readonly calls: Array<{ system: string; lastMessage?: string }> = [];
+  readonly requests: MockLlmRequest[] = [];
+  readonly scripts: MockLlmScript[] = [];
+  /** Jetons comptés par requête quand le script n'en donne pas. */
+  defaultUsage: LlmUsage = { inputTokens: 1_000, outputTokens: 200, cacheReadInputTokens: 0, cacheCreationInputTokens: 0 };
+
+  /** Ajoute un script ; la fonction renvoyée le retire. */
+  script(fn: MockLlmScript): () => void {
+    this.scripts.push(fn);
+    return () => {
+      const i = this.scripts.indexOf(fn);
+      if (i >= 0) this.scripts.splice(i, 1);
+    };
+  }
+
+  private reply(request: MockLlmRequest): MockLlmReply | undefined {
+    this.requests.push(request);
+    for (const fn of this.scripts) {
+      const out = fn(request);
+      if (out) return out;
+    }
+    return undefined;
+  }
+
+  private usageOf(reply: MockLlmReply | undefined): LlmUsage {
+    return { ...this.defaultUsage, ...(reply?.usage ?? {}) };
+  }
+
+  async structured<T>(request: LlmStructuredRequest<T>): Promise<LlmStructuredResult<T>> {
+    const reply = this.reply({ kind: 'structured', model: request.model, effort: request.effort, system: request.system, messages: request.messages, schemaName: request.schemaName, toolNames: [], toolResults: [], iteration: 1 });
+    if (reply?.refuse) throw new LlmError('refused', 'Demande déclinée par le modèle simulé');
+    const parsed = request.schema.safeParse(reply?.output ?? {});
+    if (!parsed.success) throw new LlmError('invalid_output', `Sortie simulée non conforme au schéma ${request.schemaName}`);
+    return { output: parsed.data, model: request.model, usage: this.usageOf(reply), stopReason: 'end_turn' };
+  }
+
+  async runTools(request: LlmToolsRequest): Promise<LlmToolsResult> {
+    const toolResults: MockLlmRequest['toolResults'] = [];
+    let usage = EMPTY_USAGE;
+    for (let iteration = 1; iteration <= request.maxIterations; iteration += 1) {
+      const reply = this.reply({ kind: 'tools', model: request.model, effort: request.effort, system: request.system, messages: request.messages, schemaName: null, toolNames: request.tools.map((t) => t.name), toolResults: [...toolResults], iteration });
+      usage = addUsage(usage, this.usageOf(reply));
+      if (reply?.refuse) throw new LlmError('refused', 'Demande déclinée par le modèle simulé');
+      if (!reply?.toolCalls?.length) return { text: reply?.text ?? 'Réponse simulée.', model: request.model, usage, stopReason: 'end_turn', iterations: iteration };
+      for (const call of reply.toolCalls) {
+        const tool = request.tools.find((t) => t.name === call.name);
+        if (!tool) {
+          toolResults.push({ name: call.name, input: call.input, result: `Error: Tool '${call.name}' not found`, isError: true });
+          continue;
+        }
+        const parsed = tool.inputSchema.safeParse(call.input);
+        if (!parsed.success) {
+          toolResults.push({ name: call.name, input: call.input, result: `Error: ${parsed.error.message}`, isError: true });
+          continue;
+        }
+        try {
+          toolResults.push({ name: call.name, input: parsed.data, result: await tool.run(parsed.data as Record<string, unknown>), isError: false });
+        } catch (error) {
+          toolResults.push({ name: call.name, input: parsed.data, result: `Error: ${error instanceof Error ? error.message : String(error)}`, isError: true });
+        }
+      }
+    }
+    return { text: '', model: request.model, usage, stopReason: 'tool_use', iterations: request.maxIterations };
+  }
+
   /** Réponses préparées par les tests : la première fonction qui accepte l'entrée produit la sortie. */
   readonly scripted: Array<(input: { system: string; messages: Array<{ role: string; content: string }> }) => { text: string; json?: unknown } | undefined> = [];
   async complete(input: { system: string; messages: Array<{ role: string; content: string }>; jsonSchema?: Record<string, unknown> }) {

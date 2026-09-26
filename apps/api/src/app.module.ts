@@ -13,6 +13,7 @@ import { ClientModule } from './modules/client/client.module.js';
 import { CreditsModule } from './modules/credits/credits.module.js';
 import { DriversModule } from './modules/drivers/drivers.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
+import { AgentsModule } from './modules/agents/agents.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { PublicModule } from './modules/public/public.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -26,6 +27,9 @@ import { FavoritesModule } from './modules/favorites/favorites.module.js';
 import { GuaranteeModule } from './modules/guarantee/guarantee.module.js';
 import { InvoicingModule } from './modules/invoicing/invoicing.module.js';
 import { LedgersModule } from './modules/ledgers/ledgers.module.js';
+import { MessagingModule } from './modules/messaging/messaging.module.js';
+import { VoiceModule } from './modules/voice/voice.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { SettlementModule } from './modules/settlement/settlement.module.js';
 
 /** Module racine de l'API. Les modules métier s'ajoutent ici étape par étape (section 11.1). */
@@ -34,7 +38,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, AgentsModule],
     };
   }
 }

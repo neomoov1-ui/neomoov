@@ -63,7 +63,8 @@ interface Parties {
 export interface ClientRecipient {
   recipientUserId: string | null;
   recipientAddress: string | null;
-  channel: NotificationChannel;
+  /** Imposé pour un tiers sans compte (texto) ; absent : canaux de la matrice 5.14. */
+  channel?: NotificationChannel;
   language: Language;
 }
 
@@ -195,7 +196,8 @@ export class RidesService {
   /** Destinataire des notifications côté client (5.14) : compte (push) ou invité (texto). */
   async recipientOf(ride: RideRow): Promise<ClientRecipient> {
     const parties = await this.partiesOf(ride);
-    if (parties.clientUserId) return { recipientUserId: parties.clientUserId, recipientAddress: null, channel: 'push', language: parties.clientLanguage };
+    // Compte : canaux de la matrice 5.14 ; tiers sans compte : texto.
+    if (parties.clientUserId) return { recipientUserId: parties.clientUserId, recipientAddress: null, language: parties.clientLanguage };
     return { recipientUserId: null, recipientAddress: ride.guestPhone ?? ride.passengerPhone ?? null, channel: 'sms', language: parties.clientLanguage };
   }
 
@@ -553,15 +555,63 @@ export class RidesService {
     return this.view(result.ride);
   }
 
+  /**
+   * Agent vocal (prompt 13) : réservation au nom de l'appelant, sur un devis planifié (préavis de 2 heures), payée au
+   * chauffeur. Compte client reconnu par son numéro, sinon fiche minimale (nom, téléphone, langue) comme une réservation
+   * par téléphone : aucun compte n'est créé sans le consentement de l'appelant (Loi 25).
+   */
+  async createForVoiceCaller(input: { quoteId: string; clientUserId: string | null; guest: { name: string; phone: string; language: Language } | null; specialRequests?: string | null }): Promise<RideView> {
+    const client = input.clientUserId ? await this.clientOfUser(input.clientUserId) : null;
+    if (!client && !input.guest) throw new AppError('CALLER_UNKNOWN', 'Nom et numéro de l\'appelant requis', 400);
+    const quote = await this.quoteById(input.quoteId);
+    if (!quote.requestedAt) throw await this.leadTimeError();
+    const actor: ActorRef = client ? { kind: 'client', userId: input.clientUserId } : SYSTEM_ACTOR;
+    try {
+      const ride = await this.db.transaction((tx) =>
+        this.insertRide(tx, quote.id, {
+          clientId: client?.id ?? null,
+          guestName: client ? null : input.guest!.name,
+          guestPhone: client ? null : input.guest!.phone,
+          guestLanguage: client ? null : input.guest!.language,
+          createdByUserId: input.clientUserId,
+          type: 'scheduled',
+          paymentMethod: 'cash',
+          paymentChoice: 'pay_driver_after',
+          passengerName: null,
+          passengerPhone: null,
+          flightNumber: null,
+          preferences: {},
+          specialRequests: input.specialRequests ?? null,
+          idempotencyKey: null,
+        }, actor),
+      );
+      await this.afterCreation(ride, actor);
+      return this.view(ride);
+    } catch (error) {
+      if (constraintOf(error) === 'rides_quote_unique') throw AppError.conflict('QUOTE_ALREADY_USED', 'Ce devis a déjà servi à une course');
+      throw error;
+    }
+  }
+
+  /** Agent vocal : annulation demandée par l'appelant de sa propre course, mêmes frais que dans l'application. */
+  async cancelForVoiceCaller(rideId: string, caller: { clientUserId: string | null }, reason: string): Promise<{ state: RideState; feeCents: number }> {
+    return this.cancelAsClient(rideId, caller.clientUserId ? { kind: 'client', userId: caller.clientUserId } : SYSTEM_ACTOR, { reason: 'other', comment: reason });
+  }
+
   // --- Annulations ---
 
   async cancelByClient(rideId: string, actor: UserActor, input: { reason: string; comment?: string | undefined }): Promise<{ state: RideState; feeCents: number }> {
     const ride = await this.getRide(rideId);
     const kind = await this.participantKind(ride, actor);
     if (kind === 'driver') throw AppError.forbidden('NOT_CLIENT', 'Le chauffeur annule par son propre endpoint');
+    return this.cancelAsClient(rideId, { kind, userId: actor.userId }, input);
+  }
+
+  /** Annulation du côté du client (application, opérateur au téléphone, agent vocal) : frais selon l'état lu sous verrou. */
+  private async cancelAsClient(rideId: string, actorRef: ActorRef, input: { reason: string; comment?: string | undefined }): Promise<{ state: RideState; feeCents: number }> {
     const rules = await this.cancellationRules();
     // Les frais dépendent de l'état lu sous verrou : une annulation qui croise « en route » paie le tarif d'annulation.
-    const result = await this.applyTransition(rideId, 'client_cancels', { kind, userId: actor.userId }, {
+    const result = await this.applyTransition(rideId, 'client_cancels', actorRef, {
       data: { reason: input.reason },
       set: (locked) => {
         const assignedAt = timestampsOf(locked).assigned;
@@ -570,7 +620,7 @@ export class RidesService {
       },
     });
     const feeCents = result.ride.cancellationFeeCents;
-    const payload = await this.publish(result, 'client_cancels', { kind, userId: actor.userId }, { feeCents });
+    const payload = await this.publish(result, 'client_cancels', actorRef, { feeCents });
     if (!result.replayed) {
       this.events.emit('ride.cancelled_by_client', { ...payload, feeCents });
       if (payload.driverUserId) await this.outbox.queue({ recipientUserId: payload.driverUserId, template: 'ride.cancelled_by_client', data: { rideId, feeCents } });
@@ -939,7 +989,9 @@ export class RidesService {
     this.events.emit('ride.message', { rideId, messageId: row!.id, senderKind: kind, senderUserId: actor.userId, body, sentAt: row!.sentAt });
     if (kind === 'driver') {
       const recipient = await this.recipientOf(ride);
-      await this.outbox.queue({ ...recipient, template: 'ride.message', data: { rideId, messageId: row!.id } });
+      // Sans compte (réservation par téléphone) : le texte part par texto, la réponse revient par le relais (étape 13).
+      if (recipient.recipientUserId) await this.outbox.queue({ ...recipient, template: 'ride.message', data: { rideId, messageId: row!.id } });
+      else await this.outbox.queue({ ...recipient, template: 'ride.message_sms', data: { rideId, messageId: row!.id, publicNumber: ride.publicNumber, body } });
     } else {
       const parties = await this.partiesOf(ride);
       if (parties.driverUserId) await this.outbox.queue({ recipientUserId: parties.driverUserId, template: 'ride.message', data: { rideId, messageId: row!.id } });

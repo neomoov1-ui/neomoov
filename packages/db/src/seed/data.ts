@@ -167,6 +167,10 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'invoices.catchup_days', value: 2, description: 'Reprise des factures manquantes (événement perdu) : courses terminées depuis moins de 2 jours' },
   { key: 'sev.retry_delay_seconds', value: 60, description: 'Délai avant de reprendre une transmission au SEV en attente' },
   { key: 'sev.error_retry_seconds', value: 3600, description: 'Délai entre deux reprises automatiques d\'une facture en erreur au SEV' },
+  { key: 'alerts.founder_phone', value: '', description: 'Numéro du fondateur appelé par l\'agent vocal en cas de SOS (vide : pas d\'appel)' },
+  { key: 'voice.sos_assistant_id', value: '', description: 'Assistant Vapi qui appelle le fondateur en cas de SOS (vide : pas d\'appel)' },
+  { key: 'voice.transfer_number', value: '+15145550100', description: 'Numéro vers lequel l\'agent vocal transfère un appel (humain de garde), à remplacer par le vrai numéro' },
+  { key: 'notifications.approach_meters', value: 700, description: 'Distance au point de départ qui déclenche « votre chauffeur approche » (environ 2 minutes en ville)' },
   { key: 'sev.max_attempts', value: 5, description: 'Tentatives de transmission au SEV avant erreur visible dans My Hub' },
   { key: 'geolocation_export.format', value: 'csv-v0', description: 'Format provisoire de l\'export mensuel de géolocalisation (à confirmer avec la CTQ)' },
   { key: 'sanctions.driver_cancellation_threshold', value: 3, description: 'Annulations chauffeur après en_route par semaine avant avertissement' },
@@ -174,6 +178,28 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'retention.driver_locations_days', value: 90, description: 'Conservation des positions en clair' },
   { key: 'notifications.quiet_hours', value: { from: '22:00', to: '07:00' }, description: 'Heures silencieuses hors course en cours' },
   { key: 'agents.auto_after_weeks', value: 4, description: 'Passage en automatique après quatre semaines sans erreur, sur décision du fondateur' },
+  // Agents IA (5.16, prompt 13) : dépense, barème, plafonds des outils, rapports. Montants LLM en micro-dollars.
+  { key: 'agents.daily_budget_micros', value: 20_000_000, description: 'Plafond quotidien de dépense LLM de l\'ensemble des agents (20 $, heure de Montréal) ; au-delà, l\'agent qui s\'exécute passe en mode manuel' },
+  {
+    key: 'agents.llm_pricing',
+    value: {
+      'claude-opus-5-5': { inputMicrosPerMTok: 4_000_000, outputMicrosPerMTok: 20_000_000, cacheReadMicrosPerMTok: 200_000, cacheWriteMicrosPerMTok: 5_000_000 },
+      'claude-opus-5': { inputMicrosPerMTok: 5_000_000, outputMicrosPerMTok: 25_000_000, cacheReadMicrosPerMTok: 500_000, cacheWriteMicrosPerMTok: 6_250_000 },
+      'claude-opus-4-8': { inputMicrosPerMTok: 5_000_000, outputMicrosPerMTok: 25_000_000, cacheReadMicrosPerMTok: 500_000, cacheWriteMicrosPerMTok: 6_250_000 },
+      default: { inputMicrosPerMTok: 5_000_000, outputMicrosPerMTok: 25_000_000, cacheReadMicrosPerMTok: 500_000, cacheWriteMicrosPerMTok: 6_250_000 },
+    },
+    description: 'Barème Anthropic en micro-dollars par million de jetons (entrée, sortie, lecture et écriture du cache), par modèle ; à vérifier à chaque changement de prix',
+  },
+  { key: 'agents.max_refund_cents', value: 5_000, description: 'Plafond de l\'outil de remboursement d\'un agent (50 $) ; au-delà, escalade humaine' },
+  { key: 'agents.max_credit_cents', value: 5_000, description: 'Plafond de l\'outil de crédit d\'un agent (50 $) ; au-delà, escalade humaine' },
+  { key: 'agents.max_tool_iterations', value: 8, description: 'Requêtes au modèle au plus par exécution d\'un agent qui agit (boucle d\'outils)' },
+  { key: 'agents.max_output_tokens', value: 16_000, description: 'Jetons de sortie au plus par requête au modèle (raisonnement compris)' },
+  { key: 'agents.conversation_history_messages', value: 20, description: 'Messages précédents d\'une conversation transmis à l\'agent relation client' },
+  { key: 'agents.report_hour', value: 7, description: 'Heure d\'envoi des rapports de l\'agent d\'analyse (heure de Montréal)' },
+  { key: 'agents.report_weekly_weekday', value: 1, description: 'Jour du rapport hebdomadaire (1 = lundi)' },
+  { key: 'agents.report_recipients', value: [], description: 'Courriels qui reçoivent les rapports ; vide : les administrateurs de My Hub' },
+  { key: 'agents.client_messages_per_hour', value: 30, description: 'Messages d\'un client à l\'assistance par heure (chaque message coûte un appel au modèle)' },
+  { key: 'agents.accounting_max_line_cents', value: 50_000, description: 'Contrôle des relevés : une ligne au-delà de ce montant (500 $) est hors bornes' },
   // Identité et sécurité (section 8, prompt 03) : lus par l'API à chaque calcul, jamais codés en dur.
   { key: 'auth.otp_ttl_seconds', value: 300, description: 'Code SMS valable 5 minutes' },
   { key: 'auth.otp_max_attempts', value: 5, description: 'Tentatives de saisie par code' },
@@ -196,12 +222,13 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'privacy.export_link_ttl_days', value: 7, description: 'Validité du lien signé vers un export de données' },
 ];
 
+// Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.
 export const AGENTS = [
-  { code: 'customer_relations', name: 'Relation client (application, web, WhatsApp)', mode: 'approval', effort: 'low', tools: ['lookupRide', 'lookupClient', 'issueCredit', 'refund', 'openIncident', 'escalateToHuman', 'sendMessage'], thresholds: { maxAutoRefundCents: 5000, maxAutoCreditCents: 5000 } },
-  { code: 'driver_recruitment', name: 'Recrutement chauffeurs (vérification documentaire)', mode: 'approval', effort: 'high', tools: ['extractDocumentFields', 'compareIdentity', 'proposeDecision'], thresholds: { finalValidation: 'human' } },
-  { code: 'accounting', name: 'Comptabilité (contrôle des relevés)', mode: 'approval', effort: 'high', tools: ['listStatementLines', 'flagAnomaly'], thresholds: { unexplainedVarianceCents: 100 } },
-  { code: 'analytics', name: 'Analyse et rapports', mode: 'auto', effort: 'high', tools: ['queryMetrics'], thresholds: {} },
-  { code: 'voice_call_center', name: 'Centre d\'appels vocal (Vapi)', mode: 'auto', effort: 'low', tools: ['quote', 'createRide', 'rideStatus', 'cancelRide', 'transferToHuman'], thresholds: { transferOnDistress: true } },
+  { code: 'customer_relations', name: 'Relation client (application, web, WhatsApp)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: 'customer_relations.v1', tools: ['lookupRide', 'lookupClient', 'issueCredit', 'refund', 'openIncident', 'escalateToHuman', 'sendMessage'], thresholds: { maxAutoRefundCents: 5000, maxAutoCreditCents: 5000 } },
+  { code: 'driver_recruitment', name: 'Recrutement chauffeurs (vérification documentaire)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'driver_recruitment.v1', tools: ['extractDocumentFields', 'compareIdentity', 'proposeDecision'], thresholds: { finalValidation: 'human' } },
+  { code: 'accounting', name: 'Comptabilité (contrôle des relevés)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'accounting.v1', tools: ['listStatementLines', 'flagAnomaly'], thresholds: { unexplainedVarianceCents: 100 } },
+  { code: 'analytics', name: 'Analyse et rapports', mode: 'auto', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'analytics.v1', tools: ['queryMetrics'], thresholds: {} },
+  { code: 'voice_call_center', name: 'Centre d\'appels vocal (Vapi)', mode: 'auto', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: ['quote', 'createRide', 'rideStatus', 'cancelRide', 'transferToHuman'], thresholds: { transferOnDistress: true } },
 ] as const;
 
 export const FEATURE_FLAGS = [

@@ -133,11 +133,18 @@ export type AgentMode = (typeof AGENT_MODES)[number];
 export const AGENT_CODES = ['customer_relations', 'driver_recruitment', 'accounting', 'analytics', 'voice_call_center'] as const;
 export type AgentCode = (typeof AGENT_CODES)[number];
 
-export const AGENT_RUN_STATUSES = ['running', 'succeeded', 'failed', 'awaiting_approval'] as const;
+/** `skipped` : agent en mode manuel ou plafond de dépense atteint, aucun appel au modèle (l'humain prend le relais). */
+export const AGENT_RUN_STATUSES = ['running', 'succeeded', 'failed', 'awaiting_approval', 'skipped'] as const;
 export type AgentRunStatus = (typeof AGENT_RUN_STATUSES)[number];
 
 export const APPROVAL_DECISIONS = ['pending', 'approved', 'rejected'] as const;
 export type ApprovalDecision = (typeof APPROVAL_DECISIONS)[number];
+
+/** Conversations de l'assistance (agent relation client) : canal d'entrée et état. */
+export const CONVERSATION_CHANNELS = ['whatsapp', 'sms', 'voice', 'web', 'app'] as const;
+export type ConversationChannel = (typeof CONVERSATION_CHANNELS)[number];
+export const CONVERSATION_STATUSES = ['open', 'escalated', 'closed'] as const;
+export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
 
 export const NOTIFICATION_CHANNELS = ['push', 'sms', 'email', 'whatsapp', 'in_app'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];

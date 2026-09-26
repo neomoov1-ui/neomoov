@@ -74,14 +74,25 @@ export const envSchema = z.object({
   /** Cloudflare Turnstile (anti-robots des formulaires publics) ; absent en développement : jeton accepté sauf « fail ». */
   TURNSTILE_SECRET_KEY: optionalString,
   RESEND_API_KEY: optionalString,
+  /** Expéditeur des courriels, sur le domaine vérifié chez Resend. */
+  EMAIL_FROM: optionalString.transform((v) => v ?? 'Neomoov <notifications@neomoov.net>'),
   BREVO_API_KEY: optionalString,
   WHATSAPP_TOKEN: optionalString,
   WHATSAPP_PHONE_ID: optionalString,
   WHATSAPP_VERIFY_TOKEN: optionalString,
+  /** Secret de l'application Meta : signature `X-Hub-Signature-256` des webhooks WhatsApp. */
+  WHATSAPP_APP_SECRET: optionalString,
   VAPI_API_KEY: optionalString,
   VAPI_WEBHOOK_SECRET: optionalString,
   VAPI_PHONE_NUMBER_ID: optionalString,
   ANTHROPIC_API_KEY: optionalString,
+  /** Repli côté serveur de l'API Claude (`fallbacks: "default"`) quand le modèle d'un agent décline ; `off` le coupe. */
+  LLM_SERVER_FALLBACK: z.enum(['on', 'off']).default('on'),
+  /**
+   * Déclencheurs des agents IA (messages entrants, documents, relevés, rapports planifiés). Vide : actifs, sauf en test
+   * (les fichiers de test tournent en parallèle sur la même base ; celui des agents les active).
+   */
+  AGENT_TRIGGERS: z.enum(['on', 'off']).optional(),
   S3_ENDPOINT: optionalString,
   S3_BUCKET: optionalString,
   S3_ACCESS_KEY: optionalString,
@@ -93,6 +104,8 @@ export const envSchema = z.object({
   SENTRY_DSN: optionalString,
   BETTERSTACK_TOKEN: optionalString,
   EXPO_TOKEN: optionalString,
+  /** Jeton d'accès du service push d'Expo, seulement si la « sécurité renforcée » des push est activée. */
+  EXPO_PUSH_ACCESS_TOKEN: optionalString,
   SEV_API_KEY: optionalString,
 
   FEATURE_NEGOTIATION: flag,
