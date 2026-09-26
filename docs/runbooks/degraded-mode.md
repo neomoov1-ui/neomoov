@@ -15,4 +15,10 @@ Prompt 15, tâche 4. Pour chaque panne, ce que la plateforme fait seule, ce que 
 | Redis | Files et temps réel arrêtés côté worker ; l'API répond, santé `degraded` | `checks.redis` en erreur | Redémarrer Redis (`docs/runbooks/deploiement-lws.md`) ; les tâches à identifiant stable ne se dupliquent pas à la reprise |
 | Base de données | L'API répond 503 sur la santé, les écritures échouent | Sonde de disponibilité en alerte | Voir `sauvegardes.md` (restauration) et Supabase |
 
+Tests qui le vérifient (fournisseurs simulés en panne) : `circuit-breaker.e2e` (Routes), `degraded.e2e` (Stripe à la réservation : 502 `PAYMENT_PROVIDER_ERROR`, aucune course créée, paiement au chauffeur possible ; modèle de langage : accusé de réception, exécution en échec, conversation confiée à l'équipe), `notifications.e2e` (textos : reprise puis erreur ; push : repli texto des événements critiques), `queue-resilience.e2e` (worker arrêté en plein envoi : ni perte ni doublon).
+
+## Redémarrage du worker
+
+Les tâches BullMQ ont des identifiants stables (une tâche ajoutée deux fois n'existe qu'une fois) et chaque traitement est rejouable : paiements et remboursements par clé d'idempotence Stripe, factures et registres une seule fois par course, relevés une seule fois par semaine, notifications réservées une à une. Une notification réservée par un worker arrêté est reprise 10 minutes après sa réservation (et non après sa création) ; un envoi en cours ailleurs n'est jamais doublé. Redémarrer le worker (`docker compose -f infra/compose.prod.yml restart worker`) est donc sans risque ; vérifier ensuite My Hub, Files de tâches.
+
 Principe : aucune panne d'un fournisseur ne bloque une course déjà attribuée ; aucune action financière n'est rejouée deux fois (clés d'idempotence) ; tout ce qui a échoué est visible et relançable.

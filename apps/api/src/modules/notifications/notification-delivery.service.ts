@@ -54,7 +54,9 @@ export class NotificationDeliveryService {
 
   /** Envoie une notification en attente ; sans effet si elle est déjà envoyée, en erreur ou en cours d'envoi ailleurs. */
   async deliver(id: string, now = new Date()): Promise<DeliveryOutcome> {
-    const claim = `claim:${randomUUID()}`;
+    // Réservation datée : la reprise ne libère que les réservations abandonnées depuis 10 minutes (worker arrêté en
+    // plein envoi), jamais celle d'un envoi en cours sur une notification ancienne (PDF attendu, nouvel essai).
+    const claim = `claim:${now.getTime()}:${randomUUID()}`;
     const [row] = await this.db
       .update(schema.notifications)
       .set({ providerMessageId: claim })
@@ -195,17 +197,21 @@ export class NotificationDeliveryService {
 
   /**
    * Reprise : envoie les notifications restées en attente (événement perdu, PDF attendu), libère les réservations
-   * abandonnées. Rejouable, bornée à 200 lignes par passe.
+   * abandonnées. Rejouable, bornée à 200 lignes par passe ; `ids` restreint la passe à ces notifications (reprise ciblée).
    */
-  async sweep(now = new Date()): Promise<number> {
+  async sweep(now = new Date(), options: { ids?: string[] } = {}): Promise<number> {
+    const only = options.ids?.length ? inArray(schema.notifications.id, options.ids) : undefined;
     await this.db
       .update(schema.notifications)
       .set({ providerMessageId: null })
-      .where(and(isNull(schema.notifications.sentAt), isNull(schema.notifications.error), sql`${schema.notifications.providerMessageId} LIKE 'claim:%'`, lt(schema.notifications.createdAt, new Date(now.getTime() - STALE_CLAIM_MS))));
+      .where(and(only, isNull(schema.notifications.sentAt), isNull(schema.notifications.error), sql`${schema.notifications.providerMessageId} LIKE 'claim:%'`,
+        // Heure de la réservation (claim:<ms>:<id>) ; ancien format sans heure : âge de la notification.
+        sql`(CASE WHEN split_part(${schema.notifications.providerMessageId}, ':', 2) ~ '^[0-9]{10,}$' THEN split_part(${schema.notifications.providerMessageId}, ':', 2)::bigint < ${now.getTime() - STALE_CLAIM_MS}
+          ELSE ${schema.notifications.createdAt} < ${new Date(now.getTime() - STALE_CLAIM_MS).toISOString()}::timestamptz END)`));
     const rows = await this.db
       .select({ id: schema.notifications.id })
       .from(schema.notifications)
-      .where(and(isNull(schema.notifications.sentAt), isNull(schema.notifications.error), isNull(schema.notifications.providerMessageId), sql`${schema.notifications.createdAt} > ${new Date(now.getTime() - 2 * 86_400_000).toISOString()}::timestamptz`))
+      .where(and(only, isNull(schema.notifications.sentAt), isNull(schema.notifications.error), isNull(schema.notifications.providerMessageId), sql`${schema.notifications.createdAt} > ${new Date(now.getTime() - 2 * 86_400_000).toISOString()}::timestamptz`))
       .orderBy(schema.notifications.createdAt)
       .limit(200);
     let sent = 0;

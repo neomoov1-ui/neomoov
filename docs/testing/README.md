@@ -34,7 +34,7 @@ Inventaire des 25 parcours de la section 9.2 du cahier des charges (obligatoires
 | 24 | Redevance et taxes sur 100 courses mixtes, export mensuel | `ledgers-exports` | Playwright `hub.spec` (export CSV) | Couvert |
 | 25 | Mode dégradé : Routes indisponible, devis estimé, course possible | `quotes` (itinéraire estimé), `circuit-breaker` (disjoncteur, santé « dégradée ») | | Couvert |
 
-Transverses : `authorization` (chaque route a une politique, 401 et 403 vérifiés sur toutes), `health`, `stuck-rides` (courses figées, files en échec), `notifications` (matrice 5.14, repli texto, reprise), `messaging`, `audit-export`.
+Transverses : `authorization` (chaque route a une politique, 401 et 403 vérifiés sur toutes), `health`, `stuck-rides` (courses figées, files en échec), `notifications` (matrice 5.14, repli texto, reprise), `messaging`, `audit-export`, `degraded` (Stripe et modèle de langage en panne), `queue-resilience` (redémarrage du worker), `safety-hold` (blocage préventif), `quality` (sanctions graduées), `field-encryption` (champs chiffrés), `compliance` et `retention` (Loi 25).
 
 ## Lancer les tests
 

@@ -108,6 +108,12 @@ export class MockPaymentProvider implements PaymentProvider {
   private readonly idempotency = new Map<string, unknown>();
   captureFailures = 0;
   nextCard: { brand: string; last4: string; declined?: boolean } = { brand: 'visa', last4: '4242' };
+  /** Panne simulée de Stripe (mode dégradé) : tout appel échoue comme l'adaptateur réel, en 502 `PAYMENT_PROVIDER_ERROR`. */
+  unavailable = false;
+
+  private available(): void {
+    if (this.unavailable) throw new AppError('PAYMENT_PROVIDER_ERROR', 'Stripe indisponible (panne simulée)', 502);
+  }
 
   private once<T>(key: string, run: () => T): T {
     if (this.idempotency.has(key)) return this.idempotency.get(key) as T;
@@ -122,6 +128,7 @@ export class MockPaymentProvider implements PaymentProvider {
   }
   async createSetupIntent(customerRef: string) {
     this.calls.push({ method: 'createSetupIntent', args: [customerRef] });
+    this.available();
     const id = nextId('seti_mock');
     const ref = `${nextId('pm_mock')}${this.nextCard.declined ? '_declined' : ''}`;
     this.setupIntents.set(id, { customerRef, card: { ref, brand: this.nextCard.brand, last4: this.nextCard.last4, expMonth: 12, expYear: new Date().getFullYear() + 3 } });
@@ -139,6 +146,7 @@ export class MockPaymentProvider implements PaymentProvider {
   }
   async authorize(input: Parameters<PaymentProvider['authorize']>[0]) {
     this.calls.push({ method: 'authorize', args: [input] });
+    this.available();
     return this.once(`authorize:${input.idempotencyKey}`, () => {
       const intentId = nextId('pi_mock');
       const declined = input.paymentMethodRef.endsWith('_declined');
@@ -149,6 +157,7 @@ export class MockPaymentProvider implements PaymentProvider {
   }
   async capture(intentId: string, amountCents: number, idempotencyKey: string) {
     this.calls.push({ method: 'capture', args: [intentId, amountCents, idempotencyKey] });
+    this.available();
     const key = `capture:${idempotencyKey}`;
     if (this.idempotency.has(key)) return this.idempotency.get(key) as PaymentAuthorization;
     const intent = this.intents.get(intentId);
