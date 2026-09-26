@@ -204,6 +204,18 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Document bientôt expiré', body: (d) => `Votre document (${str(d['type'])}) expire le ${str(d['expiresOn'])}. Téléversez la nouvelle version.` },
     en: { title: 'Document expiring soon', body: (d) => `Your document (${str(d['type'])}) expires on ${str(d['expiresOn'])}. Upload the new version.` },
   },
+  'vehicle.inspection_due': {
+    fr: { title: 'Inspection du véhicule à prévoir', body: (d) => `${str(d['label']) || 'Inspection'} à faire au plus tard le ${str(d['dueOn'])}. Sans elle, le véhicule ne pourra plus recevoir de courses.` },
+    en: { title: 'Vehicle inspection due', body: (d) => `${str(d['label']) || 'Inspection'} due by ${str(d['dueOn'])}. Without it, the vehicle can no longer receive rides.` },
+  },
+  'compliance.suspended': {
+    fr: { title: 'Courses suspendues', body: (d) => `Échéance dépassée (${str(d['label'])}, ${str(d['dueOn'])}) : vous ne recevez plus de courses. Déposez le document à jour ou faites l'inspection : la reprise est automatique après validation.` },
+    en: { title: 'Rides suspended', body: (d) => `Deadline passed (${str(d['label'])}, ${str(d['dueOn'])}): you no longer receive rides. Upload the updated document or complete the inspection: you are reinstated automatically once it is approved.` },
+  },
+  'compliance.reactivated': {
+    fr: { title: 'Vous êtes de nouveau en règle', body: (d) => `${str(d['label'])} validé : vous pouvez de nouveau recevoir des courses.` },
+    en: { title: 'You are compliant again', body: (d) => `${str(d['label'])} approved: you can receive rides again.` },
+  },
   'alert.no_driver': {
     fr: { title: 'Alerte : aucun chauffeur', body: (d) => `Aucun chauffeur pour la course${ride(d)}.` },
     en: { title: 'Alert: no driver', body: (d) => `No driver for ride${ride(d)}.` },
@@ -254,7 +266,7 @@ export function renderNotification(code: string, data: Data, language: string | 
   const deepLink: Record<string, string> = { template: code };
   for (const key of ['rideId', 'offerId', 'statementId', 'invoiceId']) if (typeof data[key] === 'string') deepLink[key] = data[key] as string;
   // Écran nommé de l'application chauffeur quand la notification ne porte pas d'identifiant (packs, documents, planifiées).
-  const screen = code.startsWith('pack.') ? 'packs' : code.startsWith('document.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled' : null;
+  const screen = code.startsWith('pack.') ? 'packs' : code.startsWith('document.') || code.startsWith('compliance.') || code.startsWith('vehicle.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled' : null;
   if (screen) deepLink['screen'] = screen;
   return { title, body, subject: `${title} · Neomoov`, html, deepLink };
 }

@@ -65,6 +65,9 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('balance.reactivated', 'driver', ['push', 'email']),
   // Documents et packs.
   rule('document.expiring', 'driver', ['push', 'email', 'sms']),
+  rule('vehicle.inspection_due', 'driver', ['push', 'email', 'sms']),
+  rule('compliance.suspended', 'driver', ['push', 'email', 'sms'], true),
+  rule('compliance.reactivated', 'driver', ['push', 'email']),
   rule('pack.low', 'driver', ['push']),
   rule('pack.exhausted', 'driver', ['push']),
   rule('pack.renewed', 'driver', ['push']),

@@ -15,6 +15,7 @@ import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
+import { ComplianceService } from '../compliance/compliance.service.js';
 import type { UserActor } from '../auth/actor.js';
 import { PresenceService } from '../rides/presence.service.js';
 
@@ -30,6 +31,7 @@ export class AdminDriversService {
     private readonly audit: AuditService,
     private readonly presence: PresenceService,
     private readonly events: DomainEventsService,
+    private readonly compliance: ComplianceService,
   ) {}
 
   private get db() {
@@ -237,6 +239,8 @@ export class AdminDriversService {
       })
       .where(eq(schema.driverDocuments.id, id));
     this.audit.record({ action: `admin.document_${input.decision}`, entity: 'driver_documents', entityId: id, before: { status: doc.status }, after: { status: input.decision, reason: input.reason ?? null } });
+    // Étape 14 : un document approuvé met à jour les échéances et lève aussitôt une suspension de conformité.
+    if (input.decision === 'approved') await this.compliance.refreshDriver(doc.driverId);
     const [view] = (await this.documentsOf([doc.driverId])).filter((d) => d.id === id);
     return view!;
   }

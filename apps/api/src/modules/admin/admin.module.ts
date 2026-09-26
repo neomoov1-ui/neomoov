@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ComplianceModule } from '../compliance/compliance.module.js';
 import { PricingModule } from '../pricing/pricing.module.js';
 import { RidesModule } from '../rides/rides.module.js';
 import { AdminDirectoryController, AdminDriversController, AdminOverviewController } from './admin.controller.js';
@@ -8,7 +9,7 @@ import { AdminOverviewService } from './admin-overview.service.js';
 
 /** My Hub (prompt 12) : endpoints d'administration qui manquaient aux étapes précédentes. */
 @Module({
-  imports: [RidesModule, PricingModule],
+  imports: [RidesModule, PricingModule, ComplianceModule],
   controllers: [AdminOverviewController, AdminDriversController, AdminDirectoryController],
   providers: [AdminOverviewService, AdminDriversService, AdminDirectoryService],
 })
