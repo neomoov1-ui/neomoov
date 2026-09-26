@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildStatement, classifyRideForStatement, computeQuote, evaluateSuspension, isCredit, isInPeriod, localDate,
-  packBillingLines, periodForGeneration, splitTaxes,
+  packBillingLines, periodForGeneration, splitTaxDetail, splitTaxes,
   type PricingRules, type SettlementRide, type StatementLine, type StatementPeriod, type TaxRates,
 } from '../src/index.js';
 
@@ -66,6 +66,21 @@ describe('classification d\'une course', () => {
       expect(Math.abs(fareTaxesCents + feeTaxesCents - (q.gstCents + q.qstCents))).toBeLessThanOrEqual(1);
       expect(feeTaxesCents).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe('taxes par nature (facture, registre des taxes)', () => {
+  it('TPS et TVQ du tarif pour le chauffeur, le reste pour Neomoov, cohérent avec splitTaxes', () => {
+    const r = ride();
+    const detail = splitTaxDetail(r, rates);
+    expect(detail).toEqual({ fare: { gstCents: 123, qstCents: 245 }, fee: { gstCents: 14, qstCents: 29 } });
+    const { fareTaxesCents, feeTaxesCents } = splitTaxes(r, rates);
+    expect(detail.fare.gstCents + detail.fare.qstCents).toBe(fareTaxesCents);
+    expect(detail.fee.gstCents + detail.fee.qstCents).toBe(feeTaxesCents);
+  });
+  it('promotion : taxes du tarif complet au chauffeur, part des frais jamais négative', () => {
+    const detail = splitTaxDetail(ride({ promotionCompensationCents: 2455, gstCents: 0, qstCents: 0 }), rates);
+    expect(detail).toEqual({ fare: { gstCents: 123, qstCents: 245 }, fee: { gstCents: 0, qstCents: 0 } });
   });
 });
 

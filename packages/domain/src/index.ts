@@ -7,6 +7,7 @@ export {
 export * from './pricing/benchmark.js';
 export * from './packs/packs.js';
 export * from './settlement/settlement.js';
+export * from './settlement/ledgers.js';
 export * from './rides/state-machine.js';
 export * from './rides/cancellation.js';
 export * from './dispatch/scoring.js';
@@ -21,3 +22,6 @@ export * from './privacy/masking.js';
 export * from './payments/payments.js';
 export * from './promotions/promotions.js';
 export * from './schemas/index.js';
+// Facturation certifiée (étape 9) : contenu des factures et schémas propres.
+export * from './invoicing/invoice.js';
+export * from './schemas/invoicing.js';

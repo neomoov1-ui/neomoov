@@ -24,6 +24,9 @@ import { RidesModule } from './modules/rides/rides.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { FavoritesModule } from './modules/favorites/favorites.module.js';
 import { GuaranteeModule } from './modules/guarantee/guarantee.module.js';
+import { InvoicingModule } from './modules/invoicing/invoicing.module.js';
+import { LedgersModule } from './modules/ledgers/ledgers.module.js';
+import { SettlementModule } from './modules/settlement/settlement.module.js';
 
 /** Module racine de l'API. Les modules métier s'ajoutent ici étape par étape (section 11.1). */
 @Module({})
@@ -31,7 +34,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule],
     };
   }
 }

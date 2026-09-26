@@ -36,6 +36,8 @@ export const invoices = pgTable('invoices', {
   pdfKey: varchar('pdf_key', { length: 300 }),
   qrPayload: text('qr_payload'),
   creditNoteOfId: uuid('credit_note_of_id'),
+  /** Course terminée, frais d'annulation, frais de non-présentation, ou note de crédit (remboursement). */
+  kind: varchar('kind', { length: 20 }).notNull().default('ride'),
   issuedAt: tz('issued_at').notNull().defaultNow(),
   createdAt: createdAt(),
 }, (t) => [
@@ -43,6 +45,7 @@ export const invoices = pgTable('invoices', {
   uniqueIndex('invoices_supplier_sequence_unique').on(t.driverId, t.supplierSequence),
   uniqueIndex('invoices_ride_unique').on(t.rideId).where(sql`${t.creditNoteOfId} IS NULL`),
   index('invoices_sev_status_idx').on(t.sevStatus).where(sql`${t.sevStatus} IN ('pending', 'error')`),
+  check('invoices_kind', sql`${t.kind} IN ('ride', 'cancellation', 'no_show', 'credit_note')`),
   check('invoices_amounts_positive', sql`${t.fareCents} >= 0 AND ${t.totalCents} >= 0 AND ${t.gstCents} >= 0 AND ${t.qstCents} >= 0`),
 ]);
 

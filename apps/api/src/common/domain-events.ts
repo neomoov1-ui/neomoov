@@ -50,6 +50,10 @@ export interface DomainEvents {
   'ride.no_driver': RideEventPayload;
   'ride.incident': { rideId: string; incidentId: string; type: string; severity: string; reportedByUserId: string | null };
   'dispatch.updated': { rideId: string; status: string; wave: number; offersSent: number; nextActionAt: Date | null };
+  /** Règlement (étape 9) : relevé hebdomadaire émis. */
+  'statement.issued': { statementId: string; driverId: string; periodStart: string; netCents: number };
+  /** Remboursement enregistré (carte ou crédit, garantie modèle comprise) : la facturation émet la note de crédit (étape 9). */
+  'payment.refunded': { refundId: string; rideId: string; paymentId: string; amountCents: number; mode: 'refund' | 'credit'; occurredAt: Date };
 }
 
 type Handler<K extends keyof DomainEvents> = (payload: DomainEvents[K]) => void | Promise<void>;

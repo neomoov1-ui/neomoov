@@ -1,7 +1,8 @@
-import { Body, Card } from '@neomoov/mobile-core/components';
+import { Body, Button, Card } from '@neomoov/mobile-core/components';
 import { spacing } from '@neomoov/mobile-core/theme';
 import { ErrorState, Loading, Notice, Row, Screen } from '@neomoov/mobile-core/ui';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet } from 'react-native';
 import { errorMessage } from '@/lib/api';
@@ -29,6 +30,7 @@ export default function StatementScreen() {
             <Body muted>{t(`statement.statuses.${data.status}`)}</Body>
           </Card>
           {!data.pdfAvailable ? <Notice>{t('statement.pdfSoon')}</Notice> : null}
+          {data.pdfUrl?.startsWith('http') ? <Button label={t('statement.openPdf')} variant="secondary" onPress={() => void WebBrowser.openBrowserAsync(data.pdfUrl!)} /> : null}
           {data.lines.map((line, index) => (
             <Pressable key={`${line.kind}-${index}`} accessibilityRole={line.rideId ? 'button' : 'text'} disabled={!line.rideId} onPress={() => line.rideId && router.push({ pathname: '/ride/[id]', params: { id: line.rideId } })}>
               <Card style={styles.card}>

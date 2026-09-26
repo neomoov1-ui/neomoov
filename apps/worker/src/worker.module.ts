@@ -1,7 +1,8 @@
 import {
-  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PackLifecycleService, PaymentJobsService, PaymentsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
   QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
 } from '@neomoov/api';
+import { InvoiceJobsService, InvoicingModule } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
 import type { Logger } from 'pino';
 
@@ -112,13 +113,59 @@ export class PacksWorker implements OnModuleInit {
   }
 }
 
+/** Règlement hebdomadaire (étape 9) : avec Redis, le worker porte la file `settlements` (passe du quart d'heure, PDF). Sans Redis, c'est l'API. */
+@Injectable()
+export class SettlementWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: SettlementJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register({ everyMs: 900_000 });
+  }
+}
+
+/**
+ * Registres et exports (étape 9) : avec Redis, le worker traite la file `exports` (lignes des registres à la fin des
+ * courses, rapports de synthèse PDF, exports de géolocalisation) et porte la passe horaire (reprise des registres,
+ * export de géolocalisation du mois précédent dès le 1er). Sans Redis, c'est l'API.
+ */
+@Injectable()
+export class LedgersWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: LedgerJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register({ everyMs: 3_600_000 });
+  }
+}
+
+/**
+ * Facturation (étape 9) : avec Redis, le worker traite la file `invoicing` (factures, notes de crédit, transmission au
+ * SEV, PDF) et fait la passe de reprise toutes les 5 minutes. Sans Redis, c'est l'API.
+ */
+@Injectable()
+export class InvoicingWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: InvoiceJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register({ sweepEveryMs: 300_000 });
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker],
     };
   }
 }

@@ -18,6 +18,7 @@
     "test": "vitest run",
     "dev": "tsc -p tsconfig.build.json && node --enable-source-maps dist/main.js",
     "start": "node --enable-source-maps dist/main.js",
+    "example:statement": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/example-statement.js",
     "openapi:export": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/export-openapi.js",
     "create-staff": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/create-staff.js"
   },

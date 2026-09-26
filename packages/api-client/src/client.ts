@@ -1,5 +1,7 @@
 import { ApiError } from './errors.js';
 import { adminResource, publicResource, staffAuthResource } from './admin-resources.js';
+import { invoicingResource } from './invoicing-resources.js';
+import { ledgersResource } from './ledger-resources.js';
 import { authResource, configResource, driverResource, meResource, paymentsResource, placesResource, quotesResource, ridesResource } from './resources.js';
 import type { HealthReport } from './types.js';
 
@@ -123,7 +125,11 @@ export class ApiClient {
   readonly payments = paymentsResource(this);
   readonly staffAuth = staffAuthResource(this);
   readonly admin = adminResource(this);
+  /** Registres de la redevance et des taxes, exports comptables et de géolocalisation (étape 9). */
+  readonly ledgers = ledgersResource(this);
   readonly public = publicResource(this);
+  /** Facturation certifiée (étape 9) : factures, PDF, vérification publique, SEV. */
+  readonly invoicing = invoicingResource(this);
 
   /** Santé de l'API : base, Redis, files (`GET /v1/health`). */
   readonly health = {

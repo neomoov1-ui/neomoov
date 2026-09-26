@@ -11,11 +11,13 @@ export const dynamic = 'force-dynamic';
 
 const ALLOWED: Record<string, 'GET' | 'POST'> = { leads: 'POST', quotes: 'POST', 'places/autocomplete': 'GET', 'places/details': 'GET' };
 const TRACK = /^track\/[A-Za-z0-9_-]{16,24}$/;
+/** Vérification d'une facture par son code QR (étape 9) : publique côté API, relayée sans clé comme le suivi. */
+const VERIFY_INVOICE = /^invoices\/verify\/[A-Za-z0-9_-]{44}$/;
 
 async function handle(req: NextRequest, context: { params: Promise<{ path: string[] }> }): Promise<NextResponse> {
   const { path } = await context.params;
   const target = path.join('/');
-  if (req.method === 'GET' && TRACK.test(target)) {
+  if (req.method === 'GET' && (TRACK.test(target) || VERIFY_INVOICE.test(target))) {
     return relay(await fetch(`${API_URL}/v1/public/${target}`, { headers: forwardHeaders(req), cache: 'no-store' }));
   }
   if (ALLOWED[target] !== req.method) return NextResponse.json({ code: 'NOT_RELAYED', message: 'Route non relayée' }, { status: 404 });

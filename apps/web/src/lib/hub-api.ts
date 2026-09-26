@@ -47,5 +47,7 @@ export async function staffStep<T>(step: 'login' | 'enroll' | 'confirm' | 'verif
 
 export const WRITE_ROLES = ['admin', 'operator'];
 export const canWrite = (roles: readonly string[] | undefined) => Boolean(roles?.some((r) => WRITE_ROLES.includes(r)));
+/** Relevés, versements et prélèvements (étape 9) : administration et finances. */
+export const FINANCE_ROLES = ['admin', 'finance'];
 
 export { ApiError };
