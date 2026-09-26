@@ -49,6 +49,8 @@ export const offerRideSummarySchema = z.object({
   paymentMethod: z.enum(PAYMENT_METHODS),
   paymentChoice: z.enum(PAYMENT_CHOICES),
   specialRequests: z.string().nullable(),
+  /** Numéro de vol d'une prise en charge à l'aéroport (le chauffeur suit l'arrivée). */
+  flightNumber: z.string().nullable(),
   /** Trajet estimé au devis (distance et durée), arrêts et préférences du client, affichés sur l'offre. */
   distanceMeters: count.nullable(),
   durationSeconds: count.nullable(),

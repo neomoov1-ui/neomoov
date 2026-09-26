@@ -471,6 +471,7 @@ export class DriverActivityService {
       language: language === 'en' || language === 'fr' ? language : null,
       preferences: preferencesOf(ride.preferences),
       specialRequests: ride.specialRequests,
+      flightNumber: ride.flightNumber,
       paymentChoice: ride.paymentChoice as DriverJob['paymentChoice'],
       driverFareCents: ride.fareCents ?? 0,
       distanceMeters: ride.distanceMeters,

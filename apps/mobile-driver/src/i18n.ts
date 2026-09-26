@@ -240,6 +240,7 @@ const fr = {
     stops: '{{count}} arrêt(s)',
     preferences: 'Préférences du client',
     special: 'Demande : {{text}}',
+    flight: 'Vol {{number}} : suivez l\'arrivée',
     accept: 'Accepter',
     decline: 'Décliner',
     counter: 'Contre-proposer',
@@ -309,6 +310,7 @@ const fr = {
     paymentApp: 'Payé dans l\'application',
     preferences: 'Préférences',
     special: 'Demandes spéciales',
+    flight: 'Vol à l\'arrivée : {{number}}',
     end: {
       title: 'Fin de course',
       total: 'Montant de la course',
@@ -753,6 +755,7 @@ const en: typeof fr = {
     stops: '{{count}} stop(s)',
     preferences: 'Client preferences',
     special: 'Request: {{text}}',
+    flight: 'Flight {{number}}: track the arrival',
     accept: 'Accept',
     decline: 'Decline',
     counter: 'Counter-offer',
@@ -822,6 +825,7 @@ const en: typeof fr = {
     paymentApp: 'Paid in the app',
     preferences: 'Preferences',
     special: 'Special requests',
+    flight: 'Arriving flight: {{number}}',
     end: {
       title: 'End of ride',
       total: 'Ride amount',

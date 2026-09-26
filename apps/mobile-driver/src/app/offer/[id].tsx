@@ -132,6 +132,7 @@ export default function OfferScreen() {
             <Card style={styles.card}>
               <Row label={t('offer.payment')} value={`${t(`offer.paymentChoices.${ride.paymentChoice}`)} · ${t(`methods.${ride.paymentMethod}`)}`} />
               <PreferenceChips preferences={ride.preferences} />
+              {ride.flightNumber ? <Body>{t('offer.flight', { number: ride.flightNumber })}</Body> : null}
               {ride.specialRequests ? <Body>{t('offer.special', { text: ride.specialRequests })}</Body> : null}
             </Card>
             {negotiation ? <Notice>{t('offer.clientProposal', { amount: money(offer.proposedTotalCents!), displayed: money(offer.displayedTotalCents!) })}</Notice> : null}

@@ -909,7 +909,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       pickupDistanceMeters: offer.pickupDistanceMeters, pickupSeconds: offer.pickupSeconds, isFavourite: this.favouriteOf(ride).requested === offer.driverId, sentAt: offer.sentAt.toISOString(), expiresAt: offer.expiresAt.toISOString(),
       ride: {
         id: ride.id, publicNumber: ride.publicNumber, type: ride.type, category: ride.reservedCategory, origin: { address: ride.originAddress, coordinates: parseGeoPoint(ride.originGeo) }, destination: { address: ride.destinationAddress, coordinates: parseGeoPoint(ride.destinationGeo) },
-        requestedAt: ride.requestedAt?.toISOString() ?? null, paymentMethod: ride.paymentMethod, paymentChoice: ride.paymentChoice as 'prepaid' | 'pay_driver_after', specialRequests: ride.specialRequests,
+        requestedAt: ride.requestedAt?.toISOString() ?? null, paymentMethod: ride.paymentMethod, paymentChoice: ride.paymentChoice as 'prepaid' | 'pay_driver_after', specialRequests: ride.specialRequests, flightNumber: ride.flightNumber,
         distanceMeters: ride.distanceMeters, durationSeconds: ride.durationSeconds, stops: Array.isArray(ride.stops) ? ride.stops.length : 0, preferences: preferencesOf(ride.preferences),
       },
     };
