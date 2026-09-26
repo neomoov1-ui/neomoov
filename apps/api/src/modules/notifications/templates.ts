@@ -224,6 +224,24 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Alerte : règlement en échec', body: (d, l) => `Le règlement d'un relevé a échoué (${money(d['netCents'], l)}).` },
     en: { title: 'Alert: settlement failed', body: (d, l) => `A statement settlement failed (${money(d['netCents'], l)}).` },
   },
+  // Agents IA (étape 13) : réponse de l'assistance au client (texte rédigé par l'agent ou accusé de réception), rapport au
+  // fondateur, alertes de l'exploitation (conversation escaladée, plafond de dépense atteint).
+  'agent.reply': {
+    fr: { title: 'Assistance Neomoov', body: (d) => str(d['text']) || 'Vous avez une réponse de l\'assistance Neomoov.' },
+    en: { title: 'Neomoov support', body: (d) => str(d['text']) || 'You have a reply from Neomoov support.' },
+  },
+  'agent.report': {
+    fr: { title: (d) => str(d['title']) || 'Rapport Neomoov', body: (d) => str(d['text']) || 'Le rapport est disponible dans My Hub.' },
+    en: { title: (d) => str(d['title']) || 'Neomoov report', body: (d) => str(d['text']) || 'The report is available in My Hub.' },
+  },
+  'alert.agent_escalation': {
+    fr: { title: 'Conversation à reprendre', body: (d) => `L'agent relation client transmet une conversation (${str(d['reason']) || 'escalade'}) : ${str(d['summary'])}` },
+    en: { title: 'Conversation to take over', body: (d) => `The customer relations agent handed over a conversation (${str(d['reason']) || 'escalation'}): ${str(d['summary'])}` },
+  },
+  'alert.agent_budget': {
+    fr: { title: 'Agent IA en mode manuel', body: (d) => `Plafond quotidien de dépense atteint : l'agent ${str(d['agentCode'])} passe en mode manuel.` },
+    en: { title: 'AI agent switched to manual', body: (d) => `Daily spending cap reached: agent ${str(d['agentCode'])} is now in manual mode.` },
+  },
 };
 
 const GENERIC: Template = {
@@ -249,7 +267,7 @@ export function renderNotification(code: string, data: Data, language: string | 
   const body = typeof template.body === 'function' ? template.body(data, l) : template.body;
   const footer = l === 'en' ? 'Neomoov, an app designed by customers for drivers.' : 'Neomoov, une application conçue par le client pour les chauffeurs.';
   const html = `<!doctype html><html lang="${l === 'en' ? 'en' : 'fr-CA'}"><body style="font-family:Arial,Helvetica,sans-serif;color:#0B1F3A;max-width:560px;margin:auto;padding:24px">`
-    + `<h1 style="font-size:20px;margin:0 0 12px">${escapeHtml(title)}</h1><p style="font-size:15px;line-height:1.5">${escapeHtml(body)}</p>`
+    + `<h1 style="font-size:20px;margin:0 0 12px">${escapeHtml(title)}</h1><p style="font-size:15px;line-height:1.5;white-space:pre-line">${escapeHtml(body)}</p>`
     + `<p style="font-size:12px;color:#555;margin-top:32px">${escapeHtml(footer)}</p></body></html>`;
   const deepLink: Record<string, string> = { template: code };
   for (const key of ['rideId', 'offerId', 'statementId', 'invoiceId']) if (typeof data[key] === 'string') deepLink[key] = data[key] as string;

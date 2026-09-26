@@ -23,6 +23,7 @@
     "create-staff": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/create-staff.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.128.0",
     "@neomoov/db": "workspace:*",
     "@neomoov/domain": "workspace:*",
     "@nestjs/common": "12.1.0",

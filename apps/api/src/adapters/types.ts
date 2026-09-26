@@ -3,6 +3,8 @@
  * implémentation simulée (`mock/`) et une implémentation réelle (`real/`), choisies par variable d'environnement.
  * Les signatures s'étoffent étape par étape ; elles restent la seule façon d'atteindre un service externe.
  */
+import type { AgentEffort, LlmUsage } from '@neomoov/domain';
+import type { z } from 'zod';
 
 export interface GeoPoint {
   lat: number;
@@ -226,15 +228,87 @@ export interface SevProvider {
   healthcheck(): Promise<{ ok: boolean; latencyMs: number | null; detail: string | null }>;
 }
 
+/** Pièce jointe d'un message au modèle : image ou PDF (vision sur un document de chauffeur), en base64. */
+export interface LlmAttachment {
+  kind: 'image' | 'pdf';
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf';
+  dataBase64: string;
+}
+
 export interface LlmMessage {
   role: 'user' | 'assistant';
   content: string;
+  attachments?: LlmAttachment[];
+}
+
+/** Paramètres communs d'une requête d'agent : modèle et effort de l'agent (en base), prompt système mis en cache. */
+export interface LlmCallOptions {
+  model: string;
+  effort: AgentEffort;
+  system: string;
+  messages: LlmMessage[];
+  maxTokens: number;
+}
+
+/** Décision structurée (classification, montant, proposition) : la sortie est validée par le schéma Zod. */
+export interface LlmStructuredRequest<T> extends LlmCallOptions {
+  schemaName: string;
+  schema: z.ZodType<T>;
+}
+
+export interface LlmResultMeta {
+  /** Modèle qui a servi la requête (celui de l'agent, ou le modèle de repli du serveur). */
+  model: string;
+  usage: LlmUsage;
+  stopReason: string | null;
+}
+
+export interface LlmStructuredResult<T> extends LlmResultMeta {
+  output: T;
+}
+
+/** Outil d'un agent qui agit : l'entrée est validée par le schéma avant `run` ; le résultat est renvoyé au modèle en JSON. */
+export interface LlmTool {
+  name: string;
+  description: string;
+  inputSchema: z.ZodObject;
+  run: (input: Record<string, unknown>) => Promise<unknown>;
+}
+
+export interface LlmToolsRequest extends LlmCallOptions {
+  tools: LlmTool[];
+  /** Requêtes au modèle au plus (boucle d'outils). */
+  maxIterations: number;
+}
+
+export interface LlmToolsResult extends LlmResultMeta {
+  /** Texte final de l'agent (vide si la boucle s'arrête sur le nombre maximal de requêtes). */
+  text: string;
+  iterations: number;
+}
+
+export type LlmErrorCode = 'refused' | 'invalid_output' | 'truncated' | 'rate_limited' | 'unavailable' | 'authentication' | 'bad_request';
+
+/** Erreur d'un appel au modèle, typée : `retryable` indique qu'une nouvelle tentative de la tâche a un sens. */
+export class LlmError extends Error {
+  constructor(
+    readonly code: LlmErrorCode,
+    message: string,
+    readonly retryable = false,
+  ) {
+    super(message);
+    this.name = 'LlmError';
+  }
 }
 
 export interface LlmProvider {
   readonly name: string;
-  /** Réponse structurée : `jsonSchema` impose un objet JSON conforme ; sans schéma, texte libre. */
+  /** Réponse structurée : `jsonSchema` impose un objet JSON conforme ; sans schéma, texte libre (appel simple, hors agents). */
   complete(input: { system: string; messages: LlmMessage[]; jsonSchema?: Record<string, unknown>; effort?: 'low' | 'medium' | 'high'; maxTokens?: number }): Promise<{ text: string; json?: unknown; inputTokens: number; outputTokens: number }>;
+  /** Sortie structurée validée par un schéma Zod (décisions des agents). */
+  structured<T>(request: LlmStructuredRequest<T>): Promise<LlmStructuredResult<T>>;
+  /** Boucle d'outils : le modèle appelle les outils déclarés jusqu'à sa réponse finale. */
+  runTools(request: LlmToolsRequest): Promise<LlmToolsResult>;
 }
 
 export interface StorageProvider {

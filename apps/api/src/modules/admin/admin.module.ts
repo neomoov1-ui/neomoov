@@ -11,5 +11,6 @@ import { AdminOverviewService } from './admin-overview.service.js';
   imports: [RidesModule, PricingModule],
   controllers: [AdminOverviewController, AdminDriversController, AdminDirectoryController],
   providers: [AdminOverviewService, AdminDriversService, AdminDirectoryService],
+  exports: [AdminOverviewService],
 })
 export class AdminModule {}

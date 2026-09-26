@@ -194,7 +194,8 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     const incidents = await until(() => db(app!).select().from(schema.incidents).where(and(eq(schema.incidents.rideId, ride.id), eq(schema.incidents.type, 'payment_failed'))), (rows) => rows.length > 0, 'incident payment_failed');
     expect(incidents).toHaveLength(1);
     const notices = await until(() => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, client.user.id), eq(schema.notifications.template, 'payment.authorization_failed'))), (rows) => rows.length > 0, 'avis au client');
-    expect(notices).toHaveLength(1);
+    // Matrice 5.14 : un avis par canal (push et courriel) ; un seul par canal.
+    expect(notices.filter((n) => n.channel === 'push')).toHaveLength(1);
   });
 
   it('réservation à plus de 6 jours : autorisation différée à l\'attribution, faite par la reprise quand la prise en charge approche', async ({ skip }) => {

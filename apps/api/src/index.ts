@@ -34,6 +34,8 @@ export { SettlementModule } from './modules/settlement/settlement.module.js';
 export { SettlementJobsService } from './modules/settlement/settlement-jobs.service.js';
 export { NotificationsModule } from './modules/notifications/notifications.module.js';
 export { NotificationJobsService } from './modules/notifications/notification-jobs.service.js';
+export { AgentsModule } from './modules/agents/agents.module.js';
+export { AgentJobsService } from './modules/agents/agent-jobs.service.js';
 export { RidesService } from './modules/rides/rides.service.js';
 export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';
