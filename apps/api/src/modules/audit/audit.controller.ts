@@ -9,7 +9,8 @@ import { z } from 'zod';
 import { ApiErrors, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { Roles, STAFF_READ_ROLES } from '../auth/actor.js';
+import { CurrentUser, ReqCtx, Roles, STAFF_READ_ROLES, type RequestContext, type UserActor } from '../auth/actor.js';
+import { AuditService } from './audit.service.js';
 
 /** Curseur opaque : `<instant ISO>_<identifiant>` de la dernière entrée de la page précédente. */
 const cursorSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z_[0-9a-f-]{36}$/, 'Curseur invalide');
@@ -64,7 +65,10 @@ function csvCell(value: unknown): string {
 @ApiBearerAuth()
 @Controller('admin/audit')
 export class AuditController {
-  constructor(@Inject(DB) private readonly database: Database) {}
+  constructor(
+    @Inject(DB) private readonly database: Database,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get()
   @Roles(...STAFF_READ_ROLES)
@@ -99,14 +103,17 @@ export class AuditController {
     };
   }
 
-  /** Export CSV (point-virgule) du journal filtré, 50 000 lignes au plus, pour un contrôle ou une demande d'autorité. */
+  /**
+   * Export CSV (point-virgule) du journal filtré, 50 000 lignes au plus, pour un contrôle ou une demande d'autorité.
+   * L'export lui-même est journalisé (filtres et nombre de lignes), après la lecture : il ne figure pas dans son propre fichier.
+   */
   @Get('export')
   @Roles('admin')
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export CSV du journal d\'audit filtré (période, entité, action, acteur, agent), administrateur' })
   @ZodQuery(exportQuerySchema)
   @ApiErrors(400, 401, 403, 429)
-  async export(@Query(zodPipe(exportQuerySchema)) query: z.infer<typeof exportQuerySchema>, @Res({ passthrough: true }) res: Response) {
+  async export(@Query(zodPipe(exportQuerySchema)) query: z.infer<typeof exportQuerySchema>, @CurrentUser() actor: UserActor, @ReqCtx() ctx: RequestContext, @Res({ passthrough: true }) res: Response) {
     const conditions: SQL[] = [...periodConditions(query)];
     if (query.entity) conditions.push(eq(schema.auditLog.entity, query.entity));
     if (query.entityId) conditions.push(eq(schema.auditLog.entityId, query.entityId));
@@ -118,6 +125,7 @@ export class AuditController {
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(schema.auditLog.occurredAt), desc(schema.auditLog.id))
       .limit(EXPORT_MAX_ROWS);
+    await this.audit.write([{ action: 'admin.audit_exported', entity: 'audit_log', entityId: null, after: { filters: query, rows: rows.length } }], { actor, ip: ctx.ip, correlationId: ctx.correlationId });
     const header = ['occurred_at', 'action', 'entity', 'entity_id', 'actor_user_id', 'actor_agent_code', 'ip_address', 'correlation_id', 'before', 'after'];
     const lines = rows.map((r) => [r.occurredAt.toISOString(), r.action, r.entity, r.entityId, r.actorUserId, r.actorAgentCode, r.ipAddress, r.correlationId, r.before, r.after].map(csvCell).join(';'));
     res.setHeader('content-type', 'text/csv; charset=utf-8');

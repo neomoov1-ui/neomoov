@@ -11,7 +11,8 @@ import type { Language } from '@/lib/i18n-resources';
 import type { HubUser } from '@/lib/server/gateway';
 import { HubUserContext } from './common';
 
-const NAV: Array<{ group: string; items: Array<{ key: string; href: string }> }> = [
+/** `adminOnly` : écran dont toutes les routes sont réservées à l'administrateur (masqué pour les autres rôles, l'API refuse de toute façon). */
+const NAV: Array<{ group: string; items: Array<{ key: string; href: string; adminOnly?: boolean }> }> = [
   { group: 'operations', items: [{ key: 'dashboard', href: '/hub' }, { key: 'rides', href: '/hub/courses' }, { key: 'newRide', href: '/hub/courses/nouvelle' }] },
   { group: 'drivers', items: [{ key: 'drivers', href: '/hub/chauffeurs' }, { key: 'documents', href: '/hub/documents' }, { key: 'vehicles', href: '/hub/vehicules' }] },
   { group: 'clients', items: [{ key: 'clients', href: '/hub/clients' }, { key: 'leads', href: '/hub/prospects' }] },
@@ -19,7 +20,7 @@ const NAV: Array<{ group: string; items: Array<{ key: string; href: string }> }>
   { group: 'finance', items: [{ key: 'statements', href: '/hub/releves' }, { key: 'invoices', href: '/hub/factures' }, { key: 'ledgers', href: '/hub/registres' }] },
   { group: 'safety', items: [{ key: 'incidents', href: '/hub/incidents' }, { key: 'quality', href: '/hub/qualite' }, { key: 'compliance', href: '/hub/conformite' }, { key: 'dataRequests', href: '/hub/demandes' }] },
   { group: 'intelligence', items: [{ key: 'agents', href: '/hub/agents' }, { key: 'reports', href: '/hub/rapports' }, { key: 'metrics', href: '/hub/metriques' }] },
-  { group: 'admin', items: [{ key: 'settings', href: '/hub/parametres' }, { key: 'staff', href: '/hub/equipe' }, { key: 'queues', href: '/hub/files' }, { key: 'audit', href: '/hub/journal' }] },
+  { group: 'admin', items: [{ key: 'settings', href: '/hub/parametres' }, { key: 'staff', href: '/hub/equipe', adminOnly: true }, { key: 'apiKeys', href: '/hub/cles', adminOnly: true }, { key: 'queues', href: '/hub/files' }, { key: 'audit', href: '/hub/journal' }] },
 ];
 
 /** Cadre de My Hub : navigation par modules (barre latérale, repliable sur mobile), utilisateur, langue, déconnexion. */
@@ -28,6 +29,7 @@ export function HubShell({ user, language, children }: { user: HubUser; language
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || '';
+  const admin = user.roles.includes('admin');
   const active = (href: string) => (href === '/hub' ? pathname === '/hub' : pathname === href || (pathname.startsWith(`${href}/`) && href !== '/hub/courses') || (href === '/hub/courses' && /^\/hub\/courses\/(?!nouvelle)/.test(pathname)));
 
   return (
@@ -48,7 +50,7 @@ export function HubShell({ user, language, children }: { user: HubUser; language
               <div key={section.group} className="mt-3">
                 <p className="px-2 text-[11px] font-bold uppercase tracking-widest text-slate-300">{t(`hub.nav.groups.${section.group}`)}</p>
                 <ul className="mt-1">
-                  {section.items.map((item) => (
+                  {section.items.filter((item) => admin || !item.adminOnly).map((item) => (
                     <li key={item.href}>
                       <Link
                         href={item.href}

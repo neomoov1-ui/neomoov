@@ -39,7 +39,7 @@ Selon la cause :
 | Envoi au mauvais destinataire | Demander au destinataire de supprimer et de confirmer par écrit ; révoquer le lien s'il est signé (les liens d'export expirent en 7 jours, ceux des relevés en 10 minutes) | |
 | Incident chez un fournisseur | Obtenir son avis écrit (nature, données, dates, mesures) ; appliquer ses recommandations | |
 
-Conserver les preuves : ne rien effacer. Exporter le journal d'audit de la période (`GET /v1/admin/audit/export`, administrateur ; aucun bouton d'export dans l'écran **Journal d'audit** pour l'instant) et les journaux du serveur (`docker compose -f infra/compose.prod.yml logs --since 48h api > /root/incident-AAAAMMJJ.log`).
+Conserver les preuves : ne rien effacer. Exporter le journal d'audit de la période (My Hub, **Journal d'audit** : dates « Du » et « Au », puis **Exporter en CSV**, administrateur ; ou `GET /v1/admin/audit/export`) et les journaux du serveur (`docker compose -f infra/compose.prod.yml logs --since 48h api > /root/incident-AAAAMMJJ.log`).
 
 ## 4. Inscrire au registre (le jour même)
 
@@ -56,9 +56,16 @@ Tout incident, même sans risque sérieux, est inscrit. Le règlement demande, p
 | Avis | Si le risque est sérieux : dates de transmission à la CAI et aux personnes, avis public éventuel et sa raison |
 | Mesures | Mesures prises pour réduire le risque et éviter un nouvel incident |
 
-**Où tenir le registre.** My Hub a un filtre « Registre des incidents de confidentialité » (Sécurité et conformité, **Incidents**), qui lit la colonne `incidents.privacy_breach` ; mais **aucun écran ni aucune route de l'API n'écrit encore cette colonne**, et un incident ne peut pas être créé depuis My Hub. Signalé comme manque au code. En attendant : tenir le registre dans un document confidentiel hors du dépôt (par exemple une note sécurisée Bitwarden « Registre des incidents de confidentialité », ou un fichier dans `C:\Users\PC\cles-neomoov\`), une entrée par incident avec les rubriques ci-dessus, et ne jamais le verser dans Git (il contient des renseignements personnels). Le reporter dans My Hub quand l'écran existera.
+**Où tenir le registre.** Dans My Hub (Sécurité et conformité, **Incidents**), administrateur ou opérateur :
 
-La CAI peut demander une copie du registre à tout moment.
+- nouvel incident : **Ouvrir un incident**, type « Confidentialité » ; les rubriques du jour même (dates, renseignements, circonstances, personnes, confinement) sont demandées et l'incident reçoit son numéro `IC-AAAA-NNN` (`POST /v1/admin/incidents`) ;
+- incident déjà ouvert (SOS, plainte, incident signalé par un agent) qui se révèle un incident de confidentialité : **Inscrire au registre** sur sa ligne (`PUT /v1/admin/incidents/{id}/privacy-breach`) ;
+- compléter la fiche au fil de la procédure : **Fiche du registre** (évaluation, avis, mesures, revue à 30 jours). La fiche affiche les suites à donner et le temps écoulé depuis la prise de connaissance ; elle reste ouverte après la clôture de l'incident. Une inscription ne se retire pas.
+- filtre « Registre des incidents de confidentialité » de la liste : tous les incidents inscrits.
+
+N'inscrire aucun nom de personne touchée : des catégories et des nombres suffisent. Le journal d'audit garde qui a inscrit ou modifié la fiche, les rubriques modifiées et les dates des avis, jamais le texte libre de la fiche.
+
+La CAI peut demander une copie du registre à tout moment : **Exporter le registre (CSV)** sur l'écran **Incidents** (administrateur, `GET /v1/admin/incidents/privacy-register.csv`, téléchargement journalisé). Le fichier contient des renseignements sensibles : ne jamais le verser dans Git ni l'envoyer autrement que par un canal sûr.
 
 ## 5. Évaluer le risque de préjudice sérieux (sous 48 heures)
 
@@ -102,6 +109,8 @@ Avis direct (courriel ou texto depuis les outils habituels, rédigé à la main,
 - les mesures que la personne peut prendre elle-même (changer un mot de passe ailleurs, surveiller son dossier de crédit, se méfier d'appels frauduleux) ;
 - les coordonnées pour obtenir plus d'information.
 
+**Modèle à copier.** Au bas de la **Fiche du registre** (My Hub), la rubrique « Modèle de notification » produit, à partir de la fiche enregistrée, le texte de l'avis aux personnes ou le contenu de la déclaration à la CAI, en français ou en anglais. Les passages entre crochets (NEQ, personne à joindre, mesures que la personne peut prendre) sont à compléter ; le texte est à faire relire par l'avocat avant le premier envoi. Inscrire ensuite la date et le moyen de chaque avis dans la fiche.
+
 Un avis public (site neomoov.net, publication) remplace l'avis direct seulement si l'avis direct risque de causer un préjudice accru, est trop difficile, ou si les coordonnées manquent. L'avis aux personnes peut être différé si l'aviser risque d'entraver une enquête menée par une autorité chargée de prévenir ou de réprimer les crimes : à décider avec l'avocat.
 
 ### Autres personnes
@@ -118,7 +127,7 @@ Si la loi fédérale (LPRPDE) s'applique aussi à l'activité en cause, une déc
 - Mettre à jour l'EFVP (`docs/privacy/efvp.md`) si l'incident révèle un risque non prévu.
 - Revue à 30 jours : la mesure a-t-elle tenu ?
 
-## Modèle d'entrée de registre (à copier hors du dépôt)
+## Modèle d'entrée de registre (secours, si My Hub est indisponible ; à tenir hors du dépôt et à reporter ensuite dans My Hub)
 
 ```
 Numéro : IC-AAAA-NNN
