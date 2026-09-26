@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { AddressField } from '@/components/address-field';
 import { OtpSignIn } from '@/components/otp-sign-in';
 import { QuoteList } from '@/components/quote-list';
-import { Action, Card, Field, Input, Notice, Textarea, cx } from '@/components/ui/kit';
+import { Action, Card, Checkbox, Field, Input, Notice, Textarea, cx } from '@/components/ui/kit';
 import { formatDateTime, formatMoney, montrealToIso } from '@/lib/format';
 import type { Language } from '@/lib/i18n-resources';
 import { createGuestApi, errorCode, publicApi } from '@/lib/site-api';
@@ -59,6 +59,8 @@ export function Booking() {
   const [lastName, setLastName] = useState('');
   const [special, setSpecial] = useState('');
   const [flight, setFlight] = useState('');
+  // Animal de compagnie en cage (D8) : seules les catégories qui l'acceptent sont tarifées.
+  const [pet, setPet] = useState(false);
   const [chosenMethod, setChosenMethod] = useState<PaymentMethod | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export function Booking() {
   const search = useCallback((input: string, sessionToken: string) => publicApi.public.autocomplete(input, sessionToken), []);
   const details = useCallback((placeId: string, sessionToken: string) => publicApi.public.placeDetails(placeId, sessionToken), []);
   const requestedAt = () => montrealToIso(date, time);
-  const request = (): QuoteRequest => ({ origin: origin!, destination: destination!, stops: [], requestedAt: requestedAt(), options: OPTIONS });
+  const request = (): QuoteRequest => ({ origin: origin!, destination: destination!, stops: [], requestedAt: requestedAt(), options: { ...OPTIONS, pet } });
   const paymentMethods = payAfterMethods(quotes?.paymentMethods);
   const paymentMethod = chosenMethod && paymentMethods.includes(chosenMethod) ? chosenMethod : (paymentMethods[0] ?? null);
 
@@ -161,6 +163,8 @@ export function Booking() {
               <Field label={t('book.date')} hint={t('book.minLead', { date: formatDateTime(earliest.toISOString(), lang) })}>{(p) => <Input {...p} type="date" required min={initial.date} value={date} onChange={(e) => { setDate(e.target.value); setStep('trip'); }} />}</Field>
               <Field label={t('book.time')}>{(p) => <Input {...p} type="time" required step={300} value={time} onChange={(e) => { setTime(e.target.value); setStep('trip'); }} />}</Field>
             </div>
+            <Checkbox label={t('book.pet')} checked={pet} onChange={(e) => { setPet(e.target.checked); setStep('trip'); }} />
+            {pet ? <p className="text-xs text-slate-600">{t('book.petHint')}</p> : null}
             {step === 'trip' ? <div><Action type="submit" busy={busy} disabled={busy || !origin || !destination}>{busy ? t('book.quoting') : t('book.getPrice')}</Action></div> : null}
           </form>
         </Card>
