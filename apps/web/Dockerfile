@@ -17,9 +17,13 @@ COPY apps/mobile-client/package.json apps/mobile-client/
 COPY apps/mobile-driver/package.json apps/mobile-driver/
 
 FROM base AS build
-# Valeur inscrite dans le bundle au moment de la construction : l'adresse de l'API vue du navigateur.
+# Valeurs inscrites dans le bundle au moment de la construction : l'adresse de l'API vue du navigateur, et le suivi des
+# erreurs (DSN public du projet Sentry « web », environnement, version ; vides : aucun suivi).
 ARG NEXT_PUBLIC_API_BASE_URL=https://api.neomoov.net
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_SENTRY_DSN=
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT=
+ARG NEXT_PUBLIC_APP_VERSION=
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION NEXT_TELEMETRY_DISABLED=1
 RUN pnpm install --frozen-lockfile --filter "@neomoov/web..."
 COPY packages/config packages/config
 COPY packages/domain packages/domain

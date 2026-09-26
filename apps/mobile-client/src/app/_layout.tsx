@@ -11,10 +11,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { i18n } from '@/i18n';
 import { offlineQueue } from '@/lib/api';
+import { initObservability } from '@/lib/observability';
 import { listenToNotificationTaps, registerForPush } from '@/lib/push';
 import { queryClient } from '@/lib/queries';
 import { useSession } from '@/lib/session';
 
+// Suivi des erreurs (Sentry) : seulement si EXPO_PUBLIC_SENTRY_DSN est renseignée au build.
+initObservability();
 void SplashScreen.preventAutoHideAsync();
 
 /**

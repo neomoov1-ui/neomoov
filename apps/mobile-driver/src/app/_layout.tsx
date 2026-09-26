@@ -13,6 +13,7 @@ import { i18n } from '@/i18n';
 import { api } from '@/lib/api';
 // La tâche de localisation doit être déclarée au chargement de l'application, avant tout démarrage par le système.
 import '@/lib/location';
+import { initObservability } from '@/lib/observability';
 import { usePreferences } from '@/lib/preferences';
 import { restorePresence } from '@/lib/presence';
 import { listenToNotificationTaps, registerForPush } from '@/lib/push';
@@ -20,6 +21,8 @@ import { keys, queryClient } from '@/lib/queries';
 import { useDriverRealtime } from '@/lib/realtime';
 import { useHasDriverRole, useSession } from '@/lib/session';
 
+// Suivi des erreurs (Sentry) : seulement si EXPO_PUBLIC_SENTRY_DSN est renseignée au build.
+initObservability();
 void SplashScreen.preventAutoHideAsync();
 
 /**

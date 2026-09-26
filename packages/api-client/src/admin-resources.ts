@@ -12,6 +12,7 @@ import type {
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
 import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
+import type { AdminMetrics } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -64,6 +65,8 @@ export function staffAuthResource(t: Transport) {
 export function adminResource(t: Transport) {
   return {
     dashboard: () => t.get<AdminDashboard>('/admin/dashboard'),
+    /** Métriques d'exploitation (étape 15) : courses par état, attribution, latences, files, paiements, fournisseurs. */
+    metrics: () => t.get<AdminMetrics>('/admin/metrics'),
     rides: (query: AdminRideListQuery = {}) => t.get<Page<AdminRideListItem>>('/admin/rides', { query }),
     ride: (rideId: string) => t.get<RideView>(`/admin/rides/${id(rideId)}`),
     rideSummary: (rideId: string) => t.get<AdminRideListItem>(`/admin/rides/${id(rideId)}/summary`),

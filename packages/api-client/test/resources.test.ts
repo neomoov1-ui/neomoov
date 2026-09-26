@@ -64,6 +64,15 @@ describe('ressources typées', () => {
   });
 });
 
+describe('ressources de My Hub', () => {
+  it('métriques d\'exploitation : GET /v1/admin/metrics', async () => {
+    const { calls, fetch } = fakeFetch(json(200, { windowHours: 24 }));
+    const api = createApiClient({ baseUrl: 'https://hub.neomoov.net/api', fetch });
+    await expect(api.admin.metrics()).resolves.toEqual({ windowHours: 24 });
+    expect(calls[0]).toMatchObject({ url: 'https://hub.neomoov.net/api/v1/admin/metrics', method: 'GET' });
+  });
+});
+
 describe('fetch des navigateurs', () => {
   it('est appelé sur l\'objet global, pas comme méthode du client (« Illegal invocation » sinon)', async () => {
     const browserFetch = function (this: unknown): Promise<Response> {

@@ -9,6 +9,17 @@ const TILES = 'https://tile.openstreetmap.org https://*.tile.openstreetmap.org';
 /** Sites autorisés à intégrer la réservation (`/reserver`) en iframe, séparés par des espaces (WordPress, partenaires). */
 const bookingAncestors = process.env['BOOKING_FRAME_ANCESTORS'] || 'https://neomoov.net https://www.neomoov.net';
 
+/** Suivi des erreurs (Sentry) : le navigateur envoie les événements à l'adresse d'ingestion du DSN ; rien sans DSN. */
+function sentryOrigin(): string {
+  const dsn = process.env['NEXT_PUBLIC_SENTRY_DSN']?.trim();
+  if (!dsn) return '';
+  try {
+    return ` ${new URL(dsn).origin}`;
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Politique de sécurité du contenu. Les scripts en ligne restent permis (amorçage de Next.js sans nonce) : le passage
  * aux nonces se fait avec le durcissement de l'étape 14. `unsafe-eval` seulement en développement (rechargement à chaud).
@@ -20,7 +31,7 @@ function csp(frameAncestors: string): string {
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: ${TILES}`,
     "font-src 'self' data:",
-    `connect-src 'self' ${apiOrigin} ${socketOrigin} ${TURNSTILE}`,
+    `connect-src 'self' ${apiOrigin} ${socketOrigin} ${TURNSTILE}${sentryOrigin()}`,
     `frame-src 'self' blob: ${TURNSTILE}`,
     "object-src 'none'",
     "base-uri 'self'",

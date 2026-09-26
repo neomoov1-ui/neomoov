@@ -20,10 +20,23 @@ export interface CircuitOptions {
 
 export type CircuitState = 'closed' | 'open' | 'half_open';
 
+/** Compteurs d'un circuit depuis le démarrage du processus (métriques d'exploitation, étape 15). */
+export interface CircuitStats {
+  name: string;
+  state: CircuitState;
+  failures: number;
+  totalFailures: number;
+  openings: number;
+  lastFailureAt: string | null;
+}
+
 export class CircuitBreaker {
   private failures = 0;
   private openedAt: number | null = null;
   private trial = false;
+  private totalFailures = 0;
+  private openings = 0;
+  private lastFailureAt: number | null = null;
 
   constructor(
     readonly name: string,
@@ -47,7 +60,12 @@ export class CircuitBreaker {
       return result;
     } catch (error) {
       this.failures += 1;
-      if (state === 'half_open' || this.failures >= this.options.failureThreshold) this.openedAt = this.clock();
+      this.totalFailures += 1;
+      this.lastFailureAt = this.clock();
+      if (state === 'half_open' || this.failures >= this.options.failureThreshold) {
+        this.openedAt = this.clock();
+        this.openings += 1;
+      }
       throw error;
     } finally {
       if (state === 'half_open') this.trial = false;
@@ -56,6 +74,10 @@ export class CircuitBreaker {
 
   snapshot(): { name: string; state: CircuitState; failures: number } {
     return { name: this.name, state: this.state, failures: this.failures };
+  }
+
+  stats(): CircuitStats {
+    return { ...this.snapshot(), totalFailures: this.totalFailures, openings: this.openings, lastFailureAt: this.lastFailureAt === null ? null : new Date(this.lastFailureAt).toISOString() };
   }
 }
 
@@ -75,5 +97,9 @@ export class CircuitBreakers {
 
   snapshot() {
     return [...this.circuits.values()].map((c) => c.snapshot());
+  }
+
+  stats(): CircuitStats[] {
+    return [...this.circuits.values()].map((c) => c.stats());
   }
 }

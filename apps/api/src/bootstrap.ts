@@ -8,7 +8,8 @@ import type { Logger } from 'pino';
 import { AppModule } from './app.module.js';
 import { AppExceptionFilter } from './common/app-exception.filter.js';
 import { correlationMiddleware } from './common/correlation.middleware.js';
-import { createLogger, currentCorrelationId, PinoNestLogger } from './common/logger.js';
+import { HttpMetrics, httpMetricsMiddleware } from './common/http-metrics.js';
+import { createLogger, PinoNestLogger } from './common/logger.js';
 import type { AppEnv } from './config/env.js';
 import { assertRoutePolicies } from './modules/auth/route-policies.js';
 import { AppIoAdapter } from './common/app-io.adapter.js';
@@ -37,12 +38,14 @@ export async function createApp(env: AppEnv, logger: Logger = createLogger('api'
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(helmet());
+  // Latence de chaque requête, par motif de route (métriques de My Hub et Prometheus, étape 15).
+  app.use(httpMetricsMiddleware(app.get(HttpMetrics)));
   app.use(correlationMiddleware);
+  // L'identifiant de corrélation est ajouté à chaque ligne par le journal lui-même (contexte de la requête).
   app.use(
     pinoHttp({
       logger,
       autoLogging: env.NODE_ENV !== 'test',
-      customProps: () => ({ correlationId: currentCorrelationId() }),
       customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
     }),
   );

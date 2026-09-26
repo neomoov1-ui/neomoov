@@ -50,12 +50,14 @@ async function failure(promise: Promise<unknown>): Promise<ApiError> {
 const healthReport: HealthReport = {
   status: 'ok',
   version: '0.0.0',
+  environment: 'test',
   uptimeSeconds: 12,
   checks: {
     database: { status: 'ok', latencyMs: 8 },
     redis: { status: 'not_configured' },
     queues: { status: 'not_configured', mode: 'memory', stats: [] },
   },
+  circuits: [{ name: 'maps.routes', state: 'closed', failures: 0 }],
 };
 
 describe("client d'API", () => {
@@ -103,6 +105,16 @@ describe("client d'API", () => {
     expect(tokens.refresh).toHaveBeenCalledTimes(1);
     expect(f.calls).toHaveLength(2);
     expect(headerOf(f.calls[1], 'authorization')).toBe('Bearer nouveau');
+  });
+
+  it('un identifiant de corrélation par appel, le même pour la nouvelle tentative après rafraîchissement', async () => {
+    const f = fakeFetch(json(401, { code: 'TOKEN_EXPIRED', message: 'Jeton expiré' }), json(200, { id: 'u1' }), json(200, {}), json(200, {}));
+    let n = 0;
+    const api = createApiClient({ baseUrl: 'https://api.test', fetch: f.fetch, correlationId: () => `mobile-${(n += 1).toString().padStart(8, '0')}`, tokens: { getAccessToken: () => 'ancien', refresh: async () => 'nouveau' } });
+    await api.get('/me');
+    await api.get('/rides');
+    await api.get('/me', { headers: { 'x-correlation-id': 'fourni-par-appelant' } });
+    expect(f.calls.map((c) => headerOf(c, 'x-correlation-id'))).toEqual(['mobile-00000001', 'mobile-00000001', 'mobile-00000002', 'fourni-par-appelant']);
   });
 
   it('partage un seul rafraîchissement entre des requêtes parallèles en 401', async () => {

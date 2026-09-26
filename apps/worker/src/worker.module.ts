@@ -1,12 +1,16 @@
 import {
-  AdaptersModule, AgentJobsService, AgentsModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, ComplianceJobsService, ComplianceModule, RetentionJobsService, RetentionModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  AdaptersModule, AgentJobsService, AgentsModule, APP_ENV, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, ComplianceJobsService, ComplianceModule, RetentionJobsService, RetentionModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
   QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, StuckRidesService, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { InvoiceJobsService, InvoicingModule } from '@neomoov/api';
-import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
+import { type DynamicModule, Inject, Injectable, Module, Optional, type OnModuleInit } from '@nestjs/common';
 import type { Logger } from 'pino';
 
-/** File de démonstration : un battement chaque minute, qui prouve que les files et la planification fonctionnent. */
+/**
+ * Battement chaque minute, qui prouve que les files et la planification fonctionnent. Avec `BETTERSTACK_HEARTBEAT_URL`,
+ * chaque battement prévient aussi le moniteur « heartbeat » de Better Stack : sans battement pendant le délai de grâce,
+ * le fondateur est alerté (worker arrêté, Redis ou planification en panne). Voir `docs/runbooks/observabilite.md`.
+ */
 @Injectable()
 export class HeartbeatService implements OnModuleInit {
   ticks = 0;
@@ -14,6 +18,7 @@ export class HeartbeatService implements OnModuleInit {
   constructor(
     private readonly queues: QueueService,
     @Inject(APP_LOGGER) private readonly logger: Logger,
+    @Optional() @Inject(APP_ENV) private readonly env?: Pick<AppEnv, 'BETTERSTACK_HEARTBEAT_URL'>,
   ) {}
 
   onModuleInit() {
@@ -22,9 +27,24 @@ export class HeartbeatService implements OnModuleInit {
       async (job) => {
         this.ticks += 1;
         this.logger.info({ job: job.name, ticks: this.ticks, mode: this.queues.mode }, 'battement du worker');
+        await this.ping();
       },
       { everyMs: 60_000, jobName: 'tick', concurrency: 1 },
     );
+  }
+
+  /** Prévient le moniteur de Better Stack ; un échec est journalisé, jamais bloquant (délai de 5 secondes). */
+  async ping(): Promise<boolean> {
+    const url = this.env?.BETTERSTACK_HEARTBEAT_URL;
+    if (!url) return false;
+    try {
+      const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5_000) });
+      if (!res.ok) this.logger.warn({ status: res.status }, 'Battement non reçu par Better Stack');
+      return res.ok;
+    } catch (error) {
+      this.logger.warn({ err: error }, 'Battement non envoyé à Better Stack');
+      return false;
+    }
   }
 }
 

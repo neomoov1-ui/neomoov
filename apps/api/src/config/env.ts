@@ -105,8 +105,15 @@ export const envSchema = z.object({
   R2_ACCESS_KEY_ID: optionalString,
   R2_SECRET_ACCESS_KEY: optionalString,
   R2_BUCKET: optionalString,
+  /** Suivi des erreurs : actif seulement si le DSN est renseigné (API et worker). */
   SENTRY_DSN: optionalString,
+  /** Environnement annoncé au suivi des erreurs et à la santé (`staging`, `production`) ; vide : NODE_ENV. */
+  SENTRY_ENVIRONMENT: optionalString,
+  /** Version déployée (étiquette ou empreinte Git, posée par le déploiement) ; vide : version du paquet. */
+  APP_VERSION: optionalString,
   BETTERSTACK_TOKEN: optionalString,
+  /** Moniteur « heartbeat » de Better Stack (adresse secrète) : le worker l'appelle à chaque battement, chaque minute ; vide : aucun appel. */
+  BETTERSTACK_HEARTBEAT_URL: z.string().url().optional(),
   EXPO_TOKEN: optionalString,
   /** Jeton d'accès du service push d'Expo, seulement si la « sécurité renforcée » des push est activée. */
   EXPO_PUSH_ACCESS_TOKEN: optionalString,
