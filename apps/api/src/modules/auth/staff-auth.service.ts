@@ -6,7 +6,7 @@
 import { schema } from '@neomoov/db';
 import type { StaffCreate, UserRole } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { AppError } from '../../common/app-error.js';
 import { decryptString, encryptString, generateTotpSecret, otpauthUri, randomBackupCode, sha256Hex, verifyTotp } from '../../common/crypto.js';
@@ -84,13 +84,21 @@ export class StaffAuthService {
     }
   }
 
-  /** Verrouillage progressif : 15 minutes au cinquième échec, doublées à chaque nouvelle série (section 8). */
+  /**
+   * Verrouillage progressif : 15 minutes au cinquième échec, doublées à chaque nouvelle série (section 8). Le compteur est
+   * incrémenté en base (revue 17.B) : des essais parallèles comptent chacun, celui qui atteint le seuil pose le verrou.
+   */
   private async registerFailure(credentials: CredentialsRow): Promise<void> {
     const [threshold, minutes] = await Promise.all([this.settings.number('auth.staff_lockout_threshold', 5), this.settings.number('auth.staff_lockout_minutes', 15)]);
-    const failedAttempts = credentials.failedAttempts + 1;
-    const series = Math.floor(failedAttempts / threshold);
-    const lockedUntil = failedAttempts % threshold === 0 ? new Date(Date.now() + minutes * 2 ** (series - 1) * 60_000) : credentials.lockedUntil;
-    await this.db.update(schema.staffCredentials).set({ failedAttempts, lockedUntil }).where(eq(schema.staffCredentials.userId, credentials.userId));
+    const [counted] = await this.db
+      .update(schema.staffCredentials)
+      .set({ failedAttempts: sql`${schema.staffCredentials.failedAttempts} + 1` })
+      .where(eq(schema.staffCredentials.userId, credentials.userId))
+      .returning({ failedAttempts: schema.staffCredentials.failedAttempts });
+    const failedAttempts = counted?.failedAttempts ?? credentials.failedAttempts + 1;
+    if (failedAttempts % threshold !== 0) return;
+    const lockedUntil = new Date(Date.now() + minutes * 2 ** (failedAttempts / threshold - 1) * 60_000);
+    await this.db.update(schema.staffCredentials).set({ lockedUntil }).where(eq(schema.staffCredentials.userId, credentials.userId));
   }
 
   /** Inscription du second facteur : secret et QR, à confirmer par un premier code. */
@@ -163,7 +171,16 @@ export class StaffAuthService {
   private async openSession(userId: string, ctx: SessionContext, amr: string[] = ['pwd', 'mfa']) {
     const user = this.users.requireUsable(await this.users.findById(userId));
     const roles = await this.users.rolesOf(userId);
-    await this.db.update(schema.staffCredentials).set({ failedAttempts: 0, lockedUntil: null }).where(eq(schema.staffCredentials.userId, userId));
+    // Remise à zéro seulement si aucun verrou n'a été posé entre-temps (essais parallèles) : sinon 423, pas de session.
+    const reset = await this.db
+      .update(schema.staffCredentials)
+      .set({ failedAttempts: 0, lockedUntil: null })
+      .where(and(eq(schema.staffCredentials.userId, userId), or(isNull(schema.staffCredentials.lockedUntil), lte(schema.staffCredentials.lockedUntil, new Date()))))
+      .returning({ userId: schema.staffCredentials.userId });
+    if (!reset.length) {
+      const credentials = await this.credentialsOf(userId);
+      if (credentials) this.assertNotLocked(credentials);
+    }
     const session = await this.tokens.createSession({ userId, deviceId: null, ip: ctx.ip, userAgent: ctx.userAgent, amr });
     const access = await this.tokens.issueAccessToken({ userId, sessionId: session.sessionId, primaryRole: user.primaryRole, roles, amr });
     return {
