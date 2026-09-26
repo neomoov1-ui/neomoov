@@ -95,8 +95,11 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     expect(events).toEqual(['offers_sent', 'driver_accepts', 'driver_departs', 'driver_arrives', 'ride_starts', 'ride_ends', 'client_rates']);
 
     const journal = await request(server()).get(`/v1/rides/${rideId}/events`).set(bearer(client)).expect(200);
-    const types = journal.body.map((e: { type: string }) => e.type);
-    expect(types).toEqual(['client_confirms', 'offers_sent', 'driver_accepts', 'driver_departs', 'driver_arrives', 'ride_starts', 'ride_ends', 'client_rates']);
+    const types = journal.body.map((e: { type: string }) => e.type) as string[];
+    // Signaux de paiement (étape 7) écrits en asynchrone entre les transitions : vérifiés à part, sans ordre imposé.
+    const payment = ['payment_authorized', 'ride_captured', 'tip_captured'];
+    expect(types.filter((t) => !payment.includes(t))).toEqual(['client_confirms', 'offers_sent', 'driver_accepts', 'driver_departs', 'driver_arrives', 'ride_starts', 'ride_ends', 'client_rates']);
+    expect(types).toEqual(expect.arrayContaining(['payment_authorized', 'tip_captured']));
     expect(journal.body.find((e: { type: string }) => e.type === 'driver_accepts').actorKind).toBe('operator');
     expect(journal.body.find((e: { type: string }) => e.type === 'ride_ends').data.finalPriceCents).toBe(quote.totalCents);
     // Rejouer une transition n'ajoute pas d'événement (idempotence).

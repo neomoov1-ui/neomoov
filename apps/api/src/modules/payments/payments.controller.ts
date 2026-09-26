@@ -4,7 +4,7 @@ import {
   setupIntentConfirmSchema, setupIntentResponseSchema, tipInputSchema, uuid,
 } from '@neomoov/domain';
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Req, type RawBodyRequest } from '@nestjs/common';
-import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { AppError } from '../../common/app-error.js';
@@ -75,8 +75,8 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Paiements de la course (reçu) : autorisation, capture, pourboire, frais, remboursements ; carte masquée' })
   @ZodResponse(200, z.array(paymentViewSchema))
   @ApiErrors(401, 403, 404, 429)
-  ridePayments(@Param('id', zodPipe(uuid)) id: string) {
-    return this.payments.ridePayments(id);
+  ridePayments(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
+    return this.payments.ridePaymentsFor(id, user.userId);
   }
 
   @Get('me/balance')
@@ -161,7 +161,9 @@ export class WebhooksController {
   @Public()
   @NoAudit()
   @HttpCode(200)
-  @ApiExcludeEndpoint()
+  @ApiOperation({ summary: 'Webhook Stripe : signature vérifiée sur le corps brut, un événement n\'est enregistré et traité qu\'une fois' })
+  @ZodResponse(200, z.object({ received: z.literal(true), duplicate: z.boolean() }))
+  @ApiErrors(400, 429)
   async stripe(@Req() req: RawBodyRequest<Request>, @Headers('stripe-signature') signature: string | undefined) {
     if (!signature || !req.rawBody) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook absente', 400);
     const event = await this.payments.verifyWebhook(req.rawBody, signature);
@@ -206,7 +208,7 @@ export class AdminPaymentsController {
   @Roles('admin', 'finance')
   @HttpCode(200)
   @ApiOperation({ summary: 'Reprend tout de suite les webhooks de paiement en attente ou en échec (sinon repris par le worker)' })
-  @ZodResponse(200, z.object({ retried: z.number().int().min(0) }))
+  @ZodResponse(200, z.object({ retried: z.number().int().min(0), authorized: z.number().int().min(0) }))
   @ApiErrors(401, 403, 429)
   retryWebhooks() {
     return this.jobs.sweep();

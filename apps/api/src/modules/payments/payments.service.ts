@@ -118,11 +118,12 @@ export class PaymentsService {
       const [inserted] = await tx
         .insert(schema.clientPaymentMethods)
         .values({ clientId: client.id, stripePaymentMethodId: card.ref, brand: card.brand, last4: card.last4, expMonth: card.expMonth, expYear: card.expYear, isDefault: makeDefault })
-        .onConflictDoUpdate({ target: schema.clientPaymentMethods.stripePaymentMethodId, set: { deletedAt: null, isDefault: makeDefault } })
+        // Une carte déjà connue n'est reprise que pour ce même client (jamais la ligne d'un autre compte).
+        .onConflictDoUpdate({ target: schema.clientPaymentMethods.stripePaymentMethodId, set: { deletedAt: null, isDefault: makeDefault }, setWhere: eq(schema.clientPaymentMethods.clientId, client.id) })
         .returning();
-      return inserted!;
+      if (!inserted) throw AppError.forbidden('PAYMENT_METHOD_NOT_YOURS', 'Cette carte appartient à un autre compte');
+      return inserted;
     });
-    if (row.clientId !== client.id) throw AppError.forbidden('PAYMENT_METHOD_NOT_YOURS', 'Cette carte appartient à un autre compte');
     this.audit.record({ action: 'payment_method.added', entity: 'client_payment_methods', entityId: row.id, after: { brand: row.brand, last4: row.last4, isDefault: row.isDefault } });
     return this.methodView(row);
   }
@@ -171,10 +172,9 @@ export class PaymentsService {
 
   // --- Réservation ---
 
-  /** Solde dû après un échec de capture : aucune nouvelle course avant le règlement (5.6). */
-  async assertCanBook(clientId: string): Promise<void> {
-    const [client] = await this.db.select({ balance: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.id, clientId)).limit(1);
-    if (client && client.balance > 0) throw new AppError('BALANCE_DUE', 'Réglez le solde dû de votre dernière course avant d\'en réserver une nouvelle', 402, { balanceDueCents: client.balance });
+  /** Solde dû après un échec de capture : aucune nouvelle course avant le règlement (5.6). Solde lu avec le profil client. */
+  assertCanBook(balanceDueCents: number): void {
+    if (balanceDueCents > 0) throw new AppError('BALANCE_DUE', 'Réglez le solde dû de votre dernière course avant d\'en réserver une nouvelle', 402, { balanceDueCents });
   }
 
   private async authorizationRules() {
@@ -239,11 +239,20 @@ export class PaymentsService {
 
   // --- Abonnements aux événements de course ---
 
-  /** Planifiée attribuée : autorisation sur la carte choisie à la réservation. */
-  async onRideAssigned(rideId: string): Promise<void> {
+  /**
+   * Planifiée attribuée : autorisation sur la carte choisie à la réservation. Une autorisation Stripe expire après
+   * 7 jours : tant que la prise en charge est à plus de `payments.authorization_lead_days` (6) jours, elle est différée
+   * et faite par la reprise périodique (`authorizeDueScheduled`).
+   */
+  async onRideAssigned(rideId: string, now = new Date()): Promise<void> {
     const payment = await this.ridePayment(rideId);
     if (!payment || payment.status !== 'pending' || payment.stripePaymentIntentId || !payment.stripePaymentMethodId) return;
     const ride = await this.rideOf(rideId);
+    const leadDays = await this.settings.number('payments.authorization_lead_days', 6);
+    if (ride.requestedAt && ride.requestedAt.getTime() - now.getTime() > leadDays * 86_400_000) {
+      await this.journal(rideId, 'payment_authorization_deferred', { until: new Date(ride.requestedAt.getTime() - leadDays * 86_400_000).toISOString() });
+      return;
+    }
     const [client] = ride.clientId ? await this.db.select({ userId: schema.clients.userId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
     if (!client) return;
     const amount = authorizationCents(ride.maxConsentedCents, await this.authorizationRules());
@@ -260,6 +269,18 @@ export class PaymentsService {
     await this.journal(rideId, 'payment_authorization_failed', { code: auth.failureCode ?? auth.status });
     await this.openIncident(rideId, `Autorisation refusée à l'attribution de la course ${ride.publicNumber} (${auth.failureCode ?? auth.status}) : le client doit choisir une autre carte ou payer le chauffeur.`, 'high');
     await this.outbox.queue({ recipientUserId: client.userId, template: 'payment.authorization_failed', data: { rideId, publicNumber: ride.publicNumber } });
+  }
+
+  /** Réservations attribuées dont l'autorisation a été différée et dont la prise en charge approche : autorisées maintenant. */
+  async authorizeDueScheduled(now = new Date()): Promise<number> {
+    const leadDays = await this.settings.number('payments.authorization_lead_days', 6);
+    const rows = await this.db.execute<{ ride_id: string }>(sql`
+      SELECT p.ride_id FROM payments p JOIN rides r ON r.id = p.ride_id
+      WHERE p.kind = 'ride' AND p.status = 'pending' AND p.stripe_payment_intent_id IS NULL AND p.stripe_payment_method_id IS NOT NULL
+        AND r.state IN ('assigned', 'en_route', 'arrived', 'in_progress') AND r.requested_at <= ${new Date(now.getTime() + leadDays * 86_400_000).toISOString()}::timestamptz
+      LIMIT 100`);
+    for (const row of rows) await this.onRideAssigned(row.ride_id, now);
+    return rows.length;
   }
 
   /** Fin de course : capture du montant dû (prix final moins les crédits), jamais au-delà de l'autorisation. */
@@ -501,6 +522,13 @@ export class PaymentsService {
       id: row.id, rideId: row.rideId, kind: row.kind as PaymentView['kind'], method: row.method, status: row.status, collectedBy: row.collectedBy, authorizedCents: row.authorizedCents,
       capturedCents: row.capturedCents, refundedCents, driverConfirmedCents: row.driverConfirmedCents ?? null, card, failureCode: row.failureCode ?? null, createdAt: row.createdAt.toISOString(),
     };
+  }
+
+  /** Paiements vus par un participant : le chauffeur voit les montants, jamais la carte du client. */
+  async ridePaymentsFor(rideId: string, userId: string): Promise<PaymentView[]> {
+    const views = await this.ridePayments(rideId);
+    const [ride] = await this.db.select({ driverUserId: schema.drivers.userId }).from(schema.rides).leftJoin(schema.drivers, eq(schema.drivers.id, schema.rides.driverId)).where(eq(schema.rides.id, rideId)).limit(1);
+    return ride?.driverUserId === userId ? views.map((v) => ({ ...v, card: null })) : views;
   }
 
   /** Paiements d'une course (reçu du client, My Hub), carte masquée, remboursements cumulés. */

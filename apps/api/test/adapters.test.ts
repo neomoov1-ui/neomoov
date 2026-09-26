@@ -1,3 +1,4 @@
+import { inspect } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { MockMapsProvider, MockPaymentProvider, haversineMeters } from '../src/adapters/mock/index.js';
 import { realPayment, realSms, realStorage } from '../src/adapters/real/index.js';
@@ -41,8 +42,8 @@ describe('adaptateurs simulés', () => {
     const withKey = loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://x', PAYMENT_PROVIDER: 'real', STRIPE_SECRET_KEY: 'sk_test_x' }, { dotenv: false });
     const provider = realPayment(withKey);
     expect(provider.name).toBe('stripe');
-    // Les méthodes typées Promise rejettent (jamais de lancer synchrone) : `provider.cancel(id).catch(...)` reste sûr.
-    await expect(provider.cancel('pi_x')).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501 });
+    // Adaptateur livré (étape 7) : sans secret de webhook, la vérification refuse proprement, sans appel réseau.
+    await expect(provider.verifyWebhook('{}', 't=1,v1=00')).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501 });
   });
 
   it('un adaptateur réel est un objet ordinaire pour NestJS et le journal (pas de crochets fantômes)', () => {
@@ -53,7 +54,10 @@ describe('adaptateurs simulés', () => {
     expect(provider['onModuleDestroy']).toBeUndefined();
     expect(provider['onApplicationBootstrap']).toBeUndefined();
     expect(() => JSON.stringify(provider)).not.toThrow();
-    expect(JSON.parse(JSON.stringify(provider))).toEqual({ name: 'stripe', configured: false });
+    expect(JSON.parse(JSON.stringify(provider))).toEqual({ name: 'stripe', configured: true });
+    // La clé secrète n'apparaît ni dans le journal ni à l'inspection de l'objet.
+    expect(JSON.stringify(provider)).not.toContain('sk_test_x');
+    expect(inspect(provider, { depth: 5, showHidden: true })).not.toContain('sk_test_x');
     expect(realSms(env).name).toBe('twilio');
     expect(realStorage(env).name).toBe('s3');
   });

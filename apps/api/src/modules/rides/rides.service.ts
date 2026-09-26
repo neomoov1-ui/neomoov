@@ -167,8 +167,8 @@ export class RidesService {
     return { active, items: views };
   }
 
-  async clientOfUser(userId: string): Promise<{ id: string; rideCount: number } | null> {
-    const [row] = await this.db.select({ id: schema.clients.id, rideCount: schema.clients.rideCount }).from(schema.clients).where(eq(schema.clients.userId, userId)).limit(1);
+  async clientOfUser(userId: string): Promise<{ id: string; rideCount: number; balanceDueCents: number } | null> {
+    const [row] = await this.db.select({ id: schema.clients.id, rideCount: schema.clients.rideCount, balanceDueCents: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, userId)).limit(1);
     return row ?? null;
   }
 
@@ -237,7 +237,7 @@ export class RidesService {
       : undefined;
     // Paiements (étape 7) : aucune course avec un solde dû ; carte prépayée : immédiate autorisée avant sa création
     // (un refus empêche la demande), planifiée autorisée à l'attribution sur la carte choisie maintenant.
-    await this.payments.assertCanBook(client.id);
+    this.payments.assertCanBook(client.balanceDueCents);
     const card = input.paymentChoice === 'prepaid' && isCardMethod(input.paymentMethod) ? await this.payments.methodForClient(client.id, input.paymentMethodId) : null;
     const authorization: RideAuthorization | null =
       card && type === 'immediate' ? await this.payments.authorizeBeforeRide({ userId: actor.userId, method: card, maxConsentedCents: input.maxConsentedCents, idempotencyKey, quoteId: input.quoteId }) : null;

@@ -2,7 +2,7 @@
  * Implémentations simulées : déterministes, en mémoire, sans réseau. Elles enregistrent leurs appels (`calls`) pour
  * les tests et journalisent en développement. Aucune ne contient de règle métier.
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { AppError } from '../../common/app-error.js';
 import { haversineMeters } from '../../common/geo.js';
 import type {
@@ -11,7 +11,9 @@ import type {
 } from '../types.js';
 
 let counter = 0;
-const nextId = (prefix: string) => `${prefix}_${(++counter).toString(36).padStart(6, '0')}`;
+/** Préfixe propre au processus : deux processus (fichiers de tests en parallèle) ne produisent jamais le même identifiant. */
+const RUN = randomBytes(3).toString('hex');
+const nextId = (prefix: string) => `${prefix}_${RUN}${(++counter).toString(36).padStart(6, '0')}`;
 
 export { haversineMeters };
 

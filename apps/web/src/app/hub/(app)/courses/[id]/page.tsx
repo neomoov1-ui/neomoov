@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ErrorBlock, Loading, RideStateBadge, useCanWrite, useDebounced, useErrorText, useLang } from '@/components/hub/common';
+import { RidePayments } from '@/components/hub/ride-payments';
 import { Action, Badge, Card, Checkbox, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, Textarea, focus } from '@/components/ui/kit';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
@@ -88,6 +89,8 @@ export default function RideDetailPage() {
           </dl>
         </Card>
       </div>
+
+      <RidePayments rideId={id} />
 
       {dispatch.data && dispatch.data.offers.length > 0 ? (
         <Card title={t('hub.rides.views.active')}>

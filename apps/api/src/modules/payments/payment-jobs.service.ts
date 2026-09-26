@@ -8,6 +8,7 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import type { Logger } from 'pino';
 import { DomainEventsService } from '../../common/domain-events.js';
+import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { QueueService } from '../../infra/queue.module.js';
 import { PaymentsService } from './payments.service.js';
@@ -29,11 +30,13 @@ export class PaymentJobsService implements OnModuleInit {
     private readonly queues: QueueService,
     private readonly events: DomainEventsService,
     @Inject(APP_LOGGER) private readonly logger: Logger,
+    @Inject(APP_ENV) private readonly env: AppEnv,
   ) {}
 
   onModuleInit() {
     // En mode mémoire, le processus qui ajoute une tâche doit aussi la traiter ; avec Redis, c'est le worker.
-    if (this.queues.mode === 'memory') this.register();
+    // Hors tests, la reprise périodique tourne aussi dans l'API sans Redis (autorisations différées, webhooks en échec).
+    if (this.queues.mode === 'memory') this.register(this.env.NODE_ENV === 'test' ? {} : { sweepEveryMs: 300_000 });
     this.events.on('ride.assigned', (p) => this.enqueue({ kind: 'assigned', rideId: p.rideId }, `assigned:${p.rideId}`));
     this.events.on('ride.completed', (p) => this.enqueue({ kind: 'completed', rideId: p.rideId }, `completed:${p.rideId}`));
     this.events.on('ride.cancelled_by_client', (p) => this.enqueue({ kind: 'fee', rideId: p.rideId, feeCents: p.feeCents, fee: 'cancellation_fee' }, `fee:${p.rideId}`));
@@ -78,11 +81,12 @@ export class PaymentJobsService implements OnModuleInit {
     }
   }
 
-  /** Reprise des webhooks reçus mais non traités (panne, redémarrage) ou en échec. */
-  async sweep(): Promise<{ retried: number }> {
+  /** Reprise : webhooks reçus mais non traités (panne, redémarrage) ou en échec, autorisations différées arrivées à échéance. */
+  async sweep(): Promise<{ retried: number; authorized: number }> {
     const ids = await this.payments.pendingWebhooks();
     for (const id of ids) await this.payments.processWebhook(id);
-    if (ids.length) this.logger.info({ retried: ids.length }, 'Webhooks de paiement repris');
-    return { retried: ids.length };
+    const authorized = await this.payments.authorizeDueScheduled();
+    if (ids.length || authorized) this.logger.info({ retried: ids.length, authorized }, 'Reprise des paiements');
+    return { retried: ids.length, authorized };
   }
 }

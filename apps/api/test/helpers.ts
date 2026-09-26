@@ -12,6 +12,7 @@ import { RateLimitService } from '../src/common/rate-limit.service.js';
 import { loadDotenvFromRoot, loadEnv, type AppEnv } from '../src/config/env.js';
 import { DB, type Database } from '../src/infra/db.module.js';
 import { StaffAuthService } from '../src/modules/auth/staff-auth.service.js';
+import { PaymentsService } from '../src/modules/payments/payments.service.js';
 import { UsersService } from '../src/modules/users/users.service.js';
 
 /**
@@ -106,8 +107,11 @@ export async function requestOtp(app: NestExpressApplication, phone: string): Pr
   return lastOtpCode(app, phone);
 }
 
-/** Inscription ou connexion complète par code SMS. */
-export async function loginByOtp(app: NestExpressApplication, phone = testPhone(), extra: Record<string, unknown> = {}): Promise<TokensView> {
+/**
+ * Inscription ou connexion complète par code SMS. Une carte simulée est enregistrée par défaut (étape 7 : une course
+ * prépayée par carte exige une carte) ; `{ card: false }` laisse le compte sans carte.
+ */
+export async function loginByOtp(app: NestExpressApplication, phone = testPhone(), extra: Record<string, unknown> = {}, options: { card?: boolean } = {}): Promise<TokensView> {
   const code = await requestOtp(app, phone);
   const res = await request(app.getHttpServer())
     .post('/v1/auth/otp/verify')
@@ -115,7 +119,20 @@ export async function loginByOtp(app: NestExpressApplication, phone = testPhone(
   if (res.status !== 200) throw new Error(`Connexion par code refusée : ${res.status} ${JSON.stringify(res.body)}`);
   const tokens = res.body as TokensView;
   trackUser(tokens.user.id);
+  if (options.card !== false) await addTestCard(app, tokens.user.id);
   return tokens;
+}
+
+/** Carte simulée (visa 4242) enregistrée comme carte par défaut, comme le ferait la feuille de paiement Stripe. */
+export async function addTestCard(app: NestExpressApplication, userId: string): Promise<string | null> {
+  const payments = app.get(PaymentsService);
+  try {
+    const intent = await payments.setupIntent(userId);
+    return (await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId, makeDefault: true })).id;
+  } catch (error) {
+    if ((error as { code?: string }).code === 'CLIENT_PROFILE_REQUIRED') return null;
+    throw error;
+  }
 }
 
 export interface StaffSession {
@@ -212,6 +229,7 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     const rideIds = rides.map((r) => r.id);
     await database.delete(schema.incidents).where(inArray(schema.incidents.rideId, rideIds));
     await database.delete(schema.packConsumptions).where(inArray(schema.packConsumptions.rideId, rideIds));
+    await database.execute(sql`DELETE FROM refunds WHERE payment_id IN (SELECT id FROM payments WHERE ride_id IN ${rideIds})`);
     await database.delete(schema.payments).where(inArray(schema.payments.rideId, rideIds));
     // `ride_events` est en ajout seul (déclencheur) : le nettoyage des courses de test le suspend le temps d'une transaction.
     await database.transaction(async (tx) => {
@@ -236,6 +254,7 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   await database.delete(schema.competitorBenchmarks).where(inArray(schema.competitorBenchmarks.recordedByUserId, ids));
   await database.delete(schema.apiKeys).where(inArray(schema.apiKeys.createdByUserId, ids));
   await database.delete(schema.dataRequests).where(inArray(schema.dataRequests.userId, ids));
+  await database.delete(schema.credits).where(inArray(schema.credits.userId, ids));
   await database.delete(schema.users).where(inArray(schema.users.id, ids));
   createdUserIds.clear();
 }

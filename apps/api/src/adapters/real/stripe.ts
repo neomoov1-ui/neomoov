@@ -73,20 +73,28 @@ function authorizationOf(intent: { id: string; status: string; client_secret?: s
 
 export class StripePaymentProvider implements PaymentProvider {
   readonly name = 'stripe';
+  // Champs privés JavaScript : jamais énumérés, ni par le journal ni par util.inspect.
+  readonly #secretKey: string;
+  readonly #webhookSecret: string | undefined;
+  readonly #fetch: typeof fetch;
 
-  constructor(
-    private readonly secretKey: string,
-    private readonly webhookSecret: string | undefined,
-    private readonly fetchImpl: typeof fetch = (input, init) => fetch(input, init),
-  ) {}
+  constructor(secretKey: string, webhookSecret: string | undefined, fetchImpl: typeof fetch = (input, init) => fetch(input, init)) {
+    this.#secretKey = secretKey;
+    this.#webhookSecret = webhookSecret;
+    this.#fetch = fetchImpl;
+  }
+
+  toJSON() {
+    return { name: this.name, configured: true };
+  }
 
   private async call<T>(method: 'GET' | 'POST', path: string, params: Params = {}, idempotencyKey?: string): Promise<T> {
     const body = encodeForm(params).join('&');
     const url = method === 'GET' && body ? `${API}${path}?${body}` : `${API}${path}`;
-    const headers: Record<string, string> = { authorization: `Bearer ${this.secretKey}`, 'stripe-version': API_VERSION };
+    const headers: Record<string, string> = { authorization: `Bearer ${this.#secretKey}`, 'stripe-version': API_VERSION };
     if (method === 'POST') headers['content-type'] = 'application/x-www-form-urlencoded';
     if (idempotencyKey) headers['idempotency-key'] = idempotencyKey;
-    const res = await this.fetchImpl(url, { method, headers, ...(method === 'POST' ? { body } : {}), signal: AbortSignal.timeout(20_000) });
+    const res = await this.#fetch(url, { method, headers, ...(method === 'POST' ? { body } : {}), signal: AbortSignal.timeout(20_000) });
     const json = (await res.json().catch(() => ({}))) as T & StripeErrorBody;
     if (!res.ok) {
       const error = json.error ?? {};
@@ -163,9 +171,9 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   async verifyWebhook(rawBody: string | Buffer, signature: string): Promise<WebhookEvent> {
-    if (!this.webhookSecret) throw new AppError('PROVIDER_NOT_CONFIGURED', 'STRIPE_WEBHOOK_SECRET absente', 501);
+    if (!this.#webhookSecret) throw new AppError('PROVIDER_NOT_CONFIGURED', 'STRIPE_WEBHOOK_SECRET absente', 501);
     const payload = rawBody.toString();
-    if (!verifyStripeSignature(this.webhookSecret, payload, signature)) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);
+    if (!verifyStripeSignature(this.#webhookSecret, payload, signature)) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);
     return JSON.parse(payload) as WebhookEvent;
   }
 
