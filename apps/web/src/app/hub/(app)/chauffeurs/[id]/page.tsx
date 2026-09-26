@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { EnumBadge, ErrorBlock, Loading, useCanWrite, useErrorText, useLang } from '@/components/hub/common';
 import { DocumentViewer } from '@/components/hub/document-viewer';
 import { VehiclesTable } from '@/components/hub/vehicles-table';
-import { Action, Card, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, Textarea, focus } from '@/components/ui/kit';
+import { Action, Card, Checkbox, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, Textarea, focus } from '@/components/ui/kit';
 import { formatDate, formatDateTime, fullName } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
 
@@ -77,6 +77,19 @@ export default function DriverDetailPage() {
             <dd>{`${t('enum.paymentMethod.cash')} ${yesNo(d.paymentModes.cash)} · ${t('enum.paymentMethod.interac')} ${yesNo(d.paymentModes.interac)} · ${t('enum.paymentMethod.terminal')} ${yesNo(d.paymentModes.terminal)}`}</dd>
             <dt className="font-semibold">{t('hub.drivers.payout')}</dt><dd>{d.payout.onboarded ? t('hub.drivers.payoutReady') : t('hub.drivers.payoutMissing')}</dd>
             <dt className="font-semibold">{t('hub.drivers.activatedAt')}</dt><dd>{formatDateTime(d.activatedAt, lang)}</dd>
+            <dt className="font-semibold">{t('hub.drivers.programs')}</dt>
+            <dd>
+              {writable ? (
+                <Checkbox
+                  label={t('hub.drivers.rLuxeEv')}
+                  checked={d.rLuxeEvTenant}
+                  disabled={action.isPending}
+                  onChange={(e) => action.mutate(() => hubApi.admin.setDriverPrograms(id, { rLuxeEvTenant: e.currentTarget.checked }))}
+                />
+              ) : (
+                `${t('hub.drivers.rLuxeEv')} : ${yesNo(d.rLuxeEvTenant)}`
+              )}
+            </dd>
           </dl>
         </Card>
         <Card title={t('hub.drivers.stats')}>

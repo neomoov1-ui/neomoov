@@ -8,7 +8,7 @@ import {
   adminAgentSchema, adminApprovalSchema, adminCancelRideSchema, adminClientSchema, adminDashboardSchema, adminDataRequestSchema, adminDocumentSchema,
   adminDriverDetailSchema, adminDriverListItemSchema, adminIncidentSchema, adminInvoiceSchema, adminLeadSchema, adminListQuerySchema, adminPromotionSchema,
   adminReportSchema, adminRideListItemSchema, adminRideListQuerySchema, adminSettingSchema, adminStaffSchema, adminStatementSchema, adminVehicleSchema,
-  approvalDecisionSchema, cancellationResultSchema, documentReviewSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
+  approvalDecisionSchema, cancellationResultSchema, documentReviewSchema, driverProgramsSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
   pricingRuleInputSchema, pricingRuleSchema, reportQuerySchema, sanctionInputSchema, settingUpdateSchema, staffNoteInputSchema, staffNoteSchema, uuid,
   vehicleReviewSchema, zoneUpdateSchema,
 } from '@neomoov/domain';
@@ -159,6 +159,17 @@ export class AdminDriversController {
   @ApiErrors(401, 403, 404, 429)
   reactivate(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
     return this.drivers.reactivate(id, user);
+  }
+
+  @Post('drivers/:id/programs')
+  @Roles(...STAFF_WRITE_ROLES)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Programmes du chauffeur : locataire R-LuxeEV (pack Découverte offert)' })
+  @ZodBody(driverProgramsSchema)
+  @ZodResponse(200, adminDriverDetailSchema)
+  @ApiErrors(400, 401, 403, 404, 429)
+  programs(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(driverProgramsSchema)) body: z.infer<typeof driverProgramsSchema>, @CurrentUser() user: UserActor) {
+    return this.drivers.setPrograms(id, body, user);
   }
 
   @Post('drivers/:id/sanctions')

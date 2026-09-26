@@ -209,7 +209,7 @@ describe('packs et promotions (intégration)', () => {
     expect(view.body.active).toMatchObject({ ridesRemaining: 25 });
   });
 
-  it('Découverte offert aux locataires R-LuxeEV (indicateur du profil)', async ({ skip }) => {
+  it('Découverte offert aux locataires R-LuxeEV (indicateur posé dans My Hub)', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     // Rang d'inscription hors des premiers chauffeurs : seul l'indicateur rend Découverte gratuit.
@@ -219,7 +219,10 @@ describe('packs et promotions (intégration)', () => {
     try {
       const before = await request(server()).get('/v1/driver/packs').set(bearer(driver.tokens)).expect(200);
       expect(before.body.catalog[0]).toMatchObject({ code: 'discovery', priceForMeCents: 2900 });
-      await db(app).update(schema.drivers).set({ isRLuxeEvTenant: true }).where(eq(schema.drivers.id, driver.driverId));
+      const staff = await createStaffAndLogin(app, ['admin']);
+      expect((await request(server()).post(`/v1/admin/drivers/${driver.driverId}/programs`).set(bearer(driver.tokens)).send({ rLuxeEvTenant: true })).status).toBe(403);
+      const flagged = await request(server()).post(`/v1/admin/drivers/${driver.driverId}/programs`).set(bearer(staff.tokens)).send({ rLuxeEvTenant: true }).expect(200);
+      expect(flagged.body.driver.rLuxeEvTenant).toBe(true);
       const after = await request(server()).get('/v1/driver/packs').set(bearer(driver.tokens)).expect(200);
       expect(after.body.catalog[0]).toMatchObject({ code: 'discovery', priceForMeCents: 0, available: true });
       const activated = await request(server()).post('/v1/driver/packs/activate').set(bearer(driver.tokens)).send({ packCode: 'discovery', autoRenew: false }).expect(200);

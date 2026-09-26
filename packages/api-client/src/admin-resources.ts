@@ -3,7 +3,7 @@
  * métier ici : chaque méthode est un appel HTTP.
  */
 import type {
-  AdminAgent, AdminApproval, AdminDispatchView, AdminCreateRide, AutocompleteSuggestion, PlaceDetails, PublicTrackingView, AdminClient, AdminDashboard, AdminDataRequest, AdminDocument, AdminDriverDetail, AdminDriverListItem, AdminIncident, AdminInvoice,
+  AdminAgent, AdminApproval, AdminDispatchView, AdminCreateRide, AutocompleteSuggestion, PlaceDetails, PublicTrackingView, AdminClient, AdminDashboard, AdminDataRequest, AdminDocument, AdminDriverDetail, AdminDriverListItem, DriverPrograms, AdminIncident, AdminInvoice,
   AdminLead, AdminListQuery, AdminPromotion, AdminReport, AdminRideListItem, AdminRideListQuery, AdminSetting, AdminStaff, AdminStatement, AdminVehicle,
   ApprovalDecisionInput, CancellationResult, DocumentReview, IncidentDecision, LeadInput, LeadStatus, MfaEnrollment, Page, PackView, PricingRuleInput,
   PricingRuleView, QuoteRequest, QuotesResponse, RideEventView, RideView, SanctionInput, StaffLogin, StaffLoginResponse, StaffNote, TokensView, VehicleReview,
@@ -62,6 +62,7 @@ export function adminResource(t: Transport) {
     activateDriver: (driverId: string) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/activate`),
     suspendDriver: (driverId: string, reason: string) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/suspend`, { reason }),
     reactivateDriver: (driverId: string) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/reactivate`),
+    setDriverPrograms: (driverId: string, body: DriverPrograms) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/programs`, body),
     sanctionDriver: (driverId: string, body: SanctionInput) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/sanctions`, body),
     noteDriver: (driverId: string, body: string) => t.post<StaffNote>(`/admin/drivers/${id(driverId)}/notes`, { body }),
     documents: (query: ListQuery = {}) => t.get<Page<AdminDocument>>('/admin/documents', { query }),
