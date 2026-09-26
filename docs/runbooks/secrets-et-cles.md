@@ -67,8 +67,7 @@ Décision « Chiffrement applicatif des champs sensibles » (26 septembre 2026).
 
 ### À savoir avant de décider
 
-- **Les codes QR des factures déjà émises cesseront de fonctionner** : la page `/verifier-facture` répondra « introuvable » pour toute facture émise avant la rotation (la signature dépend de la clé). Les factures restent valides et consultables dans My Hub, mais la vérification publique est perdue pour elles. Signalé comme manque au code (clé de vérification à séparer, ou ancienne clé à garder en vérification).
-- Les pseudonymes de l'export de géolocalisation changent : un même chauffeur n'aura pas le même pseudonyme avant et après la rotation.
+- **Codes QR des factures et pseudonymes de géolocalisation** : ils dérivent de `DERIVATION_KEY` si elle existe, sinon d'`ENCRYPTION_KEY`. Pour les garder valides, poser `DERIVATION_KEY` égale à l'**ancienne** `ENCRYPTION_KEY` avant la rotation (étape 5 ci-dessous) : les codes QR des factures déjà émises continuent de fonctionner et un chauffeur garde le même pseudonyme. Sans cela, la vérification publique des factures antérieures est perdue et les pseudonymes changent.
 - Les sauvegardes antérieures contiennent des champs chiffrés avec l'ancienne clé : garder l'ancienne clé dans Bitwarden tant que ces sauvegardes existent.
 - En conséquence : **ne faire tourner cette clé que sur soupçon de compromission**, pas par calendrier, et d'abord sur staging.
 
@@ -102,9 +101,10 @@ docker compose -f infra/compose.prod.yml stop api worker
 docker compose -f infra/compose.prod.yml run --rm --no-deps api node dist/scripts/encrypt-fields.js --decrypt
 ```
 
-5. Remplacer la clé sans l'afficher :
+5. Garder l'ancienne clé pour les dérivations durables (une seule fois : si `DERIVATION_KEY` existe déjà, ne pas y toucher), puis remplacer la clé sans l'afficher :
 
 ```
+grep -q '^DERIVATION_KEY=.' .env || sed -n 's/^ENCRYPTION_KEY=/DERIVATION_KEY=/p' .env >> .env
 NEW_KEY=$(openssl rand -hex 32)
 sed -i "s/^ENCRYPTION_KEY=.*/ENCRYPTION_KEY=${NEW_KEY}/" /opt/neomoov/.env
 unset NEW_KEY

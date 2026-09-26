@@ -79,7 +79,7 @@ export class InvoicingService {
     private readonly outbox: NotificationsOutbox,
     private readonly fields: FieldCipher,
   ) {
-    this.verificationKey = invoiceVerificationKey(env.ENCRYPTION_KEY!);
+    this.verificationKey = invoiceVerificationKey(env.DERIVATION_KEY ?? env.ENCRYPTION_KEY!);
   }
 
   private get db() {

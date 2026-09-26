@@ -40,6 +40,11 @@ export const envSchema = z.object({
   JWT_ACCESS_SECRET: optionalString,
   JWT_REFRESH_SECRET: optionalString,
   ENCRYPTION_KEY: optionalString,
+  /**
+   * Clé des dérivations durables (vérification des factures émises, pseudonymes de l'export de géolocalisation) ; absente :
+   * `ENCRYPTION_KEY`. Avant une rotation d'`ENCRYPTION_KEY`, y copier l'ancienne clé : codes QR et pseudonymes restent valides.
+   */
+  DERIVATION_KEY: optionalString,
 
   PAYMENT_PROVIDER: providerMode,
   MAPS_PROVIDER: providerMode,
