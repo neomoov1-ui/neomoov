@@ -1,13 +1,13 @@
 # Sauvegardes et restauration
 
-Deux niveaux : les sauvegardes automatiques de Supabase (base managée, région Canada) et une sauvegarde logique chiffrée quotidienne faite par le serveur (`infra/scripts/backup.sh`), gardée 14 jours sur le serveur et, si configuré, copiée vers un stockage objet. Les purges de conservation (Loi 25) ne tournent qu'après une sauvegarde vérifiée depuis moins de 26 heures.
+Deux niveaux : les sauvegardes automatiques de Supabase (base managée, région Canada) et une sauvegarde logique chiffrée quotidienne faite par le serveur (`infra/scripts/backup.sh`), gardée 35 jours sur le serveur et, si configuré, copiée vers un stockage objet. Les purges de conservation (Loi 25) ne tournent qu'après une sauvegarde vérifiée depuis moins de 26 heures.
 
-Le cahier des charges (section 8) demande une conservation de 35 jours et une restauration d'essai mensuelle : poser `BACKUP_KEEP_DAYS=35` dans `/opt/neomoov/.env` (le script garde 14 jours par défaut). Côté Supabase, le plan Pro garde 7 jours de sauvegardes quotidiennes ; l'objectif de 1 heure de perte au plus avant le lancement commercial (section 2.1) exige l'option de restauration à un instant donné (PITR), payante.
+Le cahier des charges (section 8) demande une conservation de 35 jours et une restauration d'essai mensuelle : le script garde 35 jours par défaut (`BACKUP_KEEP_DAYS` pour changer). Côté Supabase, le plan Pro garde 7 jours de sauvegardes quotidiennes ; l'objectif de 1 heure de perte au plus avant le lancement commercial (section 2.1) exige l'option de restauration à un instant donné (PITR), payante.
 
 ## Mise en place (une fois, sur le serveur LWS)
 
 1. Ajouter dans `/opt/neomoov/.env` : `BACKUP_PASSPHRASE` (40 caractères aléatoires, copiée aussi dans le gestionnaire de mots de passe : sans elle, aucune sauvegarde ne se relit), facultatif `BACKUP_REMOTE` (destination rclone, par exemple un seau du stockage objet).
-2. Tâche planifiée, dans la table de `root` (`crontab -e` ; `infra/server-setup.sh` ne crée pas d'utilisateur dédié). Si `BACKUP_REMOTE` est utilisé, installer d'abord rclone (`apt-get install -y rclone`, puis `rclone config`), que le script de préparation n'installe pas :
+2. Tâche planifiée : posée par `infra/server-setup.sh` (`/etc/cron.d/neomoov-backup`, 3 h 30, active dès que `BACKUP_PASSPHRASE` est dans `.env`). Sur un serveur préparé avant le 27 septembre 2026, l'ajouter à la main (`crontab -e` de `root`). Si `BACKUP_REMOTE` est utilisé, installer d'abord rclone (`apt-get install -y rclone`, puis `rclone config`), que le script de préparation n'installe pas :
 
 ```
 30 3 * * * cd /opt/neomoov && set -a && . ./.env && set +a && infra/scripts/backup.sh >> /var/log/neomoov-backup.log 2>&1
@@ -36,4 +36,4 @@ Autre voie, par Supabase (restaure tout le projet, avec une coupure annoncée pa
 
 ## Essai de restauration
 
-À faire sur le serveur à la mise en service, puis chaque mois (cahier des charges, sections 8 et 10.4) : restaurer la dernière sauvegarde dans une base vierge (conteneur `postgis/postgis:16-3.4`), comparer les comptes, noter ici la date, la durée et le résultat. Premier essai : **à faire** (le poste de développement n'avait pas Docker actif au moment de l'écriture des scripts).
+À faire sur le serveur à la mise en service, puis chaque mois (cahier des charges, sections 8 et 10.4) : restaurer la dernière sauvegarde dans une base vierge, par exemple `docker run -d --name neomoov-essai -e POSTGRES_PASSWORD=essai -p 127.0.0.1:5433:5432 postgis/postgis:16-3.4`, puis `TARGET_DATABASE_URL=postgresql://postgres:essai@127.0.0.1:5433/postgres infra/scripts/restore.sh <fichier>` (les conteneurs clients du script utilisent le réseau de l'hôte, `RESTORE_DOCKER_NETWORK` pour changer) et `docker rm -f neomoov-essai` à la fin ; comparer les comptes, noter ici la date, la durée et le résultat. Premier essai : **à faire** (le poste de développement n'avait pas Docker actif au moment de l'écriture des scripts).

@@ -3,7 +3,7 @@
 #   - pg_dump au format personnalisé (compressé), par l'image officielle PostgreSQL (aucun client à installer) ;
 #   - chiffrement AES-256 (openssl, dérivation PBKDF2) avec BACKUP_PASSPHRASE, empreinte SHA-256 à côté ;
 #   - vérification : le fichier est déchiffré et relu par pg_restore --list (sans rien restaurer) ;
-#   - conservation locale BACKUP_KEEP_DAYS jours (14) ; copie vers le stockage objet si BACKUP_REMOTE est défini (rclone).
+#   - conservation locale BACKUP_KEEP_DAYS jours (35, section 10 du cahier des charges) ; copie vers le stockage objet si BACKUP_REMOTE est défini (rclone).
 # Usage (sur le serveur, variables lues dans /opt/neomoov/.env) :
 #   set -a; . /opt/neomoov/.env; set +a; infra/scripts/backup.sh
 # Cron quotidien (3 h 30, avant la passe de conservation du lendemain) : voir docs/runbooks/sauvegardes.md.
@@ -12,7 +12,7 @@ set -euo pipefail
 : "${DATABASE_URL:?DATABASE_URL absente}"
 : "${BACKUP_PASSPHRASE:?BACKUP_PASSPHRASE absente : la sauvegarde doit être chiffrée}"
 DEST="${BACKUP_DIR:-/var/backups/neomoov}"
-KEEP_DAYS="${BACKUP_KEEP_DAYS:-14}"
+KEEP_DAYS="${BACKUP_KEEP_DAYS:-35}"
 PG_IMAGE="${BACKUP_PG_IMAGE:-postgres:17-alpine}"
 
 mkdir -p "$DEST"
