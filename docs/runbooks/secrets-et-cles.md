@@ -126,7 +126,7 @@ SET totp_secret_encrypted = NULL, totp_pending_secret_encrypted = NULL, totp_ena
     backup_code_hashes = '[]'::jsonb, failed_attempts = 0, locked_until = NULL;
 ```
 
-C'est l'équivalent de « réinitialiser le second facteur » pour chaque membre (`POST /v1/admin/staff/{id}/mfa/reset`, sans écran dans My Hub). À la connexion suivante, chacun saisit son mot de passe, scanne le nouveau code QR et range ses dix nouveaux codes de secours (`personnel-my-hub.md`, section 2). Supprimer l'ancienne entrée « Neomoov My Hub » de l'application d'authentification.
+C'est l'équivalent de « réinitialiser le second facteur » pour chaque membre (My Hub, **Équipe**, **Réinitialiser le second facteur** ; ou `POST /v1/admin/staff/{id}/mfa/reset`). À la connexion suivante, chacun saisit son mot de passe, scanne le nouveau code QR et range ses dix nouveaux codes de secours (`personnel-my-hub.md`, section 2). Supprimer l'ancienne entrée « Neomoov My Hub » de l'application d'authentification.
 10. Contrôles : ouvrir la fiche d'un chauffeur dans My Hub (numéros de TPS et TVQ masqués mais présents), vérifier une facture récente sur `/verifier-facture` (voir la limite ci-dessus), se connecter par code SMS dans une application.
 11. Noter la rotation au registre d'exploitation ; supprimer l'ancienne clé de Bitwarden quand la dernière sauvegarde qui en dépend a expiré.
 

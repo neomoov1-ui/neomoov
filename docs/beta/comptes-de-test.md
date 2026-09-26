@@ -26,7 +26,7 @@ En production, décider pour chacun : le garder comme compte de démonstration p
 | Code | Rôle | Courriel proposé | Usage | Création |
 |---|---|---|---|---|
 | `STAFF-ADMIN` | `admin` | adresse du fondateur au domaine | Exploitation, paramètres | `create-staff` (`docs/runbooks/personnel-my-hub.md`, section 1) |
-| `STAFF-OPS` | `operator` | `operations@neomoov.net` | Opérateur de garde pendant la bêta | `POST /v1/admin/staff` (aucun écran de création dans My Hub) |
+| `STAFF-OPS` | `operator` | `operations@neomoov.net` | Opérateur de garde pendant la bêta | My Hub, **Équipe**, **Ajouter un membre** (ou `POST /v1/admin/staff`) |
 | `STAFF-FIN` | `finance` | `comptes@neomoov.net` | Relevés, factures, registres | Idem |
 | `STAFF-RO` | `readonly` | `lecture@neomoov.net` | Démonstration de My Hub à un tiers (avocat, investisseur) sans droit d'écriture | Idem |
 

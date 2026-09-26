@@ -35,6 +35,9 @@ describe('journal d\'audit : filtres et export (intégration)', () => {
     expect(lines).toHaveLength(3);
     // Point-virgule et guillemets dans une valeur : cellule entre guillemets, guillemets doublés.
     expect(csv.text).toContain('"{""note"":""remboursement ; proposé \\""20 $\\""""}"');
+    // L'export est lui-même journalisé, avec son auteur, ses filtres et son nombre de lignes.
+    const exported = await request(server).get('/v1/admin/audit').query({ action: 'admin.audit_exported', actorUserId: admin.userId }).set(bearer(admin.tokens)).expect(200);
+    expect(exported.body.items[0]).toMatchObject({ entity: 'audit_log', actorUserId: admin.userId, after: { rows: 2, filters: { action } } });
     const byAgent = await request(server).get('/v1/admin/audit').query({ action, actorAgentCode: 'customer_relations' }).set(bearer(operator.tokens)).expect(200);
     expect(byAgent.body.items).toHaveLength(1);
     expect((await request(server).get('/v1/admin/audit/export').query({ action }).set(bearer(operator.tokens))).status).toBe(403);

@@ -243,6 +243,8 @@ export const apiKeyCreatedSchema = apiKeyViewSchema.extend({
   /** Secret complet, affiché une seule fois. */
   key: z.string(),
 });
+export type ApiKeyView = z.infer<typeof apiKeyViewSchema>;
+export type ApiKeyCreated = z.infer<typeof apiKeyCreatedSchema>;
 
 /** Réponse d'erreur unique de l'API (section 7.1). */
 export const errorSchema = z.object({

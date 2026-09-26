@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EnumBadge, ErrorBlock, Loading, useLang } from '@/components/hub/common';
+import { EnumBadge, ErrorBlock, Loading, RideStateBadge, useLang } from '@/components/hub/common';
 import { useAdminSocket, type DriverLocationEvent } from '@/components/hub/realtime';
 import { Badge, Card, Field, Notice, PageTitle, Select, Stat, focus } from '@/components/ui/kit';
 import { formatDateTime, formatMoney, formatTime } from '@/lib/format';
@@ -14,7 +14,7 @@ import { hubApi } from '@/lib/hub-api';
 
 const FleetMap = dynamic(() => import('@/components/hub/fleet-map'), { ssr: false, loading: () => <div className="h-[420px] animate-pulse rounded-md bg-slate-100" /> });
 
-/** Tableau de bord : indicateurs du jour, carte de la flotte en direct, alertes SOS et incidents, planifiées non confirmées. */
+/** Tableau de bord : indicateurs du jour, carte de la flotte en direct, alertes SOS et incidents, courses figées, planifiées non confirmées. */
 export default function DashboardPage() {
   const { t } = useTranslation();
   const lang = useLang();
@@ -131,6 +131,7 @@ export default function DashboardPage() {
               </ul>
             )}
           </Card>
+          <StuckRidesCard />
           <Card title={t('hub.dashboard.unconfirmedTitle')}>
             {d.unconfirmed.length === 0 ? (
               <p className="text-sm text-slate-600">{t('hub.dashboard.noUnconfirmed')}</p>
@@ -149,5 +150,35 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Courses figées (surveillance du worker, étape 15) : état intermédiaire tenu trop longtemps. Requête à part du tableau
+ * de bord (une panne n'empêche pas le reste de s'afficher), relue chaque minute ; l'opérateur décide depuis la fiche.
+ */
+function StuckRidesCard() {
+  const { t } = useTranslation();
+  const stuck = useQuery({ queryKey: ['hub', 'stuck-rides'], queryFn: () => hubApi.admin.stuckRides(), refetchInterval: 60_000 });
+  const count = stuck.data?.length ?? 0;
+  return (
+    <Card title={t('hub.dashboard.stuck')} actions={count ? <Badge tone="danger">{count}</Badge> : null}>
+      {stuck.isPending ? <Loading /> : stuck.isError ? <ErrorBlock error={stuck.error} onRetry={() => void stuck.refetch()} /> : count === 0 ? (
+        <p className="text-sm text-slate-600">{t('hub.dashboard.noStuck')}</p>
+      ) : (
+        <>
+          <p className="mb-2 text-xs text-slate-600">{t('hub.dashboard.stuckHint')}</p>
+          <ul className="flex flex-col gap-2 text-sm">
+            {stuck.data.map((r) => (
+              <li key={r.rideId} className="flex flex-wrap items-center justify-between gap-2">
+                <Link className={`font-semibold text-brand-blue-dark underline ${focus}`} href={`/hub/courses/${r.rideId}`}>{r.publicNumber}</Link>
+                <RideStateBadge state={r.state} />
+                <span className="text-slate-700">{t('hub.dashboard.stuckSince', { minutes: r.minutes })}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Card>
   );
 }

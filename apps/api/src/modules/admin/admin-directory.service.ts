@@ -90,10 +90,25 @@ export class AdminDirectoryService {
   }
 
   private incidentView(i: typeof schema.incidents.$inferSelect, publicNumber: string | null, safetyHold: AdminIncident['safetyHold']): AdminIncident {
+    const reference = (i.privacyBreach as { reference?: unknown } | null)?.reference;
     return {
       id: i.id, rideId: i.rideId, ridePublicNumber: publicNumber, type: i.type, severity: i.severity, status: i.status, reportedByKind: i.reportedByKind, description: i.description,
-      decision: i.decision, decidedAt: i.decidedAt?.toISOString() ?? null, privacyBreach: i.privacyBreach !== null, safetyHold, createdAt: i.createdAt.toISOString(),
+      decision: i.decision, decidedAt: i.decidedAt?.toISOString() ?? null, privacyBreach: i.privacyBreach !== null, privacyReference: typeof reference === 'string' ? reference : null,
+      safetyHold, createdAt: i.createdAt.toISOString(),
     };
+  }
+
+  /** Un incident, vue de la liste (après sa création ou l'inscription au registre). */
+  async incident(id: string): Promise<AdminIncident> {
+    const [row] = await this.db
+      .select({ incident: schema.incidents, publicNumber: schema.rides.publicNumber })
+      .from(schema.incidents)
+      .leftJoin(schema.rides, eq(schema.rides.id, schema.incidents.rideId))
+      .where(eq(schema.incidents.id, id))
+      .limit(1);
+    if (!row) throw AppError.notFound('INCIDENT_NOT_FOUND', 'Incident introuvable');
+    const holds = await this.safety.statesOf([id]);
+    return this.incidentView(row.incident, row.publicNumber, holds.get(id) ?? null);
   }
 
   /**
