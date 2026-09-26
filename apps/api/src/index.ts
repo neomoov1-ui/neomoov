@@ -41,6 +41,7 @@ export { NotificationJobsService } from './modules/notifications/notification-jo
 export { RidesService } from './modules/rides/rides.service.js';
 export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';
+export { StuckRidesService } from './modules/rides/stuck-rides.service.js';
 export { PackLifecycleService } from './modules/rides/pack-lifecycle.service.js';
 export { DispatchService } from './modules/rides/dispatch.service.js';
 export { LedgersModule } from './modules/ledgers/ledgers.module.js';

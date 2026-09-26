@@ -216,6 +216,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Vous êtes de nouveau en règle', body: (d) => `${str(d['label'])} validé : vous pouvez de nouveau recevoir des courses.` },
     en: { title: 'You are compliant again', body: (d) => `${str(d['label'])} approved: you can receive rides again.` },
   },
+  'alert.stuck_ride': {
+    fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
+    en: { title: 'Alert: stuck ride', body: (d) => `Ride${ride(d)} has been "${str(d['state'])}" for ${str(d['minutes'])} minutes. Check it in My Hub.` },
+  },
   'alert.no_driver': {
     fr: { title: 'Alerte : aucun chauffeur', body: (d) => `Aucun chauffeur pour la course${ride(d)}.` },
     en: { title: 'Alert: no driver', body: (d) => `No driver for ride${ride(d)}.` },

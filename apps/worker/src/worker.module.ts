@@ -1,6 +1,6 @@
 import {
   AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, ComplianceJobsService, ComplianceModule, RetentionJobsService, RetentionModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
-  QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
+  QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, StuckRidesService, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { InvoiceJobsService, InvoicingModule } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
@@ -41,11 +41,17 @@ export class PrivacyWorker implements OnModuleInit {
   }
 }
 
-/** Courses planifiées : une passe par minute (rappel J-1, attribution à 60 minutes, alerte opérateur à 30 minutes). */
+/**
+ * Courses planifiées : une passe par minute (rappel J-1, attribution à 60 minutes, alerte opérateur à 30 minutes) ;
+ * toutes les 5 minutes, surveillance des courses figées (étape 15).
+ */
 @Injectable()
 export class SchedulingWorker implements OnModuleInit {
+  private passes = 0;
+
   constructor(
     private readonly scheduled: ScheduledService,
+    private readonly stuck: StuckRidesService,
     private readonly queues: QueueService,
     @Inject(APP_LOGGER) private readonly logger: Logger,
   ) {}
@@ -54,7 +60,10 @@ export class SchedulingWorker implements OnModuleInit {
     this.queues.process(
       'scheduling',
       async () => {
-        const report = await this.scheduled.tick(new Date());
+        const now = new Date();
+        const report = await this.scheduled.tick(now);
+        this.passes += 1;
+        if (this.passes % 5 === 0) await this.stuck.alert(now);
         if (report.reminders.length || report.dispatchDue.length || report.operatorAlerts.length) this.logger.info(report, 'courses planifiées');
       },
       { everyMs: 60_000, jobName: 'tick', concurrency: 1 },
