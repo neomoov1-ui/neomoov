@@ -36,6 +36,7 @@ export const keys = {
   statements: ['statements'] as const,
   statement: (id: string) => ['statement', id] as const,
   loyalClients: ['loyal-clients'] as const,
+  sanctions: ['sanctions'] as const,
   score: ['score'] as const,
   offers: ['offers'] as const,
   rides: ['rides'] as const,
@@ -105,6 +106,11 @@ export function useStatements() {
 
 export function useStatement(id: string) {
   return useQuery({ queryKey: keys.statement(id), queryFn: () => api.driver.statement(id), enabled: useDriverReady() && id.length > 0 });
+}
+
+/** Charte d'équité (D7) : mes sanctions, mes réponses et appels. */
+export function useSanctions() {
+  return useQuery({ queryKey: keys.sanctions, queryFn: () => api.driver.sanctions(), enabled: useDriverReady() });
 }
 
 export function useLoyalClients() {

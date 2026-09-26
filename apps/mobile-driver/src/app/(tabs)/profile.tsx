@@ -17,10 +17,11 @@ import { disconnectRealtime } from '@/lib/realtime';
 import { useSession } from '@/lib/session';
 import { stopLocationUpdates } from '@/lib/location';
 
-const LINKS: Array<{ key: 'packs' | 'loyal' | 'score' | 'training' | 'payout' | 'onboarding' | 'support'; href: Href; icon: keyof typeof Ionicons.glyphMap }> = [
+const LINKS: Array<{ key: 'packs' | 'loyal' | 'score' | 'sanctions' | 'training' | 'payout' | 'onboarding' | 'support'; href: Href; icon: keyof typeof Ionicons.glyphMap }> = [
   { key: 'packs', href: '/packs', icon: 'albums-outline' },
   { key: 'loyal', href: '/loyal-clients', icon: 'people-outline' },
   { key: 'score', href: '/score', icon: 'speedometer-outline' },
+  { key: 'sanctions', href: '/sanctions', icon: 'scale-outline' },
   { key: 'training', href: '/training', icon: 'school-outline' },
   { key: 'payout', href: '/payout', icon: 'card-outline' },
   { key: 'onboarding', href: '/onboarding', icon: 'list-outline' },
