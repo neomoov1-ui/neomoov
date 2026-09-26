@@ -8,12 +8,12 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  compareDocumentIdentity, DOCUMENT_TYPES, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, financialDecision, flagAnomalyToolSchema, issueCreditToolSchema, listStatementLinesToolSchema,
+  compareDocumentIdentity, DOCUMENT_TYPES, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, financialDecision, flagAnomalyToolSchema, type FinancialDecision, issueCreditToolSchema, listStatementLinesToolSchema,
   localClock, lookupClientToolSchema, lookupDriverToolSchema, lookupRideToolSchema, openIncidentToolSchema, proposeDecisionToolSchema, queryMetricsToolSchema, redactSensitive, refundToolSchema,
   sendMessageToolSchema, compareIdentityToolSchema, proposeSanctionToolSchema, uuid, type ExtractedDocumentFields, type ToolResultView,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, like, ne, sql, type SQL } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { z } from 'zod';
 import { STORAGE_PROVIDER, type LlmAttachment, type LlmTool, type StorageProvider } from '../../adapters/types.js';
@@ -287,10 +287,42 @@ export class AgentToolsService {
 
   // Actions financières ---------------------------------------------------------------------------------------------
 
+  /**
+   * Gestes accordés sans humain (mode automatique) à ce client sur les dernières 24 heures : crédits (référence `run-…`)
+   * ou remboursements décidés par un agent sans approbateur. Le plafond automatique porte sur ce cumul (revue 17.B) :
+   * un message piégé répété, ou plusieurs appels dans une exécution, ne multiplient plus le plafond.
+   */
+  private async autoGrantedCents(userId: string, kind: 'credit' | 'refund'): Promise<number> {
+    const since = new Date(Date.now() - 86_400_000);
+    if (kind === 'credit') {
+      const [row] = await this.db
+        .select({ n: sql<number>`COALESCE(sum(${schema.credits.amountCents}), 0)::int` })
+        .from(schema.credits)
+        .where(and(eq(schema.credits.userId, userId), eq(schema.credits.origin, 'goodwill'), like(schema.credits.reference, 'run-%'), gte(schema.credits.createdAt, since)));
+      return Number(row?.n ?? 0);
+    }
+    const [row] = await this.db
+      .select({ n: sql<number>`COALESCE(sum(${schema.refunds.amountCents}), 0)::int` })
+      .from(schema.refunds)
+      .innerJoin(schema.payments, eq(schema.payments.id, schema.refunds.paymentId))
+      .innerJoin(schema.clients, eq(schema.clients.id, schema.payments.clientId))
+      .where(and(eq(schema.clients.userId, userId), isNotNull(schema.refunds.decidedByAgentCode), isNull(schema.refunds.decidedByUserId), ne(schema.refunds.status, 'failed'), gte(schema.refunds.createdAt, since)));
+    return Number(row?.n ?? 0);
+  }
+
+  /** Décision financière, avec le plafond automatique appliqué au cumul du client (au-delà : approbation humaine). */
+  private async decide(ctx: AgentRunContext, userId: string, kind: 'credit' | 'refund', amountCents: number): Promise<FinancialDecision> {
+    const autoCapCents = numberThreshold(ctx.agent.thresholds, kind === 'credit' ? 'maxAutoCreditCents' : 'maxAutoRefundCents');
+    const toolCapCents = await this.settings.number(kind === 'credit' ? 'agents.max_credit_cents' : 'agents.max_refund_cents', 5_000);
+    const decision = financialDecision({ mode: ctx.mode, amountCents, toolCapCents, autoCapCents });
+    if (decision.action === 'execute' && ctx.mode === 'auto' && (await this.autoGrantedCents(userId, kind)) + amountCents > autoCapCents) return { action: 'approval' };
+    return decision;
+  }
+
   private async issueCredit(ctx: AgentRunContext, input: z.infer<typeof issueCreditToolSchema>): Promise<ToolResult> {
     const userId = this.requireSubject(ctx);
     if (input.rideId) await this.rideOf(ctx, input.rideId);
-    const decision = financialDecision({ mode: ctx.mode, amountCents: input.amountCents, toolCapCents: await this.settings.number('agents.max_credit_cents', 5_000), autoCapCents: numberThreshold(ctx.agent.thresholds, 'maxAutoCreditCents') });
+    const decision = await this.decide(ctx, userId, 'credit', input.amountCents);
     const data = { userId, amountCents: input.amountCents, reason: redactSensitive(input.reason), rideId: input.rideId ?? null, conversationId: ctx.conversationId };
     if (decision.action === 'refuse') return refused(decision.reason === 'over_tool_cap' ? 'Montant au-delà du plafond de l\'agent : escalader à un humain' : 'Agent en mode manuel : escalader à un humain');
     if (decision.action === 'approval') {
@@ -304,7 +336,7 @@ export class AgentToolsService {
   private async refund(ctx: AgentRunContext, input: z.infer<typeof refundToolSchema>): Promise<ToolResult> {
     const userId = this.requireSubject(ctx);
     const { ride } = await this.rideOf(ctx, input.rideId);
-    const decision = financialDecision({ mode: ctx.mode, amountCents: input.amountCents, toolCapCents: await this.settings.number('agents.max_refund_cents', 5_000), autoCapCents: numberThreshold(ctx.agent.thresholds, 'maxAutoRefundCents') });
+    const decision = await this.decide(ctx, userId, 'refund', input.amountCents);
     if (decision.action === 'refuse') return refused(decision.reason === 'over_tool_cap' ? 'Montant au-delà du plafond de l\'agent : escalader à un humain' : 'Agent en mode manuel : escalader à un humain');
     if (input.mode === 'refund') {
       const views = await this.payments.ridePayments(input.rideId);

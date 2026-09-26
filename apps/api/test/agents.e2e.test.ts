@@ -466,6 +466,24 @@ describe('agents IA : exécuteur, outils, file d\'approbation, agents V1 (intég
     await request(server()).get('/v1/internal/agents/runs').set(key(acc)).expect(403);
   });
 
+  it("mode automatique : gestes financiers plafonnés en cumul par client sur 24 heures", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : le plafond automatique ne portait que sur chaque appel ; un message piégé répété (ou huit appels dans
+    // une exécution) accordait autant de crédits de 50 $ sans aucun humain.
+    const { client } = await paidRide();
+    const code = `t17b_${rand()}`;
+    tempAgents.push(code);
+    const database = db(app);
+    await database.insert(schema.agents).values({ code, name: 'Agent automatique de test', mode: 'auto', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: `${code}.v1`, tools: ['issueCredit', 'refund'], thresholds: { maxAutoCreditCents: 1_000, maxAutoRefundCents: 1_000 } });
+    await database.insert(schema.agentPrompts).values({ key: `${code}.v1`, agentCode: code, version: 1, body: 'Agent de test.', sha256: '0'.repeat(64) });
+    const statuses: string[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      const res = await request(server()).post('/v1/internal/tools/issueCredit').set(bearer(operator.tokens)).send({ agentCode: code, subjectUserId: client.user.id, amountCents: 800, reason: `Geste ${i}`, justification: 'Attente au départ' }).expect(200);
+      statuses.push(res.body.status);
+    }
+    expect(statuses).toEqual(['done', 'pending_approval', 'pending_approval']);
+  });
+
   it('agent recrutement : extraction par la vision, cohérence avec le profil, proposition soumise à la validation humaine (mode verrouillé)', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false, firstName: 'Élodie' });
