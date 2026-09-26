@@ -32,6 +32,7 @@ import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { invoiceLabel } from './invoice-labels.js';
 import { renderInvoicePdf } from './invoice-pdf.js';
 import { invoiceVerificationKey, signInvoiceToken, verificationUrl, verifyInvoiceToken } from './invoice-token.js';
+import { FieldCipher } from '../../common/field-cipher.js';
 
 export type InvoiceRow = typeof schema.invoices.$inferSelect;
 type NewInvoice = typeof schema.invoices.$inferInsert;
@@ -76,6 +77,7 @@ export class InvoicingService {
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
     private readonly settings: SettingsService,
     private readonly outbox: NotificationsOutbox,
+    private readonly fields: FieldCipher,
   ) {
     this.verificationKey = invoiceVerificationKey(env.ENCRYPTION_KEY!);
   }
@@ -294,8 +296,8 @@ export class InvoicingService {
       supplier: {
         publicNumber: driver?.publicNumber ?? '',
         name: driver?.tradeName?.trim() || personal || `Chauffeur ${driver?.publicNumber ?? ''}`.trim(),
-        gstNumber: taxId(driver?.gstNumber),
-        qstNumber: taxId(driver?.qstNumber),
+        gstNumber: taxId(this.fields.decrypt(driver?.gstNumber)),
+        qstNumber: taxId(this.fields.decrypt(driver?.qstNumber)),
       },
       platform: { name: legalName, address, gstNumber: taxId(gst), qstNumber: taxId(qst) },
       customerName: client ? shortName(client.firstName, client.lastName) : shortName(guestFirst, guestLast),

@@ -22,6 +22,7 @@ import { DB, type Database } from '../../infra/db.module.js';
 import { ReferralsService } from '../credits/referrals.service.js';
 import { DriverPaymentsService } from '../payments/driver-payments.service.js';
 import { UsersService } from '../users/users.service.js';
+import { FieldCipher } from '../../common/field-cipher.js';
 
 export type DriverRow = typeof schema.drivers.$inferSelect;
 type DocumentRow = typeof schema.driverDocuments.$inferSelect;
@@ -65,6 +66,7 @@ export class DriverProfileService {
     private readonly driverPayments: DriverPaymentsService,
     private readonly referrals: ReferralsService,
     private readonly events: DomainEventsService,
+    private readonly fields: FieldCipher,
   ) {}
 
   private get db() {
@@ -138,8 +140,8 @@ export class DriverProfileService {
       email: user?.email ?? null,
       phone: user?.phone ?? '',
       qualification: driver.qualification,
-      gstNumber: driver.gstNumber,
-      qstNumber: driver.qstNumber,
+      gstNumber: this.fields.decrypt(driver.gstNumber),
+      qstNumber: this.fields.decrypt(driver.qstNumber),
       tradeName: driver.tradeName,
       spokenLanguages: stringList(driver.spokenLanguages),
       experienceYears: driver.experienceYears,
@@ -172,8 +174,8 @@ export class DriverProfileService {
     };
     const driverSet = {
       ...(input.qualification !== undefined ? { qualification: input.qualification } : {}),
-      ...(input.gstNumber !== undefined ? { gstNumber: input.gstNumber?.replace(/\s+/g, '') ?? null } : {}),
-      ...(input.qstNumber !== undefined ? { qstNumber: input.qstNumber?.replace(/\s+/g, '') ?? null } : {}),
+      ...(input.gstNumber !== undefined ? { gstNumber: this.fields.encrypt(input.gstNumber?.replace(/\s+/g, '')) } : {}),
+      ...(input.qstNumber !== undefined ? { qstNumber: this.fields.encrypt(input.qstNumber?.replace(/\s+/g, '')) } : {}),
       ...(input.tradeName !== undefined ? { tradeName: input.tradeName } : {}),
       ...(input.spokenLanguages !== undefined ? { spokenLanguages: [...new Set(input.spokenLanguages)] } : {}),
       ...(input.experienceYears !== undefined ? { experienceYears: input.experienceYears } : {}),
@@ -250,7 +252,7 @@ export class DriverProfileService {
 
   private documentView(row: DocumentRow): DriverDocumentView {
     return {
-      id: row.id, type: row.type, status: row.status, number: row.number, issuedOn: row.issuedOn, expiresOn: row.expiresOn, rejectionReason: row.rejectionReason, uploadedAt: row.createdAt.toISOString(),
+      id: row.id, type: row.type, status: row.status, number: this.fields.decrypt(row.number), issuedOn: row.issuedOn, expiresOn: row.expiresOn, rejectionReason: row.rejectionReason, uploadedAt: row.createdAt.toISOString(),
     };
   }
 
@@ -328,7 +330,7 @@ export class DriverProfileService {
     await this.storage.putObject({ key, body: file.buffer, contentType: sniffed.contentType });
     const [row] = await this.db
       .insert(schema.driverDocuments)
-      .values({ driverId: driver.id, type: fields.type, fileKey: key, number: fields.number ?? null, issuedOn: fields.issuedOn ?? null, expiresOn: fields.expiresOn ?? null, status: 'pending' })
+      .values({ driverId: driver.id, type: fields.type, fileKey: key, number: this.fields.encrypt(fields.number), issuedOn: fields.issuedOn ?? null, expiresOn: fields.expiresOn ?? null, status: 'pending' })
       .returning();
     this.logger.info({ driverId: driver.id, documentId: row!.id, type: fields.type, bytes: file.buffer.length }, 'Document chauffeur téléversé');
     // Vérification préalable par l'agent recrutement (extraction, cohérence, proposition), puis décision humaine.

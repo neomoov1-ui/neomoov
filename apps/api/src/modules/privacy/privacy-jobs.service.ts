@@ -16,6 +16,7 @@ import { QueueService } from '../../infra/queue.module.js';
 import { TokensService } from '../auth/tokens.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { anonymizedPhone } from '../users/users.service.js';
+import { FieldCipher } from '../../common/field-cipher.js';
 import { collectUserData, toJsonBuffer, toPdfBuffer } from './privacy-export.js';
 
 export { anonymizedPhone };
@@ -42,6 +43,7 @@ export class PrivacyJobsService implements OnModuleInit {
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
     private readonly tokens: TokensService,
+    private readonly fields: FieldCipher,
   ) {}
 
   private get db() {
@@ -71,7 +73,7 @@ export class PrivacyJobsService implements OnModuleInit {
     if (!request || request.processedAt) return;
     const [user] = await this.db.select().from(schema.users).where(eq(schema.users.id, request.userId)).limit(1);
     if (!user) return;
-    const data = await collectUserData(this.db, user.id);
+    const data = await collectUserData(this.db, user.id, (value) => this.fields.decrypt(value));
     const fileKey = `exports/${user.id}/${request.id}`;
     await this.storage.putObject({ key: `${fileKey}.json`, body: toJsonBuffer(data), contentType: 'application/json' });
     await this.storage.putObject({ key: `${fileKey}.pdf`, body: await toPdfBuffer(data, user.language), contentType: 'application/pdf' });

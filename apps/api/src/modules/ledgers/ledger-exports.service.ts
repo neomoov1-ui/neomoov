@@ -19,6 +19,7 @@ import type { UserActor } from '../auth/actor.js';
 import { csvDocument, csvLine, type CsvValue } from './csv.js';
 import { renderLedgerSummaryPdf, type SummaryDriverRow } from './ledger-summary-pdf.js';
 import { LedgersService } from './ledgers.service.js';
+import { FieldCipher } from '../../common/field-cipher.js';
 
 const SEPARATOR = ';';
 const SUMMARY_PREFIX = 'ledgers/summaries';
@@ -52,6 +53,7 @@ export class LedgerExportsService {
     private readonly settings: SettingsService,
     private readonly queues: QueueService,
     private readonly audit: AuditService,
+    private readonly fields: FieldCipher,
   ) {}
 
   private get db() {
@@ -103,7 +105,7 @@ export class LedgerExportsService {
       WHERE t.period IN ${period.months}
       ORDER BY t.period, (r.state_timestamps->>'completed')::timestamptz, r.public_number`);
     const header = ['periode', 'course', 'terminee_le', 'chauffeur', 'tps_chauffeur', 'tvq_chauffeur', 'tarif_cents', 'tps_tarif_cents', 'tvq_tarif_cents', 'tps_frais_cents', 'tvq_frais_cents'];
-    return this.withTotals(period, header, [...rows], (row) => [row.period, row.ride, row.completed, row.driver, row.gst_number, row.qst_number, num(row.fare), num(row.fare_gst), num(row.fare_qst), num(row.fee_gst), num(row.fee_qst)], [6, 7, 8, 9, 10]);
+    return this.withTotals(period, header, [...rows], (row) => [row.period, row.ride, row.completed, row.driver, this.fields.decrypt(row.gst_number), this.fields.decrypt(row.qst_number), num(row.fare), num(row.fare_gst), num(row.fare_qst), num(row.fee_gst), num(row.fee_qst)], [6, 7, 8, 9, 10]);
   }
 
   /** Lignes par mois, total de chaque mois (même vide) et total du trimestre ; `sums` : colonnes additionnées. */
@@ -211,6 +213,6 @@ export class LedgerExportsService {
       FROM tax_ledger t JOIN rides r ON r.id = t.ride_id JOIN drivers d ON d.id = t.driver_id
       WHERE t.period IN ${period.months}
       GROUP BY d.id, d.public_number, d.gst_number, d.qst_number ORDER BY d.public_number`);
-    return [...rows].map((row) => ({ publicNumber: row.driver, gstNumber: row.gst_number, qstNumber: row.qst_number, rideCount: num(row.n), fareCents: num(row.fare), gstCents: num(row.gst), qstCents: num(row.qst) }));
+    return [...rows].map((row) => ({ publicNumber: row.driver, gstNumber: this.fields.decrypt(row.gst_number), qstNumber: this.fields.decrypt(row.qst_number), rideCount: num(row.n), fareCents: num(row.fare), gstCents: num(row.gst), qstCents: num(row.qst) }));
   }
 }

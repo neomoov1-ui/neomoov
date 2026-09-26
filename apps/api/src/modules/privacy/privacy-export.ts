@@ -20,7 +20,8 @@ function clean<T extends Record<string, unknown>>(row: T, omit: string[] = []): 
   return out;
 }
 
-export async function collectUserData(db: Database, userId: string): Promise<ExportData> {
+/** `decrypt` : champs chiffrés par l'application (numéros de taxes et de documents), rendus en clair à leur titulaire. */
+export async function collectUserData(db: Database, userId: string, decrypt: (value: string | null) => string | null = (v) => v): Promise<ExportData> {
   const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
   if (!user) throw new Error(`Utilisateur ${userId} introuvable`);
   const data: ExportData = {
@@ -42,9 +43,13 @@ export async function collectUserData(db: Database, userId: string): Promise<Exp
 
   const [driver] = await db.select().from(schema.drivers).where(eq(schema.drivers.userId, userId)).limit(1);
   if (driver) {
-    data['driver'] = clean(driver, ['stripeConnectAccountId', 'stripeDebitPaymentMethodId']);
+    data['driver'] = clean({ ...driver, gstNumber: decrypt(driver.gstNumber), qstNumber: decrypt(driver.qstNumber) }, ['stripeConnectAccountId', 'stripeDebitPaymentMethodId']);
     data['vehicles'] = (await db.select().from(schema.vehicles).where(eq(schema.vehicles.driverId, driver.id))).map((v) => clean(v));
-    data['documents'] = (await db.select().from(schema.driverDocuments).where(eq(schema.driverDocuments.driverId, driver.id))).map((d) => clean(d, ['fileKey']));
+    data['documents'] = (await db.select().from(schema.driverDocuments).where(eq(schema.driverDocuments.driverId, driver.id))).map((d) => {
+      const extracted = d.extractedFields && typeof d.extractedFields === 'object' ? (d.extractedFields as Record<string, unknown>) : null;
+      const extractedNumber = typeof extracted?.['number'] === 'string' ? decrypt(extracted['number']) : null;
+      return clean({ ...d, number: decrypt(d.number), extractedFields: extracted ? { ...extracted, number: extractedNumber } : d.extractedFields }, ['fileKey']);
+    });
     data['ridesAsDriver'] = (await db.select().from(schema.rides).where(eq(schema.rides.driverId, driver.id)).orderBy(desc(schema.rides.createdAt)).limit(1000)).map((r) => clean(r));
   }
 

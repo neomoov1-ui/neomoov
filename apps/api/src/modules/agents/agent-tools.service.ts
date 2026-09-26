@@ -29,6 +29,7 @@ import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { SafetyHoldService } from '../rides/safety-hold.service.js';
 import { logSafe, type AgentRunContext } from './agent-runner.service.js';
 import { ConversationsService } from './conversations.service.js';
+import { FieldCipher } from '../../common/field-cipher.js';
 
 export const TOOL_NAMES = [
   'lookupRide', 'lookupClient', 'lookupDriver', 'issueCredit', 'refund', 'openIncident', 'escalateToHuman', 'sendMessage',
@@ -91,6 +92,7 @@ export class AgentToolsService {
     private readonly conversations: ConversationsService,
     private readonly overview: AdminOverviewService,
     private readonly safety: SafetyHoldService,
+    private readonly fields: FieldCipher,
   ) {
     this.specs = {
       lookupRide: { description: 'Courses du client de la conversation : les plus récentes, ou une course par identifiant ou numéro public (état, dates, adresses, prix, montant payé et remboursé, prénom du chauffeur).', schema: lookupRideToolSchema, run: (c, i) => this.lookupRide(c, i) },
@@ -446,17 +448,18 @@ export class AgentToolsService {
       issuedOn: fields.issuedOn && DATE.test(fields.issuedOn) ? fields.issuedOn : null, expiresOn: fields.expiresOn && DATE.test(fields.expiresOn) ? fields.expiresOn : null,
       doubts: fields.doubts.slice(0, 5).map((d) => d.slice(0, 200)),
     };
-    await this.db.update(schema.driverDocuments).set({ extractedFields: { ...clean, extractedAt: new Date().toISOString(), agentRunId: ctx.runId } }).where(eq(schema.driverDocuments.id, doc.id));
+    await this.db.update(schema.driverDocuments).set({ extractedFields: { ...clean, number: this.fields.encrypt(clean.number), extractedAt: new Date().toISOString(), agentRunId: ctx.runId } }).where(eq(schema.driverDocuments.id, doc.id));
     // Au modèle : jamais le numéro complet.
     return done({ ...clean, number: last4(clean.number) }, 'Champs extraits');
   }
 
   private async compareIdentity(_ctx: AgentRunContext, input: z.infer<typeof compareIdentityToolSchema>): Promise<ToolResult> {
     const { doc, firstName, lastName } = await this.document(input.documentId);
-    const extracted = doc.extractedFields as (ExtractedDocumentFields & Record<string, unknown>) | null;
+    const stored = doc.extractedFields as (ExtractedDocumentFields & Record<string, unknown>) | null;
+    const extracted = stored ? { ...stored, number: this.fields.decrypt(stored.number) } : null;
     if (!extracted) return refused('Champs non extraits : appeler extractDocumentFields d\'abord');
     const tz = await this.settings.string('service.time_zone', 'America/Toronto');
-    const comparison = compareDocumentIdentity(extracted, { type: doc.type, number: doc.number, expiresOn: doc.expiresOn, firstName, lastName }, localClock(new Date(), tz).date);
+    const comparison = compareDocumentIdentity(extracted, { type: doc.type, number: this.fields.decrypt(doc.number), expiresOn: doc.expiresOn, firstName, lastName }, localClock(new Date(), tz).date);
     return done(comparison, comparison.issues.length ? `${comparison.issues.length} écart(s)` : 'Document cohérent avec le profil');
   }
 
