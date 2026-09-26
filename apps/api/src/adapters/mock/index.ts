@@ -238,6 +238,10 @@ export class MockSmsProvider implements SmsProvider {
   verifyStatusWebhook(input: { signature: string }) {
     return input.signature === 'mock-signature';
   }
+  parseInbound(params: Record<string, string>) {
+    const { From: from, To: to, Body: body, MessageSid: messageId } = params;
+    return from && to && body !== undefined && messageId ? { from, to, body, messageId } : null;
+  }
   parseStatus(params: Record<string, string>): SmsDeliveryStatus | null {
     const messageId = params['MessageSid'];
     const status = params['MessageStatus'];

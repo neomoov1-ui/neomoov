@@ -56,7 +56,7 @@ export interface DomainEvents {
    * Message entrant d'un client hors de l'application (WhatsApp, agent vocal, réservation web) ou dans l'application
    * (assistance) : l'agent relation client le prend en charge. `externalId` rend le traitement idempotent.
    */
-  'conversation.inbound': { channel: 'whatsapp' | 'voice' | 'web' | 'app'; externalId: string; userId: string | null; phone: string | null; text: string; language: 'fr' | 'en' | null; rideId: string | null; receivedAt: Date };
+  'conversation.inbound': { channel: 'whatsapp' | 'sms' | 'voice' | 'web' | 'app'; externalId: string; userId: string | null; phone: string | null; text: string; language: 'fr' | 'en' | null; rideId: string | null; receivedAt: Date };
   /** Règlement (étape 9) : relevé hebdomadaire émis. */
   'statement.issued': { statementId: string; driverId: string; periodStart: string; netCents: number };
 }

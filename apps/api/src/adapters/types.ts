@@ -122,6 +122,8 @@ export interface SmsProvider {
   /** Signature du webhook de statut (Twilio : `X-Twilio-Signature` sur l'adresse et les paramètres). */
   verifyStatusWebhook(input: { url: string; params: Record<string, string>; signature: string }): boolean;
   parseStatus(params: Record<string, string>): SmsDeliveryStatus | null;
+  /** Texto reçu sur le numéro de Neomoov (réponse d'un tiers au relais de la messagerie). */
+  parseInbound(params: Record<string, string>): { from: string; to: string; body: string; messageId: string } | null;
 }
 
 export interface EmailProvider {

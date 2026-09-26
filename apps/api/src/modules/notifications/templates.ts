@@ -124,6 +124,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Nouveau message', body: 'Vous avez un nouveau message concernant votre course.' },
     en: { title: 'New message', body: 'You have a new message about your ride.' },
   },
+  'ride.message_sms': {
+    fr: { title: 'Message de votre chauffeur', body: (d) => `Message de votre chauffeur${ride(d)} : « ${str(d['body'])} ». Répondez à ce texto pour lui écrire.` },
+    en: { title: 'Message from your driver', body: (d) => `Message from your driver${ride(d)}: "${str(d['body'])}". Reply to this text to write back.` },
+  },
   'ride.passenger_tracking': {
     fr: { title: 'Votre course Neomoov', body: (d) => `${str(d['passengerName']) ? `${str(d['passengerName'])}, une` : 'Une'} course Neomoov a été réservée pour vous. Suivi : ${str(d['trackingUrl'])}` },
     en: { title: 'Your Neomoov ride', body: (d) => `${str(d['passengerName']) ? `${str(d['passengerName'])}, a` : 'A'} Neomoov ride was booked for you. Tracking: ${str(d['trackingUrl'])}` },

@@ -49,6 +49,8 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('ride.scheduled_confirmed_driver', 'driver', ['push']),
   // Messages dans la course.
   rule('ride.message', 'client', ['push']),
+  /** Client sans application (réservation par téléphone ou pour un tiers) : le texte du chauffeur par texto, réponse relayée. */
+  rule('ride.message_sms', 'passenger', ['sms']),
   // Paiements.
   rule('payment.authorization_failed', 'client', ['push', 'email'], true),
   rule('payment.balance_due', 'client', ['push', 'email']),

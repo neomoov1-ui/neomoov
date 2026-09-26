@@ -52,6 +52,11 @@ export class TwilioSmsProvider implements SmsProvider {
     return expected.length === given.length && timingSafeEqual(expected, given);
   }
 
+  parseInbound(params: Record<string, string>): { from: string; to: string; body: string; messageId: string } | null {
+    const { From: from, To: to, Body: body, MessageSid: messageId } = params;
+    return from && to && body !== undefined && messageId ? { from, to, body, messageId } : null;
+  }
+
   parseStatus(params: Record<string, string>): SmsDeliveryStatus | null {
     const messageId = params['MessageSid'] ?? params['SmsSid'];
     const status = params['MessageStatus'] ?? params['SmsStatus'];

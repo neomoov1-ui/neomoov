@@ -48,6 +48,7 @@ class RealSmsProvider extends NotDelivered implements SmsProvider {
   send(): Promise<never> { return this.reject(); }
   verifyStatusWebhook(): boolean { return this.fail(); }
   parseStatus(): never { return this.fail(); }
+  parseInbound(): never { return this.fail(); }
 }
 
 class RealEmailProvider extends NotDelivered implements EmailProvider {

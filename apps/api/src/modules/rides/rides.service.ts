@@ -941,7 +941,9 @@ export class RidesService {
     this.events.emit('ride.message', { rideId, messageId: row!.id, senderKind: kind, senderUserId: actor.userId, body, sentAt: row!.sentAt });
     if (kind === 'driver') {
       const recipient = await this.recipientOf(ride);
-      await this.outbox.queue({ ...recipient, template: 'ride.message', data: { rideId, messageId: row!.id } });
+      // Sans compte (réservation par téléphone) : le texte part par texto, la réponse revient par le relais (étape 13).
+      if (recipient.recipientUserId) await this.outbox.queue({ ...recipient, template: 'ride.message', data: { rideId, messageId: row!.id } });
+      else await this.outbox.queue({ ...recipient, template: 'ride.message_sms', data: { rideId, messageId: row!.id, publicNumber: ride.publicNumber, body } });
     } else {
       const parties = await this.partiesOf(ride);
       if (parties.driverUserId) await this.outbox.queue({ recipientUserId: parties.driverUserId, template: 'ride.message', data: { rideId, messageId: row!.id } });
