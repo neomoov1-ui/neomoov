@@ -18,7 +18,7 @@ export default function AgentsPage() {
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState<Record<string, string>>({});
   const agents = useQuery({ queryKey: ['hub', 'agents'], queryFn: () => hubApi.admin.agents() });
-  const list = usePagedList<AdminApproval>('approvals', (q) => hubApi.admin.approvals({ ...q, status: q.status || 'pending' }));
+  const list = usePagedList<AdminApproval>('approvals', (q) => hubApi.admin.approvals(q), 25, 'pending');
   const decide = useMutation({
     mutationFn: ({ id, decision }: { id: string; decision: 'approved' | 'rejected' }) => hubApi.admin.decideApproval(id, { decision, ...(notes[id]?.trim() ? { note: notes[id]!.trim() } : {}) }),
     onSuccess: () => {
@@ -67,7 +67,7 @@ export default function AgentsPage() {
       <Card title={t('hub.agents.approvals')}>
         {decide.isError ? <div className="mb-3"><Notice tone="danger">{errorText(decide.error)}</Notice></div> : null}
         {decide.isSuccess ? <div className="mb-3"><Notice tone="success">{t('hub.agents.decided')}</Notice></div> : null}
-        <ListToolbar filters={{ ...list.filters, status: list.filters.status || 'pending' }} setQ={list.setQ} setStatus={list.setStatus} statuses={(['pending', 'approved', 'rejected'] as const).map((s) => ({ value: s, label: t(`enum.approval.${s}`) }))} />
+        <ListToolbar allowAll={false} filters={list.filters} setQ={list.setQ} setStatus={list.setStatus} statuses={(['pending', 'approved', 'rejected'] as const).map((s) => ({ value: s, label: t(`enum.approval.${s}`) }))} />
         {list.query.isPending ? <Loading /> : list.query.isError ? <ErrorBlock error={list.query.error} onRetry={() => void list.query.refetch()} /> : (
           <>
             <DataTable caption={t('hub.agents.approvals')} columns={columns} rows={list.query.data.items} rowKey={(a) => a.id} empty={t('hub.common.empty')} />

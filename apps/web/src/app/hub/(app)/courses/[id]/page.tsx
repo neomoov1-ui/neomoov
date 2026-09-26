@@ -98,7 +98,7 @@ export default function RideDetailPage() {
             columns={[
               { key: 'wave', header: '#', cell: (o) => o.wave },
               { key: 'driver', header: t('hub.rides.driver'), cell: (o) => <Link className={`text-brand-blue-dark underline ${focus}`} href={`/hub/chauffeurs/${o.driverId}`}>{o.driverId.slice(0, 8)}</Link> },
-              { key: 'state', header: t('hub.rides.state'), cell: (o) => <Badge>{o.state}</Badge> },
+              { key: 'state', header: t('hub.rides.state'), cell: (o) => <Badge>{t(`enum.offerState.${o.state}`)}</Badge> },
               { key: 'fare', header: t('hub.rides.price'), cell: (o) => formatMoney(o.proposedTotalCents ?? o.driverFareCents, lang) },
               { key: 'sent', header: t('hub.rides.when'), cell: (o) => formatDateTime(o.sentAt, lang) },
             ]}
@@ -112,9 +112,9 @@ export default function RideDetailPage() {
             {events.data.map((e) => (
               <li key={e.id}>
                 <span className="text-xs text-slate-600">{formatDateTime(e.occurredAt, lang)}</span>
-                <span className="ml-2 font-semibold">{e.type}</span>
+                <span className="ml-2 font-semibold">{t(`enum.rideEvent.${e.type}`, { defaultValue: e.type })}</span>
                 {e.toState ? <span className="ml-2"><RideStateBadge state={e.toState} /></span> : null}
-                <span className="ml-2 text-xs text-slate-600">{e.actorKind}</span>
+                <span className="ml-2 text-xs text-slate-600">{t(`enum.actor.${e.actorKind}`, { defaultValue: e.actorKind })}</span>
               </li>
             ))}
           </ol>

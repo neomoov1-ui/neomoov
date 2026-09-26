@@ -70,8 +70,8 @@ export interface ListFilters {
 }
 
 /** Liste paginée avec recherche et filtre d'état ; la page revient à 1 quand un filtre change. */
-export function usePagedList<T>(key: string, fetcher: (query: { page: number; pageSize: number; q?: string; status?: string }) => Promise<Page<T>>, pageSize = 25) {
-  const [filters, setFilters] = useState<ListFilters>({ page: 1, q: '', status: '' });
+export function usePagedList<T>(key: string, fetcher: (query: { page: number; pageSize: number; q?: string; status?: string }) => Promise<Page<T>>, pageSize = 25, initialStatus = '') {
+  const [filters, setFilters] = useState<ListFilters>({ page: 1, q: '', status: initialStatus });
   const q = useDebounced(filters.q.trim());
   const queryKey: QueryKey = ['hub', key, filters.page, q, filters.status];
   const query = useQuery({
@@ -89,7 +89,8 @@ export function usePagedList<T>(key: string, fetcher: (query: { page: number; pa
   };
 }
 
-export function ListToolbar({ filters, setQ, setStatus, statuses }: { filters: ListFilters; setQ: (v: string) => void; setStatus?: (v: string) => void; statuses?: Array<{ value: string; label: string }> }) {
+/** Barre de recherche et de filtre ; `allowAll` faux quand l'API exige un état (documents, approbations). */
+export function ListToolbar({ filters, setQ, setStatus, statuses, allowAll = true }: { filters: ListFilters; setQ: (v: string) => void; setStatus?: (v: string) => void; statuses?: Array<{ value: string; label: string }>; allowAll?: boolean }) {
   const { t } = useTranslation();
   return (
     <div className="mb-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem]">
@@ -98,7 +99,7 @@ export function ListToolbar({ filters, setQ, setStatus, statuses }: { filters: L
         <Field label={t('hub.common.status')}>
           {(p) => (
             <Select {...p} value={filters.status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">{t('hub.common.all')}</option>
+              {allowAll ? <option value="">{t('hub.common.all')}</option> : null}
               {statuses.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </Select>
           )}

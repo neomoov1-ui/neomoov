@@ -63,7 +63,7 @@ export function OtpSignIn({ guest, onSignedIn, terms, allowCreate = true, noAcco
         language: i18n.language === 'en' ? 'en' : 'fr',
         ...(allowCreate && accepted && terms ? { acceptTerms: true, privacyPolicyVersion: terms.version } : {}),
       });
-      guest.signIn(tokens.accessToken);
+      guest.signIn(tokens);
       onSignedIn(tokens);
     } catch (e) {
       setError(message(e));

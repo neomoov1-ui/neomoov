@@ -39,7 +39,7 @@ export async function logout(): Promise<void> {
 
 /** Étapes de connexion relayées : les jetons restent côté serveur. */
 export async function staffStep<T>(step: 'login' | 'enroll' | 'confirm' | 'verify' | 'backup', body: unknown): Promise<T> {
-  const res = await fetch(`/api/staff-auth/${step}`, { method: 'POST', headers: { 'content-type': 'application/json', 'accept-language': currentLanguage() }, body: JSON.stringify(body) });
+  const res = await fetch(`/api/staff-auth/${step}`, { method: 'POST', headers: { 'content-type': 'application/json', 'accept-language': currentLanguage(), 'x-neomoov-hub': '1' }, body: JSON.stringify(body) });
   const payload = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
   if (!res.ok) throw new ApiError(res.status, payload.code ?? 'ERROR', payload.message ?? res.statusText);
   return payload as T;

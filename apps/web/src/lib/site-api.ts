@@ -16,11 +16,26 @@ export const publicApi = createApiClient({ baseUrl: '/api', language: currentLan
 
 export function createGuestApi() {
   let accessToken: string | null = null;
-  const api = createApiClient({ baseUrl: API_BASE_URL, language: currentLanguage, tokens: { getAccessToken: () => accessToken } });
+  let refreshToken: string | null = null;
+  const api = createApiClient({
+    baseUrl: API_BASE_URL,
+    language: currentLanguage,
+    tokens: {
+      getAccessToken: () => accessToken,
+      refresh: async () => {
+        if (!refreshToken) return null;
+        const renewed = await api.auth.refresh(refreshToken).catch(() => null);
+        accessToken = renewed?.accessToken ?? null;
+        refreshToken = renewed?.refreshToken ?? null;
+        return accessToken;
+      },
+    },
+  });
   return {
     api,
-    signIn: (token: string) => {
-      accessToken = token;
+    signIn: (tokens: { accessToken: string; refreshToken: string }) => {
+      accessToken = tokens.accessToken;
+      refreshToken = tokens.refreshToken;
     },
     signedIn: () => accessToken !== null,
   };

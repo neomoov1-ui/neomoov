@@ -38,3 +38,7 @@ desktop.ini
 *.log
 logs/
 .claude/settings.local.json
+
+# Tests de bout en bout du web (état et sessions de test)
+apps/web/e2e/.auth/
+apps/web/e2e/.state.json

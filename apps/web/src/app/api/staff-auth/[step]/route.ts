@@ -4,7 +4,7 @@
  */
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { API_URL, forwardHeaders, setSession } from '@/lib/server/gateway';
+import { API_URL, CSRF_HEADER, forwardHeaders, setSession } from '@/lib/server/gateway';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +14,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ step: 
   const { step } = await context.params;
   const target = STEPS[step];
   if (!target) return NextResponse.json({ code: 'NOT_FOUND', message: 'Étape inconnue' }, { status: 404 });
+  if (req.headers.get(CSRF_HEADER) !== '1') return NextResponse.json({ code: 'CSRF', message: 'En-tête de sécurité manquant' }, { status: 403 });
   const upstream = await fetch(`${API_URL}/v1/auth/staff/${target}`, { method: 'POST', headers: forwardHeaders(req, { 'content-type': 'application/json' }), body: await req.text(), cache: 'no-store' });
   const payload = (await upstream.json().catch(() => ({}))) as Record<string, unknown>;
   if (!upstream.ok || typeof payload['accessToken'] !== 'string') return NextResponse.json(payload, { status: upstream.status });

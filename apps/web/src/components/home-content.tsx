@@ -25,7 +25,7 @@ export function HomeContent() {
 
   return (
     <section className="flex flex-col gap-8 py-12">
-      <p className="text-sm font-bold uppercase tracking-widest text-brand-blue">{t('app.tagline')}</p>
+      <p className="text-sm font-bold uppercase tracking-widest text-brand-blue-dark">{t('app.tagline')}</p>
       <h1 className="text-4xl leading-tight text-brand-night md:text-5xl">{t('home.title')}</h1>
       <p className="max-w-2xl text-lg">{t('home.subtitle')}</p>
       <div className="flex flex-wrap gap-3">

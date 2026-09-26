@@ -20,7 +20,7 @@ export default function DocumentsPage() {
   const queryClient = useQueryClient();
   const [viewing, setViewing] = useState<AdminDocument | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const list = usePagedList<AdminDocument>('documents', (q) => hubApi.admin.documents({ ...q, status: q.status || 'pending' }));
+  const list = usePagedList<AdminDocument>('documents', (q) => hubApi.admin.documents(q), 25, 'pending');
   const review = useMutation({
     mutationFn: ({ documentId, body }: { documentId: string; body: DocumentReview }) => hubApi.admin.reviewDocument(documentId, body),
     onSuccess: () => {
@@ -42,7 +42,7 @@ export default function DocumentsPage() {
       <PageTitle title={t('hub.documents.title')} />
       {message ? <div className="mb-3"><Notice tone="success">{message}</Notice></div> : null}
       <Card>
-        <ListToolbar filters={{ ...list.filters, status: list.filters.status || 'pending' }} setQ={list.setQ} setStatus={list.setStatus} statuses={DOCUMENT_STATUSES.map((s) => ({ value: s, label: t(`enum.documentStatus.${s}`) }))} />
+        <ListToolbar allowAll={false} filters={list.filters} setQ={list.setQ} setStatus={list.setStatus} statuses={DOCUMENT_STATUSES.map((s) => ({ value: s, label: t(`enum.documentStatus.${s}`) }))} />
         {list.query.isPending ? <Loading /> : list.query.isError ? <ErrorBlock error={list.query.error} onRetry={() => void list.query.refetch()} /> : (
           <>
             <DataTable caption={t('hub.documents.title')} columns={columns} rows={list.query.data.items} rowKey={(d) => d.id} empty={t('hub.common.empty')} />
