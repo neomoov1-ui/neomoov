@@ -110,6 +110,11 @@ export class InvoicingService {
     if (!ride) return null;
     const kind = invoiceKindForRide(ride.state, ride.cancellationFeeCents);
     if (!kind) return null;
+    // Frais d'une course payée au chauffeur : non encaissés en V1 (décision de l'étape 7), donc jamais facturés au client.
+    if (kind !== 'ride' && ride.paymentChoice !== 'prepaid') {
+      this.logger.info({ rideId, kind, feeCents: ride.cancellationFeeCents }, 'Frais non perçus (course payée au chauffeur) : aucune facture');
+      return null;
+    }
     if (!ride.driverId) {
       this.logger.warn({ rideId, state: ride.state }, 'Facture impossible : course sans chauffeur');
       return null;
@@ -457,7 +462,7 @@ export class InvoicingService {
     const rows = await this.db.execute<{ id: string }>(sql`
       SELECT r.id FROM rides r
       WHERE r.driver_id IS NOT NULL
-        AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('cancelled_by_client', 'no_show') AND r.cancellation_fee_cents > 0))
+        AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('cancelled_by_client', 'no_show') AND r.cancellation_fee_cents > 0 AND r.payment_choice = 'prepaid'))
         AND r.updated_at > now() - make_interval(days => ${days}::int) AND r.updated_at < now() - interval '2 minutes'
         AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.ride_id = r.id AND i.credit_note_of_id IS NULL)
       ORDER BY r.updated_at LIMIT ${limit}`);

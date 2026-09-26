@@ -239,10 +239,13 @@ describe('facturation certifiée : factures, numérotation, notes de crédit, SE
     expect(view.lines).toEqual([{ code: 'cancellation_fee', label: 'Frais d\'annulation', amountCents: cancelled.feeCents, party: 'driver' }]);
     expect(sev.calls.find((c) => c.document.invoiceId === invoice!.id)?.method).toBe('registerCancellation');
 
-    const [noShow, free] = await insertRides(driver, 2, { state: 'no_show', cancellationFeeCents: 700, finalPriceCents: null, stateTimestamps: { no_show: new Date().toISOString() } });
+    const [noShow, free, direct] = await insertRides(driver, 3, { state: 'no_show', cancellationFeeCents: 700, finalPriceCents: null, stateTimestamps: { no_show: new Date().toISOString() } });
+    await db(app).update(schema.rides).set({ paymentChoice: 'prepaid', paymentMethod: 'card_app' }).where(eq(schema.rides.id, noShow!));
     await db(app).update(schema.rides).set({ state: 'cancelled_by_client', cancellationFeeCents: 0 }).where(eq(schema.rides.id, free!));
     expect((await invoicing().issueForRide(noShow!))?.invoice).toMatchObject({ kind: 'no_show', totalCents: 700 });
     expect(await invoicing().issueForRide(free!)).toBeNull();
+    // Payée au chauffeur : frais non encaissés en V1, donc aucune facture de frais (revue finale).
+    expect(await invoicing().issueForRide(direct!)).toBeNull();
   });
 
   it('remboursements : une note de crédit par remboursement (carte puis crédit), montants positifs, rattachée à la facture et au SEV', async ({ skip }) => {
