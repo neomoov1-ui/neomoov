@@ -305,9 +305,11 @@ export class MockVoiceProvider implements VoiceProvider {
     this.calls.push(input);
     return { callId: nextId('call_mock') };
   }
+  /** Même forme que Vapi : secret dans l'en-tête, message JSON sous `message`. */
   async verifyWebhook(rawBody: string | Buffer, signature: string) {
     if (signature !== 'mock-signature') throw new Error('Signature de webhook invalide');
-    return JSON.parse(rawBody.toString()) as { type: string; payload: unknown };
+    const body = JSON.parse(rawBody.toString()) as { message?: { type?: string } };
+    return { type: body.message?.type ?? 'unknown', payload: body.message ?? body };
   }
 }
 

@@ -25,6 +25,7 @@ import { UsersModule } from './modules/users/users.module.js';
 import { FavoritesModule } from './modules/favorites/favorites.module.js';
 import { GuaranteeModule } from './modules/guarantee/guarantee.module.js';
 import { MessagingModule } from './modules/messaging/messaging.module.js';
+import { VoiceModule } from './modules/voice/voice.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { SettlementModule } from './modules/settlement/settlement.module.js';
 
@@ -34,7 +35,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, NotificationsModule, MessagingModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, NotificationsModule, MessagingModule, VoiceModule],
     };
   }
 }

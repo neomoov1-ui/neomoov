@@ -128,6 +128,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Message de votre chauffeur', body: (d) => `Message de votre chauffeur${ride(d)} : « ${str(d['body'])} ». Répondez à ce texto pour lui écrire.` },
     en: { title: 'Message from your driver', body: (d) => `Message from your driver${ride(d)}: "${str(d['body'])}". Reply to this text to write back.` },
   },
+  'ride.voice_confirmation': {
+    fr: { title: 'Réservation Neomoov confirmée', body: (d, l) => `Votre course${ride(d)} est réservée pour le ${when(d['requestedAt'], l)}. Prix fixe : ${money(d['totalCents'], l)}, payé au chauffeur. Merci d'avoir appelé Neomoov.` },
+    en: { title: 'Neomoov booking confirmed', body: (d, l) => `Your ride${ride(d)} is booked for ${when(d['requestedAt'], l)}. Fixed price: ${money(d['totalCents'], l)}, paid to the driver. Thank you for calling Neomoov.` },
+  },
   'ride.passenger_tracking': {
     fr: { title: 'Votre course Neomoov', body: (d) => `${str(d['passengerName']) ? `${str(d['passengerName'])}, une` : 'Une'} course Neomoov a été réservée pour vous. Suivi : ${str(d['trackingUrl'])}` },
     en: { title: 'Your Neomoov ride', body: (d) => `${str(d['passengerName']) ? `${str(d['passengerName'])}, a` : 'A'} Neomoov ride was booked for you. Tracking: ${str(d['trackingUrl'])}` },

@@ -16,6 +16,7 @@ import { GoogleMapsProvider } from './google-maps.js';
 import { ResendEmailProvider } from './resend.js';
 import { StripePaymentProvider } from './stripe.js';
 import { TwilioSmsProvider } from './twilio.js';
+import { VapiVoiceProvider } from './vapi.js';
 import { WhatsAppCloudProvider } from './whatsapp-cloud.js';
 
 const notConfigured = (service: string, variable: string) =>
@@ -55,10 +56,6 @@ class RealEmailProvider extends NotDelivered implements EmailProvider {
   send(): Promise<never> { return this.reject(); }
 }
 
-class RealVoiceProvider extends NotDelivered implements VoiceProvider {
-  startOutboundCall(): Promise<never> { return this.reject(); }
-  verifyWebhook(): Promise<never> { return this.reject(); }
-}
 
 class RealSevProvider extends NotDelivered implements SevProvider {
   transmitInvoice(): Promise<never> { return this.reject(); }
@@ -109,7 +106,10 @@ export const realWhatsApp = (env: AppEnv): WhatsAppProvider => {
   requireKey('WhatsApp (Meta)', 'WHATSAPP_PHONE_ID', env);
   return new WhatsAppCloudProvider(env.WHATSAPP_TOKEN!, env.WHATSAPP_PHONE_ID!, env.WHATSAPP_VERIFY_TOKEN ?? null, env.WHATSAPP_APP_SECRET ?? null);
 };
-export const realVoice = (env: AppEnv): VoiceProvider => build(RealVoiceProvider, 'vapi', 'voix (Vapi)', 'VAPI_API_KEY', env);
+export const realVoice = (env: AppEnv): VoiceProvider => {
+  requireKey('voix (Vapi)', 'VAPI_API_KEY', env);
+  return new VapiVoiceProvider(env.VAPI_API_KEY!, env.VAPI_WEBHOOK_SECRET ?? null, env.VAPI_PHONE_NUMBER_ID ?? null);
+};
 export const realSev = (env: AppEnv): SevProvider => build(RealSevProvider, 'sev', 'facturation certifiée (SEV)', 'SEV_API_KEY', env);
 export const realLlm = (env: AppEnv): LlmProvider => build(RealLlmProvider, 'anthropic', 'modèles de langage (Anthropic)', 'ANTHROPIC_API_KEY', env);
 export const realStorage = (env: AppEnv): StorageProvider =>

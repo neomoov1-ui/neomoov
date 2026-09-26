@@ -164,6 +164,8 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'company.qst_number', value: '', description: 'Numéro de TVQ de Neomoov (vide tant que non fourni)' },
   { key: 'invoices.legal_notice', value: 'Le transport est fourni et facturé par le chauffeur indiqué ; les frais de service et la redevance sont facturés par Neomoov. Contenu à confirmer avec le fournisseur du SEV certifié et le comptable.', description: '5.13 : mention légale des factures' },
   { key: 'invoices.verification_base_url', value: 'https://neomoov.net/verifier-facture', description: 'Adresse de vérification publique d\'une facture (code QR)' },
+  { key: 'voice.transfer_number', value: '+15145550100', description: 'Numéro vers lequel l\'agent vocal transfère un appel (humain de garde), à remplacer par le vrai numéro' },
+  { key: 'notifications.approach_meters', value: 700, description: 'Distance au point de départ qui déclenche « votre chauffeur approche » (environ 2 minutes en ville)' },
   { key: 'sev.max_attempts', value: 5, description: 'Tentatives de transmission au SEV avant erreur visible dans My Hub' },
   { key: 'geolocation_export.format', value: 'csv-v0', description: 'Format provisoire de l\'export mensuel de géolocalisation (à confirmer avec la CTQ)' },
   { key: 'sanctions.driver_cancellation_threshold', value: 3, description: 'Annulations chauffeur après en_route par semaine avant avertissement' },
