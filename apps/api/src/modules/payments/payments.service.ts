@@ -286,10 +286,48 @@ export class PaymentsService {
     return rows.length;
   }
 
+  /**
+   * Carte sans autorisation valide : planifiée dont l'autorisation différée n'a pas été faite (`pending`), ou autorisation
+   * refusée à l'attribution (`failed` sans tentative de capture). Une fois traité, le paiement porte une tentative et
+   * n'est plus repris (événement rejoué sans effet).
+   */
+  private static unauthorized(payment: PaymentRow): boolean {
+    return payment.status === 'pending' || (payment.status === 'failed' && payment.attempts === 0 && payment.capturedCents === 0);
+  }
+
+  /**
+   * Montant dû sans autorisation valide : paiement hors session sur la carte de la réservation ; refusé (ou impossible),
+   * il devient un solde dû (incident, réservations bloquées, avis au client). Avant la revue 17.B, ce montant était
+   * abandonné en silence.
+   */
+  private async chargeWithoutAuthorization(payment: PaymentRow, dueCents: number, signal: string): Promise<void> {
+    const ride = await this.rideOf(payment.rideId);
+    const [client] = ride.clientId ? await this.db.select({ userId: schema.clients.userId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
+    const charge = client && payment.stripePaymentMethodId
+      ? await this.provider.chargeOffSession({
+          amountCents: dueCents, customerRef: await this.customerFor(client.userId), paymentMethodRef: payment.stripePaymentMethodId, idempotencyKey: `ride-charge:${payment.id}`,
+          description: `Course ${ride.publicNumber}`, metadata: { ride_id: ride.id, kind: payment.kind },
+        })
+      : null;
+    const attempts = payment.attempts + 1;
+    if (charge?.status === 'captured') {
+      await this.db
+        .update(schema.payments)
+        .set({ status: 'captured', stripePaymentIntentId: charge.intentId, authorizedCents: dueCents, capturedCents: dueCents, capturedAt: new Date(), attempts, failureCode: null })
+        .where(eq(schema.payments.id, payment.id));
+      await this.journal(payment.rideId, signal, { amountCents: dueCents, attempts, offSession: true });
+      return;
+    }
+    const failureCode = charge?.failureCode ?? charge?.status ?? 'no_authorization';
+    await this.db.update(schema.payments).set({ status: 'failed', attempts, failureCode }).where(eq(schema.payments.id, payment.id));
+    await this.journal(payment.rideId, 'payment_capture_failed', { amountCents: dueCents, attempts, code: failureCode, offSession: true });
+    await this.addBalanceDue(payment, dueCents, 'capture_failed');
+  }
+
   /** Fin de course : capture du montant dû (prix final moins les crédits), jamais au-delà de l'autorisation. */
   async onRideCompleted(rideId: string): Promise<void> {
     const payment = await this.ridePayment(rideId);
-    if (!payment || (payment.status !== 'authorized' && payment.status !== 'pending')) return;
+    if (!payment || (payment.status !== 'authorized' && !PaymentsService.unauthorized(payment))) return;
     const ride = await this.rideOf(rideId);
     const due = Math.max(0, (ride.finalPriceCents ?? ride.quotedTotalCents) - ride.creditsAppliedCents);
     // Course entièrement couverte (crédits, promotion) : rien à capturer ; l'autorisation éventuelle est levée (Stripe
@@ -300,16 +338,24 @@ export class PaymentsService {
       await this.journal(rideId, 'payment_nothing_due', {});
       return;
     }
-    if (!payment.stripePaymentIntentId || payment.status !== 'authorized') return;
+    if (payment.status !== 'authorized' || !payment.stripePaymentIntentId) return this.chargeWithoutAuthorization(payment, due, 'ride_captured');
     await this.captureWithRetry(payment, due, 'ride_captured');
   }
 
   /** Annulation ou absence : frais capturés sur l'autorisation, sinon autorisation annulée. */
   async onRideClosedWithFee(rideId: string, feeCents: number, kind: 'cancellation_fee' | 'no_show_fee'): Promise<void> {
     const payment = await this.ridePayment(rideId);
-    if (!payment || !payment.stripePaymentIntentId || payment.status !== 'authorized') {
-      if (payment && payment.status === 'pending') await this.db.update(schema.payments).set({ status: 'cancelled' }).where(eq(schema.payments.id, payment.id));
-      return;
+    if (!payment) return;
+    if (!payment.stripePaymentIntentId || payment.status !== 'authorized') {
+      if (!PaymentsService.unauthorized(payment)) return;
+      // Frais sans autorisation valide (planifiée annulée avant l'autorisation différée, carte refusée) : prélevés hors
+      // session, sinon solde dû ; sans frais, la ligne en attente est close.
+      if (feeCents <= 0) {
+        if (payment.status === 'pending') await this.db.update(schema.payments).set({ status: 'cancelled' }).where(eq(schema.payments.id, payment.id));
+        return;
+      }
+      await this.db.update(schema.payments).set({ kind }).where(eq(schema.payments.id, payment.id));
+      return this.chargeWithoutAuthorization({ ...payment, kind }, feeCents, kind === 'no_show_fee' ? 'no_show_fee_captured' : 'cancellation_fee_captured');
     }
     if (feeCents <= 0) return this.cancelRidePayment(payment, kind === 'no_show_fee' ? 'no_show' : 'cancelled');
     await this.db.update(schema.payments).set({ kind }).where(eq(schema.payments.id, payment.id));

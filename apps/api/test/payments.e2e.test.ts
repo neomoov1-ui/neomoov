@@ -219,6 +219,38 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect(await ridePayment(ride.id)).toMatchObject({ status: 'authorized' });
   });
 
+  it("course terminée sans autorisation valide : prélèvement hors session, sinon solde dû (jamais abandonnée en silence)", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : une carte « pending » (autorisation différée jamais faite) ou « failed » à l'attribution était ignorée
+    // à la fin de course : ni capture, ni incident, ni solde dû.
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+
+    const client = await loginByOtp(app);
+    const pickup = new Date(Date.now() + 10 * 86_400_000).toISOString();
+    const deferred = (await book(client, await quote(client, pickup), { requestedAt: pickup }).expect(201)).body as { id: string };
+    await assigned(admin.tokens, deferred.id, driver);
+    await until(() => db(app!).select({ type: schema.rideEvents.type }).from(schema.rideEvents).where(eq(schema.rideEvents.rideId, deferred.id)), (rows) => rows.some((r) => r.type === 'payment_authorization_deferred'), 'autorisation différée');
+    const done = await drive(driver, deferred.id);
+    const charged = await until(() => ridePayment(deferred.id), (p) => p?.status === 'captured', 'prélèvement hors session');
+    expect(charged!.capturedCents).toBe(done.finalPriceCents);
+
+    provider.nextCard = { brand: 'visa', last4: '0002', declined: true };
+    const declined = await loginByOtp(app);
+    provider.nextCard = { brand: 'visa', last4: '4242' };
+    const ride = (await book(declined, await quote(declined)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, driver);
+    await until(() => ridePayment(ride.id), (p) => p?.status === 'failed', 'refus à l’attribution');
+    const finished = await drive(driver, ride.id);
+    await until(() => db(app!).select({ balance: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, declined.user.id)), (rows) => rows[0]?.balance === finished.finalPriceCents, 'solde dû');
+    const balance = (await request(server()).get('/v1/me/balance').set(bearer(declined)).expect(200)).body;
+    expect(balance).toMatchObject({ balanceDueCents: finished.finalPriceCents, rides: [{ rideId: ride.id, amountDueCents: finished.finalPriceCents }] });
+    // Rejoué, l'événement de fin de course n'ajoute rien au solde.
+    await app.get(PaymentsService).onRideCompleted(ride.id);
+    const [after] = await db(app).select({ balance: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, declined.user.id));
+    expect(after!.balance).toBe(finished.finalPriceCents);
+  });
+
   it('échec de capture : nouvelle tentative réussie ; deux refus : incident, solde dû, réservations bloquées, règlement idempotent', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
