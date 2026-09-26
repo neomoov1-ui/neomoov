@@ -128,6 +128,8 @@ export const competitorBenchmarks = pgTable('competitor_benchmarks', {
   timeWindow: varchar('time_window', { length: 20 }).notNull(),
   uberPriceCents: cents('uber_price_cents'),
   lyftPriceCents: cents('lyft_price_cents'),
+  /** Taxi au taximètre (ou forfait réglementé), référence ajoutée le 26 septembre 2026. */
+  taxiPriceCents: cents('taxi_price_cents'),
   observedAt: tz('observed_at').notNull(),
   source: varchar('source', { length: 60 }).notNull().default('manual'),
   recordedByUserId: uuid('recorded_by_user_id').references(() => users.id),
@@ -135,5 +137,5 @@ export const competitorBenchmarks = pgTable('competitor_benchmarks', {
 }, (t) => [
   index('competitor_benchmarks_lookup_idx').on(t.category, t.originZoneCode, t.destinationZoneCode, t.observedAt),
   check('competitor_benchmarks_window', sql`${t.timeWindow} IN ('weekday_morning', 'weekday_day', 'weekday_evening', 'weekday_night', 'weekend_day', 'weekend_night')`),
-  check('competitor_benchmarks_price', sql`${t.uberPriceCents} IS NOT NULL OR ${t.lyftPriceCents} IS NOT NULL`),
+  check('competitor_benchmarks_price', sql`${t.uberPriceCents} IS NOT NULL OR ${t.lyftPriceCents} IS NOT NULL OR ${t.taxiPriceCents} IS NOT NULL`),
 ]);

@@ -9883,6 +9883,13 @@
                         "maximum": 9007199254740991,
                         "description": "Montant en cents"
                       },
+                      "taxiPriceCents": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991,
+                        "description": "Montant en cents"
+                      },
                       "observedAt": {
                         "type": "string",
                         "format": "date-time",
@@ -9905,6 +9912,7 @@
                       "timeWindow",
                       "uberPriceCents",
                       "lyftPriceCents",
+                      "taxiPriceCents",
                       "observedAt",
                       "source",
                       "createdAt"
@@ -10060,6 +10068,13 @@
                     "maximum": 9007199254740991,
                     "description": "Montant en cents"
                   },
+                  "taxiPriceCents": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Montant en cents"
+                  },
                   "observedAt": {
                     "type": "string",
                     "format": "date-time",
@@ -10133,6 +10148,13 @@
                       "maximum": 9007199254740991,
                       "description": "Montant en cents"
                     },
+                    "taxiPriceCents": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Montant en cents"
+                    },
                     "observedAt": {
                       "type": "string",
                       "format": "date-time",
@@ -10155,6 +10177,7 @@
                     "timeWindow",
                     "uberPriceCents",
                     "lyftPriceCents",
+                    "taxiPriceCents",
                     "observedAt",
                     "source",
                     "createdAt"

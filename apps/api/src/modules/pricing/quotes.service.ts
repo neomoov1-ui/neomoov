@@ -115,10 +115,11 @@ export class QuotesService {
     const promotionCandidates = await this.promotions.candidates(input.options.promoCode, client?.id ?? null);
     const clientCompletedRides = overrides.clientCompletedRides ?? client?.rideCount ?? 0;
     const creditsAvailableCents = overrides.creditsAvailableCents ?? (actor.userId ? await this.creditsOf(actor.userId) : 0);
-    const [marginPpm, maxAgeDays, validitySeconds] = await Promise.all([
+    const [marginPpm, maxAgeDays, validitySeconds, belowCents] = await Promise.all([
       this.settings.number('pricing.benchmark_margin_ppm', 50_000),
       this.settings.number('pricing.benchmark_max_age_days', 14),
       this.settings.number('pricing.quote_validity_seconds', 300),
+      this.settings.number('pricing.benchmark_below_cents', 100),
     ]);
     const benchmarks = originZone && destinationZone ? await this.benchmarksFor(originZone.code, destinationZone.code, categories, benchmarkTimeWindow(pickupAt, loaded.timeZone), now, maxAgeDays) : [];
     const validUntil = new Date(now.getTime() + validitySeconds * 1000);
@@ -163,7 +164,7 @@ export class QuotesService {
       }
       // Favori indisponible : aucun supplément, et l'option est signalée ignorée (message affiché par l'application).
       if (favourite === 'unavailable' && !quote.ignoredOptions.includes('favouriteDriver')) quote.ignoredOptions.push('favouriteDriver');
-      const checked = benchmarkCheck(quote, benchmarks, loaded.rules, { originZone: originZone?.code, destinationZone: destinationZone?.code, pickupAt, now, timeZone: loaded.timeZone, marginPpm, maxAgeDays });
+      const checked = benchmarkCheck(quote, benchmarks, loaded.rules, { originZone: originZone?.code, destinationZone: destinationZone?.code, pickupAt, now, timeZone: loaded.timeZone, marginPpm, belowCents, maxAgeDays });
       return { category, before: quote, checked };
     });
 
@@ -354,7 +355,7 @@ export class QuotesService {
       )
       .orderBy(desc(schema.competitorBenchmarks.observedAt))
       .limit(200);
-    return rows.map((r) => ({ category: r.category, originZone: r.originZoneCode, destinationZone: r.destinationZoneCode, timeWindow: r.timeWindow as CompetitorBenchmark['timeWindow'], uberPriceCents: r.uberPriceCents, lyftPriceCents: r.lyftPriceCents, observedAt: r.observedAt, source: r.source }));
+    return rows.map((r) => ({ category: r.category, originZone: r.originZoneCode, destinationZone: r.destinationZoneCode, timeWindow: r.timeWindow as CompetitorBenchmark['timeWindow'], uberPriceCents: r.uberPriceCents, lyftPriceCents: r.lyftPriceCents, taxiPriceCents: r.taxiPriceCents, observedAt: r.observedAt, source: r.source }));
   }
 
   /** Temps d'arrivée du chauffeur en ligne le plus proche de cette catégorie (temps provisoire), ou null. */

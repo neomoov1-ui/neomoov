@@ -1,0 +1,3 @@
+ALTER TABLE "competitor_benchmarks" DROP CONSTRAINT "competitor_benchmarks_price";--> statement-breakpoint
+ALTER TABLE "competitor_benchmarks" ADD COLUMN "taxi_price_cents" integer;--> statement-breakpoint
+ALTER TABLE "competitor_benchmarks" ADD CONSTRAINT "competitor_benchmarks_price" CHECK ("competitor_benchmarks"."uber_price_cents" IS NOT NULL OR "competitor_benchmarks"."lyft_price_cents" IS NOT NULL OR "competitor_benchmarks"."taxi_price_cents" IS NOT NULL);

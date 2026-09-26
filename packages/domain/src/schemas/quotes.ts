@@ -181,9 +181,10 @@ export const benchmarkInputSchema = z.object({
   timeWindow: z.enum(BENCHMARK_TIME_WINDOWS),
   uberPriceCents: cents.nullable().optional(),
   lyftPriceCents: cents.nullable().optional(),
+  taxiPriceCents: cents.nullable().optional(),
   observedAt: isoDate.optional(),
   source: z.string().trim().max(60).optional(),
-}).refine((b) => (b.uberPriceCents ?? 0) > 0 || (b.lyftPriceCents ?? 0) > 0, { message: 'Au moins un prix observé' });
+}).refine((b) => (b.uberPriceCents ?? 0) > 0 || (b.lyftPriceCents ?? 0) > 0 || (b.taxiPriceCents ?? 0) > 0, { message: 'Au moins un prix observé' });
 export type BenchmarkInput = z.infer<typeof benchmarkInputSchema>;
 
 export const benchmarkViewSchema = z.object({
@@ -194,6 +195,7 @@ export const benchmarkViewSchema = z.object({
   timeWindow: z.enum(BENCHMARK_TIME_WINDOWS),
   uberPriceCents: cents.nullable(),
   lyftPriceCents: cents.nullable(),
+  taxiPriceCents: cents.nullable(),
   observedAt: isoDate,
   source: z.string(),
   createdAt: isoDate,

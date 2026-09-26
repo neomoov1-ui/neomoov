@@ -16,6 +16,7 @@ describe('schémas des devis et des relevés (prompt 04)', () => {
     const base = { category: 'neo_premium', originZoneCode: 'plateau', destinationZoneCode: 'yul', timeWindow: 'weekday_day' };
     expect(benchmarkInputSchema.parse({ ...base, uberPriceCents: 3000 }).uberPriceCents).toBe(3000);
     expect(benchmarkInputSchema.parse({ ...base, lyftPriceCents: 3200 }).lyftPriceCents).toBe(3200);
+    expect(benchmarkInputSchema.parse({ ...base, taxiPriceCents: 4945 }).taxiPriceCents).toBe(4945);
     expect(benchmarkInputSchema.safeParse({ ...base }).success).toBe(false);
     expect(benchmarkInputSchema.safeParse({ ...base, uberPriceCents: null, lyftPriceCents: null }).success).toBe(false);
     expect(benchmarkInputSchema.safeParse({ ...base, uberPriceCents: 0, lyftPriceCents: 0 }).success).toBe(false);
