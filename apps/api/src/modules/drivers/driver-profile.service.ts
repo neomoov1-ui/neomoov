@@ -18,6 +18,7 @@ import { AppError } from '../../common/app-error.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { ReferralsService } from '../credits/referrals.service.js';
 import { DriverPaymentsService } from '../payments/driver-payments.service.js';
 import { UsersService } from '../users/users.service.js';
 
@@ -60,6 +61,7 @@ export class DriverProfileService {
     private readonly settings: SettingsService,
     private readonly users: UsersService,
     private readonly driverPayments: DriverPaymentsService,
+    private readonly referrals: ReferralsService,
   ) {}
 
   private get db() {
@@ -93,6 +95,8 @@ export class DriverProfileService {
   async apply(userId: string, input: DriverApply): Promise<DriverProfileView> {
     const existing = await this.findDriver(userId);
     if (existing) return this.profileView(existing);
+    // Code du parrain chauffeur (5.9) : vérifié avant la création du dossier, enregistré après.
+    const referrer = input.referralCode ? await this.referrals.driverReferrerFor(userId, input.referralCode) : null;
     try {
       await this.db.transaction(async (tx) => {
         await tx
@@ -112,6 +116,7 @@ export class DriverProfileService {
       throw error;
     }
     await this.users.grantRole(userId, 'driver');
+    if (referrer) await this.referrals.recordDriverReferral(userId, referrer);
     return this.profileView(await this.requireDriver(userId));
   }
 

@@ -229,6 +229,7 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     const rideIds = rides.map((r) => r.id);
     await database.delete(schema.incidents).where(inArray(schema.incidents.rideId, rideIds));
     await database.delete(schema.packConsumptions).where(inArray(schema.packConsumptions.rideId, rideIds));
+    await database.delete(schema.creditUses).where(inArray(schema.creditUses.rideId, rideIds));
     await database.execute(sql`DELETE FROM refunds WHERE payment_id IN (SELECT id FROM payments WHERE ride_id IN ${rideIds})`);
     await database.delete(schema.payments).where(inArray(schema.payments.rideId, rideIds));
     // `ride_events` est en ajout seul (déclencheur) : le nettoyage des courses de test le suspend le temps d'une transaction.
@@ -254,6 +255,8 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   await database.delete(schema.competitorBenchmarks).where(inArray(schema.competitorBenchmarks.recordedByUserId, ids));
   await database.delete(schema.apiKeys).where(inArray(schema.apiKeys.createdByUserId, ids));
   await database.delete(schema.dataRequests).where(inArray(schema.dataRequests.userId, ids));
+  await database.execute(sql`DELETE FROM credit_uses WHERE credit_id IN (SELECT id FROM credits WHERE user_id IN ${ids})`);
+  await database.delete(schema.referrals).where(or(inArray(schema.referrals.referrerUserId, ids), inArray(schema.referrals.referredUserId, ids)));
   await database.delete(schema.credits).where(inArray(schema.credits.userId, ids));
   await database.delete(schema.users).where(inArray(schema.users.id, ids));
   createdUserIds.clear();

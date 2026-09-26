@@ -11,6 +11,7 @@ import type {
   LoyalClientView, OfferCounterInput, OnboardingView, PackActivate, PackUpdate, PayoutLink, PayoutStatus, RateClient, ScheduledRideView, ShiftStartResult,
   StatementSummary, TrainingResult, TrainingView, VehicleInputBody, VehicleView,
   BalanceView, ConnectStatus, PaymentMethodView, PaymentView, SetupIntentResponse,
+  CreditsView, ReferralView,
 } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
@@ -56,6 +57,12 @@ export function meResource(t: Transport) {
     places: () => t.get<SavedPlace[]>('/me/places'),
     addPlace: (body: SavedPlaceInput) => t.post<SavedPlace>('/me/places', body),
     removePlace: (placeId: string) => t.delete(`/me/places/${id(placeId)}`),
+    /** Crédits du compte (parrainage, gestes, remboursements en crédit), déduits automatiquement du devis. */
+    credits: () => t.get<CreditsView>('/me/credits'),
+    /** Code personnel et lien de partage (créés au premier appel), montants et statistiques ; chauffeur par défaut pour un chauffeur. */
+    referral: (kind?: 'client' | 'driver') => t.get<ReferralView>('/me/referral', kind ? { query: { kind } } : undefined),
+    /** Saisie du code d'un parrain, à l'inscription et avant la première course. */
+    applyReferral: (code: string) => t.post<ReferralView>('/me/referral/apply', { code }),
   };
 }
 
