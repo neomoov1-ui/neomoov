@@ -19,6 +19,7 @@ import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
+import { FieldCipher } from '../../common/field-cipher.js';
 
 /** États d'une course terminée : ceux-là seulement entrent aux registres. */
 const FINISHED_STATES = new Set<string>(['completed', 'rated', 'disputed']);
@@ -48,6 +49,7 @@ export class LedgersService {
     private readonly settings: SettingsService,
     private readonly pricingRules: PricingRulesService,
     private readonly audit: AuditService,
+    private readonly fields: FieldCipher,
   ) {}
 
   private get db() {
@@ -229,7 +231,7 @@ export class LedgersService {
     const name = [driver.firstName, driver.lastName].filter(Boolean).join(' ') || null;
     return {
       quarter: code, startDate: period.startDate, endDate: period.endDate,
-      driver: { id: driver.id, publicNumber: driver.publicNumber, name, gstNumber: driver.gstNumber, qstNumber: driver.qstNumber },
+      driver: { id: driver.id, publicNumber: driver.publicNumber, name, gstNumber: this.fields.decrypt(driver.gstNumber), qstNumber: this.fields.decrypt(driver.qstNumber) },
       months: report.months, totals: report.totals, generatedAt: new Date().toISOString(),
     };
   }

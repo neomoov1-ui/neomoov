@@ -6,7 +6,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { schema } from '@neomoov/db';
-import { conversationSchema, supportMessageAcceptedSchema, supportMessageSchema } from '@neomoov/domain';
+import { conversationSchema, redactSensitive, supportMessageAcceptedSchema, supportMessageSchema } from '@neomoov/domain';
 import { Body, Controller, Get, HttpCode, Inject, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { and, eq } from 'drizzle-orm';
@@ -54,6 +54,19 @@ export class SupportController {
       if (!ride) throw AppError.notFound('RIDE_NOT_FOUND', 'Course introuvable');
     }
     const externalId = `${body.channel}-${randomUUID()}`;
+    if (body.audience === 'driver') {
+      // Application chauffeur : l'équipe répond directement (l'agent relation client sert les clients).
+      const [driver] = await this.database.db.select({ id: schema.drivers.id }).from(schema.drivers).where(eq(schema.drivers.userId, user.userId)).limit(1);
+      if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Aucun profil chauffeur pour ce compte');
+      const [account] = await this.database.db.select({ language: schema.users.language }).from(schema.users).where(eq(schema.users.id, user.userId)).limit(1);
+      const language = account?.language === 'en' ? 'en' : 'fr';
+      const { conversation, duplicate } = await this.conversations.receive({ channel: 'app', externalId, userId: user.userId, phone: null, text: body.text, language, rideId: null });
+      if (!duplicate) {
+        if (conversation.status !== 'escalated') await this.conversations.send(conversation, language === 'en' ? 'Message received: the Neomoov team will reply shortly.' : 'Message reçu : l\'équipe Neomoov vous répond rapidement.', 'system');
+        await this.conversations.escalate(conversation.id, 'driver_support', redactSensitive(body.text).slice(0, 300));
+      }
+      return { accepted: true as const, externalId };
+    }
     this.events.emit('conversation.inbound', { channel: body.channel, externalId, userId: user.userId, phone: null, text: body.text, language: null, rideId: body.rideId ?? null, receivedAt: new Date() });
     return { accepted: true as const, externalId };
   }

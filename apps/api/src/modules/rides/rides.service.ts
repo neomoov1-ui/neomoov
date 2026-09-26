@@ -22,7 +22,7 @@ import { describeDuration } from '../../common/format.js';
 import { lineLengthMeters, simplifyLine } from '../../common/geo.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
-import { APP_ENV, type AppEnv } from '../../config/env.js';
+import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { hasStaffRole, type UserActor } from '../auth/actor.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -32,6 +32,7 @@ import { PromotionsService } from '../pricing/promotions.service.js';
 import { categoryAtLeast, currentVehicleJoin, driverEligible, loadEligibilityRules, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
+import { SafetyHoldService } from './safety-hold.service.js';
 import { dispatchRows, dispatchSummaryOf, driverSummaries, parseGeoPoint, selectRide, selectRides, timestampsOf, toRideView, type RideRow } from './ride-view.js';
 
 export type ActorKind = 'client' | 'driver' | 'operator' | 'system' | 'agent';
@@ -88,6 +89,7 @@ export class RidesService {
     private readonly presence: PresenceService,
     private readonly payments: PaymentsService,
     private readonly promotions: PromotionsService,
+    private readonly safety: SafetyHoldService,
   ) {}
 
   private get db() {
@@ -242,6 +244,9 @@ export class RidesService {
     // Paiements (étape 7) : aucune course avec un solde dû ; carte prépayée : immédiate autorisée avant sa création
     // (un refus empêche la demande), planifiée autorisée à l'attribution sur la carte choisie maintenant.
     this.payments.assertCanBook(client.balanceDueCents);
+    if (input.paymentChoice === 'prepaid' && isCardMethod(input.paymentMethod) && !cardPaymentsEnabled(this.env)) {
+      throw AppError.conflict('CARD_PAYMENTS_UNAVAILABLE', 'Le paiement par carte n\'est pas encore ouvert : réglez le chauffeur à la fin de la course');
+    }
     const card = input.paymentChoice === 'prepaid' && isCardMethod(input.paymentMethod) ? await this.payments.methodForClient(client.id, input.paymentMethodId) : null;
     const authorization: RideAuthorization | null =
       card && type === 'immediate' ? await this.payments.authorizeBeforeRide({ userId: actor.userId, method: card, maxConsentedCents: input.maxConsentedCents, idempotencyKey, quoteId: input.quoteId }) : null;
@@ -1016,8 +1021,10 @@ export class RidesService {
       .returning({ id: schema.incidents.id });
     await this.db.insert(schema.rideEvents).values({ rideId, type: 'sos', fromState: ride.state, toState: ride.state, actorUserId: actor.userId, actorKind: kind, data: { incidentId: incident!.id } });
     this.events.emit('ride.sos', { rideId, incidentId: incident!.id, reportedByUserId: actor.userId, coordinates: input.coordinates ?? null });
-    await this.outbox.queueForStaff('alert.sos', { rideId, incidentId: incident!.id, publicNumber: ride.publicNumber, reportedByKind: kind }, 'sms');
+    await this.outbox.queueForStaff('alert.sos', { rideId, incidentId: incident!.id, publicNumber: ride.publicNumber, reportedByKind: kind });
     this.audit.record({ action: 'ride.sos', entity: 'incidents', entityId: incident!.id, after: { rideId, reportedByKind: kind } });
+    // SOS du client : le chauffeur est bloqué aussitôt, en attente de décision humaine (5.11) ; jamais sur son propre SOS.
+    await this.safety.holdForIncident(incident!.id).catch((error: unknown) => this.logger.error({ err: error, incidentId: incident!.id }, 'Blocage préventif impossible'));
     this.logger.error({ rideId, incidentId: incident!.id, kind }, 'SOS déclenché');
     return { incidentId: incident!.id, status: 'alerted' };
   }

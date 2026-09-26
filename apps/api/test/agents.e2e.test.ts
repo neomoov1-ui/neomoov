@@ -311,6 +311,28 @@ describe('agents IA : exécuteur, outils, file d\'approbation, agents V1 (intég
     }
   });
 
+  it('plainte de sécurité sur la course en cours : incident rattaché à la course, chauffeur bloqué en attente de décision', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app, undefined, {}, { card: false });
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const q = (await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: CENTRE, destination: YUL, requestedAt: inThreeHours() }).expect(201)).body.quotes[0] as { id: string; maxConsentedCents: number };
+    const ride = (await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', `t13b-${rand()}`)
+      .send({ quoteId: q.id, type: 'scheduled', requestedAt: inThreeHours(), paymentChoice: 'pay_driver_after', paymentMethod: 'cash', maxConsentedCents: q.maxConsentedCents }).expect(201)).body as { id: string };
+    await request(server()).post(`/v1/admin/rides/${ride.id}/assign`).set(bearer(operator.tokens)).send({ driverId: driver.driverId }).expect(200);
+    await request(server()).post(`/v1/driver/rides/${ride.id}/depart`).set(bearer(driver.tokens)).expect(200);
+    llm.script((req) => (req.schemaName === 'classification' ? { output: { category: 'complaint', language: 'fr', safetyComplaint: true, hostile: false, summary: 'Propos menaçants du chauffeur' } } : undefined));
+    const externalId = `t13b-${rand()}`;
+    await events().emitAndWait('conversation.inbound', { channel: 'app', externalId, userId: client.user.id, phone: null, text: 'Le chauffeur me menace, j\'ai peur', language: 'fr', rideId: ride.id, receivedAt: new Date() });
+    const [run] = await runsByRef(externalId);
+    track(run?.id);
+    const [incident] = await db(app).select().from(schema.incidents).where(eq(schema.incidents.reportedByUserId, client.user.id));
+    expect(incident).toMatchObject({ rideId: ride.id, type: 'complaint', severity: 'high', reportedByKind: 'agent' });
+    const [row] = await db(app).select({ status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, driver.driverId));
+    expect(row!.status).toBe('suspended');
+    const [sanction] = await db(app).select().from(schema.sanctions).where(eq(schema.sanctions.incidentId, incident!.id));
+    expect(sanction).toMatchObject({ driverId: driver.driverId, type: 'suspension', endsAt: null });
+  });
+
   it('assistance de l\'application : message du client, accusé puis réponse, conversation relue ; course d\'un autre client refusée ; débit limité', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app, undefined, {}, { card: false });

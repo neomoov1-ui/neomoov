@@ -163,6 +163,7 @@ export default function RideScreen() {
         <Card style={styles.card}>
           <Text style={styles.who}>{who}</Text>
           <PreferenceChips preferences={data.job.preferences} />
+          {data.job.flightNumber ? <Body>{t('ride.flight', { number: data.job.flightNumber })}</Body> : null}
           {data.job.specialRequests ? <Body>{`${t('ride.special')} : ${data.job.specialRequests}`}</Body> : null}
           <Body muted>{data.job.payment.direct ? t('ride.paymentDirect', { method: t(`methods.${data.paymentMethod}`) }) : t('ride.paymentApp')}</Body>
           <Body muted>{t('ride.fare', { amount: money(data.job.driverFareCents) })}</Body>

@@ -24,8 +24,13 @@ export const statementGenerateSchema = z.object({
   driverId: uuid.optional(),
   /** Aperçu : relevés calculés et renvoyés, rien n'est enregistré. */
   preview: z.boolean().default(false),
+  /**
+   * Avec `driverId` : crée le brouillon même sans course ni pack, pour y porter la correction d'un relevé déjà émis
+   * (chauffeur sans activité la semaine suivante).
+   */
+  allowEmpty: z.boolean().default(false),
 });
-export type StatementGenerate = z.infer<typeof statementGenerateSchema>;
+export type StatementGenerate = z.input<typeof statementGenerateSchema>;
 
 export const statementComputedSchema = z.object({
   /** Relevé enregistré (brouillon ou déjà émis) ; `null` pour un aperçu. */

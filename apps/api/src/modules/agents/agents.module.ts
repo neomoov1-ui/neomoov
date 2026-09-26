@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AdminModule } from '../admin/admin.module.js';
+import { ComplianceModule } from '../compliance/compliance.module.js';
 import { CreditsModule } from '../credits/credits.module.js';
 import { PaymentsModule } from '../payments/payments.module.js';
 import { RidesModule } from '../rides/rides.module.js';
@@ -12,6 +13,7 @@ import { AgentsService } from './agents.service.js';
 import { AccountingAgent, AnalyticsAgent, RecruitmentAgent } from './back-office.agents.js';
 import { ConversationsService } from './conversations.service.js';
 import { CustomerRelationsAgent } from './customer-relations.agent.js';
+import { QualityAgent } from './quality.agent.js';
 import { SupportController } from './support.controller.js';
 
 /**
@@ -19,9 +21,9 @@ import { SupportController } from './support.controller.js';
  * l'assistance, agents relation client, recrutement, comptabilité et analyse, déclencheurs (file `agents`).
  */
 @Module({
-  imports: [RidesModule, PaymentsModule, CreditsModule, AdminModule],
+  imports: [RidesModule, PaymentsModule, CreditsModule, AdminModule, ComplianceModule],
   controllers: [AgentsAdminController, InternalAgentsController, SupportController],
-  providers: [AgentRunnerService, AgentToolsService, AgentApprovalsService, ConversationsService, CustomerRelationsAgent, RecruitmentAgent, AccountingAgent, AnalyticsAgent, AgentsService, AgentJobsService],
-  exports: [AgentRunnerService, AgentToolsService, AgentApprovalsService, ConversationsService, CustomerRelationsAgent, RecruitmentAgent, AccountingAgent, AnalyticsAgent, AgentJobsService],
+  providers: [AgentRunnerService, AgentToolsService, AgentApprovalsService, ConversationsService, CustomerRelationsAgent, RecruitmentAgent, AccountingAgent, AnalyticsAgent, QualityAgent, AgentsService, AgentJobsService],
+  exports: [AgentRunnerService, AgentToolsService, AgentApprovalsService, ConversationsService, CustomerRelationsAgent, RecruitmentAgent, AccountingAgent, AnalyticsAgent, QualityAgent, AgentJobsService],
 })
 export class AgentsModule {}

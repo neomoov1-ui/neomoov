@@ -21,7 +21,7 @@ import { ConversationsService } from './conversations.service.js';
 
 type ApprovalRow = typeof schema.approvals.$inferSelect;
 
-const ACTIONS: readonly string[] = ['refund', 'issueCredit', 'proposeDecision', 'flagAnomaly'];
+const ACTIONS: readonly string[] = ['refund', 'issueCredit', 'proposeDecision', 'flagAnomaly', 'proposeSanction'];
 /** Modes interdits par agent en V1 : le recrutement n'est jamais automatique (validation humaine obligatoire). */
 const LOCKED_MODES: Record<string, readonly string[]> = { [RECRUITMENT]: ['auto'] };
 

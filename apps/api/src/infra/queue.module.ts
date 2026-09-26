@@ -2,10 +2,11 @@ import { Global, Inject, Injectable, Module, Optional, type OnModuleDestroy } fr
 import { Queue, Worker, type JobsOptions, type Processor } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
-import { APP_LOGGER } from '../common/logger.js';
+import { reportError } from '../common/error-reporting.js';
+import { APP_LOGGER, currentCorrelationId, isValidCorrelationId, newCorrelationId, runWithCorrelation } from '../common/logger.js';
 import { REDIS } from './redis.module.js';
 
-export const QUEUE_NAMES = ['heartbeat', 'notifications', 'invoicing', 'settlements', 'exports', 'agents', 'privacy', 'scheduling', 'payments', 'packs'] as const;
+export const QUEUE_NAMES = ['heartbeat', 'notifications', 'invoicing', 'settlements', 'exports', 'agents', 'privacy', 'scheduling', 'payments', 'packs', 'compliance', 'retention'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
 export interface QueueStats {
@@ -26,9 +27,46 @@ export function bullJobId(id: string): string {
   return id.replace(/:/g, '-');
 }
 
+/**
+ * Clé réservée dans les données d'une tâche (étape 15, observabilité) : identifiant de corrélation de la requête ou de
+ * la tâche qui l'a créée. Le traitement le remet dans le contexte de journal : les lignes de l'API (requête) et du
+ * worker (tâche) se retrouvent par le même identifiant.
+ */
+export const JOB_CORRELATION_KEY = '_correlationId';
+
+/** Données de tâche complétées par l'identifiant de corrélation courant (objets seulement ; un identifiant déjà posé est gardé). */
+export function withJobCorrelation(data: unknown): unknown {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+  if (isValidCorrelationId((data as Record<string, unknown>)[JOB_CORRELATION_KEY])) return data;
+  return { ...data, [JOB_CORRELATION_KEY]: currentCorrelationId() ?? newCorrelationId() };
+}
+
+/** Identifiant de corrélation porté par les données d'une tâche, s'il y en a un. */
+export function jobCorrelationId(data: unknown): string | undefined {
+  const value = data && typeof data === 'object' ? (data as Record<string, unknown>)[JOB_CORRELATION_KEY] : undefined;
+  return isValidCorrelationId(value) ? value : undefined;
+}
+
 interface MemoryJob {
   name: string;
   data: unknown;
+}
+
+/**
+ * Traitement exécuté dans le contexte de corrélation de sa tâche (un nouvel identifiant pour une tâche planifiée) ;
+ * l'échec de la dernière tentative est signalé au suivi des erreurs avec la file et le nom de la tâche.
+ */
+export function correlatedProcessor(queue: QueueName, processor: Processor): Processor {
+  return (job, token, signal) =>
+    runWithCorrelation(jobCorrelationId(job.data), async () => {
+      try {
+        return await processor(job, token, signal);
+      } catch (error) {
+        const attempts = job.opts?.attempts ?? 1;
+        if ((job.attemptsMade ?? 0) + 1 >= attempts) reportError(error, { tags: { queue, job: job.name } });
+        throw error;
+      }
+    });
 }
 
 /**
@@ -63,7 +101,9 @@ export class QueueService implements OnModuleDestroy {
     return q;
   }
 
-  async add(name: QueueName, jobName: string, data: unknown, options?: JobsOptions): Promise<void> {
+  async add(name: QueueName, jobName: string, rawData: unknown, options?: JobsOptions): Promise<void> {
+    // L'identifiant de corrélation de la requête (ou de la tâche) en cours voyage avec la tâche.
+    const data = withJobCorrelation(rawData);
     const q = this.queue(name);
     if (q) {
       await q.add(jobName, data, options?.jobId ? { ...options, jobId: bullJobId(options.jobId) } : options);
@@ -88,8 +128,9 @@ export class QueueService implements OnModuleDestroy {
 
   /** Enregistre un traitement (côté worker). En mémoire, `everyMs` planifie une exécution périodique. */
   process(name: QueueName, processor: Processor, options?: { concurrency?: number; everyMs?: number; jobName?: string }): void {
+    const correlated = correlatedProcessor(name, processor);
     if (this.redis) {
-      this.workers.push(new Worker(name, processor, { connection: this.redis, concurrency: options?.concurrency ?? 5 }));
+      this.workers.push(new Worker(name, correlated, { connection: this.redis, concurrency: options?.concurrency ?? 5 }));
       if (options?.everyMs) {
         const schedulerId = `${name}-${options.jobName ?? 'tick'}`;
         this.queue(name)
@@ -98,7 +139,7 @@ export class QueueService implements OnModuleDestroy {
       }
       return;
     }
-    this.memoryHandlers.set(name, processor);
+    this.memoryHandlers.set(name, correlated);
     if (options?.everyMs) {
       // Pas de unref : dans le worker, ce minuteur est le seul handle qui maintient le processus en vie.
       this.timers.push(setInterval(() => void this.add(name, options.jobName ?? 'tick', { at: new Date().toISOString() }), options.everyMs));
@@ -118,6 +159,32 @@ export class QueueService implements OnModuleDestroy {
       const s = this.memoryStat(name);
       return { name, waiting: 0, active: 0, failed: s.failed, dropped: s.dropped };
     });
+  }
+
+  /**
+   * Tâches en échec d'une file (étape 15, My Hub) : identifiant, nom, motif, tentatives, date. En mode mémoire, rien
+   * n'est gardé (les échecs sont seulement comptés et journalisés).
+   */
+  async failedJobs(name: QueueName, limit = 50): Promise<Array<{ id: string; name: string; failedReason: string | null; attempts: number; failedAt: string | null }>> {
+    const q = this.queue(name);
+    if (!q) return [];
+    const jobs = await q.getFailed(0, Math.max(0, limit - 1));
+    return jobs.map((j) => ({ id: String(j.id ?? ''), name: j.name, failedReason: j.failedReason ?? null, attempts: j.attemptsMade, failedAt: j.finishedOn ? new Date(j.finishedOn).toISOString() : null }));
+  }
+
+  /** Relance les tâches en échec d'une file (une seule si `jobId`) ; renvoie le nombre de tâches relancées. */
+  async retryFailed(name: QueueName, jobId?: string): Promise<number> {
+    const q = this.queue(name);
+    if (!q) return 0;
+    if (jobId) {
+      const job = await q.getJob(jobId);
+      if (!job || !(await job.isFailed())) return 0;
+      await job.retry('failed');
+      return 1;
+    }
+    const failed = await q.getFailedCount();
+    if (failed) await q.retryJobs({ state: 'failed', count: 1000 });
+    return failed;
   }
 
   private memoryStat(name: QueueName) {

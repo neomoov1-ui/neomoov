@@ -40,6 +40,11 @@ export const envSchema = z.object({
   JWT_ACCESS_SECRET: optionalString,
   JWT_REFRESH_SECRET: optionalString,
   ENCRYPTION_KEY: optionalString,
+  /**
+   * Clé des dérivations durables (vérification des factures émises, pseudonymes de l'export de géolocalisation) ; absente :
+   * `ENCRYPTION_KEY`. Avant une rotation d'`ENCRYPTION_KEY`, y copier l'ancienne clé : codes QR et pseudonymes restent valides.
+   */
+  DERIVATION_KEY: optionalString,
 
   PAYMENT_PROVIDER: providerMode,
   MAPS_PROVIDER: providerMode,
@@ -51,6 +56,10 @@ export const envSchema = z.object({
   LLM_PROVIDER: providerMode,
   SEV_PROVIDER: providerMode,
   STORAGE_PROVIDER: providerMode,
+  /** Antivirus des documents téléversés : simulé (fichier EICAR) ou ClamAV réel. */
+  VIRUS_SCANNER_PROVIDER: providerMode,
+  CLAMAV_HOST: optionalString,
+  CLAMAV_PORT: z.coerce.number().int().min(1).max(65_535).default(3310),
   // Vérification des jetons Apple et Google : simulée (jetons « mock-apple:<sujet>:<courriel> ») ou réelle (JWKS des fournisseurs).
   SOCIAL_LOGIN_PROVIDER: providerMode,
   // Identifiants acceptés (audience) : bundle ids iOS et identifiant de service web pour Apple, client ids OAuth pour Google, séparés par des virgules.
@@ -93,7 +102,16 @@ export const envSchema = z.object({
    * (les fichiers de test tournent en parallèle sur la même base ; celui des agents les active).
    */
   AGENT_TRIGGERS: z.enum(['on', 'off']).optional(),
+  /**
+   * Examen des applications par Apple et Google : numéros déclarés (E.164, séparés par des virgules) qui reçoivent
+   * toujours le code `REVIEW_OTP_CODE`, sans texto. Secret : ne jamais publier le code ailleurs que dans les notes
+   * d'examen des magasins ; vider les deux variables après la publication.
+   */
+  REVIEW_PHONES: optionalString,
+  REVIEW_OTP_CODE: optionalString,
   S3_ENDPOINT: optionalString,
+  /** Région de l'accès S3 (Supabase : celle du projet, ca-central-1 par défaut). */
+  S3_REGION: optionalString,
   S3_BUCKET: optionalString,
   S3_ACCESS_KEY: optionalString,
   S3_SECRET_KEY: optionalString,
@@ -101,8 +119,15 @@ export const envSchema = z.object({
   R2_ACCESS_KEY_ID: optionalString,
   R2_SECRET_ACCESS_KEY: optionalString,
   R2_BUCKET: optionalString,
+  /** Suivi des erreurs : actif seulement si le DSN est renseigné (API et worker). */
   SENTRY_DSN: optionalString,
+  /** Environnement annoncé au suivi des erreurs et à la santé (`staging`, `production`) ; vide : NODE_ENV. */
+  SENTRY_ENVIRONMENT: optionalString,
+  /** Version déployée (étiquette ou empreinte Git, posée par le déploiement) ; vide : version du paquet. */
+  APP_VERSION: optionalString,
   BETTERSTACK_TOKEN: optionalString,
+  /** Moniteur « heartbeat » de Better Stack (adresse secrète) : le worker l'appelle à chaque battement, chaque minute ; vide : aucun appel. */
+  BETTERSTACK_HEARTBEAT_URL: z.string().url().optional(),
   EXPO_TOKEN: optionalString,
   /** Jeton d'accès du service push d'Expo, seulement si la « sécurité renforcée » des push est activée. */
   EXPO_PUSH_ACCESS_TOKEN: optionalString,
@@ -113,11 +138,22 @@ export const envSchema = z.object({
   FEATURE_FACE_CHECK: flag,
   FEATURE_SCHEDULED_FLIGHT_TRACKING: flag,
   FEATURE_IMMEDIATE_RIDES: flag,
+  /** Paiement par carte (Stripe) proposé : `on` ou `off` ; par défaut, jamais en production avec le simulateur de paiement. */
+  CARD_PAYMENTS: z.enum(['on', 'off']).optional(),
   FEATURE_INSTALLMENTS: flag,
   FEATURE_RIDE_SERIES: flag,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
+
+/**
+ * Carte proposée aux clients : forcée par `CARD_PAYMENTS`, sinon partout sauf en production avec le simulateur de
+ * paiement (bêta sans Stripe : paiement au chauffeur seulement, aucune carte fictive acceptée).
+ */
+export function cardPaymentsEnabled(env: Pick<AppEnv, 'CARD_PAYMENTS' | 'NODE_ENV' | 'PAYMENT_PROVIDER'>): boolean {
+  if (env.CARD_PAYMENTS) return env.CARD_PAYMENTS === 'on';
+  return !(env.NODE_ENV === 'production' && env.PAYMENT_PROVIDER !== 'real');
+}
 
 /** Charge le .env le plus proche en remontant depuis ce fichier (la racine du monorepo), sans écraser l'environnement. */
 export function loadDotenvFromRoot(): string | undefined {
@@ -147,6 +183,12 @@ export function loadEnv(source?: Record<string, string | undefined>, { dotenv = 
     throw new Error(`Configuration invalide. ${details}`);
   }
   const env = parsed.data;
+  if (env.REVIEW_PHONES) {
+    if (!env.REVIEW_OTP_CODE || !/^\d{6}$/.test(env.REVIEW_OTP_CODE)) throw new Error('Configuration invalide : REVIEW_OTP_CODE (6 chiffres) est obligatoire avec REVIEW_PHONES.');
+    if (/^(\d)\1{5}$|^(123456|654321)$/.test(env.REVIEW_OTP_CODE)) throw new Error('Configuration invalide : REVIEW_OTP_CODE trop facile à deviner.');
+    const bad = env.REVIEW_PHONES.split(',').map((p) => p.trim()).filter((p) => !/^\+\d{8,15}$/.test(p));
+    if (bad.length) throw new Error('Configuration invalide : REVIEW_PHONES doit lister des numéros au format E.164.');
+  }
   if (env.NODE_ENV === 'production') {
     const missing = (['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'ENCRYPTION_KEY'] as const).filter((k) => !env[k]);
     if (missing.length) throw new Error(`Configuration invalide en production : ${missing.join(', ')} obligatoire(s).`);

@@ -9,6 +9,7 @@ import { Audit, CurrentUser, Roles, STAFF_READ_ROLES, STAFF_WRITE_ROLES, type Us
 import { DispatchService } from './dispatch.service.js';
 import { ScheduledService } from './scheduled.service.js';
 import { RidesService } from './rides.service.js';
+import { StuckRidesService } from './stuck-rides.service.js';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -18,6 +19,7 @@ export class AdminRidesController {
     private readonly rides: RidesService,
     private readonly scheduled: ScheduledService,
     private readonly dispatch: DispatchService,
+    private readonly stuck: StuckRidesService,
   ) {}
 
   @Post()
@@ -40,6 +42,15 @@ export class AdminRidesController {
   @ApiErrors(400, 401, 403, 404, 409, 429)
   assign(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(adminAssignSchema)) body: z.infer<typeof adminAssignSchema>, @CurrentUser() user: UserActor) {
     return this.rides.assign(id, body, { kind: 'operator', userId: user.userId });
+  }
+
+  @Get('stuck')
+  @Roles(...STAFF_READ_ROLES)
+  @ApiOperation({ summary: 'Courses figées : arrivé sans suite, en route ou en course trop longtemps, réservation dont l\'heure est passée, recherche qui dure' })
+  @ZodResponse(200, z.array(z.object({ rideId: uuid, publicNumber: z.string(), state: z.string(), since: z.string(), minutes: z.number().int().min(0) })))
+  @ApiErrors(401, 403, 429)
+  stuckRides() {
+    return this.stuck.find();
   }
 
   @Get(':id')

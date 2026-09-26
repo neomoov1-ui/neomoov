@@ -13,8 +13,9 @@ export const drivers = pgTable('drivers', {
   publicNumber: varchar('public_number', { length: 12 }).notNull(),
   status: driverStatusEnum('status').notNull().default('pending'),
   qualification: driverQualificationEnum('qualification'),
-  gstNumber: varchar('gst_number', { length: 20 }),
-  qstNumber: varchar('qst_number', { length: 20 }),
+  /** Numéros de taxes : chiffrés par l'application (étape 14, `FieldCipher`), d'où la longueur. */
+  gstNumber: varchar('gst_number', { length: 255 }),
+  qstNumber: varchar('qst_number', { length: 255 }),
   tradeName: varchar('trade_name', { length: 150 }),
   stripeConnectAccountId: varchar('stripe_connect_account_id', { length: 100 }),
   stripeConnectOnboarded: boolean('stripe_connect_onboarded').notNull().default(false),
@@ -59,7 +60,8 @@ export const driverDocuments = pgTable('driver_documents', {
   driverId: uuid('driver_id').notNull().references(() => drivers.id, { onDelete: 'cascade' }),
   type: documentTypeEnum('type').notNull(),
   fileKey: varchar('file_key', { length: 300 }).notNull(),
-  number: varchar('number', { length: 60 }),
+  /** Numéro du document (permis, police d'assurance…) : chiffré par l'application (étape 14). */
+  number: varchar('number', { length: 255 }),
   issuedOn: date('issued_on'),
   expiresOn: date('expires_on'),
   status: documentStatusEnum('status').notNull().default('pending'),

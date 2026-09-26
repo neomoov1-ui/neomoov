@@ -21,6 +21,11 @@ export const appConfigSchema = z.object({
     installments: z.boolean(),
     /** Vérification faciale des chauffeurs au début du quart (V1.1, drapeau `FEATURE_FACE_CHECK`). */
     faceCheck: z.boolean(),
+    /**
+     * Paiement par carte dans l'application (carte, Apple Pay, Google Pay) réellement branché : faux en production sans
+     * Stripe réel. Les écrans hors devis (ajout de carte, moyens du profil) ne proposent la carte que s'il est vrai.
+     */
+    cardPayments: z.boolean(),
   }),
   booking: z.object({
     /** Préavis minimal (D32), en secondes : 7 200 en V1. */

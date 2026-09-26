@@ -1,12 +1,20 @@
 import {
-  AdaptersModule, AgentJobsService, AgentsModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
-  QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
+  AdaptersModule, AgentJobsService, AgentsModule, APP_ENV, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, ComplianceJobsService, ComplianceModule, RetentionJobsService, RetentionModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, StuckRidesService, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { InvoiceJobsService, InvoicingModule } from '@neomoov/api';
-import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
+import { type DynamicModule, Inject, Injectable, Module, Optional, type OnModuleInit } from '@nestjs/common';
+import { writeFile } from 'node:fs/promises';
 import type { Logger } from 'pino';
 
-/** File de démonstration : un battement chaque minute, qui prouve que les files et la planification fonctionnent. */
+/** Fichier lu par la sonde de santé du conteneur du worker. */
+export const HEARTBEAT_FILE = '/tmp/neomoov-worker-heartbeat';
+
+/**
+ * Battement chaque minute, qui prouve que les files et la planification fonctionnent. Avec `BETTERSTACK_HEARTBEAT_URL`,
+ * chaque battement prévient aussi le moniteur « heartbeat » de Better Stack : sans battement pendant le délai de grâce,
+ * le fondateur est alerté (worker arrêté, Redis ou planification en panne). Voir `docs/runbooks/observabilite.md`.
+ */
 @Injectable()
 export class HeartbeatService implements OnModuleInit {
   ticks = 0;
@@ -14,6 +22,7 @@ export class HeartbeatService implements OnModuleInit {
   constructor(
     private readonly queues: QueueService,
     @Inject(APP_LOGGER) private readonly logger: Logger,
+    @Optional() @Inject(APP_ENV) private readonly env?: Pick<AppEnv, 'BETTERSTACK_HEARTBEAT_URL'>,
   ) {}
 
   onModuleInit() {
@@ -22,9 +31,26 @@ export class HeartbeatService implements OnModuleInit {
       async (job) => {
         this.ticks += 1;
         this.logger.info({ job: job.name, ticks: this.ticks, mode: this.queues.mode }, 'battement du worker');
+        // Sonde de santé du conteneur (HEALTHCHECK du Dockerfile) : date du dernier battement.
+        await writeFile(HEARTBEAT_FILE, new Date().toISOString()).catch(() => undefined);
+        await this.ping();
       },
       { everyMs: 60_000, jobName: 'tick', concurrency: 1 },
     );
+  }
+
+  /** Prévient le moniteur de Better Stack ; un échec est journalisé, jamais bloquant (délai de 5 secondes). */
+  async ping(): Promise<boolean> {
+    const url = this.env?.BETTERSTACK_HEARTBEAT_URL;
+    if (!url) return false;
+    try {
+      const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5_000) });
+      if (!res.ok) this.logger.warn({ status: res.status }, 'Battement non reçu par Better Stack');
+      return res.ok;
+    } catch (error) {
+      this.logger.warn({ err: error }, 'Battement non envoyé à Better Stack');
+      return false;
+    }
   }
 }
 
@@ -41,11 +67,17 @@ export class PrivacyWorker implements OnModuleInit {
   }
 }
 
-/** Courses planifiées : une passe par minute (rappel J-1, attribution à 60 minutes, alerte opérateur à 30 minutes). */
+/**
+ * Courses planifiées : une passe par minute (rappel J-1, attribution à 60 minutes, alerte opérateur à 30 minutes) ;
+ * toutes les 5 minutes, surveillance des courses figées (étape 15).
+ */
 @Injectable()
 export class SchedulingWorker implements OnModuleInit {
+  private passes = 0;
+
   constructor(
     private readonly scheduled: ScheduledService,
+    private readonly stuck: StuckRidesService,
     private readonly queues: QueueService,
     @Inject(APP_LOGGER) private readonly logger: Logger,
   ) {}
@@ -54,7 +86,10 @@ export class SchedulingWorker implements OnModuleInit {
     this.queues.process(
       'scheduling',
       async () => {
-        const report = await this.scheduled.tick(new Date());
+        const now = new Date();
+        const report = await this.scheduled.tick(now);
+        this.passes += 1;
+        if (this.passes % 5 === 0) await this.stuck.alert(now);
         if (report.reminders.length || report.dispatchDue.length || report.operatorAlerts.length) this.logger.info(report, 'courses planifiées');
       },
       { everyMs: 60_000, jobName: 'tick', concurrency: 1 },
@@ -172,6 +207,32 @@ export class NotificationsWorker implements OnModuleInit {
   }
 }
 
+/** Conformité (étape 14) : avec Redis, le worker porte la passe quotidienne (rappels, suspensions à minuit). Sans Redis, c'est l'API. */
+@Injectable()
+export class ComplianceWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: ComplianceJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register({ everyMs: 900_000 });
+  }
+}
+
+/** Conservation (étape 14) : avec Redis, le worker porte la passe nocturne (3 h). Sans Redis, c'est l'API. */
+@Injectable()
+export class RetentionWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: RetentionJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register({ everyMs: 900_000 });
+  }
+}
+
 /**
  * Agents IA (étape 13) : avec Redis, le worker traite la file `agents` (messages entrants, documents, relevés) et la
  * passe des rapports toutes les 5 minutes (quotidien à 07 h, hebdomadaire le lundi). Sans Redis, c'est l'API.
@@ -193,8 +254,8 @@ export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, AgentsModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker, NotificationsWorker, AgentsWorker],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker, NotificationsWorker, ComplianceWorker, RetentionWorker, AgentsWorker],
     };
   }
 }

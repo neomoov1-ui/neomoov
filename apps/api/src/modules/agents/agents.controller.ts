@@ -9,9 +9,9 @@
  */
 import {
   adminAgentSchema, adminApprovalSchema, adminListQuerySchema, agentReportSchema, agentRunListQuerySchema, agentRunRequestSchema, agentRunResultSchema, agentRunSchema, agentUpdateSchema,
-  approvalDecisionSchema, compareIdentityToolSchema, conversationSchema, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, flagAnomalyToolSchema, issueCreditToolSchema,
+  approvalDecisionSchema, compareIdentityToolSchema, conversationReplySchema, conversationSchema, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, flagAnomalyToolSchema, issueCreditToolSchema,
   listStatementLinesToolSchema, lookupClientToolSchema, lookupDriverToolSchema, lookupRideToolSchema, openIncidentToolSchema, pageOf, proposeDecisionToolSchema, queryMetricsToolSchema,
-  refundToolSchema, sendMessageRouteSchema, toolResultSchema, toolRouteContextSchema, uuid,
+  qualityReviewSchema, qualityRunResultSchema, refundToolSchema, sendMessageRouteSchema, toolResultSchema, toolRouteContextSchema, uuid,
 } from '@neomoov/domain';
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -25,6 +25,7 @@ import { AgentRunnerService } from './agent-runner.service.js';
 import type { ToolName } from './agent-tools.service.js';
 import { AgentsService } from './agents.service.js';
 import { ConversationsService } from './conversations.service.js';
+import { QualityAgent } from './quality.agent.js';
 
 type ListQuery = z.infer<typeof adminListQuerySchema>;
 const agentCode = z.string().regex(/^[a-z0-9_]{2,40}$/);
@@ -39,7 +40,29 @@ export class AgentsAdminController {
     private readonly approvals: AgentApprovalsService,
     private readonly runner: AgentRunnerService,
     private readonly conversations: ConversationsService,
+    private readonly quality: QualityAgent,
   ) {}
+
+  @Get('quality')
+  @Roles(...STAFF_READ_ROLES)
+  @NoAudit()
+  @ApiOperation({ summary: 'Qualité des chauffeurs (5.11) : note sur 50 courses, annulations tardives sur 7 jours, incidents graves, sanction proposée par la règle et couverture en cours' })
+  @ZodResponse(200, z.array(qualityReviewSchema))
+  @ApiErrors(401, 403, 429)
+  async qualityReview() {
+    return this.quality.review();
+  }
+
+  @Post('quality/run')
+  @Roles('admin', 'operator')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Passe de l\'agent qualité à la demande : échéances levées, propositions dans la file d\'approbation (aucune en double)' })
+  @ZodResponse(200, qualityRunResultSchema)
+  @ApiErrors(401, 403, 429)
+  async runQuality() {
+    const execution = await this.quality.run(new Date(), { ref: null });
+    return { run: execution.run, replayed: execution.replayed, evaluated: execution.result?.evaluated ?? 0, proposed: execution.result?.proposed ?? 0, reinstated: execution.result?.reinstated ?? 0 };
+  }
 
   @Get('agents')
   @Roles(...STAFF_READ_ROLES)
@@ -136,6 +159,17 @@ export class AgentsAdminController {
   @ApiErrors(401, 403, 404, 429)
   async conversation(@Param('id', zodPipe(uuid)) id: string) {
     return this.conversations.view(await this.conversations.get(id));
+  }
+
+  @Post('conversations/:id/messages')
+  @Roles('admin', 'operator')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Réponse de l\'équipe dans une conversation de l\'assistance (push, WhatsApp ou texto selon le canal) ; close la termine' })
+  @ZodBody(conversationReplySchema)
+  @ZodResponse(200, conversationSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  async reply(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(conversationReplySchema)) body: z.infer<typeof conversationReplySchema>) {
+    return this.conversations.reply(id, body.text, body.close);
   }
 }
 

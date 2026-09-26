@@ -4,6 +4,9 @@ import type { Redis } from 'ioredis';
 import { DB, type Database } from '../../infra/db.module.js';
 import { QueueService, type QueueStats } from '../../infra/queue.module.js';
 import { REDIS } from '../../infra/redis.module.js';
+import { CircuitBreakers } from '../../common/circuit-breaker.js';
+import { releaseInfo } from '../../common/error-reporting.js';
+import { APP_ENV, type AppEnv } from '../../config/env.js';
 
 export type CheckStatus = 'ok' | 'error' | 'not_configured';
 export interface Check {
@@ -13,9 +16,13 @@ export interface Check {
 }
 export interface HealthReport {
   status: 'ok' | 'degraded';
+  /** Version déployée (`APP_VERSION`, sinon celle du paquet) et environnement (`SENTRY_ENVIRONMENT`, sinon NODE_ENV). */
   version: string;
+  environment: string;
   uptimeSeconds: number;
   checks: { database: Check; redis: Check; queues: Check & { mode: 'redis' | 'memory'; stats: QueueStats[] } };
+  /** Disjoncteurs des fournisseurs (étape 15) : un circuit ouvert signale un fournisseur en panne, en mode dégradé. */
+  circuits: Array<{ name: string; state: 'closed' | 'open' | 'half_open'; failures: number }>;
 }
 
 /** Délai maximal de chaque vérification : une dépendance qui ne répond pas est « en panne », la sonde répond toujours. */
@@ -37,6 +44,8 @@ export class HealthService {
     @Inject(DB) private readonly database: Database,
     @Inject(REDIS) private readonly redis: Redis | null,
     private readonly queues: QueueService,
+    private readonly circuits: CircuitBreakers,
+    @Inject(APP_ENV) private readonly env: AppEnv,
   ) {}
 
   async report(): Promise<HealthReport> {
@@ -47,7 +56,10 @@ export class HealthService {
     ]);
     const queues: HealthReport['checks']['queues'] = { status: this.redis ? redis.status : 'not_configured', mode: this.queues.mode, stats: queueStats };
     const status = database.status === 'ok' && redis.status !== 'error' ? 'ok' : 'degraded';
-    return { status, version: process.env['npm_package_version'] ?? '0.0.0', uptimeSeconds: Math.round(process.uptime()), checks: { database, redis, queues } };
+    const circuits = this.circuits.snapshot();
+    const degraded = status === 'ok' && circuits.some((c) => c.state !== 'closed') ? 'degraded' : status;
+    const { version, environment } = releaseInfo(this.env);
+    return { status: degraded, version, environment, uptimeSeconds: Math.round(process.uptime()), checks: { database, redis, queues }, circuits };
   }
 
   private async checkDatabase(): Promise<Check> {

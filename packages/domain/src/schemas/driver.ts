@@ -383,6 +383,8 @@ export const driverJobSchema = z.object({
   language: z.enum(LANGUAGES).nullable(),
   preferences: ridePreferencesSchema.nullable(),
   specialRequests: z.string().nullable(),
+  /** Numéro de vol d'une prise en charge à l'aéroport. */
+  flightNumber: z.string().nullable(),
   paymentChoice: z.enum(PAYMENT_CHOICES),
   driverFareCents: cents,
   distanceMeters: count.nullable(),

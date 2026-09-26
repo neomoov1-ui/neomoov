@@ -6,6 +6,8 @@ import { schema } from '@neomoov/db';
 import { Global, Inject, Injectable, Module } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DB, type Database } from '../infra/db.module.js';
+import { CircuitBreakers } from './circuit-breaker.js';
+import { FieldCipher } from './field-cipher.js';
 
 const CACHE_TTL_MS = 60_000;
 
@@ -62,6 +64,7 @@ export class SettingsService {
   }
 }
 
+/** Réglages et disjoncteurs des fournisseurs : partagés par tout le processus. */
 @Global()
-@Module({ providers: [SettingsService], exports: [SettingsService] })
+@Module({ providers: [SettingsService, CircuitBreakers, FieldCipher], exports: [SettingsService, CircuitBreakers, FieldCipher] })
 export class SettingsModule {}

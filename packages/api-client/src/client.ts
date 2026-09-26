@@ -35,7 +35,10 @@ export interface ApiClientOptions {
   headers?: Record<string, string>;
   /** Appelé quand la session est définitivement perdue : 401 malgré un rafraîchissement. */
   onUnauthorized?: (error: ApiError) => void;
-  /** Générateur d'identifiant de corrélation (UUID par défaut). */
+  /**
+   * Générateur d'identifiant de corrélation (UUID par défaut) : un par appel, envoyé dans `X-Correlation-Id`, repris par
+   * l'API dans ses journaux et ses tâches, et gardé par `ApiError` pour le signaler à l'assistance ou au suivi des erreurs.
+   */
   correlationId?: () => string;
 }
 
@@ -136,7 +139,10 @@ export class ApiClient {
     get: (options?: RequestOptions): Promise<HealthReport> => this.get<HealthReport>('/health', options),
   };
 
-  async request<T>(method: HttpMethod, path: string, options: RequestOptions = {}): Promise<T> {
+  async request<T>(method: HttpMethod, path: string, requestOptions: RequestOptions = {}): Promise<T> {
+    // Un identifiant de corrélation par appel, le même pour la nouvelle tentative après rafraîchissement du jeton.
+    const correlationId = requestOptions.headers?.['x-correlation-id'] ?? this.options.headers?.['x-correlation-id'] ?? (this.options.correlationId ?? randomId)();
+    const options: RequestOptions = { ...requestOptions, headers: { ...requestOptions.headers, 'x-correlation-id': correlationId } };
     const useAuth = options.auth !== false;
     const token = useAuth ? await this.options.tokens?.getAccessToken() : undefined;
     const first = await this.send(method, path, options, token ?? undefined);

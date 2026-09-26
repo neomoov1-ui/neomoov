@@ -121,7 +121,15 @@ interface OfferOptions {
   type: 'fixed' | 'client_proposal';
   expiresAt: Date;
   now: Date;
+  /**
+   * Offre séquentielle d'une course immédiate : le chauffeur ne doit avoir aucune offre en attente pour une autre course.
+   * Vérifié sous verrou du chauffeur au moment d'insérer l'offre ; sinon `sendOffer` renvoie null (candidat suivant).
+   */
+  exclusive?: boolean;
 }
+
+/** Espace des verrous consultatifs des offres (un verrou par chauffeur, le temps de vérifier puis d'insérer une offre). */
+const OFFER_LOCK_SPACE = 544;
 
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
@@ -475,7 +483,14 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         const candidate = await this.candidateById(current, ref, cfg);
         if (!candidate) continue;
         const expiresAt = new Date(now.getTime() + cfg.offerSeconds * 1000);
-        await this.sendOffer(current, candidate, { wave, type: 'fixed', expiresAt, now });
+        // Deux courses demandées au même instant passaient ensemble cette vérification et sollicitaient le même chauffeur
+        // (test de charge, étape 15) : l'offre n'est insérée que sous verrou du chauffeur, s'il n'a toujours aucune offre
+        // en attente ailleurs ; sinon, candidat suivant.
+        const sent = await this.sendOffer(current, candidate, { wave, type: 'fixed', expiresAt, now, exclusive: true });
+        if (!sent) {
+          current = await this.rides.getRide(current.id);
+          continue;
+        }
         offered.add(ref.driverId);
         await this.save(d.rideId, { status: 'offering', wave, radiusIndex, candidateIds: candidates, candidateCursor: cursor, offeredDriverIds: [...offered], offersSent: sql`${schema.rideDispatches.offersSent} + 1`, nextActionAt: expiresAt });
         return;
@@ -704,6 +719,8 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private async immediateRows(ride: RideRow, cfg: DispatchConfig, filter: { radius: SearchRadius; excluded: string[]; onlyDriverId?: string }): Promise<CandidateRow[]> {
     const origin = parseGeoPoint(ride.originGeo);
     const { clientFavourite } = this.favouriteOf(ride);
+    // Chauffeur restreint (5.11) : candidat seulement hors contexte VIP, aéroport ou entreprise.
+    const premiumContext = await this.premiumContextOf(ride);
     const chainMeters = Math.round(cfg.chainMaxSeconds * cfg.fallbackSpeedMps);
     const point = sql`ST_SetSRID(ST_MakePoint(${origin.lng}::float, ${origin.lat}::float), 4326)::geography`;
     const radiusFilter = filter.radius === null ? sql`` : sql`AND ST_DWithin(p.position::geography, ${point}, ${filter.radius}::float)`;
@@ -719,7 +736,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       FROM driver_presence p
       JOIN drivers d ON d.id = p.driver_id
       JOIN vehicle_categories vc ON vc.code = p.category
-      WHERE ${driverEligible(cfg, ride.id)}
+      WHERE ${driverEligible(cfg, ride.id, { premiumContext })}
         AND ${categoryAtLeast(ride.reservedCategory)}
         AND (p.is_available OR (p.current_ride_id IS NOT NULL AND EXISTS (
               SELECT 1 FROM rides cr WHERE cr.id = p.current_ride_id AND cr.state = 'in_progress'
@@ -795,6 +812,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   /** Réservation planifiée : chauffeurs actifs qui acceptent les planifiées, catégorie conforme, sans conflit d'horaire ; favoris d'abord. */
   private async searchScheduledCandidates(ride: RideRow, excluded: string[], cfg: DispatchConfig): Promise<Candidate[]> {
     const { requested, clientFavourite } = this.favouriteOf(ride);
+    const premiumContext = await this.premiumContextOf(ride);
     const excludedFilter = excluded.length ? sql`AND d.id NOT IN (${sql.join(excluded.map((id) => sql`${id}::uuid`), sql`, `)})` : sql``;
     const query = sql`
       SELECT d.id AS driver_id, d.user_id, d.rating_average AS rating, d.ride_count, v.id AS vehicle_id, v.category, ST_AsGeoJSON(p.position) AS position, NULL::float AS distance_m,
@@ -805,7 +823,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       FROM drivers d
       ${currentVehicleJoin}
       LEFT JOIN driver_presence p ON p.driver_id = d.id
-      WHERE ${driverEligible(cfg, ride.id)}
+      WHERE ${driverEligible(cfg, ride.id, { premiumContext })}
         AND ${categoryAtLeast(ride.reservedCategory)}
         AND ${scheduledSlotFree(cfg, ride.requestedAt ?? new Date(), ride.id)}
         ${excludedFilter} AND ${paymentAccepted(ride.paymentChoice, ride.paymentMethod)}
@@ -848,23 +866,39 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return Math.max(0, subtotal - (ride.serviceFeeCents ?? 0) - (ride.regulatoryFeeCents ?? 0) - ride.tollsCents);
   }
 
-  private async sendOffer(ride: RideRow, candidate: Pick<Candidate, 'driverId' | 'userId' | 'distanceMeters' | 'etaSeconds'>, options: OfferOptions): Promise<OfferRow> {
+  private async sendOffer(ride: RideRow, candidate: Pick<Candidate, 'driverId' | 'userId' | 'distanceMeters' | 'etaSeconds'>, options: OfferOptions): Promise<OfferRow | null> {
     const current = await this.ensureOffering(ride, { wave: options.wave, type: options.type });
     const negotiation = options.type === 'client_proposal';
     const proposed = negotiation ? current.proposedTotalCents : null;
     const driverFareCents = proposed !== null ? await this.fareForTotal(current, proposed) : (current.fareCents ?? 0);
-    const [offer] = await this.db
-      .insert(schema.rideOffers)
-      .values({
-        rideId: current.id, driverId: candidate.driverId, wave: options.wave, type: options.type, state: 'sent', driverFareCents, proposedTotalCents: proposed, displayedTotalCents: negotiation ? current.quotedTotalCents : null,
-        pickupDistanceMeters: candidate.distanceMeters, pickupSeconds: candidate.etaSeconds, sentAt: options.now, expiresAt: options.expiresAt,
-      })
-      .returning();
+    const values = {
+      rideId: current.id, driverId: candidate.driverId, wave: options.wave, type: options.type, state: 'sent' as const, driverFareCents, proposedTotalCents: proposed, displayedTotalCents: negotiation ? current.quotedTotalCents : null,
+      pickupDistanceMeters: candidate.distanceMeters, pickupSeconds: candidate.etaSeconds, sentAt: options.now, expiresAt: options.expiresAt,
+    };
+    const offer = options.exclusive
+      ? await this.db.transaction(async (tx) => {
+          // Verrou du chauffeur jusqu'à la validation : la vérification et l'insertion ne se croisent jamais entre deux courses,
+          // ni entre deux processus (le verrou est dans la base).
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(${OFFER_LOCK_SPACE}, hashtext(${candidate.driverId}))`);
+          const [busy] = await tx
+            .select({ id: schema.rideOffers.id })
+            .from(schema.rideOffers)
+            .where(and(eq(schema.rideOffers.driverId, candidate.driverId), eq(schema.rideOffers.state, 'sent'), gt(schema.rideOffers.expiresAt, sql`now()`), sql`${schema.rideOffers.rideId} <> ${current.id}::uuid`))
+            .limit(1);
+          if (busy) return null;
+          const [row] = await tx.insert(schema.rideOffers).values(values).returning();
+          return row ?? null;
+        })
+      : ((await this.db.insert(schema.rideOffers).values(values).returning())[0] ?? null);
+    if (!offer) {
+      await this.rides.mark(current.id, 'offer_skipped', SYSTEM_ACTOR, { driverId: candidate.driverId, reason: 'pending_offer_elsewhere' });
+      return null;
+    }
     this.stats.offers += 1;
-    this.events.emit('offer.sent', { offerId: offer!.id, rideId: current.id, driverId: candidate.driverId, driverUserId: candidate.userId, wave: options.wave, type: options.type, expiresAt: options.expiresAt, proposedTotalCents: proposed });
-    await this.rides.mark(current.id, 'offer_sent', SYSTEM_ACTOR, { offerId: offer!.id, driverId: candidate.driverId, wave: options.wave, type: options.type, expiresAt: options.expiresAt.toISOString(), pickupSeconds: candidate.etaSeconds, proposedTotalCents: proposed });
-    await this.outbox.queue({ recipientUserId: candidate.userId, template: 'offer.new', data: { offerId: offer!.id, rideId: current.id, expiresAt: options.expiresAt.toISOString() } });
-    return offer!;
+    this.events.emit('offer.sent', { offerId: offer.id, rideId: current.id, driverId: candidate.driverId, driverUserId: candidate.userId, wave: options.wave, type: options.type, expiresAt: options.expiresAt, proposedTotalCents: proposed });
+    await this.rides.mark(current.id, 'offer_sent', SYSTEM_ACTOR, { offerId: offer.id, driverId: candidate.driverId, wave: options.wave, type: options.type, expiresAt: options.expiresAt.toISOString(), pickupSeconds: candidate.etaSeconds, proposedTotalCents: proposed });
+    await this.outbox.queue({ recipientUserId: candidate.userId, template: 'offer.new', data: { offerId: offer.id, rideId: current.id, expiresAt: options.expiresAt.toISOString() } });
+    return offer;
   }
 
   /**
@@ -909,7 +943,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       pickupDistanceMeters: offer.pickupDistanceMeters, pickupSeconds: offer.pickupSeconds, isFavourite: this.favouriteOf(ride).requested === offer.driverId, sentAt: offer.sentAt.toISOString(), expiresAt: offer.expiresAt.toISOString(),
       ride: {
         id: ride.id, publicNumber: ride.publicNumber, type: ride.type, category: ride.reservedCategory, origin: { address: ride.originAddress, coordinates: parseGeoPoint(ride.originGeo) }, destination: { address: ride.destinationAddress, coordinates: parseGeoPoint(ride.destinationGeo) },
-        requestedAt: ride.requestedAt?.toISOString() ?? null, paymentMethod: ride.paymentMethod, paymentChoice: ride.paymentChoice as 'prepaid' | 'pay_driver_after', specialRequests: ride.specialRequests,
+        requestedAt: ride.requestedAt?.toISOString() ?? null, paymentMethod: ride.paymentMethod, paymentChoice: ride.paymentChoice as 'prepaid' | 'pay_driver_after', specialRequests: ride.specialRequests, flightNumber: ride.flightNumber,
         distanceMeters: ride.distanceMeters, durationSeconds: ride.durationSeconds, stops: Array.isArray(ride.stops) ? ride.stops.length : 0, preferences: preferencesOf(ride.preferences),
       },
     };

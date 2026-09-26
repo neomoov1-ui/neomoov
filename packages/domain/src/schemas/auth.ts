@@ -215,7 +215,7 @@ export type StaffCreate = z.infer<typeof staffCreateSchema>;
 export const staffPasswordSchema = z.object({ password: z.string().min(12).max(200) });
 
 /** Clés de service (comptes de service des agents et intégrations, section 7.1). */
-export const API_KEY_SCOPES = ['agents:run', 'agents:read', 'tools:*', 'rides:read', 'rides:write', 'drivers:read', 'reports:read', 'webhooks:write', 'public:write'] as const;
+export const API_KEY_SCOPES = ['agents:run', 'agents:read', 'tools:*', 'rides:read', 'rides:write', 'drivers:read', 'reports:read', 'webhooks:write', 'public:write', 'metrics:read'] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 export const apiKeyCreateSchema = z.object({
@@ -243,6 +243,8 @@ export const apiKeyCreatedSchema = apiKeyViewSchema.extend({
   /** Secret complet, affiché une seule fois. */
   key: z.string(),
 });
+export type ApiKeyView = z.infer<typeof apiKeyViewSchema>;
+export type ApiKeyCreated = z.infer<typeof apiKeyCreatedSchema>;
 
 /** Réponse d'erreur unique de l'API (section 7.1). */
 export const errorSchema = z.object({

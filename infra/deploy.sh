@@ -42,6 +42,9 @@ else
   compose build --pull
 fi
 
+# Version affichée par /v1/health et envoyée à Sentry : le commit déployé (12 caractères).
+export APP_VERSION="${NEW_REF:0:12}"
+
 log "migrations"
 compose run --rm --no-deps api node ../../packages/db/dist/migrate.js
 

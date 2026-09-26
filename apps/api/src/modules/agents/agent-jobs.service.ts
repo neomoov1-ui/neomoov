@@ -6,7 +6,7 @@
  * worker la traite ; sans Redis, l'API la traite elle-même. Les exécutions sont en plus idempotentes en base.
  * En test, les déclencheurs sont coupés sauf `AGENT_TRIGGERS=on` (fichiers de test parallèles sur la même base).
  */
-import { reportsDue, type AgentRunView, type Language } from '@neomoov/domain';
+import { localClock, reportsDue, type AgentRunView, type Language } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import type { Logger } from 'pino';
 import { DomainEventsService, type DomainEvents } from '../../common/domain-events.js';
@@ -16,6 +16,7 @@ import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { QueueService } from '../../infra/queue.module.js';
 import { AccountingAgent, AnalyticsAgent, RecruitmentAgent } from './back-office.agents.js';
 import { CustomerRelationsAgent } from './customer-relations.agent.js';
+import { QualityAgent } from './quality.agent.js';
 
 @Injectable()
 export class AgentJobsService implements OnModuleInit {
@@ -31,6 +32,7 @@ export class AgentJobsService implements OnModuleInit {
     private readonly recruitment: RecruitmentAgent,
     private readonly accounting: AccountingAgent,
     private readonly analytics: AnalyticsAgent,
+    private readonly quality: QualityAgent,
   ) {}
 
   get triggersEnabled(): boolean {
@@ -76,10 +78,19 @@ export class AgentJobsService implements OnModuleInit {
         return;
       case 'reports':
         await this.reportTick(new Date());
+        await this.qualityTick(new Date());
         return;
       default:
         this.logger.warn({ job: name }, 'Tâche d\'agent inconnue');
     }
+  }
+
+  /** Qualité (5.11) : une passe par jour de Montréal à partir de `quality.run_hour` (4 h), référence = date (aucune en double). */
+  async qualityTick(now = new Date()): Promise<AgentRunView | null> {
+    const [tz, hour] = await Promise.all([this.settings.string('service.time_zone', 'America/Toronto'), this.settings.number('quality.run_hour', 4)]);
+    if (localClock(now, tz).hour < hour) return null;
+    const execution = await this.quality.run(now);
+    return execution.replayed ? null : execution.run;
   }
 
   /** Passe des rapports : quotidien à partir de 07 h, hebdomadaire le lundi ; une période déjà rapportée n'est pas refaite. */

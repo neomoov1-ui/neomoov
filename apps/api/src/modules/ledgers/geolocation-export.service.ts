@@ -52,7 +52,7 @@ export class GeolocationExportService {
 
   /** Clé des pseudonymes, dérivée une fois par processus (jamais la clé brute). */
   private pseudonymKey(): Buffer {
-    this.key ??= geolocationKey(this.env.ENCRYPTION_KEY!);
+    this.key ??= geolocationKey(this.env.DERIVATION_KEY ?? this.env.ENCRYPTION_KEY!);
     return this.key;
   }
 

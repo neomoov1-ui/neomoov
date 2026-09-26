@@ -91,7 +91,8 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
   /** Prérequis pour passer en ligne (tâche 4) ; liste vide si tout est bon. */
   async eligibility(driver: DriverRow, vehicleId: string | null): Promise<{ reasons: string[]; vehicle: typeof schema.vehicles.$inferSelect | null }> {
     const reasons: string[] = [];
-    if (driver.status !== 'active') reasons.push(`driver_status:${driver.status}`);
+    // Un chauffeur restreint (5.11) passe en ligne : seules les courses VIP, aéroport et entreprise lui sont retirées.
+    if (driver.status !== 'active' && driver.status !== 'restricted') reasons.push(`driver_status:${driver.status}`);
     const [vehicle] = vehicleId ? await this.db.select().from(schema.vehicles).where(and(eq(schema.vehicles.id, vehicleId), eq(schema.vehicles.driverId, driver.id))).limit(1) : [];
     if (!vehicle) reasons.push('vehicle_missing');
     else if (vehicle.status !== 'active') reasons.push(`vehicle_status:${vehicle.status}`);

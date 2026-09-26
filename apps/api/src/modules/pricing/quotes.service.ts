@@ -14,11 +14,12 @@ import { and, desc, eq, getTableColumns, gt, gte, inArray, isNull, ne, or, sql }
 import type { Logger } from 'pino';
 import { MAPS_PROVIDER, type GeoPoint, type MapsProvider, type RouteResult } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
+import { CircuitBreakers } from '../../common/circuit-breaker.js';
 import { sha256Hex } from '../../common/crypto.js';
 import { haversineMeters } from '../../common/geo.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
-import { APP_ENV, type AppEnv } from '../../config/env.js';
+import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { lineLabel } from './labels.js';
@@ -77,6 +78,7 @@ export class QuotesService {
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
     private readonly promotions: PromotionsService,
+    private readonly circuits: CircuitBreakers,
   ) {}
 
   private get db() {
@@ -258,7 +260,8 @@ export class QuotesService {
     const [row] = await this.db.execute<{ cash: boolean | null; interac: boolean | null; terminal: boolean | null }>(sql`
       SELECT bool_or(accepts_cash) AS cash, bool_or(accepts_interac) AS interac, bool_or(accepts_terminal) AS terminal
       FROM drivers WHERE status = 'active' AND ${scheduled ? sql`accepts_scheduled` : sql`is_online`}`);
-    return ['card_app', 'apple_pay', 'google_pay', ...(row?.cash ? (['cash'] as const) : []), ...(row?.interac ? (['interac'] as const) : []), ...(row?.terminal ? (['terminal'] as const) : [])];
+    const cards = cardPaymentsEnabled(this.env) ? (['card_app', 'apple_pay', 'google_pay'] as const) : [];
+    return [...cards, ...(row?.cash ? (['cash'] as const) : []), ...(row?.interac ? (['interac'] as const) : []), ...(row?.terminal ? (['terminal'] as const) : [])];
   }
 
   /** Préavis (D32) : au moins `rides.min_lead_seconds` avant la prise en charge, au plus `rides.max_lead_days` ; sans heure, course immédiate seulement si le drapeau l'autorise. */
@@ -288,7 +291,8 @@ export class QuotesService {
       throw new AppError('VALIDATION_ERROR', 'Distance et durée forcées ensemble, ou aucune des deux', 400);
     }
     try {
-      const route = await this.maps.route({ origin, destination, waypoints: stops, departureTime: pickupAt });
+      // Disjoncteur : après 5 échecs consécutifs, le devis passe aussitôt en estimation (30 s), sans attendre le délai de Routes.
+      const route = await this.circuits.get('maps.routes').run(() => this.maps.route({ origin, destination, waypoints: stops, departureTime: pickupAt }));
       return { ...route, tollsCents: overrides.tollsCents ?? route.tollsCents, estimated: false };
     } catch (error) {
       this.logger.warn({ err: error }, 'Itinéraire indisponible : devis en mode dégradé (estimation interne)');

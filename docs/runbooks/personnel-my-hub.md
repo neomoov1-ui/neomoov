@@ -30,17 +30,17 @@ Connexions suivantes : `login` → `{ status: "mfa_required", mfaToken }` → `m
 
 ## 3. Les autres membres du personnel
 
-Par un administrateur connecté : `POST /v1/admin/staff` (téléphone, courriel, nom, rôles, mot de passe initial). Le nouveau membre change son mot de passe… (V1 : par un administrateur, `POST /v1/admin/staff/{id}/password`) et inscrit son second facteur à sa première connexion.
+Dans My Hub (administrateur) : **Administration**, **Équipe**, **Ajouter un membre** (nom, courriel, téléphone, langue, rôles, mot de passe initial ; **Générer** propose un mot de passe aléatoire de 20 caractères, à transmettre par un canal sûr). Un courriel ou un téléphone déjà connu met à jour ce compte (rôles ajoutés). Par l'API : `POST /v1/admin/staff` (téléphone, courriel, nom, rôles, mot de passe initial). Le nouveau membre change son mot de passe… (V1 : par un administrateur, `POST /v1/admin/staff/{id}/password`) et inscrit son second facteur à sa première connexion.
 
 ## 4. Téléphone perdu, compte verrouillé
 
-- Second facteur perdu : `POST /v1/admin/staff/{id}/mfa/reset` (administrateur). La prochaine connexion refait l'inscription. Sinon, un code de secours.
-- Verrouillage après 5 mots de passe faux : 15 minutes, doublées à chaque nouvelle série. `POST /v1/admin/staff/{id}/password` remet le compteur à zéro et révoque les sessions.
+- Second facteur perdu : My Hub, **Équipe**, **Réinitialiser le second facteur** sur la ligne du membre, après avoir vérifié son identité (ou `POST /v1/admin/staff/{id}/mfa/reset`, administrateur). Ses sessions sont fermées. La prochaine connexion refait l'inscription. Sinon, un code de secours.
+- Verrouillage après 5 mots de passe faux : 15 minutes, doublées à chaque nouvelle série. `POST /v1/admin/staff/{id}/password` (My Hub : **Remplacer le mot de passe**) remet le compteur à zéro et révoque les sessions.
 - Un membre du personnel qui se connecte par code SMS (comme client) n'obtient pas ses rôles du personnel : My Hub exige le mot de passe et le second facteur.
 
 ## 5. Clés de service (agents et intégrations)
 
-`POST /v1/admin/api-keys` (administrateur) : nom, portées (`agents:run`, `agents:read`, `tools:*`, `rides:read`, …), agent, expiration. Le secret `nmk_…` n'est affiché qu'une fois. Vérification : `GET /v1/internal/service/whoami` avec `Authorization: Bearer nmk_…`. Révocation : `DELETE /v1/admin/api-keys/{id}`. Toute action d'une clé est attribuée à son agent dans le journal d'audit.
+My Hub (administrateur) : **Administration**, **Clés de service** : liste (préfixe, portées, agent, dernier usage, expiration, état), **Créer une clé**, **Révoquer**. Par l'API : `POST /v1/admin/api-keys` : nom, portées (`agents:run`, `agents:read`, `tools:*`, `rides:read`, …), agent, expiration. Le secret `nmk_…` n'est affiché qu'une fois (dialogue « Clé créée », bouton **Copier la clé**) : le ranger aussitôt. Vérification : `GET /v1/internal/service/whoami` avec `Authorization: Bearer nmk_…`. Révocation : `DELETE /v1/admin/api-keys/{id}`. Toute action d'une clé est attribuée à son agent dans le journal d'audit.
 
 ### Clé publique du site (réservation web, préinscription, WordPress)
 
@@ -48,4 +48,4 @@ Une clé à la seule portée `public:write` (`POST /v1/admin/api-keys` avec `{"n
 
 ## 6. Journal d'audit
 
-`GET /v1/admin/audit?entity=users&entityId=…&before=…&limit=50` : toute mutation (acteur, action, entité, avant et après masqués, adresse IP, identifiant de corrélation). La table est en ajout seul.
+My Hub, **Journal d'audit** : filtres par objet, action et période ; **Exporter en CSV** (administrateur, 50 000 lignes au plus, export lui-même journalisé). Par l'API : `GET /v1/admin/audit?entity=users&entityId=…&from=…&to=…&limit=50` et `GET /v1/admin/audit/export` : toute mutation (acteur, action, entité, avant et après masqués, adresse IP, identifiant de corrélation). La table est en ajout seul.

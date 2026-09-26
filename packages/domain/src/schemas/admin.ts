@@ -9,6 +9,8 @@ import {
 } from '../enums.js';
 import { cents, isoDate, localDateString, phoneE164, uuid } from './common.js';
 import { INVOICE_KINDS } from '../invoicing/invoice.js';
+import { SAFETY_HOLD_OUTCOMES, SAFETY_HOLD_STATES } from '../drivers/safety.js';
+import { MANUAL_INCIDENT_TYPES, privacyBreachInputSchema } from '../privacy/breach.js';
 
 const count = z.number().int().min(0);
 
@@ -233,10 +235,29 @@ export const adminIncidentSchema = z.object({
   decision: z.string().nullable(),
   decidedAt: isoDate.nullable(),
   privacyBreach: z.boolean(),
+  /** Numéro au registre des incidents de confidentialité (`IC-AAAA-NNN`), null hors registre. */
+  privacyReference: z.string().nullable(),
+  /** Blocage préventif du chauffeur (SOS du client, plainte grave) : en cours, levé ou maintenu ; null sans blocage. */
+  safetyHold: z.enum(SAFETY_HOLD_STATES).nullable(),
   createdAt: isoDate,
 });
 export type AdminIncident = z.infer<typeof adminIncidentSchema>;
-export const incidentDecisionSchema = z.object({ status: z.enum(['investigating', 'decided', 'closed']), decision: z.string().trim().min(3).max(2000).optional() });
+/**
+ * Incident ouvert à la main par le personnel (plainte reçue par téléphone, objet perdu, incident de confidentialité).
+ * Un incident de confidentialité s'inscrit au registre dès sa création (Loi 25 : le jour même).
+ */
+export const adminIncidentCreateSchema = z
+  .object({
+    type: z.enum(MANUAL_INCIDENT_TYPES),
+    severity: z.enum(INCIDENT_SEVERITIES).default('medium'),
+    description: z.string().trim().min(3).max(2000),
+    rideId: uuid.optional(),
+    privacyBreach: privacyBreachInputSchema.optional(),
+  })
+  .refine((i) => i.type !== 'privacy' || i.privacyBreach !== undefined, { message: 'Un incident de confidentialité s\'inscrit au registre', path: ['privacyBreach'] });
+export type AdminIncidentCreate = z.input<typeof adminIncidentCreateSchema>;
+/** `safetyHold` est exigé pour décider ou clore un incident dont le chauffeur est bloqué à titre préventif. */
+export const incidentDecisionSchema = z.object({ status: z.enum(['investigating', 'decided', 'closed']), decision: z.string().trim().min(3).max(2000).optional(), safetyHold: z.enum(SAFETY_HOLD_OUTCOMES).optional() });
 
 export const adminApprovalSchema = z.object({
   id: uuid,

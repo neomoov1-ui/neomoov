@@ -103,7 +103,7 @@ export class StatementsService {
    * Génération (ou aperçu) des relevés d'une période : un brouillon par chauffeur qui a au moins une ligne ; un brouillon
    * existant est recalculé (ses ajustements manuels gardés), un relevé déjà émis n'est jamais modifié.
    */
-  async generate(input: { periodStart?: string | undefined; driverId?: string | undefined; preview?: boolean | undefined }, now = new Date()): Promise<StatementGeneration> {
+  async generate(input: { periodStart?: string | undefined; driverId?: string | undefined; preview?: boolean | undefined; allowEmpty?: boolean | undefined }, now = new Date()): Promise<StatementGeneration> {
     const period = await this.periodOf(input.periodStart, now);
     const rates = await this.rates();
     const driverIds = input.driverId ? [input.driverId] : await this.candidateDrivers(period);
@@ -120,7 +120,8 @@ export class StatementsService {
         const [existing] = await tx.select().from(schema.weeklyStatements).where(and(eq(schema.weeklyStatements.driverId, driverId), eq(schema.weeklyStatements.periodStart, period.startDate))).limit(1);
         if (existing && existing.status !== 'draft') return { skipped: true, view: await this.computedOf(tx, existing, driver) };
         const lines = await this.collectLines(tx, driver, period, rates, existing?.id ?? null);
-        if (!lines.length && !existing) return null;
+        // Brouillon vide seulement sur demande, pour un seul chauffeur (correction d'un relevé émis).
+        if (!lines.length && !existing && !(input.allowEmpty && input.driverId)) return null;
         const statement = buildStatement(driverId, period, lines);
         if (input.preview) return { skipped: false, view: this.previewOf(driver, statement) };
         const saved = await this.save(tx, driver, period, statement, existing ?? null);

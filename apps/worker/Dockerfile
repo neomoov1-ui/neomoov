@@ -39,4 +39,6 @@ COPY --from=build /repo/apps/api/dist apps/api/dist
 COPY --from=build /repo/apps/worker/dist apps/worker/dist
 USER node
 WORKDIR /app/apps/worker
+# Sain tant que le battement de la minute écrit son fichier (planification et files en marche) : 3 minutes de tolérance.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 CMD node -e "const s=require('fs').statSync('/tmp/neomoov-worker-heartbeat');process.exit(Date.now()-s.mtimeMs<180000?0:1)"
 CMD ["node", "--enable-source-maps", "dist/main.js"]

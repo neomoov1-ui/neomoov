@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import type { Logger } from 'pino';
 import { ZodError } from 'zod';
 import { AppError } from './app-error.js';
+import { reportError } from './error-reporting.js';
 import { currentCorrelationId } from './logger.js';
 
 const CODE_BY_STATUS: Record<number, string> = {
@@ -50,6 +51,8 @@ export class AppExceptionFilter implements ExceptionFilter {
     }
     // Toute erreur 5xx est journalisée avec l'identifiant de corrélation donné au client, quelle que soit sa classe.
     if (status >= 500) this.logger.error({ err: exception, correlationId, code: body.code }, known ? 'Erreur HTTP 5xx' : 'Erreur non gérée');
+    // Suivi des erreurs : les erreurs inattendues et les 500 ; pas les 502 et 503 voulus (fournisseur en panne, mode dégradé).
+    if (!known || status === 500) reportError(exception, { tags: { code: body.code, status } });
     if (correlationId) body.correlationId = correlationId;
     if (body.details === undefined) delete body.details;
     res.status(status).json(body);
