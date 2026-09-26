@@ -10,6 +10,7 @@ export * from './settlement/settlement.js';
 export * from './settlement/ledgers.js';
 export * from './rides/state-machine.js';
 export * from './rides/cancellation.js';
+export * from './rides/punctuality.js';
 export * from './dispatch/scoring.js';
 export * from './dispatch/negotiation.js';
 export * from './drivers/vehicle-category.js';

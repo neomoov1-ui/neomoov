@@ -268,6 +268,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Réponse à votre demande', body: (d) => `Après examen par une personne, ${d['decision'] === 'overturned' ? 'la sanction est levée' : 'la sanction est maintenue'} : ${str(d['note'])}` },
     en: { title: 'Answer to your request', body: (d) => `After review by a person, ${d['decision'] === 'overturned' ? 'the sanction is lifted' : 'the sanction is upheld'}: ${str(d['note'])}` },
   },
+  'punctuality.compensated': {
+    fr: { title: 'Garantie de ponctualité', body: (d, l) => d['refund'] ? `Votre chauffeur est arrivé avec ${str(d['minutesLate'])} minutes de retard : votre course ${str(d['publicNumber'])} vous est remboursée en crédit (${money(d['amountCents'], l)}). Toutes nos excuses.` : `Votre chauffeur est arrivé avec ${str(d['minutesLate'])} minutes de retard : un crédit de ${money(d['amountCents'], l)} vous est offert pour votre prochaine course. Toutes nos excuses.` },
+    en: { title: 'Punctuality guarantee', body: (d, l) => d['refund'] ? `Your driver arrived ${str(d['minutesLate'])} minutes late: ride ${str(d['publicNumber'])} is refunded to you as credit (${money(d['amountCents'], l)}). Our apologies.` : `Your driver arrived ${str(d['minutesLate'])} minutes late: a ${money(d['amountCents'], l)} credit is yours for your next ride. Our apologies.` },
+  },
   'quality.reinstated': {
     fr: { title: 'Sanction terminée', body: () => 'Votre sanction est terminée : vous recevez de nouveau toutes les courses.' },
     en: { title: 'Sanction ended', body: () => 'Your sanction has ended: you receive all rides again.' },

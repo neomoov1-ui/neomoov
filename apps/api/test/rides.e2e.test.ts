@@ -1,10 +1,12 @@
 import 'reflect-metadata';
 import { schema } from '@neomoov/db';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DomainEventsService } from '../src/common/domain-events.js';
+import { SettingsService } from '../src/common/settings.service.js';
+import { PunctualityService } from '../src/modules/guarantee/punctuality.service.js';
 import { ApproachNotifierService } from '../src/modules/rides/approach-notifier.service.js';
 import { bearer, cleanupTestData, createDriver, createStaffAndLogin, db, loginByOtp, startTestApp, type TestDriver } from './helpers.js';
 
@@ -206,6 +208,35 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     const incidents = await db(app).select().from(schema.incidents).where(eq(schema.incidents.rideId, ride.id));
     expect(incidents).toHaveLength(1);
     expect(incidents[0]).toMatchObject({ type: 'other', severity: 'high', reportedByKind: 'driver' });
+  });
+
+  it('garantie de ponctualité (D10) : désactivée par défaut ; activée, crédit selon le retard, une seule fois', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const punctuality = app.get(PunctualityService);
+    const settings = app.get(SettingsService);
+    const ride = (await requestRide(client, await quoteFor(client))).body;
+    await assign(admin.tokens, ride.id, driver);
+    const [row] = await db(app).select({ requestedAt: schema.rides.requestedAt }).from(schema.rides).where(eq(schema.rides.id, ride.id));
+    const arrivedAt = new Date(row!.requestedAt!.getTime() + 15 * 60_000);
+    expect(await punctuality.onArrived(ride.id, arrivedAt)).toBeNull();
+    const enabled = and(eq(schema.settings.key, 'punctuality.enabled'), isNull(schema.settings.organizationId));
+    await db(app).update(schema.settings).set({ value: true }).where(enabled);
+    settings.invalidate();
+    try {
+      expect(await punctuality.onArrived(ride.id, arrivedAt)).toEqual({ kind: 'credit', minutesLate: 15, amountCents: 500 });
+      await punctuality.onArrived(ride.id, arrivedAt);
+      const credits = await db(app).select().from(schema.credits).where(eq(schema.credits.reference, `punctuality:${ride.id}`));
+      expect(credits).toHaveLength(1);
+      expect(credits[0]).toMatchObject({ amountCents: 500, origin: 'guarantee' });
+      // À l'heure : rien.
+      expect(await punctuality.onArrived(ride.id, row!.requestedAt!)).toEqual({ kind: 'none', minutesLate: 0 });
+    } finally {
+      await db(app).update(schema.settings).set({ value: false }).where(enabled);
+      settings.invalidate();
+    }
   });
 
   it('non-présentation : refusée avant cinq minutes ou sans deux contacts, puis 7,00 $', async ({ skip }) => {

@@ -66,6 +66,7 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('payment.authorization_failed', 'client', ['push', 'email'], true),
   rule('payment.balance_due', 'client', ['push', 'email']),
   rule('guarantee.decided', 'client', ['push', 'email']),
+  rule('punctuality.compensated', 'client', ['push', 'email']),
   // Relevés, versements, prélèvements.
   rule('statement.issued', 'driver', ['push', 'email']),
   rule('statement.paid', 'driver', ['push', 'email']),

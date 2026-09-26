@@ -116,6 +116,8 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'fairness.business_hours', value: { days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00' }, description: 'Charte d\'équité : heures ouvrables du délai de rappel (lundi à vendredi, 9 h à 17 h, heure de Montréal)' },
   { key: 'fairness.callback_business_hours', value: 4, description: 'Charte d\'équité : une personne répond au chauffeur (réponse ou appel) sous 4 heures ouvrables' },
   { key: 'fairness.precautionary_review_hours', value: 24, description: 'Charte d\'équité : une suspension de précaution est réexaminée par une personne sous 24 heures' },
+  { key: 'punctuality.enabled', value: false, description: 'Garantie de ponctualité (D10) : désactivée tant que le fondateur n\'a pas validé les montants proposés le 26 septembre 2026' },
+  { key: 'punctuality.rules', value: { tiers: [{ minMinutes: 10, creditCents: 500 }, { minMinutes: 20, creditCents: 1000 }], refundAfterMinutes: 30 }, description: 'Garantie de ponctualité (D10) : 5 $ de 10 à 20 minutes de retard, 10 $ de 20 à 30 minutes, course remboursée en crédit au-delà' },
   { key: 'quality.rating_window', value: 100, description: 'Note du chauffeur : les 100 dernières courses notées qui comptent (Charte d\'équité, 26 septembre 2026)' },
   { key: 'pricing.benchmark_below_cents', value: 100, description: 'Veille prix : au moins 1 $ sous le concurrent le moins cher (décision du fondateur, 26 septembre 2026)' },
   { key: 'rides.airport_free_cancellation_before_seconds', value: 3600, description: 'Transfert aéroport : annulation gratuite jusqu\'à 1 heure avant l\'heure prévue (décision D3 du fondateur, 26 septembre 2026)' },
