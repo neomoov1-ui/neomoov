@@ -3,9 +3,9 @@
 /**
  * Réservation web sans compte (`/reserver`, intégrable en iframe) : trajet et heure (préavis minimal de la
  * configuration), prix garanti par catégorie (API publique), vérification du numéro par SMS (compte créé au besoin),
- * prix confirmé avec le compte, paiement au chauffeur, confirmation et lien de suivi.
+ * prix confirmé avec le compte, paiement au chauffeur (modes renvoyés par le devis), confirmation et lien de suivi.
  */
-import type { AppConfig, Place, QuoteRequest, QuoteView, QuotesResponse, RidePreferences, RideView } from '@neomoov/domain';
+import type { AppConfig, PaymentMethod, Place, QuoteRequest, QuoteView, QuotesResponse, RidePreferences, RideView } from '@neomoov/domain';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,13 @@ import { createGuestApi, errorCode, publicApi } from '@/lib/site-api';
 const OPTIONS = { flex: false, priority: false, childSeat: false, luggage: false };
 const PREFERENCES: RidePreferences = { conversation: 'indifferent', music: 'indifferent', temperature: 'neutral', luggageHelp: false };
 type Step = 'trip' | 'price' | 'contact' | 'done';
+
+/**
+ * Le web n'encaisse rien : seulement le paiement au chauffeur après la course (D35), et seulement les modes que renvoie
+ * le devis (`paymentMethods` : ceux qu'au moins un chauffeur accepte). La carte se prépaie dans l'application.
+ */
+const PAY_AFTER_METHODS: readonly PaymentMethod[] = ['cash', 'interac', 'terminal'];
+const payAfterMethods = (offered: readonly PaymentMethod[] | undefined) => PAY_AFTER_METHODS.filter((m) => offered?.includes(m));
 
 function localParts(at: Date) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at);
@@ -52,6 +59,7 @@ export function Booking() {
   const [lastName, setLastName] = useState('');
   const [special, setSpecial] = useState('');
   const [flight, setFlight] = useState('');
+  const [chosenMethod, setChosenMethod] = useState<PaymentMethod | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -63,6 +71,8 @@ export function Booking() {
   const details = useCallback((placeId: string, sessionToken: string) => publicApi.public.placeDetails(placeId, sessionToken), []);
   const requestedAt = () => montrealToIso(date, time);
   const request = (): QuoteRequest => ({ origin: origin!, destination: destination!, stops: [], requestedAt: requestedAt(), options: OPTIONS });
+  const paymentMethods = payAfterMethods(quotes?.paymentMethods);
+  const paymentMethod = chosenMethod && paymentMethods.includes(chosenMethod) ? chosenMethod : (paymentMethods[0] ?? null);
 
   const fail = (e: unknown) => {
     const code = errorCode(e);
@@ -88,7 +98,7 @@ export function Booking() {
   }
 
   async function confirm() {
-    if (!quote) return;
+    if (!quote || !quotes || !paymentMethod) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -99,10 +109,15 @@ export function Booking() {
       const priced = own.quotes.find((q) => q.category === quote.category);
       if (!priced) return setError(t('book.errors.quote'));
       if (priced.totalCents !== quote.totalCents) setNotice(t('book.requoted', { amount: formatMoney(priced.totalCents, lang) }));
+      // Modes relus avec le compte : un mode retiré depuis le premier devis n'est pas envoyé, la liste est mise à jour.
+      if (!payAfterMethods(own.paymentMethods).includes(paymentMethod)) {
+        setQuotes({ ...quotes, paymentMethods: own.paymentMethods });
+        return setError(t('book.errors.payment'));
+      }
       const flightNumber = flight.trim().toUpperCase().replace(/\s/g, '');
       const created = await guest.api.rides.create(
         {
-          quoteId: priced.id, type: 'scheduled', requestedAt: requestedAt(), paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: priced.maxConsentedCents,
+          quoteId: priced.id, type: 'scheduled', requestedAt: requestedAt(), paymentMethod, paymentChoice: 'pay_driver_after', maxConsentedCents: priced.maxConsentedCents,
           preferences: PREFERENCES, ...(special.trim() ? { specialRequests: special.trim() } : {}), ...(flightNumber ? { flightNumber } : {}),
         },
         idempotencyKey.current,
@@ -174,13 +189,21 @@ export function Booking() {
                 <Notice tone="success">{t('book.verified')}</Notice>
                 <fieldset className="flex flex-col gap-2">
                   <legend className="mb-1 text-sm font-semibold">{t('book.payment')}</legend>
-                  <label className="flex items-center gap-2 text-sm"><input type="radio" name="payment" defaultChecked className="accent-brand-blue-dark" />{t('book.payDriver')}</label>
-                  <label className="flex items-center gap-2 text-sm text-slate-500"><input type="radio" name="payment" disabled />{t('book.payCard')}</label>
-                  <p className="text-xs text-slate-600">{t('book.cardSoon')}</p>
+                  {paymentMethods.length === 0 ? <Notice tone="warning">{t('book.noPaymentMethod')}</Notice> : (
+                    <>
+                      <p className="text-sm">{t('book.payDriver')}</p>
+                      {paymentMethods.map((m) => (
+                        <label key={m} className="flex items-center gap-2 text-sm">
+                          <input type="radio" name="payment" value={m} checked={paymentMethod === m} onChange={() => setChosenMethod(m)} className="accent-brand-blue-dark" />
+                          {t(`enum.paymentMethod.${m}`)}
+                        </label>
+                      ))}
+                    </>
+                  )}
                 </fieldset>
                 <Field label={t('book.specialRequests')}>{(p) => <Textarea {...p} maxLength={500} value={special} onChange={(e) => setSpecial(e.target.value)} />}</Field>
                 <Field label={t('book.flight')}>{(p) => <Input {...p} maxLength={8} value={flight} onChange={(e) => setFlight(e.target.value)} />}</Field>
-                <div><Action onClick={() => void confirm()} busy={busy} disabled={busy}>{busy ? t('book.confirming') : t('book.confirm')}</Action></div>
+                <div><Action onClick={() => void confirm()} busy={busy} disabled={busy || !paymentMethod}>{busy ? t('book.confirming') : t('book.confirm')}</Action></div>
               </>
             )}
           </div>

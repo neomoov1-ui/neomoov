@@ -7,6 +7,25 @@ const os = require('os');
 const path = require('path');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Écrans émulés (variable SHOT_DEVICE) : captures aux dimensions des magasins (docs/store/verification-soumission.md,
+ * section 7). `default` : 390 × 844 à 2x (780 × 1688, captures de travail, refusées par Apple et Google) ;
+ * `iphone-6.9` : 440 × 956 à 3x (1320 × 2868) ; `iphone-6.5` : 414 × 896 à 3x (1242 × 2688) ; `android` : 360 × 640 à 3x
+ * (1080 × 1920, rapport 16:9 accepté par Google Play).
+ */
+const SCREENS = {
+  default: { width: 390, height: 844, deviceScaleFactor: 2, mobile: true },
+  'iphone-6.9': { width: 440, height: 956, deviceScaleFactor: 3, mobile: true },
+  'iphone-6.5': { width: 414, height: 896, deviceScaleFactor: 3, mobile: true },
+  android: { width: 360, height: 640, deviceScaleFactor: 3, mobile: true },
+};
+
+function screenMetrics(device = process.env.SHOT_DEVICE || 'default') {
+  const metrics = SCREENS[device];
+  if (!metrics) throw new Error(`SHOT_DEVICE inconnu : ${device} (valeurs : ${Object.keys(SCREENS).join(', ')})`);
+  return metrics;
+}
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
 /** Code du dernier texto simulé envoyé à ce numéro (journal de l'API en développement, champ `devOtpCode`). */
@@ -168,7 +187,7 @@ class Page {
   }
 }
 
-/** Lance Edge sans interface avec un profil neuf ; renvoie la page pilotée (téléphone de 390 × 844, heure de Montréal). */
+/** Lance Edge sans interface avec un profil neuf ; renvoie la page pilotée (écran de `screenMetrics`, heure de Montréal). */
 async function launchEdge({ out, port = 9333, edgePath = process.env.EDGE_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', profileName = 'neomoov-e2e-edge' }) {
   fs.mkdirSync(out, { recursive: true });
   const profile = path.join(os.tmpdir(), profileName);
@@ -188,7 +207,7 @@ async function launchEdge({ out, port = 9333, edgePath = process.env.EDGE_PATH |
   const page = new Page(ws, out);
   await page.send('Page.enable');
   await page.send('Runtime.enable');
-  await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  await page.send('Emulation.setDeviceMetricsOverride', screenMetrics());
   await page.send('Emulation.setTimezoneOverride', { timezoneId: 'America/Toronto' }).catch(() => undefined);
   return { page, edge };
 }
@@ -200,4 +219,4 @@ async function recordFailure(page, out, error) {
   fs.writeFileSync(path.join(out, 'zz-echec.txt'), `${error.message}\n\n${await page.text().catch(() => '')}\n\nErreurs JS : ${JSON.stringify(page.errors)}`);
 }
 
-module.exports = { Page, launchEdge, lastCode, log, recordFailure, sleep };
+module.exports = { Page, launchEdge, lastCode, log, recordFailure, screenMetrics, sleep };

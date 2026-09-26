@@ -9,6 +9,7 @@
 // (`npx expo export --platform web` puis `node ../../scripts/e2e/serve-web.cjs dist 8081`).
 // La validation par l'équipe (My Hub, étape 12) est faite directement en base : `.env` est chargé dans le processus.
 // Usage : API_LOG=<journal de l'API> node e2e/web-journeys.cjs [dossier des captures, défaut docs/screens/driver]
+// Taille d'écran : SHOT_DEVICE=iphone-6.9, iphone-6.5 ou android pour les captures des magasins (scripts/e2e/cdp.cjs).
 const fs = require('fs');
 const path = require('path');
 const { launchEdge, lastCode, log, recordFailure, sleep } = require('../../../scripts/e2e/cdp.cjs');

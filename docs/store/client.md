@@ -16,7 +16,7 @@ Préparée pour App Store Connect et Google Play Console (prompt 10, tâche 9 ; 
 | Assistance (URL exigée par Apple) | Page d'assistance de neomoov.net avec téléphone et courriel : **à créer ou à confirmer** |
 | Conditions d'utilisation | https://neomoov.net/conditions-d-utilisation/ |
 | Politique de confidentialité | https://neomoov.net/politique-de-confidentialite/ (doit décrire les données du tableau plus bas, la conservation, les fournisseurs hors Québec et les droits Loi 25) |
-| Suppression de compte hors de l'application (exigée par Google) | Page de neomoov.net qui explique comment demander la suppression sans l'application : **à créer** (voir « Exigences des magasins ») |
+| Suppression de compte hors de l'application (exigée par Google) | https://reserver.neomoov.net/supprimer-mon-compte : démarche, données supprimées et conservées, suppression après vérification du numéro par texto (FR et EN par le sélecteur de langue ; recours par courriel à l'assistance pour qui ne reçoit plus les textos) |
 | Classement | 4+ (App Store) ; questionnaire IARC de Google : aucun contenu sensible, communications entre utilisateurs (messagerie avec le chauffeur) |
 | Visuels (D46) | Captures réelles de l'application, photos réelles ; aucune illustration dessinée |
 
@@ -110,7 +110,7 @@ Relevé dans le code (`apps/mobile-client/src`, schémas de `packages/domain`) :
 | Jeton de notification de l'appareil | Automatique après connexion | Non (refus possible) | API, Expo |
 | Identifiant de compte | Automatique | Oui | API |
 
-Non collectés par l'application aujourd'hui : nom et courriel du client lui-même (l'API les accepte, aucun écran ne les demande ; conséquence : la facture, envoyée par courriel, n'atteint pas un client sans courriel, et l'application ne l'affiche pas), données de carte (feuille de paiement Stripe non branchée), rapports de plantage (Sentry non branché), statistiques d'usage, identifiant publicitaire.
+Non collectés par l'application aujourd'hui : nom et courriel du client lui-même (l'API les accepte, aucun écran ne les demande ; conséquence : la facture, envoyée par courriel, n'atteint pas un client sans courriel ; elle reste consultable dans l'application, Profil ou Historique, « Mes factures », depuis le 26 septembre 2026), données de carte (feuille de paiement Stripe non branchée), rapports de plantage (Sentry non branché), statistiques d'usage, identifiant publicitaire.
 
 ## Étiquettes de confidentialité Apple (App Privacy)
 
@@ -139,7 +139,7 @@ Décision à prendre par le fondateur : l'option « mobilité réduite » relèv
 |---|---|
 | Collecte ou partage de données | Oui, collecte |
 | Données chiffrées en transit | Oui (HTTPS, TLS 1.2 au moins) |
-| Moyen de demander la suppression des données | Oui : dans l'application (Profil, « Supprimer mon compte ») et par l'URL de suppression (à créer) |
+| Moyen de demander la suppression des données | Oui : dans l'application (Profil, « Supprimer mon compte ») et par l'URL de suppression https://reserver.neomoov.net/supprimer-mon-compte |
 | Partage avec des tiers | Non au sens de Google : les fournisseurs (Twilio, Google Maps, Expo, hébergeurs) traitent pour le compte de Neomoov, et la transmission au chauffeur ou au passager tiers découle d'une action de l'utilisateur (réservation). À faire valider par l'avocat |
 
 | Catégorie Google | Type | Collecté | Facultatif | Finalités |
@@ -156,11 +156,11 @@ Décision à prendre par le fondateur : l'option « mobilité réduite » relèv
 ## Exigences des magasins
 
 - **Suppression du compte dans l'application** : Profil, « Supprimer mon compte » (`DELETE /v1/me`), accès coupé immédiatement, anonymisation par le worker.
-- **Suppression hors de l'application (Google Play)** : Google exige une URL. La page publique `/droits` du web permet l'accès, la rectification, la portabilité et le retrait d'un consentement, **mais pas la suppression** (manque signalé au code). En attendant : une page de neomoov.net qui explique la démarche (courriel à l'assistance depuis l'adresse ou avec le numéro du compte, délai de 30 jours), déclarée dans la console.
+- **Suppression hors de l'application (Google Play)** : URL à déclarer dans la console (Règles, « Suppression des données ») : https://reserver.neomoov.net/supprimer-mon-compte (livrée le 26 septembre 2026). La page nomme les deux applications, donne la démarche (numéro du compte, code par texto, confirmation), ce qui est supprimé et ce qui est conservé avec les durées (courses sans coordonnées, adresses anonymisées après 12 mois, factures émises 7 ans sans modification, relevés et documents des chauffeurs), et un recours par courriel (réglage `support.email`) pour qui ne reçoit plus les textos. La suppression passe par `DELETE /v1/me` comme dans l'application : accès coupé tout de suite, anonymisation par le worker. La page `/droits` y renvoie aussi. Limite connue : la suppression n'annule pas les réservations à venir (la page demande de les annuler d'abord).
 - **Sign in with Apple** : exigé seulement si une connexion tierce (Google) est proposée. En V1, l'application ne propose que la connexion par code SMS : pas d'obligation tant qu'aucun bouton Google n'est ajouté. L'API gère déjà Apple et Google (`POST /v1/auth/apple`, `/v1/auth/google`).
 - **Compte de démonstration pour l'examen** : l'examinateur ne reçoit pas les textos. **Bloquant** : aucun mécanisme de code fixe n'existe dans l'API (`docs/beta/comptes-de-test.md`, section 3).
 - **Paiement** : les courses sont des services physiques, hors achats intégrés ; Stripe est permis.
-- **Options de paiement non branchées** : l'écran 3 de la réservation propose encore le prépaiement (carte, Apple Pay ou Google Pay, Interac) alors que la feuille de paiement n'est pas intégrée. Un examinateur qui choisit ces options sera bloqué : les masquer (ou brancher Stripe) avant la soumission (manque signalé).
+- **Options de paiement** : depuis le 26 septembre 2026, l'application (écran 3 de la réservation) et la réservation web n'affichent que les modes renvoyés par le devis (`paymentMethods`) : l'API retire la carte, Apple Pay et Google Pay quand le paiement réel n'est pas configuré en production, et ne propose le paiement au chauffeur (espèces, Interac, terminal) que si des chauffeurs l'acceptent. Reste à faire avant d'ouvrir la carte : l'application n'a aucun écran d'ajout de carte (feuille de paiement Stripe) ; tant qu'il manque, garder le paiement par carte fermé en production, sinon un prépaiement échoue (« Aucune carte enregistrée »).
 - **Coordonnées d'assistance** : l'écran Assistance affiche le téléphone et le courriel des réglages `support.phone` et `support.email`, absents des données de départ (`docs/beta/procedure.md`, section 1).
 
 ## Notes pour l'examen (App Review, à coller en anglais)
@@ -171,13 +171,13 @@ Décision à prendre par le fondateur : l'option « mobilité réduite » relèv
 >
 > Location is requested only while the app is in use, when the user taps "Use my location" to fill the pickup address. The app never uses background location.
 >
-> Account deletion: Profile > "Delete my account". Data export and consent withdrawal are in Profile as well (Québec privacy law, Law 25).
+> Account deletion: Profile > "Delete my account", or without the app at https://reserver.neomoov.net/supprimer-mon-compte. Data export and consent withdrawal are in Profile as well (Québec privacy law, Law 25). Invoices: Profile (or History) > "My invoices".
 
 Pour Google Play, section « Accès aux applications » : mêmes informations de connexion, en indiquant que la connexion se fait par code SMS et que le code de démonstration est fixe.
 
 ## Captures d'écran
 
-Les captures de `docs/screens/client/` viennent de la version web (780 × 1688 pixels) : elles servent de modèle, mais ne sont acceptées ni par Apple (tailles imposées, par exemple 1320 × 2868 pour l'iPhone 6,9 pouces) ni par Google (le grand côté ne doit pas dépasser le double du petit). Les refaire sur un iPhone et un Android réels à partir d'un build TestFlight ou `preview`, avec le compte de démonstration : accueil, choix de l'heure, catégories et prix, préférences, récapitulatif, suivi en direct, évaluation, profil et droits. Aucune donnée personnelle réelle à l'écran.
+Les captures de `docs/screens/client/` viennent de la version web (780 × 1688 pixels) : elles servent de modèle, mais ne sont acceptées ni par Apple (tailles imposées, par exemple 1320 × 2868 pour l'iPhone 6,9 pouces) ni par Google (le grand côté ne doit pas dépasser le double du petit). Tailles exactes et procédure : `verification-soumission.md`, section 7. Les refaire sur un iPhone et un Android réels à partir d'un build TestFlight ou `preview`, avec le compte de démonstration : accueil, choix de l'heure, catégories et prix, préférences, récapitulatif, suivi en direct, évaluation, profil et droits. Aucune donnée personnelle réelle à l'écran.
 
 ## Builds (EAS)
 
