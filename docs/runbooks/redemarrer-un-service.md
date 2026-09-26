@@ -150,5 +150,5 @@ docker compose -f infra/compose.prod.yml up -d
 
 ## Limites connues
 
-- Docker marque une instance `unhealthy` mais ne la redémarre pas seul : un processus bloqué (et non arrêté) reste en place jusqu'à un redémarrage manuel. Le worker n'a pas de sonde de santé du tout.
+- Docker marque une instance `unhealthy` sans la redémarrer : la tâche planifiée `/etc/cron.d/neomoov-restart-unhealthy` (posée par `infra/server-setup.sh` ; sur un serveur déjà préparé, copier la ligne indiquée en tête de `infra/scripts/restart-unhealthy.sh`) relance toutes les 5 minutes les conteneurs dont la sonde échoue, et le note dans `/var/log/neomoov-restart.log`. Le worker a sa sonde : le battement de la minute écrit `/tmp/neomoov-worker-heartbeat` ; sans battement depuis 3 minutes, il est déclaré malade.
 - Aucune alerte automatique n'avertit encore d'un conteneur arrêté : la surveillance externe (Better Stack) n'est pas branchée (`docs/operations/acces-a-fournir.md`).

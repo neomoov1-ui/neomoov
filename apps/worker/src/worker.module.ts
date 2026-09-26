@@ -4,7 +4,11 @@ import {
 } from '@neomoov/api';
 import { InvoiceJobsService, InvoicingModule } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, Optional, type OnModuleInit } from '@nestjs/common';
+import { writeFile } from 'node:fs/promises';
 import type { Logger } from 'pino';
+
+/** Fichier lu par la sonde de santé du conteneur du worker. */
+export const HEARTBEAT_FILE = '/tmp/neomoov-worker-heartbeat';
 
 /**
  * Battement chaque minute, qui prouve que les files et la planification fonctionnent. Avec `BETTERSTACK_HEARTBEAT_URL`,
@@ -27,6 +31,8 @@ export class HeartbeatService implements OnModuleInit {
       async (job) => {
         this.ticks += 1;
         this.logger.info({ job: job.name, ticks: this.ticks, mode: this.queues.mode }, 'battement du worker');
+        // Sonde de santé du conteneur (HEALTHCHECK du Dockerfile) : date du dernier battement.
+        await writeFile(HEARTBEAT_FILE, new Date().toISOString()).catch(() => undefined);
         await this.ping();
       },
       { everyMs: 60_000, jobName: 'tick', concurrency: 1 },

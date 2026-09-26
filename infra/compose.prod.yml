@@ -47,6 +47,9 @@ services:
       PORT: "4000"
       REDIS_URL: redis://redis:6379
       APP_VERSION: ${APP_VERSION:-}
+      # Antivirus (profil « antivirus ») : VIRUS_SCANNER_PROVIDER=real dans .env une fois le conteneur clamav démarré.
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: "3310"
     deploy:
       replicas: 2
       resources:
@@ -87,6 +90,7 @@ services:
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
         NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-}
         NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
     environment:
       NODE_ENV: production
       PORT: "3000"
@@ -96,6 +100,32 @@ services:
           memory: 512M
     expose:
       - "3000"
+
+  # Antivirus des documents des chauffeurs (ClamAV, environ 1,2 Go de mémoire au chargement des signatures) : activé par
+  # COMPOSE_PROFILES=antivirus dans .env, puis VIRUS_SCANNER_PROVIDER=real. Sans lui, seul le fichier de test EICAR est refusé.
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    profiles: ["antivirus"]
+    volumes:
+      - clamav_data:/var/lib/clamav
+    expose:
+      - "3310"
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      start_period: 300s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   redis:
     image: redis:7-alpine
@@ -118,3 +148,4 @@ volumes:
   caddy_data: {}
   caddy_config: {}
   redis_data: {}
+  clamav_data: {}

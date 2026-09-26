@@ -12,7 +12,17 @@ import { readAgentPrompts } from './prompts.js';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
-export async function seed(db: Database): Promise<Record<string, number>> {
+/**
+ * `demo` : comptes de démonstration (administrateur, opérateur, chauffeurs actifs, clients). Par défaut partout sauf en
+ * production (`SEED_DEMO=on` ou `off` pour forcer) : en production, le personnel se crée par `create-staff` et les
+ * chauffeurs passent par l'inscription.
+ */
+export function seedDemoByDefault(env: Record<string, string | undefined> = process.env): boolean {
+  if (env['SEED_DEMO'] === 'on' || env['SEED_DEMO'] === 'off') return env['SEED_DEMO'] === 'on';
+  return env['NODE_ENV'] !== 'production';
+}
+
+export async function seed(db: Database, options: { demo?: boolean } = {}): Promise<Record<string, number>> {
   const created: Record<string, number> = {};
   const count = (k: string) => { created[k] = (created[k] ?? 0) + 1; };
 
@@ -89,7 +99,8 @@ export async function seed(db: Database): Promise<Record<string, number>> {
     if (r.length) count('agents.system_prompt_key');
   }
 
-  // Utilisateurs de démonstration.
+  // Utilisateurs de démonstration (jamais en production sauf demande explicite).
+  if (!(options.demo ?? seedDemoByDefault())) return created;
   const upsertUser = async (u: { phone: string; email?: string; firstName: string; lastName: string; role: 'admin' | 'operator' | 'driver' | 'client' }) => {
     const existing = await db.select({ id: s.users.id }).from(s.users).where(eq(s.users.phone, u.phone)).limit(1);
     if (existing[0]) return { id: existing[0].id, created: false };

@@ -233,6 +233,8 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'ratelimit.per_ip_per_minute', value: 300, description: 'Requêtes par adresse IP et par minute' },
   { key: 'ratelimit.per_user_per_minute', value: 600, description: 'Requêtes par utilisateur et par minute' },
   { key: 'legal.terms_version', value: '2026-09-01', description: "Version des conditions d'utilisation en vigueur" },
+  { key: 'support.phone', value: '', description: 'Téléphone de l\'assistance affiché dans les applications (format international, ex. +15145550100) ; vide : masqué' },
+  { key: 'support.email', value: '', description: 'Courriel de l\'assistance affiché dans les applications ; vide : masqué' },
   { key: 'legal.privacy_policy_version', value: '2026-09-01', description: 'Version de la politique de confidentialité en vigueur (5.15 : nouvelle version = nouvelle acceptation)' },
   { key: 'privacy.data_request_due_days', value: 30, description: 'Délai de réponse aux demandes de droits (Loi 25 : 30 jours)' },
   { key: 'privacy.export_link_ttl_days', value: 7, description: 'Validité du lien signé vers un export de données' },
