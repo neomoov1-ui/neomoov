@@ -20,7 +20,9 @@
     "start": "node --enable-source-maps dist/main.js",
     "example:statement": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/example-statement.js",
     "openapi:export": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/export-openapi.js",
-    "create-staff": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/create-staff.js"
+    "create-staff": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/create-staff.js",
+    "seed:e2e": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/seed-e2e.js",
+    "load:fixtures": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/load-fixtures.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.128.0",
