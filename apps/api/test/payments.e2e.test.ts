@@ -425,6 +425,26 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect(forbidden.status).toBe(403);
   });
 
+  it('crédits simultanés : leur total ne dépasse jamais le prix de la course', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : le plafond (prix moins le déjà rendu) était lu hors transaction ; deux crédits décidés en même temps
+    // avec des clés différentes passaient tous les deux (40 $ de crédit pour une course de 25 $).
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await book(client, await quote(client)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, driver);
+    await until(() => ridePayment(ride.id), (p) => p?.status === 'authorized', 'autorisation');
+    const done = await drive(driver, ride.id);
+    await until(() => ridePayment(ride.id), (p) => p?.status === 'captured', 'capture');
+    const amount = Math.ceil(done.finalPriceCents * 0.6);
+    const results = await Promise.all([1, 2, 3].map(() => request(server()).post(`/v1/admin/rides/${ride.id}/refund`).set(bearer(admin.tokens)).set('Idempotency-Key', key()).send({ amountCents: amount, reason: 'Geste commercial', mode: 'credit' })));
+    expect(results.filter((r) => r.status === 201)).toHaveLength(1);
+    expect(results.filter((r) => r.status === 400).every((r) => r.body.code === 'REFUND_TOO_HIGH')).toBe(true);
+    const credits = await db(app).select().from(schema.credits).where(eq(schema.credits.userId, client.user.id));
+    expect(credits.filter((c) => c.origin === 'refund').reduce((s, c) => s + c.amountCents, 0)).toBe(amount);
+  });
+
   it('webhook : signature vérifiée, même événement reçu trois fois = une écriture et un traitement, reprise des échecs', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);

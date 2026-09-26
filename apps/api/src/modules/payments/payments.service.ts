@@ -520,19 +520,28 @@ export class PaymentsService {
       return this.refundView(row!);
     }
 
-    // Crédit : plafonné au prix de la course (moins ce qui a déjà été rendu).
-    const ceiling = Math.max(0, (ride.finalPriceCents ?? ride.quotedTotalCents) - already);
-    if (input.amountCents > ceiling) throw new AppError('REFUND_TOO_HIGH', 'Crédit supérieur au prix de la course', 400, { refundableCents: ceiling });
+    // Crédit : plafonné au prix de la course (moins ce qui a déjà été rendu). Plafond relu sous un verrou par course
+    // (revue 17.B) : deux crédits décidés en même temps ne dépassent jamais le prix, rien chez Stripe ne le limitant.
     const [client] = ride.clientId ? await this.db.select({ userId: schema.clients.userId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
     if (!client) throw AppError.conflict('NO_CLIENT_ACCOUNT', 'Course sans compte client : crédit impossible');
-    const row = await this.db.transaction(async (tx) => {
-      const [credit] = await tx.insert(schema.credits).values({ userId: client.userId, amountCents: input.amountCents, remainingCents: input.amountCents, origin: 'refund', reference: ride.publicNumber, note: input.reason, expiresAt: new Date(Date.now() + (await this.settings.number('credits.validity_days', 365)) * 86_400_000) }).returning({ id: schema.credits.id });
+    // Lu avant la transaction : sous le verrou, aucune autre connexion n'est demandée au pool.
+    const validityDays = await this.settings.number('credits.validity_days', 365);
+    const locked = await this.db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`refund:${rideId}`}))`);
+      const [replayed] = await tx.select().from(schema.refunds).where(eq(schema.refunds.idempotencyKey, key)).limit(1);
+      if (replayed) return { replayed };
+      const [total] = await tx.select({ total: sql<number>`COALESCE(sum(${schema.refunds.amountCents}), 0)::int` }).from(schema.refunds).where(and(eq(schema.refunds.paymentId, payment.id), ne(schema.refunds.status, 'failed')));
+      const ceiling = Math.max(0, (ride.finalPriceCents ?? ride.quotedTotalCents) - Number(total?.total ?? 0));
+      if (input.amountCents > ceiling) throw new AppError('REFUND_TOO_HIGH', 'Crédit supérieur au prix de la course', 400, { refundableCents: ceiling });
+      const [credit] = await tx.insert(schema.credits).values({ userId: client.userId, amountCents: input.amountCents, remainingCents: input.amountCents, origin: 'refund', reference: ride.publicNumber, note: input.reason, expiresAt: new Date(Date.now() + validityDays * 86_400_000) }).returning({ id: schema.credits.id });
       const [inserted] = await tx
         .insert(schema.refunds)
         .values({ paymentId: payment.id, mode: 'credit', amountCents: input.amountCents, reason: input.reason, decidedByUserId: actor.userId, decidedByAgentCode: actor.agentCode ?? null, creditId: credit!.id, status: 'succeeded', idempotencyKey: key })
         .returning();
-      return inserted!;
+      return { inserted: inserted! };
     });
+    if ('replayed' in locked) return this.refundView(locked.replayed!);
+    const row = locked.inserted;
     await this.journal(rideId, 'payment_refunded', { amountCents: input.amountCents, mode: 'credit' });
     this.audit.record({ action: 'payment.credited', entity: 'refunds', entityId: row.id, after: { rideId, amountCents: input.amountCents, reason: input.reason, mode: 'credit' } });
     // Étape 9 : un remboursement en crédit donne aussi une note de crédit.
