@@ -13,6 +13,7 @@ import {
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, gt, isNull, lte, sql } from 'drizzle-orm';
+import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { SettingsService } from '../../common/settings.service.js';
@@ -72,6 +73,7 @@ export class DriverActivityService {
     private readonly audit: AuditService,
     private readonly payments: PaymentsService,
     private readonly packLifecycle: PackLifecycleService,
+    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
   ) {}
 
   private get db() {
@@ -248,6 +250,7 @@ export class DriverActivityService {
     const lines = await this.db.select().from(schema.statementLines).where(eq(schema.statementLines.statementId, id)).orderBy(asc(schema.statementLines.occurredAt));
     return {
       ...this.statementSummary(row),
+      pdfUrl: row.pdfKey ? await this.storage.getSignedUrl(row.pdfKey, 600) : null,
       lines: lines.map((l) => ({
         kind: l.kind, label: l.label, amountCents: isCredit(l.kind as StatementLineKind) ? l.amountCents : -l.amountCents, rideId: l.rideId, packPurchaseId: l.packPurchaseId, occurredAt: l.occurredAt.toISOString(),
       })),

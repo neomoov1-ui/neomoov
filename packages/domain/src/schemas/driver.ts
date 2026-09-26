@@ -295,6 +295,8 @@ export const statementSummarySchema = z.object({
 export type StatementSummary = z.infer<typeof statementSummarySchema>;
 
 export const driverStatementSchema = statementSummarySchema.extend({
+  /** Lien signé du PDF (10 minutes), `null` tant qu'il n'est pas produit. */
+  pdfUrl: z.string().nullable(),
   lines: z.array(z.object({
     kind: z.string(),
     label: z.string(),

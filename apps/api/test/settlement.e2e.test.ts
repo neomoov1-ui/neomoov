@@ -161,6 +161,7 @@ describe('règlement hebdomadaire (intégration)', () => {
     expect(mine.body.map((s: { id: string }) => s.id)).toContain(draft.id);
     const pdfReady = await until(() => request(server()).get(`/v1/driver/statements/${draft.id}`).set(bearer(driver.tokens)), (r) => r.body.pdfAvailable === true);
     expect(pdfReady.body.pdfAvailable).toBe(true);
+    expect(pdfReady.body.pdfUrl).toMatch(/^mock:\/\/storage\/statements/);
     const pdf = await request(server()).get(`/v1/driver/statements/${draft.id}/pdf`).set(bearer(driver.tokens)).buffer(true).parse((res, done) => {
       const chunks: Buffer[] = [];
       res.on('data', (c: Buffer) => chunks.push(c));

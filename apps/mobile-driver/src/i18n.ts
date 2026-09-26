@@ -371,7 +371,8 @@ const fr = {
     net: 'Net',
     statuses: { draft: 'Brouillon', issued: 'Émis', paid: 'Versé', charged: 'Prélevé', failed: 'Échec du versement', settled: 'Réglé' },
     pdf: 'PDF du relevé',
-    pdfSoon: 'Le PDF sera disponible avec le règlement hebdomadaire.',
+    pdfSoon: 'Le PDF est en préparation : il arrive quelques instants après l\'émission du relevé.',
+    openPdf: 'Ouvrir le PDF du relevé',
     openRide: 'Voir la course',
   },
   packs: {
@@ -883,7 +884,8 @@ const en: typeof fr = {
     net: 'Net',
     statuses: { draft: 'Draft', issued: 'Issued', paid: 'Paid out', charged: 'Charged', failed: 'Payout failed', settled: 'Settled' },
     pdf: 'Statement PDF',
-    pdfSoon: 'The PDF will be available with the weekly settlement.',
+    pdfSoon: 'The PDF is being prepared: it arrives a few moments after the statement is issued.',
+    openPdf: 'Open the statement PDF',
     openRide: 'View the ride',
   },
   packs: {

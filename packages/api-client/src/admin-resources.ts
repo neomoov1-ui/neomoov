@@ -10,6 +10,7 @@ import type {
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
+import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -89,6 +90,14 @@ export function adminResource(t: Transport) {
     promotions: () => t.get<AdminPromotion[]>('/admin/promotions'),
     invoices: (query: ListQuery = {}) => t.get<Page<AdminInvoice>>('/admin/invoices', { query }),
     statements: (query: ListQuery = {}) => t.get<Page<AdminStatement>>('/admin/statements', { query }),
+    /** Règlement hebdomadaire (étape 9) : génération ou aperçu, détail, émission, règlement, ajustement, PDF, soldes. */
+    generateStatements: (body: Partial<StatementGenerate>) => t.post<StatementGeneration>('/admin/statements/generate', body),
+    statement: (statementId: string) => t.get<AdminStatementDetail>(`/admin/statements/${id(statementId)}`),
+    issueStatement: (statementId: string) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/issue`),
+    payStatement: (statementId: string) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/pay`),
+    adjustStatement: (statementId: string, body: StatementAdjust) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/adjust`, body),
+    statementPdfPath: (statementId: string) => `/admin/statements/${id(statementId)}/pdf`,
+    balances: () => t.get<AdminBalance[]>('/admin/balances'),
     agents: () => t.get<AdminAgent[]>('/admin/agents'),
     tariffs: () => t.get<PricingRuleView[]>('/admin/tariffs'),
     addTariff: (body: PricingRuleInput) => t.post<PricingRuleView>('/admin/tariffs', body),

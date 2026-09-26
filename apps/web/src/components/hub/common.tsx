@@ -123,6 +123,7 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   pending: 'warning', active: 'success', approved: 'success', rejected: 'danger', expired: 'danger', suspended: 'danger', restricted: 'warning', offboarded: 'neutral',
   non_compliant: 'danger', retired: 'neutral', open: 'danger', investigating: 'warning', decided: 'info', closed: 'neutral', overdue: 'danger', done: 'success',
   new: 'info', contacted: 'warning', converted: 'success', discarded: 'neutral', low: 'neutral', medium: 'warning', high: 'danger', critical: 'danger',
+  draft: 'neutral', issued: 'info', paid: 'success', charged: 'success', failed: 'danger',
 };
 
 /** Badge d'une valeur d'énumération traduite (`enum.<groupe>.<valeur>`), teinte selon la valeur. */
