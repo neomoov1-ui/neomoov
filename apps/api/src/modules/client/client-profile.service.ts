@@ -8,7 +8,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
 import { SettingsService } from '../../common/settings.service.js';
-import { APP_ENV, type AppEnv } from '../../config/env.js';
+import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 
 @Injectable()
@@ -38,7 +38,7 @@ export class ClientProfileService {
       .where(eq(schema.vehicleCategories.active, true))
       .orderBy(asc(schema.vehicleCategories.rank));
     return {
-      features: { negotiation: this.env.FEATURE_NEGOTIATION, negotiationAboveMax: this.env.FEATURE_NEGOTIATION_ABOVE_MAX, immediateRides: this.env.FEATURE_IMMEDIATE_RIDES, installments: this.env.FEATURE_INSTALLMENTS, faceCheck: this.env.FEATURE_FACE_CHECK },
+      features: { cardPayments: cardPaymentsEnabled(this.env), negotiation: this.env.FEATURE_NEGOTIATION, negotiationAboveMax: this.env.FEATURE_NEGOTIATION_ABOVE_MAX, immediateRides: this.env.FEATURE_IMMEDIATE_RIDES, installments: this.env.FEATURE_INSTALLMENTS, faceCheck: this.env.FEATURE_FACE_CHECK },
       booking: { minLeadSeconds, maxLeadDays, freeCancellationSeconds, cancellationFeeCents },
       negotiation: { floorPpm, windowSeconds },
       tips: {

@@ -133,11 +133,22 @@ export const envSchema = z.object({
   FEATURE_FACE_CHECK: flag,
   FEATURE_SCHEDULED_FLIGHT_TRACKING: flag,
   FEATURE_IMMEDIATE_RIDES: flag,
+  /** Paiement par carte (Stripe) proposé : `on` ou `off` ; par défaut, jamais en production avec le simulateur de paiement. */
+  CARD_PAYMENTS: z.enum(['on', 'off']).optional(),
   FEATURE_INSTALLMENTS: flag,
   FEATURE_RIDE_SERIES: flag,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
+
+/**
+ * Carte proposée aux clients : forcée par `CARD_PAYMENTS`, sinon partout sauf en production avec le simulateur de
+ * paiement (bêta sans Stripe : paiement au chauffeur seulement, aucune carte fictive acceptée).
+ */
+export function cardPaymentsEnabled(env: Pick<AppEnv, 'CARD_PAYMENTS' | 'NODE_ENV' | 'PAYMENT_PROVIDER'>): boolean {
+  if (env.CARD_PAYMENTS) return env.CARD_PAYMENTS === 'on';
+  return !(env.NODE_ENV === 'production' && env.PAYMENT_PROVIDER !== 'real');
+}
 
 /** Charge le .env le plus proche en remontant depuis ce fichier (la racine du monorepo), sans écraser l'environnement. */
 export function loadDotenvFromRoot(): string | undefined {

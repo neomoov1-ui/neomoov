@@ -19,7 +19,7 @@ import { sha256Hex } from '../../common/crypto.js';
 import { haversineMeters } from '../../common/geo.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
-import { APP_ENV, type AppEnv } from '../../config/env.js';
+import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { lineLabel } from './labels.js';
@@ -260,7 +260,8 @@ export class QuotesService {
     const [row] = await this.db.execute<{ cash: boolean | null; interac: boolean | null; terminal: boolean | null }>(sql`
       SELECT bool_or(accepts_cash) AS cash, bool_or(accepts_interac) AS interac, bool_or(accepts_terminal) AS terminal
       FROM drivers WHERE status = 'active' AND ${scheduled ? sql`accepts_scheduled` : sql`is_online`}`);
-    return ['card_app', 'apple_pay', 'google_pay', ...(row?.cash ? (['cash'] as const) : []), ...(row?.interac ? (['interac'] as const) : []), ...(row?.terminal ? (['terminal'] as const) : [])];
+    const cards = cardPaymentsEnabled(this.env) ? (['card_app', 'apple_pay', 'google_pay'] as const) : [];
+    return [...cards, ...(row?.cash ? (['cash'] as const) : []), ...(row?.interac ? (['interac'] as const) : []), ...(row?.terminal ? (['terminal'] as const) : [])];
   }
 
   /** Préavis (D32) : au moins `rides.min_lead_seconds` avant la prise en charge, au plus `rides.max_lead_days` ; sans heure, course immédiate seulement si le drapeau l'autorise. */

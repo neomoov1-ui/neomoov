@@ -179,7 +179,7 @@ export class AgentRunnerService {
     if (!row) return;
     this.logger.warn({ agentCode: agent.code }, 'Plafond quotidien de dépense LLM atteint : agent en mode manuel');
     await this.audit.recordSystem({ action: 'agent.mode_manual_budget', entity: 'agents', before: { code: agent.code, mode: agent.mode }, after: { code: agent.code, mode: 'manual' } }, agent.code);
-    await this.outbox.queueForStaff('alert.agent_budget', { agentCode: agent.code }, 'push');
+    await this.outbox.queueForStaff('alert.agent_budget', { agentCode: agent.code });
   }
 
   /** Réserve l'exécution d'un déclencheur ; un déclencheur déjà traité (ou en cours) est rejoué, un échec est repris. */

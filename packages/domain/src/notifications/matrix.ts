@@ -79,13 +79,16 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('pack.renewed', 'driver', ['push']),
   rule('pack.renewal_failed', 'driver', ['push']),
   rule('pack.expired', 'driver', ['push']),
-  // Alertes de l'exploitation (SOS : appel du fondateur en plus, par l'agent vocal).
-  rule('alert.sos', 'staff', ['push', 'sms'], true),
-  rule('alert.no_driver', 'staff', ['push']),
-  rule('alert.stuck_ride', 'staff', ['push']),
-  rule('alert.scheduled_unconfirmed', 'staff', ['push']),
-  rule('alert.vehicle_mismatch', 'staff', ['push']),
-  rule('alert.settlement_failed', 'staff', ['push']),
+  // Alertes de l'exploitation : le personnel travaille dans My Hub (alertes en temps réel) et n'a pas d'application
+  // mobile : hors de My Hub, courriel ; texto en plus pour le SOS (appel du fondateur en plus, par l'agent vocal).
+  rule('alert.sos', 'staff', ['sms', 'email'], true),
+  rule('alert.no_driver', 'staff', ['email']),
+  rule('alert.stuck_ride', 'staff', ['email']),
+  rule('alert.scheduled_unconfirmed', 'staff', ['email']),
+  rule('alert.vehicle_mismatch', 'staff', ['email']),
+  rule('alert.settlement_failed', 'staff', ['email']),
+  rule('alert.agent_escalation', 'staff', ['email']),
+  rule('alert.agent_budget', 'staff', ['email']),
 ];
 
 const BY_TEMPLATE = new Map(NOTIFICATION_MATRIX.map((r) => [r.template, r]));

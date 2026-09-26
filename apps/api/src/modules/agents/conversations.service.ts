@@ -159,7 +159,7 @@ export class ConversationsService {
       .set({ status: 'escalated', escalationReason: `${reason} : ${summary}`.slice(0, 1000), escalatedAt: new Date() })
       .where(and(eq(schema.conversations.id, conversationId), ne(schema.conversations.status, 'escalated')))
       .returning({ id: schema.conversations.id });
-    await this.outbox.queueForStaff('alert.agent_escalation', { conversationId, reason, summary: summary.slice(0, 300) }, 'push');
+    await this.outbox.queueForStaff('alert.agent_escalation', { conversationId, reason, summary: summary.slice(0, 300) });
     return Boolean(row);
   }
 

@@ -21,6 +21,8 @@ export const appConfigSchema = z.object({
     installments: z.boolean(),
     /** Vérification faciale des chauffeurs au début du quart (V1.1, drapeau `FEATURE_FACE_CHECK`). */
     faceCheck: z.boolean(),
+    /** Paiement par carte ouvert (Stripe branché) ; sinon, paiement au chauffeur seulement. */
+    cardPayments: z.boolean(),
   }),
   booking: z.object({
     /** Préavis minimal (D32), en secondes : 7 200 en V1. */

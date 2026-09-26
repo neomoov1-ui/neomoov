@@ -402,7 +402,7 @@ export class AgentToolsService {
       .values({ rideId: input.rideId ?? null, type: input.type, severity: input.severity, reportedByUserId: ctx.subjectUserId, reportedByKind: 'agent', description: redactSensitive(input.description).slice(0, 2_000) })
       .returning({ id: schema.incidents.id });
     await this.audit.recordSystem({ action: 'agent.incident_opened', entity: 'incidents', entityId: row!.id, after: { type: input.type, severity: input.severity, rideId: input.rideId ?? null } }, ctx.agent.code);
-    if (input.severity === 'high' || input.severity === 'critical') await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'incident', summary: input.description.slice(0, 300), incidentId: row!.id }, 'push');
+    if (input.severity === 'high' || input.severity === 'critical') await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'incident', summary: input.description.slice(0, 300), incidentId: row!.id });
     return done({ incidentId: row!.id }, 'Incident consigné pour l\'équipe');
   }
 
@@ -419,7 +419,7 @@ export class AgentToolsService {
       if (rideId) await this.safety.holdForIncident(incident!.id).catch((error: unknown) => this.logger.error({ err: error, incidentId: incident!.id }, 'Blocage préventif impossible'));
     }
     if (ctx.conversationId) await this.conversations.escalate(ctx.conversationId, input.reason, summary);
-    else await this.outbox.queueForStaff('alert.agent_escalation', { reason: input.reason, summary: summary.slice(0, 300) }, 'push');
+    else await this.outbox.queueForStaff('alert.agent_escalation', { reason: input.reason, summary: summary.slice(0, 300) });
     return done({ escalated: true, reason: input.reason }, 'Conversation transmise à l\'équipe');
   }
 

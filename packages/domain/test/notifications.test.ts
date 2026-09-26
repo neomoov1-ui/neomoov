@@ -14,7 +14,7 @@ describe('matrice des notifications (5.14)', () => {
     expect(notificationRule('statement.issued')).toMatchObject({ audience: 'driver', channels: ['push', 'email'] });
     expect(notificationRule('document.expiring')).toMatchObject({ channels: ['push', 'email', 'sms'] });
     expect(notificationRule('pack.low')).toMatchObject({ channels: ['push'] });
-    expect(notificationRule('alert.sos')).toMatchObject({ audience: 'staff', channels: ['push', 'sms'], critical: true });
+    expect(notificationRule('alert.sos')).toMatchObject({ audience: 'staff', channels: ['sms', 'email'], critical: true });
     expect(notificationRule('ride.passenger_tracking')).toMatchObject({ audience: 'passenger', channels: ['sms'] });
     expect(notificationRule('inconnu')).toBeNull();
   });
