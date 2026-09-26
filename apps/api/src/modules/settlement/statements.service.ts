@@ -367,7 +367,7 @@ export class StatementsService {
       id: row.id, driverId: row.driverId, driverPublicNumber: driver?.publicNumber ?? '', driverName: driver?.name ?? null, periodStart: row.periodStart, periodEnd: row.periodEnd,
       status: row.status, creditsCents: row.creditsCents, debitsCents: row.debitsCents, netCents: row.netCents, issuedAt: row.issuedAt?.toISOString() ?? null,
       settledAt: row.settledAt?.toISOString() ?? null, attempts: row.attempts, failureCode: row.failureCode ?? null, transferRef: row.stripeTransferId ?? null,
-      chargeRef: row.stripeChargeId ?? null, pdfAvailable: Boolean(row.pdfKey), lines: lines.map(lineView),
+      chargeRef: row.stripeChargeId ?? null, offlineSettlement: row.offlineSettlement ?? null, pdfAvailable: Boolean(row.pdfKey), lines: lines.map(lineView),
     };
   }
 

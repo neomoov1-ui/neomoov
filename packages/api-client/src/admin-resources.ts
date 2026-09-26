@@ -10,7 +10,7 @@ import type {
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
-import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration } from '@neomoov/domain';
+import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration, StatementSettleOffline } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
 import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeView, PrivacyBreachInput, PrivacyBreachView, StaffCreate } from '@neomoov/domain';
@@ -139,6 +139,7 @@ export function adminResource(t: Transport) {
     statement: (statementId: string) => t.get<AdminStatementDetail>(`/admin/statements/${id(statementId)}`),
     issueStatement: (statementId: string) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/issue`),
     payStatement: (statementId: string) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/pay`),
+    settleStatementOffline: (statementId: string, body: StatementSettleOffline) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/settle-offline`, body),
     adjustStatement: (statementId: string, body: StatementAdjust) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/adjust`, body),
     statementPdfPath: (statementId: string) => `/admin/statements/${id(statementId)}/pdf`,
     balances: () => t.get<AdminBalance[]>('/admin/balances'),

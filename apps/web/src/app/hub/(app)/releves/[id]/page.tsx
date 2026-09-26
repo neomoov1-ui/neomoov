@@ -1,6 +1,6 @@
 'use client';
 
-import type { StatementLineView } from '@neomoov/domain';
+import { OFFLINE_SETTLEMENT_METHODS, type OfflineSettlementMethod, type StatementLineView, type StatementSettleOffline } from '@neomoov/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -27,6 +27,7 @@ export default function StatementDetailPage() {
   const queryClient = useQueryClient();
   const finance = useHubUser().roles.some((r) => FINANCE_ROLES.includes(r));
   const [adjusting, setAdjusting] = useState(false);
+  const [settlingOffline, setSettlingOffline] = useState(false);
   const router = useRouter();
   // Correction d'un relevé émis : brouillon de la semaine en cours pour ce chauffeur (créé vide s'il le faut), puis ajustement.
   const correction = useMutation({
@@ -46,6 +47,11 @@ export default function StatementDetailPage() {
   const adjust = useMutation({
     mutationFn: (body: { direction: 'credit' | 'debit'; amountCents: number; reason: string }) => hubApi.admin.adjustStatement(id, body),
     onSuccess: () => { setAdjusting(false); refresh(); },
+  });
+
+  const offline = useMutation({
+    mutationFn: (body: StatementSettleOffline) => hubApi.admin.settleStatementOffline(id, body),
+    onSuccess: () => { setSettlingOffline(false); refresh(); },
   });
 
   if (detail.isPending) return <Loading />;
@@ -71,6 +77,7 @@ export default function StatementDetailPage() {
       <div className="flex flex-wrap items-center gap-2">
         {finance && s.status === 'draft' ? <Action busy={action.isPending} onClick={() => action.mutate(() => hubApi.admin.issueStatement(id))}>{t('hub.statements.issue')}</Action> : null}
         {finance && (s.status === 'issued' || s.status === 'failed') ? <Action busy={action.isPending} onClick={() => action.mutate(() => hubApi.admin.payStatement(id))}>{t('hub.statements.pay')}</Action> : null}
+        {finance && (s.status === 'issued' || s.status === 'failed') ? <Action tone="secondary" onClick={() => setSettlingOffline(true)}>{t('hub.statements.settleOffline')}</Action> : null}
         {finance && s.status === 'draft' ? <Action tone="secondary" onClick={() => setAdjusting(true)}>{t('hub.statements.adjust')}</Action> : null}
         {finance && s.status !== 'draft' ? <Action tone="secondary" busy={correction.isPending} onClick={() => correction.mutate(s.driverId)}>{t('hub.statements.prepareCorrection')}</Action> : null}
         {s.pdfAvailable ? (
@@ -94,12 +101,44 @@ export default function StatementDetailPage() {
             {s.failureCode ? <><dt>{t('hub.statements.failure')}</dt><dd className="text-right"><code>{s.failureCode}</code></dd></> : null}
             {s.transferRef ? <><dt>{t('hub.statements.transfer')}</dt><dd className="text-right"><code>{s.transferRef}</code></dd></> : null}
             {s.chargeRef ? <><dt>{t('hub.statements.charge')}</dt><dd className="text-right"><code>{s.chargeRef}</code></dd></> : null}
+            {s.offlineSettlement ? <><dt>{t('hub.statements.offlineSettled')}</dt><dd className="text-right">{t(`hub.statements.offlineMethod.${s.offlineSettlement.method}`)} · <code>{s.offlineSettlement.reference}</code></dd></> : null}
+            {s.offlineSettlement?.note ? <><dt>{t('hub.statements.offlineNote')}</dt><dd className="text-right">{s.offlineSettlement.note}</dd></> : null}
           </dl>
         </Card>
       </div>
 
+      <OfflineDialog open={settlingOffline} netCents={s.netCents} busy={offline.isPending} error={offline.isError ? errorText(offline.error) : null} onClose={() => setSettlingOffline(false)} onSubmit={(body) => offline.mutate(body)} />
       <AdjustDialog open={adjusting} busy={adjust.isPending} error={adjust.isError ? errorText(adjust.error) : null} onClose={() => setAdjusting(false)} onSubmit={(body) => adjust.mutate(body)} />
     </div>
+  );
+}
+
+function OfflineDialog({ open, netCents, busy, error, onClose, onSubmit }: { open: boolean; netCents: number; busy: boolean; error: string | null; onClose: () => void; onSubmit: (body: StatementSettleOffline) => void }) {
+  const { t } = useTranslation();
+  const lang = useLang();
+  const [method, setMethod] = useState<OfflineSettlementMethod>('interac');
+  const [reference, setReference] = useState('');
+  const [note, setNote] = useState('');
+  return (
+    <Dialog open={open} title={t('hub.statements.settleOffline')} onClose={onClose}>
+      <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); onSubmit({ method, reference: reference.trim(), ...(note.trim() ? { note: note.trim() } : {}) }); }}>
+        <Notice tone="info">{t(netCents < 0 ? 'hub.statements.offlineHintOwed' : 'hub.statements.offlineHintPayout', { amount: formatMoney(Math.abs(netCents), lang) })}</Notice>
+        <Field label={t('hub.statements.offlineMethodLabel')}>
+          {(p) => (
+            <Select {...p} value={method} onChange={(e) => setMethod(e.target.value as OfflineSettlementMethod)}>
+              {OFFLINE_SETTLEMENT_METHODS.map((m) => <option key={m} value={m}>{t(`hub.statements.offlineMethod.${m}`)}</option>)}
+            </Select>
+          )}
+        </Field>
+        <Field label={t('hub.statements.offlineReference')}>{(p) => <Input {...p} required minLength={2} maxLength={120} value={reference} onChange={(e) => setReference(e.target.value)} />}</Field>
+        <Field label={t('hub.statements.offlineNote')}>{(p) => <Input {...p} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />}</Field>
+        {error ? <Notice tone="danger">{error}</Notice> : null}
+        <div className="flex justify-end gap-2">
+          <Action tone="secondary" onClick={onClose}>{t('hub.common.cancel')}</Action>
+          <Action type="submit" busy={busy} disabled={reference.trim().length < 2}>{t('hub.common.confirm')}</Action>
+        </div>
+      </form>
+    </Dialog>
   );
 }
 

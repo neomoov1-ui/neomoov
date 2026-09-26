@@ -6,7 +6,7 @@
  * automatique dès que le solde est régularisé. `driver_balances` reflète les relevés non réglés.
  */
 import { schema } from '@neomoov/db';
-import { evaluateSuspension, type AdminBalance, type AdminStatementDetail } from '@neomoov/domain';
+import { evaluateSuspension, type AdminBalance, type AdminStatementDetail, type StatementSettleOffline } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, isNotNull, lt, ne, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -96,6 +96,35 @@ export class SettlementPayoutsService {
       // Versement réussi : le chauffeur est prévenu une seule fois (état changé par ce règlement).
       await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.paid', data: { statementId: id, netCents: row.netCents } });
     }
+    await this.refreshBalance(row.driverId, now);
+    return this.statements.detail(id);
+  }
+
+  /**
+   * Règlement constaté hors plateforme par les finances (revue finale, E5) : un relevé négatif payé par Interac,
+   * virement ou espèces, ou un net positif versé à la main, sort de la boucle des essais et de la suspension. Le relevé
+   * passe à `charged` (le chauffeur a payé) ou `paid` (Neomoov a versé), avec le moyen, la référence et l'auteur ;
+   * rejoué avec la même référence, il ne change rien ; le solde est recalculé (réactivation automatique).
+   */
+  async settleOffline(id: string, actor: { userId: string }, input: StatementSettleOffline, now = new Date()): Promise<AdminStatementDetail> {
+    const [row] = await this.db.select().from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, id)).limit(1);
+    if (!row) throw AppError.notFound('STATEMENT_NOT_FOUND', 'Relevé introuvable');
+    if (row.status === 'draft') throw AppError.conflict('STATEMENT_NOT_ISSUED', 'Émettez le relevé avant de le régler');
+    if (row.status === 'paid' || row.status === 'charged') {
+      if (row.offlineSettlement?.reference === input.reference) return this.statements.detail(id);
+      throw AppError.conflict('STATEMENT_ALREADY_SETTLED', 'Ce relevé est déjà réglé', { status: row.status });
+    }
+    const offlineSettlement = { method: input.method, reference: input.reference, note: input.note ?? null, byUserId: actor.userId };
+    const status = row.netCents < 0 ? 'charged' : 'paid';
+    const changed = await this.db
+      .update(schema.weeklyStatements)
+      .set({ status, settledAt: now, failureCode: null, offlineSettlement })
+      .where(and(eq(schema.weeklyStatements.id, id), inArray(schema.weeklyStatements.status, ['issued', 'failed'])))
+      .returning({ id: schema.weeklyStatements.id });
+    if (!changed.length) return this.statements.detail(id);
+    this.audit.record({ action: 'statement.settled_offline', entity: 'weekly_statements', entityId: id, before: { status: row.status, failureCode: row.failureCode }, after: { status, netCents: row.netCents, method: input.method, reference: input.reference, note: input.note ?? null } });
+    const [driver] = await this.db.select({ userId: schema.drivers.userId }).from(schema.drivers).where(eq(schema.drivers.id, row.driverId)).limit(1);
+    if (driver && row.netCents > 0) await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.paid', data: { statementId: id, netCents: row.netCents } });
     await this.refreshBalance(row.driverId, now);
     return this.statements.detail(id);
   }

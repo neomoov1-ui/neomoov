@@ -65,6 +65,20 @@ export const statementAdjustSchema = z.object({
 });
 export type StatementAdjust = z.infer<typeof statementAdjustSchema>;
 
+/** Moyens d'un règlement constaté hors plateforme (relevé négatif payé par le chauffeur, ou versé à la main). */
+export const OFFLINE_SETTLEMENT_METHODS = ['interac', 'bank_transfer', 'cash', 'cheque', 'other'] as const;
+export type OfflineSettlementMethod = (typeof OFFLINE_SETTLEMENT_METHODS)[number];
+
+export const statementSettleOfflineSchema = z.object({
+  method: z.enum(OFFLINE_SETTLEMENT_METHODS),
+  /** Référence du paiement (numéro Interac, virement, reçu), reprise au journal d'audit et au relevé. */
+  reference: z.string().trim().min(2).max(120),
+  note: z.string().trim().max(500).optional(),
+});
+export type StatementSettleOffline = z.infer<typeof statementSettleOfflineSchema>;
+
+export const offlineSettlementViewSchema = z.object({ method: z.enum(OFFLINE_SETTLEMENT_METHODS), reference: z.string(), note: z.string().nullable(), byUserId: uuid });
+
 export const adminStatementDetailSchema = z.object({
   id: uuid,
   driverId: uuid,
@@ -82,6 +96,8 @@ export const adminStatementDetailSchema = z.object({
   failureCode: z.string().nullable(),
   transferRef: z.string().nullable(),
   chargeRef: z.string().nullable(),
+  /** Règlement constaté hors plateforme par les finances, sinon `null`. */
+  offlineSettlement: offlineSettlementViewSchema.nullable(),
   pdfAvailable: z.boolean(),
   lines: z.array(statementLineViewSchema),
 });

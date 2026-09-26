@@ -156,6 +156,8 @@ export const weeklyStatements = pgTable('weekly_statements', {
   attempts: integer('attempts').notNull().default(0),
   issuedAt: tz('issued_at'),
   settledAt: tz('settled_at'),
+  /** Règlement constaté hors plateforme par les finances (Interac, virement, espèces) : moyen, référence, auteur. */
+  offlineSettlement: jsonb('offline_settlement').$type<{ method: 'interac' | 'bank_transfer' | 'cash' | 'cheque' | 'other'; reference: string; note: string | null; byUserId: string }>(),
   pdfKey: varchar('pdf_key', { length: 300 }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

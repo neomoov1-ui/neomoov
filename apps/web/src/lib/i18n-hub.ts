@@ -78,6 +78,10 @@ const fr = {
     refusal: { too_few_points: 'Placez au moins 3 sommets.', not_closed: 'Le tracé n\'est pas fermé.', out_of_range: 'Un sommet est hors des coordonnées valides.', duplicate_points: 'Deux sommets sont identiques.', self_intersecting: 'Le tracé se croise : déplacez ou retirez un sommet.' } },
   offers: { packs: 'Packs de courses', promotions: 'Promotions', code: 'Code', name: 'Nom', type: 'Type', value: 'Valeur', active: 'Actif', spent: 'Dépensé', budget: 'Budget', validity: 'Validité', price: 'Prix', rides: 'Courses incluses' },
   statements: {
+    settleOffline: 'Réglé hors plateforme', offlineSettled: 'Réglé hors plateforme', offlineNote: 'Note', offlineReference: 'Référence du paiement', offlineMethodLabel: 'Moyen',
+    offlineMethod: { interac: 'Virement Interac', bank_transfer: 'Virement bancaire', cash: 'Espèces', cheque: 'Chèque', other: 'Autre' },
+    offlineHintOwed: 'Le chauffeur a payé {{amount}} hors plateforme : le relevé est marqué prélevé, le solde recalculé et le chauffeur réactivé s\'il était suspendu pour ce solde.',
+    offlineHintPayout: 'Neomoov a versé {{amount}} hors plateforme : le relevé est marqué versé et le chauffeur prévenu.',
     prepareCorrection: 'Préparer une correction', correctionHint: 'Un relevé émis ne change plus : la correction se porte sur le brouillon de la semaine en cours (créé même sans course), à ajuster avec un motif qui cite ce relevé.',
     title: 'Relevés des chauffeurs', period: 'Période', driver: 'Chauffeur', status: 'État', credits: 'Crédits', debits: 'Débits', net: 'Net', issued: 'Émis le',
     generation: 'Relevés générés, émis et réglés automatiquement le vendredi à 6 h pour la semaine précédente. Vous pouvez aussi générer une semaine, voir l\'aperçu et émettre à la main.',
@@ -330,6 +334,10 @@ const en: typeof fr = {
     refusal: { too_few_points: 'Place at least 3 vertices.', not_closed: 'The shape is not closed.', out_of_range: 'A vertex is outside valid coordinates.', duplicate_points: 'Two vertices are identical.', self_intersecting: 'The shape crosses itself: move or remove a vertex.' } },
   offers: { packs: 'Ride packs', promotions: 'Promotions', code: 'Code', name: 'Name', type: 'Type', value: 'Value', active: 'Active', spent: 'Spent', budget: 'Budget', validity: 'Validity', price: 'Price', rides: 'Rides included' },
   statements: {
+    settleOffline: 'Settled off-platform', offlineSettled: 'Settled off-platform', offlineNote: 'Note', offlineReference: 'Payment reference', offlineMethodLabel: 'Method',
+    offlineMethod: { interac: 'Interac e-Transfer', bank_transfer: 'Bank transfer', cash: 'Cash', cheque: 'Cheque', other: 'Other' },
+    offlineHintOwed: 'The driver paid {{amount}} off-platform: the statement is marked charged, the balance recomputed and the driver reactivated if suspended for this balance.',
+    offlineHintPayout: 'Neomoov paid {{amount}} off-platform: the statement is marked paid and the driver notified.',
     prepareCorrection: 'Prepare a correction', correctionHint: 'An issued statement no longer changes: the correction goes on the current week draft (created even without rides), adjusted with a reason citing this statement.',
     title: 'Driver statements', period: 'Period', driver: 'Driver', status: 'Status', credits: 'Credits', debits: 'Debits', net: 'Net', issued: 'Issued on',
     generation: 'Statements are generated, issued and settled automatically on Friday at 6 a.m. for the previous week. You can also generate a week, preview it and issue by hand.',

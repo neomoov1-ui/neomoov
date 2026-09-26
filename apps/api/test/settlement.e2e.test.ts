@@ -254,6 +254,22 @@ describe('règlement hebdomadaire (intégration)', () => {
     const late = new Date('2026-07-11T12:00:00Z');
     await payouts().refreshBalance(small.driverId, late);
     expect((await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, small.driverId)))[0]!.suspendedForBalanceAt?.toISOString()).toBe(late.toISOString());
+
+    // Réglé hors plateforme (Interac) : relevé prélevé avec sa référence, solde régularisé, réactivation ; rejouable.
+    const offline = { method: 'interac', reference: `INT-${small.driverId.slice(0, 8)}`, note: 'Virement reçu le 12 juillet' };
+    const readonly = await createStaffAndLogin(app, ['readonly']);
+    expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(readonly.tokens)).send(offline)).status).toBe(403);
+    expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(staff.tokens)).send({ method: 'interac', reference: '' })).status).toBe(400);
+    const settledOffline = await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(staff.tokens)).send(offline).expect(200);
+    expect(settledOffline.body).toMatchObject({ status: 'charged', failureCode: null, offlineSettlement: { method: 'interac', reference: offline.reference, note: offline.note, byUserId: staff.userId } });
+    expect(settledOffline.body.settledAt).not.toBeNull();
+    expect((await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, small.driverId)))[0]).toMatchObject({ balanceCents: 0, unpaidSince: null, suspendedForBalanceAt: null });
+    expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(staff.tokens)).send(offline).expect(200)).body.status).toBe('charged');
+    const other = await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(staff.tokens)).send({ ...offline, reference: 'AUTRE-REF' });
+    expect(other.status).toBe(409);
+    expect(other.body.code).toBe('STATEMENT_ALREADY_SETTLED');
+    // Un relevé déjà réglé n'est plus jamais prélevé par la reprise du lundi.
+    expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/pay`).set(bearer(staff.tokens)).expect(200)).body).toMatchObject({ status: 'charged', attempts: 1 });
   });
 
   it('passe du vendredi 6 h : relevés de la semaine précédente générés, émis et réglés ; rien la veille ni deux fois', async ({ skip }) => {
