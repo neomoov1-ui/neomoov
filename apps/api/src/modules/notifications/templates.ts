@@ -248,6 +248,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Sanction terminée', body: () => 'Votre sanction est terminée : vous recevez de nouveau toutes les courses.' },
     en: { title: 'Sanction ended', body: () => 'Your sanction has ended: you receive all rides again.' },
   },
+  'alert.benchmark_exceeded': {
+    fr: { title: 'Veille prix : devis au-dessus des concurrents', body: (d) => `${str(d['count'])} devis des dernières 24 heures dépassaient la référence Uber ou Lyft (${Array.isArray(d['categories']) ? (d['categories'] as unknown[]).map(str).join(', ') : ''}). Remise d'alignement appliquée sur les frais de service quand la marge le permettait. Voir My Hub.` },
+    en: { title: 'Price watch: quotes above competitors', body: (d) => `${str(d['count'])} quotes in the last 24 hours exceeded the Uber or Lyft reference (${Array.isArray(d['categories']) ? (d['categories'] as unknown[]).map(str).join(', ') : ''}). Alignment discount applied on service fees when the margin allowed. See My Hub.` },
+  },
   'alert.stuck_ride': {
     fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
     en: { title: 'Alert: stuck ride', body: (d) => `Ride${ride(d)} has been "${str(d['state'])}" for ${str(d['minutes'])} minutes. Check it in My Hub.` },

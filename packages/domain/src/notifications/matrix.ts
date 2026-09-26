@@ -91,6 +91,7 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('alert.settlement_failed', 'staff', ['email']),
   rule('alert.agent_escalation', 'staff', ['email']),
   rule('alert.agent_budget', 'staff', ['email']),
+  rule('alert.benchmark_exceeded', 'staff', ['email']),
 ];
 
 const BY_TEMPLATE = new Map(NOTIFICATION_MATRIX.map((r) => [r.template, r]));

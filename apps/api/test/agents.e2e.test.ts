@@ -550,4 +550,32 @@ describe('agents IA : exécuteur, outils, file d\'approbation, agents V1 (intég
     const settings = app.get(SettingsService);
     expect(await settings.number('agents.report_hour', 0)).toBe(7);
   });
+
+  it('veille prix (D33) : alerte quotidienne par courriel à la direction des devis au-dessus des concurrents, une seule fois par jour', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Journée lointaine et aléatoire : le journal d'audit, en ajout seul, garde les marqueurs des passages précédents.
+    const day = new Date(Date.UTC(2050 + Math.floor(Math.random() * 40), Math.floor(Math.random() * 12), 1 + Math.floor(Math.random() * 28)));
+    const date = day.toISOString().slice(0, 10);
+    const noon = new Date(`${date}T16:00:00Z`);
+    const hoursBefore = (h: number) => new Date(noon.getTime() - h * 3_600_000);
+    await db(app).insert(schema.auditLog).values([
+      { action: 'pricing.benchmark_exceeded', entity: 'quotes', after: { category: 'standard' }, occurredAt: hoursBefore(2) },
+      { action: 'pricing.benchmark_exceeded', entity: 'quotes', after: { category: 'premium' }, occurredAt: hoursBefore(5) },
+      { action: 'pricing.benchmark_exceeded', entity: 'quotes', after: { category: 'standard' }, occurredAt: hoursBefore(30) },
+    ]);
+    const jobs = app.get(AgentJobsService);
+    // Avant l'heure des rapports (7 h à Montréal), rien.
+    expect(await jobs.benchmarkTick(new Date(`${date}T10:00:00Z`))).toBeNull();
+    expect(await jobs.benchmarkTick(noon)).toBe(2);
+    expect(await jobs.benchmarkTick(hoursBefore(-3))).toBeNull();
+    const alerts = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.template, 'alert.benchmark_exceeded'), sql`${schema.notifications.data}->>'date' = ${date}`));
+    try {
+      expect(alerts.length).toBeGreaterThan(0);
+      expect(new Set(alerts.map((a) => a.channel))).toEqual(new Set(['email']));
+      expect(alerts[0]!.data).toMatchObject({ count: 2, categories: expect.arrayContaining(['standard', 'premium']) });
+      expect(new Set(alerts.map((a) => a.recipientUserId)).size).toBe(alerts.length);
+    } finally {
+      if (alerts.length) await db(app).delete(schema.notifications).where(inArray(schema.notifications.id, alerts.map((a) => a.id)));
+    }
+  });
 });
