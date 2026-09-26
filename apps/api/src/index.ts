@@ -35,6 +35,8 @@ export { SettlementJobsService } from './modules/settlement/settlement-jobs.serv
 export { NotificationsModule } from './modules/notifications/notifications.module.js';
 export { ComplianceModule } from './modules/compliance/compliance.module.js';
 export { ComplianceJobsService } from './modules/compliance/compliance-jobs.service.js';
+export { RetentionModule } from './modules/retention/retention.module.js';
+export { RetentionJobsService } from './modules/retention/retention-jobs.service.js';
 export { NotificationJobsService } from './modules/notifications/notification-jobs.service.js';
 export { RidesService } from './modules/rides/rides.service.js';
 export { PresenceService } from './modules/rides/presence.service.js';

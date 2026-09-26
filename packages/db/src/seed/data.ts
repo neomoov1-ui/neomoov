@@ -176,6 +176,10 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'sanctions.driver_cancellation_threshold', value: 3, description: 'Annulations chauffeur après en_route par semaine avant avertissement' },
   { key: 'sanctions.rating_threshold', value: 4.6, description: 'Note moyenne sous laquelle un entretien est déclenché' },
   { key: 'retention.driver_locations_days', value: 90, description: 'Conservation des positions en clair' },
+  { key: 'retention.rides_anonymize_months', value: 12, description: 'Courses anonymisées après 12 mois (tiers, adresses, trajet, messages)' },
+  { key: 'retention.driver_documents_months', value: 12, description: 'Documents d\'un chauffeur supprimés 12 mois après la fin de la relation' },
+  { key: 'retention.audit_log_years', value: 7, description: 'Conservation du journal d\'audit' },
+  { key: 'retention.invoices_years', value: 7, description: 'Conservation des factures et notes de crédit' },
   { key: 'notifications.quiet_hours', value: { from: '22:00', to: '07:00' }, description: 'Heures silencieuses hors course en cours' },
   { key: 'agents.auto_after_weeks', value: 4, description: 'Passage en automatique après quatre semaines sans erreur, sur décision du fondateur' },
   // Identité et sécurité (section 8, prompt 03) : lus par l'API à chaque calcul, jamais codés en dur.

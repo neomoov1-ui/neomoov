@@ -27,6 +27,7 @@ import { GuaranteeModule } from './modules/guarantee/guarantee.module.js';
 import { InvoicingModule } from './modules/invoicing/invoicing.module.js';
 import { LedgersModule } from './modules/ledgers/ledgers.module.js';
 import { ComplianceModule } from './modules/compliance/compliance.module.js';
+import { RetentionModule } from './modules/retention/retention.module.js';
 import { MessagingModule } from './modules/messaging/messaging.module.js';
 import { VoiceModule } from './modules/voice/voice.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
@@ -38,7 +39,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, ComplianceModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, ComplianceModule, RetentionModule],
     };
   }
 }
