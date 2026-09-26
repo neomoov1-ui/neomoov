@@ -105,6 +105,19 @@ describe('personnel de My Hub : mot de passe, second facteur obligatoire, verrou
     expect(again.status).toBe(423);
   });
 
+  it('des codes faux envoyés en parallèle comptent chacun et verrouillent le compte', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : le compteur d'échecs était recalculé depuis une ligne lue plus tôt ; huit essais simultanés n'en
+    // comptaient qu'un et le verrouillage ne se déclenchait pas (second facteur devinable par lots).
+    const staff = await createStaffAndLogin(app, ['operator']);
+    const login = await request(server()).post('/v1/auth/staff/login').send({ email: staff.email, password: staff.password }).expect(200);
+    const wrong = totpCode(staff.secret) === '000000' ? '111111' : '000000';
+    await Promise.all(Array.from({ length: 8 }, () => request(server()).post('/v1/auth/staff/mfa/verify').send({ mfaToken: login.body.mfaToken, code: wrong })));
+    const locked = await request(server()).post('/v1/auth/staff/mfa/verify').send({ mfaToken: login.body.mfaToken, code: totpCode(staff.secret) });
+    expect(locked.status).toBe(423);
+    expect(locked.body.code).toBe('ACCOUNT_LOCKED');
+  });
+
   it('rôles : readonly lit, n\'écrit pas ; admin administre le personnel', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const readonly = await createStaffAndLogin(app, ['readonly']);

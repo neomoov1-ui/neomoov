@@ -29,6 +29,8 @@ const accepted = (outcome: SevOutcome): boolean => outcome.status === 'acknowled
 export interface InvoicingSweepReport {
   transmitted: number;
   issued: number;
+  /** Notes de crédit émises pour des remboursements dont la tâche avait été perdue. */
+  credited: number;
   rendered: number;
 }
 
@@ -135,7 +137,7 @@ export class InvoiceJobsService implements OnModuleInit {
   }
 
   /**
-   * Passe périodique : transmissions à reprendre (et PDF refaits), factures manquantes, PDF manquants. Chaque élément est
+   * Passe périodique : transmissions à reprendre (et PDF refaits), factures manquantes, notes de crédit manquantes, PDF manquants. Chaque élément est
    * traité à part : une facture en échec est journalisée et n'arrête pas les autres.
    */
   async sweep(now = new Date()): Promise<InvoicingSweepReport> {
@@ -149,10 +151,18 @@ export class InvoiceJobsService implements OnModuleInit {
         await this.afterIssue(result);
       });
     }
+    let credited = 0;
+    for (const refundId of await this.invoicing.refundsMissingCreditNote()) {
+      await this.safely('issue', refundId, async () => {
+        const result = await this.invoicing.issueCreditNote(refundId);
+        if (result?.created) credited += 1;
+        await this.afterIssue(result);
+      });
+    }
     const missing = await this.invoicing.invoicesMissingPdf();
     for (const id of missing) await this.safely('render', id, () => this.invoicing.renderPdf(id));
-    if (issued || missing.length) this.logger.info({ issued, rendered: missing.length, transmitted: transmitted.length }, 'Reprise de la facturation');
-    return { transmitted: transmitted.length, issued, rendered: missing.length };
+    if (issued || credited || missing.length) this.logger.info({ issued, credited, rendered: missing.length, transmitted: transmitted.length }, 'Reprise de la facturation');
+    return { transmitted: transmitted.length, issued, credited, rendered: missing.length };
   }
 
   private async safely(step: 'issue' | 'render', id: string, run: () => Promise<unknown>): Promise<void> {

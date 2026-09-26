@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { schema } from '@neomoov/db';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bearer, cleanupTestData, currentPolicyVersion, db, lastOtpCode, loginByOtp, requestOtp, resetIpLimits, startTestApp, testPhone } from './helpers.js';
@@ -84,6 +84,29 @@ describe('authentification par code SMS, Apple, Google, jetons (intégration)', 
     const invalidPhone = await request(server()).post('/v1/auth/otp/request').send({ phone: '5145550142' });
     expect(invalidPhone.status).toBe(400);
     expect(invalidPhone.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  it("des vérifications simultanées ne contournent ni les cinq tentatives ni l'usage unique du code", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : le compteur de tentatives était lu puis réécrit (attempts = n + 1), donc des essais en parallèle
+    // n'en comptaient qu'un ; et un bon code était consommé sans condition, donc rejouable en parallèle.
+    const phone = testPhone();
+    const code = await requestOtp(app, phone);
+    const wrong = code === '000000' ? '111111' : '000000';
+    const guesses = await Promise.all(Array.from({ length: 12 }, () => request(server()).post('/v1/auth/otp/verify').send({ phone, code: wrong, acceptTerms: true })));
+    expect(guesses.filter((r) => r.body.code === 'OTP_INVALID').length).toBeLessThanOrEqual(4);
+    const [row] = await db(app).select({ attempts: schema.otpCodes.attempts, consumedAt: schema.otpCodes.consumedAt }).from(schema.otpCodes).where(eq(schema.otpCodes.phone, phone)).orderBy(desc(schema.otpCodes.createdAt)).limit(1);
+    expect(row!.attempts).toBeGreaterThanOrEqual(5);
+    expect(row!.consumedAt).not.toBeNull();
+    const late = await request(server()).post('/v1/auth/otp/verify').send({ phone, code, acceptTerms: true, privacyPolicyVersion: await currentPolicyVersion(app) });
+    expect(late.body.code).toBe('OTP_EXPIRED');
+
+    const existing = testPhone();
+    await loginByOtp(app, existing);
+    const again = await requestOtp(app, existing);
+    const both = await Promise.all([1, 2].map(() => request(server()).post('/v1/auth/otp/verify').send({ phone: existing, code: again })));
+    expect(both.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(both.find((r) => r.status !== 200)?.body.code).toBe('OTP_EXPIRED');
   });
 
   it('fait tourner le jeton de rafraîchissement et révoque la famille si un jeton est réutilisé', async ({ skip }) => {

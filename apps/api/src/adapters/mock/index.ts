@@ -18,6 +18,19 @@ let counter = 0;
 const RUN = randomBytes(3).toString('hex');
 const nextId = (prefix: string) => `${prefix}_${RUN}${(++counter).toString(36).padStart(6, '0')}`;
 
+/**
+ * Webhooks simulés : la signature de test (`mock-signature`, jeton de vérification `mock-verify`) est publique. Elle
+ * n'est acceptée que hors production ; en production, un fournisseur simulé (réglage par défaut du serveur tant que les
+ * clés ne sont pas posées) refuse tout webhook, sinon n'importe qui forgerait un événement de paiement, un texto, un
+ * message WhatsApp ou un appel de l'agent vocal au nom d'un client (revue de sécurité 17.B).
+ */
+export interface MockWebhookOptions {
+  /** Faux en production. Vrai par défaut (tests, développement). */
+  acceptTestSignatures?: boolean;
+}
+
+const testSignatureAccepted = (options: MockWebhookOptions, signature: string | undefined) => options.acceptTestSignatures !== false && signature === 'mock-signature';
+
 export { haversineMeters };
 
 const MONTREAL: GeoPoint = { lat: 45.5019, lng: -73.5674 };
@@ -110,6 +123,7 @@ export class MockPaymentProvider implements PaymentProvider {
   nextCard: { brand: string; last4: string; declined?: boolean } = { brand: 'visa', last4: '4242' };
   /** Panne simulée de Stripe (mode dégradé) : tout appel échoue comme l'adaptateur réel, en 502 `PAYMENT_PROVIDER_ERROR`. */
   unavailable = false;
+  constructor(private readonly webhookOptions: MockWebhookOptions = {}) {}
 
   private available(): void {
     if (this.unavailable) throw new AppError('PAYMENT_PROVIDER_ERROR', 'Stripe indisponible (panne simulée)', 502);
@@ -202,7 +216,7 @@ export class MockPaymentProvider implements PaymentProvider {
   }
   async verifyWebhook(rawBody: string | Buffer, signature: string): Promise<WebhookEvent> {
     this.calls.push({ method: 'verifyWebhook', args: [signature] });
-    if (signature !== 'mock-signature') throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);
+    if (!testSignatureAccepted(this.webhookOptions, signature)) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);
     return JSON.parse(rawBody.toString()) as WebhookEvent;
   }
   /** Comptes Connect simulés : l'inscription est considérée terminée dès que le lien a été demandé (aucun formulaire Stripe). */
@@ -241,6 +255,7 @@ export class MockPaymentProvider implements PaymentProvider {
 export class MockSmsProvider implements SmsProvider {
   readonly name = 'mock';
   readonly sent: Array<{ to: string; body: string; messageId: string }> = [];
+  constructor(private readonly webhookOptions: MockWebhookOptions = {}) {}
   async send(input: { to: string; body: string }) {
     if (input.to.endsWith('0000')) throw new Error('Numéro refusé (simulé)');
     const messageId = nextId('sms_mock');
@@ -248,7 +263,7 @@ export class MockSmsProvider implements SmsProvider {
     return { messageId };
   }
   verifyStatusWebhook(input: { signature: string }) {
-    return input.signature === 'mock-signature';
+    return testSignatureAccepted(this.webhookOptions, input.signature);
   }
   parseInbound(params: Record<string, string>) {
     const { From: from, To: to, Body: body, MessageSid: messageId } = params;
@@ -290,6 +305,7 @@ export class MockPushProvider implements PushProvider {
 export class MockWhatsAppProvider implements WhatsAppProvider {
   readonly name = 'mock';
   readonly sent: Array<{ to: string; text: string }> = [];
+  constructor(private readonly webhookOptions: MockWebhookOptions = {}) {}
   async sendText(input: { to: string; text: string }) {
     this.sent.push(input);
     return { messageId: nextId('wa_mock') };
@@ -299,10 +315,10 @@ export class MockWhatsAppProvider implements WhatsAppProvider {
     return { messageId: nextId('wa_mock') };
   }
   verifyWebhook(query: Record<string, string | undefined>) {
-    return query['hub.verify_token'] === 'mock-verify' ? (query['hub.challenge'] ?? null) : null;
+    return this.webhookOptions.acceptTestSignatures !== false && query['hub.verify_token'] === 'mock-verify' ? (query['hub.challenge'] ?? null) : null;
   }
   verifySignature(_rawBody: string | Buffer, header: string | undefined) {
-    return header === 'mock-signature';
+    return testSignatureAccepted(this.webhookOptions, header);
   }
   parseInbound(body: unknown) {
     const b = body as { messages?: Array<{ from: string; text: string; id: string }> };
@@ -313,13 +329,14 @@ export class MockWhatsAppProvider implements WhatsAppProvider {
 export class MockVoiceProvider implements VoiceProvider {
   readonly name = 'mock';
   readonly calls: Array<{ to: string; assistantId: string }> = [];
+  constructor(private readonly webhookOptions: MockWebhookOptions = {}) {}
   async startOutboundCall(input: { to: string; assistantId: string }) {
     this.calls.push(input);
     return { callId: nextId('call_mock') };
   }
   /** Même forme que Vapi : secret dans l'en-tête, message JSON sous `message`. */
   async verifyWebhook(rawBody: string | Buffer, signature: string) {
-    if (signature !== 'mock-signature') throw new Error('Signature de webhook invalide');
+    if (!testSignatureAccepted(this.webhookOptions, signature)) throw new Error('Signature de webhook invalide');
     const body = JSON.parse(rawBody.toString()) as { message?: { type?: string } };
     return { type: body.message?.type ?? 'unknown', payload: body.message ?? body };
   }

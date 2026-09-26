@@ -71,11 +71,18 @@ export class SettlementPayoutsService {
       }
     } else if (!driver.stripeDebitPaymentMethodId) outcome = { status: 'failed', failureCode: 'debit_method_missing' };
     else {
-      const charge = await this.provider.chargeOffSession({
-        amountCents: -row.netCents, customerRef: await this.payments.customerFor(driver.userId), paymentMethodRef: driver.stripeDebitPaymentMethodId,
-        idempotencyKey: `statement:${id}:charge:${attempts}`, description: `Relevé Neomoov ${row.periodStart} au ${row.periodEnd}`, metadata: { statement_id: id },
-      });
-      outcome = charge.status === 'captured' || charge.status === 'authorized' ? { status: 'charged', chargeRef: charge.intentId } : { status: 'failed', failureCode: charge.failureCode ?? charge.status };
+      // Une erreur du fournisseur (réseau, panne) donne un relevé en échec, repris le lundi : laissé « émis », il n'était
+      // plus jamais prélevé ni compté dans le solde du chauffeur (revue 17.B).
+      try {
+        const charge = await this.provider.chargeOffSession({
+          amountCents: -row.netCents, customerRef: await this.payments.customerFor(driver.userId), paymentMethodRef: driver.stripeDebitPaymentMethodId,
+          idempotencyKey: `statement:${id}:charge:${attempts}`, description: `Relevé Neomoov ${row.periodStart} au ${row.periodEnd}`, metadata: { statement_id: id },
+        });
+        outcome = charge.status === 'captured' || charge.status === 'authorized' ? { status: 'charged', chargeRef: charge.intentId } : { status: 'failed', failureCode: charge.failureCode ?? charge.status };
+      } catch (error) {
+        this.logger.error({ err: error, statementId: id }, 'Prélèvement du relevé en erreur');
+        outcome = { status: 'failed', failureCode: 'charge_failed' };
+      }
     }
     const settled = outcome.status !== 'failed';
     // Seul un relevé encore à régler change d'état : deux règlements simultanés n'écrivent qu'une fois.
