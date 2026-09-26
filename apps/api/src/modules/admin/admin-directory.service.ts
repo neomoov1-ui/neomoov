@@ -17,6 +17,7 @@ import { AuditService } from '../audit/audit.service.js';
 import type { UserActor } from '../auth/actor.js';
 import { DEFAULT_CITY, PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { ZonesService } from '../pricing/zones.service.js';
+import { SafetyHoldService } from '../rides/safety-hold.service.js';
 
 const like = (q: string) => `%${q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
 const pageArgs = (q: AdminListQuery) => ({ limit: q.pageSize, offset: (q.page - 1) * q.pageSize });
@@ -29,6 +30,7 @@ export class AdminDirectoryService {
     private readonly audit: AuditService,
     private readonly rules: PricingRulesService,
     private readonly zones: ZonesService,
+    private readonly safety: SafetyHoldService,
   ) {}
 
   private get db() {
@@ -83,22 +85,29 @@ export class AdminDirectoryService {
         .offset(offset),
       this.db.select({ n: count() }).from(schema.incidents).where(where),
     ]);
-    return { items: rows.map(({ incident, publicNumber }) => this.incidentView(incident, publicNumber)), total: total?.n ?? 0, page: query.page, pageSize: query.pageSize };
+    const holds = await this.safety.statesOf(rows.map((r) => r.incident.id));
+    return { items: rows.map(({ incident, publicNumber }) => this.incidentView(incident, publicNumber, holds.get(incident.id) ?? null)), total: total?.n ?? 0, page: query.page, pageSize: query.pageSize };
   }
 
-  private incidentView(i: typeof schema.incidents.$inferSelect, publicNumber: string | null): AdminIncident {
+  private incidentView(i: typeof schema.incidents.$inferSelect, publicNumber: string | null, safetyHold: AdminIncident['safetyHold']): AdminIncident {
     return {
       id: i.id, rideId: i.rideId, ridePublicNumber: publicNumber, type: i.type, severity: i.severity, status: i.status, reportedByKind: i.reportedByKind, description: i.description,
-      decision: i.decision, decidedAt: i.decidedAt?.toISOString() ?? null, privacyBreach: i.privacyBreach !== null, createdAt: i.createdAt.toISOString(),
+      decision: i.decision, decidedAt: i.decidedAt?.toISOString() ?? null, privacyBreach: i.privacyBreach !== null, safetyHold, createdAt: i.createdAt.toISOString(),
     };
   }
 
-  /** Décision humaine sur un incident (5.11) : instruction, décision motivée, clôture. */
-  async decideIncident(id: string, input: { status: 'investigating' | 'decided' | 'closed'; decision?: string | undefined }, actor: UserActor): Promise<AdminIncident> {
+  /**
+   * Décision humaine sur un incident (5.11) : instruction, décision motivée, clôture. Un chauffeur bloqué à titre préventif
+   * par cet incident ne reste jamais dans l'attente : décider ou clore exige de lever ou de maintenir le blocage.
+   */
+  async decideIncident(id: string, input: { status: 'investigating' | 'decided' | 'closed'; decision?: string | undefined; safetyHold?: 'lift' | 'keep' | undefined }, actor: UserActor): Promise<AdminIncident> {
     const [incident] = await this.db.select().from(schema.incidents).where(eq(schema.incidents.id, id)).limit(1);
     if (!incident) throw AppError.notFound('INCIDENT_NOT_FOUND', 'Incident introuvable');
     if (input.status !== 'investigating' && !input.decision && !incident.decision) throw new AppError('DECISION_REQUIRED', 'Une décision motivée est requise', 400);
     const decided = input.status !== 'investigating';
+    const hold = await this.safety.activeHold(id);
+    if (decided && hold && !input.safetyHold) throw new AppError('SAFETY_HOLD_DECISION_REQUIRED', 'Le chauffeur est bloqué à titre préventif : levez ou maintenez le blocage', 400);
+    if (input.safetyHold && hold) await this.safety.resolve(id, input.safetyHold, actor);
     const [row] = await this.db
       .update(schema.incidents)
       .set({ status: input.status, ...(input.decision ? { decision: input.decision } : {}), ...(decided ? { decidedByUserId: actor.userId, decidedAt: new Date() } : {}) })
@@ -106,7 +115,8 @@ export class AdminDirectoryService {
       .returning();
     this.audit.record({ action: `admin.incident_${input.status}`, entity: 'incidents', entityId: id, before: { status: incident.status }, after: { status: input.status, decision: input.decision ?? null } });
     const [ride] = row!.rideId ? await this.db.select({ publicNumber: schema.rides.publicNumber }).from(schema.rides).where(eq(schema.rides.id, row!.rideId)).limit(1) : [];
-    return this.incidentView(row!, ride?.publicNumber ?? null);
+    const holds = await this.safety.statesOf([id]);
+    return this.incidentView(row!, ride?.publicNumber ?? null, holds.get(id) ?? null);
   }
 
   async approvals(query: AdminListQuery): Promise<Page<AdminApproval>> {

@@ -88,6 +88,7 @@ const fr = {
   },
   invoices: { title: 'Factures', number: 'Numéro', ride: 'Course', supplier: 'Fournisseur', total: 'Total', payment: 'Paiement', sev: 'État SEV', issued: 'Émise le' },
   incidents: { title: 'Incidents et sécurité', type: 'Type', severity: 'Gravité', status: 'État', reportedBy: 'Signalé par', description: 'Description', decision: 'Décision', decide: 'Décider', privacyOnly: 'Registre des incidents de confidentialité', privacy: 'Confidentialité',
+    hold: { active: 'Chauffeur bloqué', lifted: 'Blocage levé', kept: 'Blocage maintenu', field: 'Chauffeur bloqué à titre préventif', hint: 'Décider ou clore exige de choisir : le chauffeur reste suspendu tant que le blocage est maintenu.', lift: 'Lever le blocage : le chauffeur peut reprendre', keep: 'Maintenir la suspension (décision humaine)' },
     guarantee: {
       action: 'Garantie modèle', title: 'Garantie modèle : décision', outcome: 'Décision', outcomes: { validated: 'Validée : remboursement intégral du client', rejected: 'Refusée : clôture motivée' },
       motive: 'Motif communiqué au client', driverAtFault: 'Faute du chauffeur : une sanction est proposée sur sa fiche (jamais appliquée automatiquement)', refundMode: 'Remboursement',
@@ -218,6 +219,7 @@ const en: typeof fr = {
   },
   invoices: { title: 'Invoices', number: 'Number', ride: 'Ride', supplier: 'Supplier', total: 'Total', payment: 'Payment', sev: 'SEV status', issued: 'Issued on' },
   incidents: { title: 'Incidents and safety', type: 'Type', severity: 'Severity', status: 'Status', reportedBy: 'Reported by', description: 'Description', decision: 'Decision', decide: 'Decide', privacyOnly: 'Privacy incident register', privacy: 'Privacy',
+    hold: { active: 'Driver on hold', lifted: 'Hold lifted', kept: 'Hold kept', field: 'Driver on precautionary hold', hint: 'Deciding or closing requires a choice: the driver stays suspended while the hold is kept.', lift: 'Lift the hold: the driver can resume', keep: 'Keep the suspension (human decision)' },
     guarantee: {
       action: 'Model guarantee', title: 'Model guarantee: decision', outcome: 'Decision', outcomes: { validated: 'Upheld: full refund to the customer', rejected: 'Rejected: closed with reasons' },
       motive: 'Reason given to the customer', driverAtFault: 'Driver at fault: a sanction is proposed on their record (never applied automatically)', refundMode: 'Refund',

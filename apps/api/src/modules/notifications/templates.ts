@@ -216,6 +216,14 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Vous êtes de nouveau en règle', body: (d) => `${str(d['label'])} validé : vous pouvez de nouveau recevoir des courses.` },
     en: { title: 'You are compliant again', body: (d) => `${str(d['label'])} approved: you can receive rides again.` },
   },
+  'safety.hold': {
+    fr: { title: 'Compte suspendu à titre préventif', body: (d) => `Un signalement de sécurité a été fait sur la course ${str(d['publicNumber'])}. Vous ne recevez plus de courses le temps que l'équipe l'examine ; elle vous contacte rapidement.` },
+    en: { title: 'Account suspended as a precaution', body: (d) => `A safety report was made on ride ${str(d['publicNumber'])}. You will not receive rides while the team reviews it; they will contact you shortly.` },
+  },
+  'safety.lifted': {
+    fr: { title: 'Suspension levée', body: () => 'Après examen du signalement, vous pouvez de nouveau recevoir des courses.' },
+    en: { title: 'Suspension lifted', body: () => 'After review of the report, you can receive rides again.' },
+  },
   'alert.stuck_ride': {
     fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
     en: { title: 'Alert: stuck ride', body: (d) => `Ride${ride(d)} has been "${str(d['state'])}" for ${str(d['minutes'])} minutes. Check it in My Hub.` },

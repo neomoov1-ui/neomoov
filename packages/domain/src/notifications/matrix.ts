@@ -68,6 +68,8 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('vehicle.inspection_due', 'driver', ['push', 'email', 'sms']),
   rule('compliance.suspended', 'driver', ['push', 'email', 'sms'], true),
   rule('compliance.reactivated', 'driver', ['push', 'email']),
+  rule('safety.hold', 'driver', ['push', 'email', 'sms'], true),
+  rule('safety.lifted', 'driver', ['push', 'email']),
   rule('pack.low', 'driver', ['push']),
   rule('pack.exhausted', 'driver', ['push']),
   rule('pack.renewed', 'driver', ['push']),

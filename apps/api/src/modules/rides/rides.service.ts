@@ -32,6 +32,7 @@ import { PromotionsService } from '../pricing/promotions.service.js';
 import { categoryAtLeast, currentVehicleJoin, driverEligible, loadEligibilityRules, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
+import { SafetyHoldService } from './safety-hold.service.js';
 import { dispatchRows, dispatchSummaryOf, driverSummaries, parseGeoPoint, selectRide, selectRides, timestampsOf, toRideView, type RideRow } from './ride-view.js';
 
 export type ActorKind = 'client' | 'driver' | 'operator' | 'system' | 'agent';
@@ -88,6 +89,7 @@ export class RidesService {
     private readonly presence: PresenceService,
     private readonly payments: PaymentsService,
     private readonly promotions: PromotionsService,
+    private readonly safety: SafetyHoldService,
   ) {}
 
   private get db() {
@@ -1018,6 +1020,8 @@ export class RidesService {
     this.events.emit('ride.sos', { rideId, incidentId: incident!.id, reportedByUserId: actor.userId, coordinates: input.coordinates ?? null });
     await this.outbox.queueForStaff('alert.sos', { rideId, incidentId: incident!.id, publicNumber: ride.publicNumber, reportedByKind: kind }, 'sms');
     this.audit.record({ action: 'ride.sos', entity: 'incidents', entityId: incident!.id, after: { rideId, reportedByKind: kind } });
+    // SOS du client : le chauffeur est bloqué aussitôt, en attente de décision humaine (5.11) ; jamais sur son propre SOS.
+    await this.safety.holdForIncident(incident!.id).catch((error: unknown) => this.logger.error({ err: error, incidentId: incident!.id }, 'Blocage préventif impossible'));
     this.logger.error({ rideId, incidentId: incident!.id, kind }, 'SOS déclenché');
     return { incidentId: incident!.id, status: 'alerted' };
   }

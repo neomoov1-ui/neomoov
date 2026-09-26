@@ -236,6 +236,8 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   }
   if (rides.length) {
     const rideIds = rides.map((r) => r.id);
+    // Blocages préventifs (étape 14) rattachés aux incidents des courses de test.
+    await database.execute(sql`DELETE FROM sanctions WHERE incident_id IN (SELECT id FROM incidents WHERE ride_id IN ${rideIds})`);
     await database.delete(schema.incidents).where(inArray(schema.incidents.rideId, rideIds));
     await database.delete(schema.packConsumptions).where(inArray(schema.packConsumptions.rideId, rideIds));
     await database.delete(schema.creditUses).where(inArray(schema.creditUses.rideId, rideIds));

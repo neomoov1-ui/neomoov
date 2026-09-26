@@ -20,11 +20,12 @@ export default function IncidentsPage() {
   const [deciding, setDeciding] = useState<AdminIncident | null>(null);
   const [status, setStatus] = useState<IncidentDecision['status']>('decided');
   const [decision, setDecision] = useState('');
+  const [hold, setHold] = useState<NonNullable<IncidentDecision['safetyHold']>>('lift');
   const [guaranteeFor, setGuaranteeFor] = useState<AdminIncident | null>(null);
   const [guaranteeResult, setGuaranteeResult] = useState<GuaranteeResult | null>(null);
   const list =usePagedList<AdminIncident>('incidents', (q) => hubApi.admin.incidents(q));
   const decide = useMutation({
-    mutationFn: () => hubApi.admin.decideIncident(deciding!.id, { status, ...(decision.trim() ? { decision: decision.trim() } : {}) }),
+    mutationFn: () => hubApi.admin.decideIncident(deciding!.id, { status, ...(decision.trim() ? { decision: decision.trim() } : {}), ...(deciding!.safetyHold === 'active' && status !== 'investigating' ? { safetyHold: hold } : {}) }),
     onSuccess: () => {
       setDeciding(null);
       void queryClient.invalidateQueries({ queryKey: ['hub', 'incidents'] });
@@ -34,14 +35,14 @@ export default function IncidentsPage() {
     { key: 'created', header: t('hub.common.from'), cell: (i) => formatDateTime(i.createdAt, lang) },
     { key: 'type', header: t('hub.incidents.type'), cell: (i) => <span>{t(`enum.incidentType.${i.type}`)}{i.privacyBreach ? <span className="ml-1"><Badge tone="danger">{t('hub.incidents.privacy')}</Badge></span> : null}</span> },
     { key: 'severity', header: t('hub.incidents.severity'), cell: (i) => <EnumBadge group="severity" value={i.severity} /> },
-    { key: 'status', header: t('hub.incidents.status'), cell: (i) => <EnumBadge group="incidentStatus" value={i.status} /> },
+    { key: 'status', header: t('hub.incidents.status'), cell: (i) => <span className="flex flex-wrap gap-1"><EnumBadge group="incidentStatus" value={i.status} />{i.safetyHold ? <Badge tone={i.safetyHold === 'lifted' ? 'neutral' : 'danger'}>{t(`hub.incidents.hold.${i.safetyHold}`)}</Badge> : null}</span> },
     { key: 'ride', header: t('hub.rides.number'), cell: (i) => (i.rideId ? <Link className={`text-brand-blue-dark underline ${focus}`} href={`/hub/courses/${i.rideId}`}>{i.ridePublicNumber ?? i.rideId.slice(0, 8)}</Link> : '') },
     { key: 'by', header: t('hub.incidents.reportedBy'), cell: (i) => i.reportedByKind },
     { key: 'description', header: t('hub.incidents.description'), cell: (i) => <span className="block max-w-80 whitespace-pre-wrap text-xs">{i.description}{i.decision ? <span className="mt-1 block font-semibold">{i.decision}</span> : null}</span> },
     ...(writable ? [{ key: 'decide', header: t('hub.common.actions'), cell: (i: AdminIncident) => (i.status === 'closed' ? null : (
       <span className="flex flex-wrap gap-2">
         {i.type === 'model_guarantee' && (i.status === 'open' || i.status === 'investigating') ? <Action tone="secondary" onClick={() => { setGuaranteeFor(i); setGuaranteeResult(null); }}>{t('hub.incidents.guarantee.action')}</Action> : null}
-        <Action tone="secondary" onClick={() => { setDeciding(i); setDecision(i.decision ?? ''); setStatus(i.status === 'open' ? 'investigating' : 'decided'); decide.reset(); }}>{t('hub.incidents.decide')}</Action>
+        <Action tone="secondary" onClick={() => { setDeciding(i); setDecision(i.decision ?? ''); setHold('lift'); setStatus(i.status === 'open' ? 'investigating' : 'decided'); decide.reset(); }}>{t('hub.incidents.decide')}</Action>
       </span>
     )) }] : []),
   ];
@@ -75,6 +76,15 @@ export default function IncidentsPage() {
             )}
           </Field>
           <Field label={t('hub.incidents.decision')}>{(p) => <Textarea {...p} required={status !== 'investigating'} minLength={3} maxLength={2000} value={decision} onChange={(e) => setDecision(e.target.value)} />}</Field>
+          {deciding?.safetyHold === 'active' && status !== 'investigating' ? (
+            <Field label={t('hub.incidents.hold.field')} hint={t('hub.incidents.hold.hint')}>
+              {(p) => (
+                <Select {...p} value={hold} onChange={(e) => setHold(e.target.value as NonNullable<IncidentDecision['safetyHold']>)}>
+                  {(['lift', 'keep'] as const).map((o) => <option key={o} value={o}>{t(`hub.incidents.hold.${o}`)}</option>)}
+                </Select>
+              )}
+            </Field>
+          ) : null}
           {decide.isError ? <Notice tone="danger">{errorText(decide.error)}</Notice> : null}
           <div className="flex justify-end gap-2">
             <Action tone="secondary" onClick={() => setDeciding(null)}>{t('hub.common.cancel')}</Action>
