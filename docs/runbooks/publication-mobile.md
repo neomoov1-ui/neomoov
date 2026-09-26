@@ -8,8 +8,9 @@
 |---|---|---|
 | Profils `development`, `preview`, `production` (`eas.json` de chaque application) | Présents ; canaux `development`, `preview`, `production` | |
 | Numéros de build | Gérés par EAS (`appVersionSource: remote`), incrémentés à chaque build `production` (`autoIncrement`) | Rien à changer à la main |
-| Projet EAS lié (`extra.eas.projectId`) | **Absent** des deux `app.json` | À créer (`eas init` dans chaque dossier) avant le premier build ; active aussi les notifications push |
-| Mises à jour à la volée (EAS Update) | **Non branchées** : le paquet `expo-updates` n'est pas installé et aucune `runtimeVersion` n'est déclarée | Toute correction passe par un nouveau build tant que ce n'est pas fait (manque signalé) |
+| Projet EAS lié (`extra.eas.projectId`) | Lu dans la variable `EAS_PROJECT_ID` par `app.config.ts` de chaque application (un projet par application, aucune valeur dans le dépôt) ; **projets à créer** | Sans elle : pas de projet lié, pas de notifications push, pas de mises à jour à la volée (section 4, « Lier le projet EAS ») |
+| Mises à jour à la volée (EAS Update) | Branchées le 26 septembre 2026 : `expo-updates` 57.0.23 (version d'Expo SDK 57), `runtimeVersion` à la politique `appVersion`, adresse `https://u.expo.dev/<EAS_PROJECT_ID>`, vérification au lancement, application au lancement suivant ; désactivées tant que `EAS_PROJECT_ID` est vide | Module natif : seuls les builds faits **après** ce changement reçoivent des mises à jour à la volée |
+| Modes d'arrière-plan iOS du chauffeur | `location` (position en ligne) et `audio` (sonnerie d'une offre, ajouté par `expo-audio`) ; `fetch` et `remote-notification` retirés (inutilisés, `fetch` était ajouté d'office par `expo-task-manager`, retiré par un mod de `app.config.ts`) | Vérifier après chaque ajout de greffon : `npx expo config --type introspect` (ligne `UIBackgroundModes`) |
 | Soumission iOS (`submit.production.ios`) | `appleTeamId` et `ascAppId` vides | À remplir après la validation du compte Apple et la création des fiches dans App Store Connect |
 | Soumission Android | Compte de service attendu dans `C:\Users\PC\cles-neomoov\google-play-service-account.json`, piste `internal` | Google Play exige en général un premier envoi manuel du fichier `.aab` dans la console avant d'accepter les envois automatiques (à vérifier au premier envoi) |
 | Clés Google Maps des applications | Lues au build (`GOOGLE_MAPS_IOS_KEY`, `GOOGLE_MAPS_ANDROID_KEY`), à déclarer dans les variables d'environnement du projet Expo | Sans clé Android, la carte n'apparaît pas dans un build autonome |
@@ -18,7 +19,7 @@
 
 | Changement | Publication |
 |---|---|
-| Texte, écran, logique en JavaScript ou TypeScript, image livrée avec le code | Mise à jour à la volée (quand EAS Update sera branché) ; sinon nouveau build |
+| Texte, écran, logique en JavaScript ou TypeScript, image livrée avec le code | Mise à jour à la volée (section 6), sur les builds qui ont `expo-updates` et la même version affichée ; sinon nouveau build |
 | Nouveau module natif, montée de version d'Expo, permission, greffon ou réglage de `app.json` (icône, écran de démarrage, identifiant), clé Google Maps, son de notification | **Nouveau build** et nouvelle soumission aux magasins |
 | Changement qui modifie la nature de l'application | Nouveau build et revue des magasins (les règles d'Apple et de Google interdisent de le faire par mise à jour à la volée) |
 
@@ -26,7 +27,7 @@
 
 - **Version affichée** (`expo.version` dans `app.json`, aujourd'hui `0.1.0`) : à changer à la main pour chaque version publiée dans les magasins. Proposition : `1.0.0` pour la première version publique, `1.0.1` pour une correction, `1.1.0` pour une fonction nouvelle. Les deux applications peuvent avoir des numéros différents.
 - **Numéro de build** (iOS `buildNumber`, Android `versionCode`) : géré par EAS. Consulter : `npx eas-cli build:version:get`. Le fixer (rare, par exemple après une erreur) : `npx eas-cli build:version:set`.
-- Quand les mises à jour à la volée seront branchées, la `runtimeVersion` devra suivre la version affichée (politique `appVersion`) : une mise à jour ne s'installe que sur les builds de même version, ce qui empêche d'envoyer du JavaScript à un build natif incompatible.
+- **Version d'exécution** (`runtimeVersion`) : suit la version affichée (politique `appVersion`). Une mise à jour à la volée ne s'installe que sur les builds de même version, ce qui empêche d'envoyer du JavaScript à un build natif incompatible. Conséquence : tout changement natif (module, greffon, permission) exige de changer la version affichée, sinon une mise à jour publiée ensuite pourrait viser des builds qui n'ont pas ce code natif.
 
 ## 4. Construire et soumettre (depuis le poste)
 
@@ -37,7 +38,19 @@ npx eas-cli@latest login
 npx eas-cli@latest whoami
 ```
 
-Pour chaque application (exemple client ; même chose dans `apps\mobile-driver`) :
+### Lier le projet EAS (une fois par application)
+
+Chaque application a son propre projet EAS (`neomoov-client`, `neomoov-driver`). Son identifiant (UUID) n'est pas un secret, mais il n'est pas écrit dans le dépôt : `app.config.ts` le lit dans `EAS_PROJECT_ID`.
+
+1. Créer le projet : dans `apps\mobile-client`, `npx eas-cli@latest init`. La configuration étant dynamique, EAS ne peut pas écrire l'identifiant lui-même : il l'affiche (ou le lire sur expo.dev, projet, « Project ID »).
+2. Le déclarer dans les variables d'environnement du projet EAS, pour les builds faits sur les serveurs d'Expo (visibilité texte brut, les trois environnements) : `npx eas-cli@latest env:create --name EAS_PROJECT_ID --value <identifiant> --visibility plaintext --environment development --environment preview --environment production` (même commande dans `apps\mobile-driver` avec l'identifiant du projet chauffeur).
+3. Le poser dans le terminal avant toute commande `eas` de cette application (PowerShell : `$env:EAS_PROJECT_ID = "<identifiant>"`) : EAS lit la configuration sur le poste avant d'envoyer le build.
+4. GitHub (workflow `release.yml`) : variables du dépôt `EAS_PROJECT_ID_CLIENT` et `EAS_PROJECT_ID_DRIVER` (Settings, Secrets and variables, Actions, onglet Variables).
+5. Contrôle : `npx expo config --type public` montre `updates.url` en `https://u.expo.dev/<identifiant>` et `extra.eas.projectId`.
+
+### Construire et soumettre
+
+Pour chaque application (exemple client ; même chose dans `apps\mobile-driver`), `EAS_PROJECT_ID` posé comme ci-dessus :
 
 ```
 cd C:\Users\PC\code\neomoov\apps\mobile-client
@@ -66,14 +79,22 @@ Le profil `preview` pointe vers `https://api.neomoov.net` comme `production`. Su
 
 Procédure de bêta complète : `docs/beta/procedure.md`. Liste de vérification avant soumission : `docs/store/verification-soumission.md`.
 
-## 6. Mise à jour à la volée (quand EAS Update sera branché)
+## 6. Mise à jour à la volée (JavaScript seulement)
+
+Pour une correction de JavaScript, de texte ou d'image, sur les builds de même version affichée faits avec `expo-updates` (section 1). Les canaux sont ceux des profils de `eas.json` : `preview` (APK et builds d'essai), `production` (magasins).
 
 ```
 cd C:\Users\PC\code\neomoov\apps\mobile-client
-npx eas-cli@latest update --channel production --message "Correction du libellé de l'écran de paiement"
+$env:EAS_PROJECT_ID = "<identifiant du projet client>"
+$env:EXPO_PUBLIC_API_BASE_URL = "https://api.neomoov.net"
+npx eas-cli@latest update --channel preview --message "Correction du libellé de l'écran de paiement"
 ```
 
-Vérifier avant l'envoi que `EXPO_PUBLIC_API_BASE_URL` vaut l'adresse de production dans l'environnement de la commande (elle est figée dans le JavaScript publié). Tester d'abord sur le canal `preview`. Revenir à une mise à jour précédente : `npx eas-cli@latest update:republish` avec l'identifiant du groupe précédent (liste : `npx eas-cli@latest update:list`).
+Puis, une fois vérifiée sur un téléphone du canal `preview` (fermer et rouvrir l'application deux fois : la mise à jour est téléchargée au premier lancement, appliquée au suivant), la même commande avec `--channel production`. Si la version d'`eas-cli` le demande, ajouter `--environment preview` ou `--environment production`.
+
+Les variables `env` des profils de `eas.json` ne servent qu'aux builds : pour une mise à jour, `EXPO_PUBLIC_API_BASE_URL` (et `EXPO_PUBLIC_SENTRY_DSN` s'il est utilisé) doivent être posées dans le terminal, sinon le JavaScript publié vise `http://localhost:4000`. Revenir à une mise à jour précédente : `npx eas-cli@latest update:republish` avec l'identifiant du groupe précédent (liste : `npx eas-cli@latest update:list`) ; revenir au JavaScript embarqué dans le build : `npx eas-cli@latest update:roll-back-to-embedded`.
+
+Interdit par mise à jour à la volée : tout changement natif (le build ne l'a pas), et tout changement qui modifie la nature de l'application (règles d'Apple et de Google) : ces cas passent par un nouveau build et la revue.
 
 ## 7. Retour arrière
 

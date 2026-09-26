@@ -62,6 +62,9 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         env:
           AUTO_SUBMIT: ${{ vars.EAS_AUTO_SUBMIT }}
+          # Projet EAS de l'application (variables du dépôt, pas des secrets) : lu par app.config.ts (projet lié, adresse
+          # des mises à jour à la volée). Absent : build sans mises à jour à la volée ni notifications push.
+          EAS_PROJECT_ID: ${{ matrix.app == 'mobile-client' && vars.EAS_PROJECT_ID_CLIENT || vars.EAS_PROJECT_ID_DRIVER }}
         run: |
           submit=""
           [ "$AUTO_SUBMIT" = "oui" ] && submit="--auto-submit"

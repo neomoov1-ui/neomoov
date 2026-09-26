@@ -10,7 +10,7 @@ Légende de l'état au 26 septembre 2026 : **B** = bloquant aujourd'hui (manque 
 |---|---|---|---|---|
 | 1 | Compte Apple Developer (organisation) validé ; identifiants d'application créés avec leurs capacités | ☐ | ☐ | F |
 | 2 | Compte Google Play Console (organisation) validé ; fiche d'application créée | ☐ | ☐ | F |
-| 3 | Projet EAS lié (`extra.eas.projectId`), `appleTeamId` et `ascAppId` remplis dans `eas.json` | ☐ | ☐ | C après 1 et 2 |
+| 3 | Projet EAS créé et lié : `EAS_PROJECT_ID` déclaré dans les variables du projet EAS et posé dans le terminal (`docs/runbooks/publication-mobile.md`, section 4), ce qui active aussi les mises à jour à la volée et les notifications push ; `appleTeamId` et `ascAppId` remplis dans `eas.json` | ☐ | ☐ | C après 1 et 2 |
 | 4 | Clés Google Maps iOS et Android dans les variables d'environnement du projet Expo | ☐ | ☐ | F |
 | 5 | API de production en ligne et saine (`/v1/health`), fournisseurs réels branchés (Twilio indispensable à la connexion) | ☐ | ☐ | F et C |
 
@@ -23,7 +23,7 @@ Légende de l'état au 26 septembre 2026 : **B** = bloquant aujourd'hui (manque 
 | 8 | Suppression du compte accessible dans l'application (Profil) et fonctionnelle | ☐ | ☐ | Livrée |
 | 9 | Aucune fonction visible qui ne marche pas : options de prépaiement (carte, Apple Pay, Google Pay, Interac) masquées tant que la feuille de paiement Stripe n'est pas branchée | ☐ | sans objet | B |
 | 10 | Écran Assistance avec téléphone et courriel (réglages `support.phone`, `support.email` créés) | ☐ | ☐ | F |
-| 11 | Modes d'arrière-plan iOS limités à ceux réellement utilisés (`fetch` et `remote-notification` inutilisés) | sans objet | ☐ | B (correction de `app.json`) |
+| 11 | Modes d'arrière-plan iOS limités à ceux réellement utilisés : `location` et `audio` (sonnerie d'une offre) ; `fetch` et `remote-notification` retirés le 26 septembre 2026 (contrôle : `npx expo config --type introspect`, ligne `UIBackgroundModes`) ; justification du mode `audio` prête dans `driver.md` | sans objet | ☐ | Livré |
 | 12 | Textes des demandes d'autorisation conformes à l'usage réel (localisation, appareil photo, photos) | ☐ | ☐ | Livrés |
 | 13 | Connexion Apple ajoutée si une connexion Google est proposée (aujourd'hui : aucune des deux, pas d'obligation) | ☐ | ☐ | |
 

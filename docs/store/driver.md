@@ -74,10 +74,11 @@ Full description:
 | Photos | iOS (`NSPhotoLibraryUsageDescription`) | Au toucher de « Choisir une photo » | Joindre un document déjà photographié |
 | Notifications | iOS, Android 13 et plus | Après la connexion | Offres de course (canal prioritaire, son distinct), courses planifiées, relevés, échéances de documents, packs |
 | Vibration, maintien de l'écran | Android (`VIBRATE`, `WAKE_LOCK`) | Pendant une offre et une course | Sonnerie et vibration de l'offre ; écran allumé sur le support pendant la course |
+| Lecture audio en arrière-plan | iOS (mode `audio` de `UIBackgroundModes`), Android (service de premier plan `FOREGROUND_SERVICE_MEDIA_PLAYBACK`), ajoutés par `expo-audio` | À l'arrivée d'une offre | La sonnerie de l'offre joue en boucle même si le chauffeur est dans Google Maps ou Waze (`shouldPlayInBackground`), jusqu'à sa réponse ou l'expiration de l'offre |
 
 Aucun accès aux contacts, au microphone (refusé explicitement dans `app.json`) ni au calendrier.
 
-Point à vérifier avant la revue d'Apple : `UIBackgroundModes` déclare aussi `fetch` et `remote-notification`. Aucun code de rafraîchissement en arrière-plan ni de notification silencieuse n'a été trouvé dans l'application : Apple refuse les modes d'arrière-plan non utilisés (règle 2.5.4). Retirer ces deux modes ou justifier leur usage (manque signalé).
+Modes d'arrière-plan iOS (règle 2.5.4 d'Apple : un mode déclaré doit servir) : depuis le 26 septembre 2026, seulement `location` et `audio`. `fetch` et `remote-notification` sont retirés : aucun rafraîchissement en arrière-plan ni notification silencieuse dans le code (`fetch`, ajouté d'office par le greffon d'`expo-task-manager`, est retiré par un mod de `app.config.ts` ; contrôle : `npx expo config --type introspect`). Le mode `audio` sert à la sonnerie d'une offre reçue pendant la navigation : si Apple le conteste (usage d'alerte plutôt que de lecture), le retirer (option `enableBackgroundPlayback: false` du greffon `expo-audio`, nouveau build) et compter sur le son de la notification push de l'offre, qui joue sans ce mode. Google Play : déclarer aussi le type de service de premier plan « lecture multimédia » (`FOREGROUND_SERVICE_MEDIA_PLAYBACK`) dans la console, avec la même justification.
 
 ## Données réellement collectées par l'application (V1)
 
