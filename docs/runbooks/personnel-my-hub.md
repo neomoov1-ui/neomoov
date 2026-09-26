@@ -18,6 +18,10 @@ Rôles : `admin` (tout), `operator` (exploitation), `finance` (relevés, facture
 
 ## 2. Première connexion
 
+Sur le web (étape 12) : `https://<site>/hub/connexion`. Courriel et mot de passe, puis code QR à scanner (ou clé à saisir), premier code, et dix codes de secours affichés une seule fois. Les jetons restent sur le serveur web (témoins `httpOnly`) ; la session dure 30 jours sans activité, « Se déconnecter » la révoque.
+
+Par l'API directement :
+
 1. `POST /v1/auth/staff/login` avec courriel et mot de passe → `{ status: "mfa_enrollment_required", mfaToken }`.
 2. `POST /v1/auth/staff/mfa/enroll` avec le `mfaToken` → secret, `otpauthUri` et QR (SVG) à scanner dans l'application d'authentification.
 3. `POST /v1/auth/staff/mfa/confirm` avec le `mfaToken` et le premier code → dix codes de secours (affichés une seule fois, à ranger dans le gestionnaire de mots de passe) et les jetons.
@@ -37,6 +41,10 @@ Par un administrateur connecté : `POST /v1/admin/staff` (téléphone, courriel,
 ## 5. Clés de service (agents et intégrations)
 
 `POST /v1/admin/api-keys` (administrateur) : nom, portées (`agents:run`, `agents:read`, `tools:*`, `rides:read`, …), agent, expiration. Le secret `nmk_…` n'est affiché qu'une fois. Vérification : `GET /v1/internal/service/whoami` avec `Authorization: Bearer nmk_…`. Révocation : `DELETE /v1/admin/api-keys/{id}`. Toute action d'une clé est attribuée à son agent dans le journal d'audit.
+
+### Clé publique du site (réservation web, préinscription, WordPress)
+
+Une clé à la seule portée `public:write` (`POST /v1/admin/api-keys` avec `{"name": "Site web", "scopes": ["public:write"]}`) ouvre `POST /v1/public/quotes`, `POST /v1/public/leads` et `GET /v1/public/places/*`, rien d'autre. Elle se range dans la variable `NEOMOOV_PUBLIC_API_KEY` du serveur web (jamais dans une page) ; le site WordPress l'utilise de la même façon, depuis son serveur. Détail et exemple d'appel : `docs/api-publique.md`.
 
 ## 6. Journal d'audit
 

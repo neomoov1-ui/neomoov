@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
-import { LanguageSwitch } from '@/components/language-switch';
 import { resources } from '@/lib/i18n-resources';
 import { currentLanguage } from '@/lib/language.server';
 
@@ -11,18 +10,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: texts.app.name, description: texts.meta.description };
 }
 
+/** Racine commune : langue et fournisseurs. Le site public (`(site)`) et My Hub (`hub`) ont chacun leur mise en page. */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const language = await currentLanguage();
   return (
     <html lang={language}>
       <body className="min-h-screen">
-        <Providers language={language}>
-          <header className="flex items-center justify-between px-6 py-4">
-            <a href="/" className="font-heading text-2xl font-bold text-brand-blue">neomoov</a>
-            <LanguageSwitch current={language} />
-          </header>
-          <main className="mx-auto max-w-5xl px-6 pb-16">{children}</main>
-        </Providers>
+        <Providers language={language}>{children}</Providers>
       </body>
     </html>
   );

@@ -4,12 +4,12 @@ import type { ComponentProps } from 'react';
 type Variant = 'primary' | 'secondary' | 'ghost';
 
 const styles: Record<Variant, string> = {
-  primary: 'bg-brand-blue text-white hover:bg-brand-blue-dark',
-  secondary: 'bg-brand-green text-brand-night hover:bg-brand-blue hover:text-white',
-  ghost: 'bg-transparent text-brand-blue hover:bg-brand-tint',
+  primary: 'bg-brand-blue-dark text-white hover:bg-brand-night',
+  secondary: 'bg-brand-green text-brand-night hover:bg-brand-blue-dark hover:text-white',
+  ghost: 'bg-transparent text-brand-blue-dark hover:bg-brand-tint',
 };
 
-const base = 'inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue disabled:opacity-50';
+const base = 'inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue-dark disabled:opacity-50';
 
 /** Bouton Neomoov (style shadcn/ui simplifié) ; avec `href`, rend un lien. */
 export function Button({ variant = 'primary', href, className = '', ...props }: ComponentProps<'button'> & { variant?: Variant; href?: string }) {

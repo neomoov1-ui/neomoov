@@ -129,6 +129,8 @@ export interface LlmProvider {
 export interface StorageProvider {
   readonly name: string;
   putObject(input: { key: string; body: Buffer; contentType: string }): Promise<{ key: string }>;
+  /** Lecture d'un objet privé (visionneuse de documents de My Hub) ; null s'il n'existe pas. */
+  getObject(key: string): Promise<{ body: Buffer; contentType: string } | null>;
   getSignedUrl(key: string, expiresInSeconds: number): Promise<string>;
   deleteObject(key: string): Promise<void>;
 }

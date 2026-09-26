@@ -215,7 +215,7 @@ export type StaffCreate = z.infer<typeof staffCreateSchema>;
 export const staffPasswordSchema = z.object({ password: z.string().min(12).max(200) });
 
 /** Clés de service (comptes de service des agents et intégrations, section 7.1). */
-export const API_KEY_SCOPES = ['agents:run', 'agents:read', 'tools:*', 'rides:read', 'rides:write', 'drivers:read', 'reports:read', 'webhooks:write'] as const;
+export const API_KEY_SCOPES = ['agents:run', 'agents:read', 'tools:*', 'rides:read', 'rides:write', 'drivers:read', 'reports:read', 'webhooks:write', 'public:write'] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 export const apiKeyCreateSchema = z.object({
@@ -258,3 +258,8 @@ export type DataRequestView = z.infer<typeof dataRequestViewSchema>;
 export type DeviceView = z.infer<typeof deviceSchema>;
 export type OtpRequestResponse = z.infer<typeof otpRequestResponseSchema>;
 export type SocialLoginResponse = z.infer<typeof socialLoginResponseSchema>;
+
+// Types de la connexion du personnel, pour le client d'API.
+export type StaffLogin = z.infer<typeof staffLoginSchema>;
+export type StaffLoginResponse = z.infer<typeof staffLoginResponseSchema>;
+export type MfaEnrollment = z.infer<typeof mfaEnrollmentSchema>;

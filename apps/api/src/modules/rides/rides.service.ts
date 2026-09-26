@@ -562,6 +562,33 @@ export class RidesService {
     return { state: result.ride.state, feeCents };
   }
 
+  /**
+   * Annulation par l'opérateur (My Hub, au nom du client joint par téléphone) : même transition que le client ; les frais
+   * d'annulation ne sont facturés que sur décision explicite de l'opérateur.
+   */
+  async cancelByOperator(rideId: string, actor: UserActor, input: { reason: string; chargeFee: boolean }): Promise<{ state: RideState; feeCents: number }> {
+    const rules = await this.cancellationRules();
+    const operator: ActorRef = { kind: 'operator', userId: actor.userId };
+    const result = await this.applyTransition(rideId, 'client_cancels', operator, {
+      data: { reason: input.reason, byOperator: true, chargeFee: input.chargeFee },
+      set: (locked) => {
+        const assignedAt = timestampsOf(locked).assigned;
+        const feeCents = input.chargeFee ? clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date() }, rules) : 0;
+        return { cancellationReason: 'other', cancellationComment: input.reason, cancellationFeeCents: feeCents };
+      },
+    });
+    const feeCents = result.ride.cancellationFeeCents;
+    const payload = await this.publish(result, 'client_cancels', operator, { feeCents, byOperator: true });
+    if (!result.replayed) {
+      this.events.emit('ride.cancelled_by_client', { ...payload, feeCents });
+      if (payload.driverUserId) await this.outbox.queue({ recipientUserId: payload.driverUserId, template: 'ride.cancelled_by_client', data: { rideId, feeCents } });
+      const recipient = await this.recipientOf(result.ride);
+      await this.outbox.queue({ ...recipient, template: 'ride.cancelled_by_operator', data: { rideId, feeCents } });
+      this.audit.record({ action: 'admin.ride_cancelled', entity: 'rides', entityId: rideId, after: { reason: input.reason, feeCents } });
+    }
+    return { state: result.ride.state, feeCents };
+  }
+
   async cancelByDriver(rideId: string, driverActor: UserActor, reason: string): Promise<RideView> {
     await this.rideOfDriver(rideId, driverActor);
     const released = await this.releaseDriver(rideId, { kind: 'driver', userId: driverActor.userId }, reason, { sanction: true, source: 'driver' });

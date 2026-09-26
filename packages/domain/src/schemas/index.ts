@@ -18,6 +18,7 @@ export * from './rides.js';
 export * from './dispatch.js';
 export * from './client.js';
 export * from './driver.js';
+export * from './admin.js';
 import { PAYMENT_CHOICES } from './rides.js';
 import { driverJobSchema } from './driver.js';
 import { dispatchSummarySchema, negotiationSummarySchema } from './dispatch.js';
