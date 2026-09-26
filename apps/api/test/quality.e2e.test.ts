@@ -46,21 +46,29 @@ describe('agent qualité : sanctions graduées (intégration)', () => {
   const statusOf = async (driverId: string) => (await db(app!).select({ status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, driverId)))[0]!.status;
   const pendingFor = (driverId: string) => db(app!).select().from(schema.approvals).where(and(eq(schema.approvals.proposedAction, 'proposeSanction'), eq(schema.approvals.decision, 'pending'), sql`${schema.approvals.data}->>'driverId' = ${driverId}`));
 
-  /** Courses terminées par ce chauffeur, notées par le client (notes données dans l'ordre). */
+  /**
+   * Courses terminées par ce chauffeur, notées par le client (notes données dans l'ordre). La première passe par l'API
+   * (devis puis réservation) ; les suivantes en sont copiées en base : 38 réservations par l'API dépassaient 120 s sur la
+   * base de développement distante, et l'agent ne lit que le chauffeur, l'état et la note.
+   */
   async function rated(client: { accessToken: string }, driver: TestDriver, scores: number[]): Promise<string[]> {
-    const ids: string[] = [];
-    for (const score of scores) {
-      hour += 2;
-      const requestedAt = new Date(Date.now() + hour * 3_600_000).toISOString();
-      const quote = (await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt }).expect(201)).body.quotes[0];
-      const ride = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key())
-        .send({ quoteId: quote.id, type: 'scheduled', requestedAt, paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: quote.maxConsentedCents }).expect(201);
-      const rideId = ride.body.id as string;
-      await db(app!).update(schema.rides).set({ state: 'rated', driverId: driver.driverId }).where(eq(schema.rides.id, rideId));
-      const [clientRow] = await db(app!).select({ userId: schema.clients.userId }).from(schema.clients).innerJoin(schema.rides, eq(schema.rides.clientId, schema.clients.id)).where(eq(schema.rides.id, rideId));
-      await db(app!).insert(schema.rideRatings).values({ rideId, authorKind: 'client', authorUserId: clientRow!.userId, score });
-      ids.push(rideId);
-    }
+    hour += 2;
+    const requestedAt = new Date(Date.now() + hour * 3_600_000).toISOString();
+    const quote = (await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt }).expect(201)).body.quotes[0];
+    const ride = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key())
+      .send({ quoteId: quote.id, type: 'scheduled', requestedAt, paymentMethod: 'cash', paymentChoice: 'pay_driver_after', maxConsentedCents: quote.maxConsentedCents }).expect(201);
+    const first = ride.body.id as string;
+    await db(app!).update(schema.rides).set({ state: 'rated', driverId: driver.driverId }).where(eq(schema.rides.id, first));
+    const copies = scores.length > 1 ? await db(app!).execute<{ id: string }>(sql`
+      INSERT INTO rides (public_number, city_code, reserved_category, state, type, origin_address, origin_position, destination_address, destination_position,
+        payment_method, payment_choice, max_consented_cents, quoted_total_cents, client_id, created_by_user_id, requested_at, driver_id)
+      SELECT 'QT-' || substr(md5(random()::text || g::text), 1, 16), city_code, reserved_category, state, type, origin_address, origin_position, destination_address, destination_position,
+        payment_method, payment_choice, max_consented_cents, quoted_total_cents, client_id, created_by_user_id, requested_at, driver_id
+      FROM rides, generate_series(2, ${scores.length}) AS g WHERE id = ${first}::uuid
+      RETURNING id`) : [];
+    const ids = [first, ...[...copies].map((r) => r.id)];
+    const [clientRow] = await db(app!).select({ userId: schema.clients.userId }).from(schema.clients).innerJoin(schema.rides, eq(schema.rides.clientId, schema.clients.id)).where(eq(schema.rides.id, first));
+    await db(app!).insert(schema.rideRatings).values(ids.map((rideId, i) => ({ rideId, authorKind: 'client', authorUserId: clientRow!.userId, score: scores[i]! })));
     return ids;
   }
 
