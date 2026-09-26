@@ -52,6 +52,8 @@ export interface PackMaintenanceReport {
 }
 
 const DAY_MS = 86_400_000;
+/** États d'une course terminée : seuls ceux-là consomment une unité de pack. */
+const FINISHED_STATES = new Set<string>(['completed', 'rated', 'disputed']);
 
 export function packDefinitionOf(row: PackRow): PackDefinition {
   return { code: row.code, ridesIncluded: row.ridesIncluded, priceCents: row.priceCents, validityDays: row.validityDays, discovery: row.code === 'discovery', priorityBonus: row.code === 'unlimited' };
@@ -135,7 +137,8 @@ export class PackLifecycleService implements OnModuleInit {
   async consume(rideId: string, now = new Date()): Promise<{ consumedFromId: string | null; remaining: number | null; renewedId: string | null }> {
     const none = { consumedFromId: null, remaining: null, renewedId: null };
     const [ride] = await this.db.select({ driverId: schema.rides.driverId, state: schema.rides.state }).from(schema.rides).where(eq(schema.rides.id, rideId)).limit(1);
-    if (!ride?.driverId || ride.state !== 'completed') return none;
+    // Une course terminée peut déjà être notée ou contestée quand l'événement est traité (worker, reprise).
+    if (!ride?.driverId || !FINISHED_STATES.has(ride.state)) return none;
     const driver = await this.driverOf(ride.driverId);
     if (!driver) return none;
     const settings = await this.packSettings();
