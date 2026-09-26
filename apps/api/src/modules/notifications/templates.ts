@@ -48,6 +48,14 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Réservation confirmée', body: (d, l) => `Votre course${ride(d)} est réservée pour le ${when(d['requestedAt'], l)}.` },
     en: { title: 'Booking confirmed', body: (d, l) => `Your ride${ride(d)} is booked for ${when(d['requestedAt'], l)}.` },
   },
+  'ride.scheduled_assigned': {
+    fr: { title: 'Chauffeur confirmé pour votre réservation', body: (d, l) => `Votre course${ride(d)} du ${when(d['requestedAt'], l)} est confirmée${d['driverName'] ? ` avec ${str(d['driverName'])}` : ''}${d['vehicle'] ? ` : ${str(d['vehicle'])}, plaque ${str(d['plate'])}` : ''}.` },
+    en: { title: 'Driver confirmed for your booking', body: (d, l) => `Your ride${ride(d)} on ${when(d['requestedAt'], l)} is confirmed${d['driverName'] ? ` with ${str(d['driverName'])}` : ''}${d['vehicle'] ? `: ${str(d['vehicle'])}, plate ${str(d['plate'])}` : ''}.` },
+  },
+  'ride.scheduled_driver_departed': {
+    fr: { title: 'Votre chauffeur est en route', body: (d) => `${d['driverName'] ? str(d['driverName']) : 'Votre chauffeur'} est parti vers le point de départ${d['vehicle'] ? ` : ${str(d['vehicle'])}, plaque ${str(d['plate'])}` : ''}.` },
+    en: { title: 'Your driver is on the way', body: (d) => `${d['driverName'] ? str(d['driverName']) : 'Your driver'} has left for the pickup point${d['vehicle'] ? `: ${str(d['vehicle'])}, plate ${str(d['plate'])}` : ''}.` },
+  },
   'ride.scheduled_reminder': {
     fr: { title: 'Rappel de votre course', body: (d, l) => `Votre course est prévue le ${when(d['requestedAt'], l)}.` },
     en: { title: 'Ride reminder', body: (d, l) => `Your ride is scheduled for ${when(d['requestedAt'], l)}.` },
@@ -88,6 +96,14 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Course annulée', body: (d, l) => (Number(d['feeCents']) > 0 ? `La course a été annulée. Frais d'annulation : ${money(d['feeCents'], l)}.` : 'La course a été annulée.') },
     en: { title: 'Ride cancelled', body: (d, l) => (Number(d['feeCents']) > 0 ? `The ride was cancelled. Cancellation fee: ${money(d['feeCents'], l)}.` : 'The ride was cancelled.') },
   },
+  'ride.driver_reminder': {
+    fr: { title: 'Réservation dans 90 minutes', body: (d) => (d['confirmed'] ? `Rappel : course ${str(d['publicNumber'])} à ${when(d['requestedAt'], 'fr')}. Prévoyez votre départ.` : `Course ${str(d['publicNumber'])} à ${when(d['requestedAt'], 'fr')} : confirmez-la dans l'application, sinon elle sera réattribuée.`) },
+    en: { title: 'Booking in 90 minutes', body: (d) => (d['confirmed'] ? `Reminder: ride ${str(d['publicNumber'])} at ${when(d['requestedAt'], 'en')}. Plan your departure.` : `Ride ${str(d['publicNumber'])} at ${when(d['requestedAt'], 'en')}: confirm it in the app, or it will be reassigned.`) },
+  },
+  'ride.interrupted': {
+    fr: { title: 'Course interrompue', body: 'Votre course a été interrompue par l\'équipe Neomoov. Aucun montant n\'est prélevé automatiquement ; nous vous contactons.' },
+    en: { title: 'Ride interrupted', body: 'Your ride was interrupted by the Neomoov team. No amount is charged automatically; we will contact you.' },
+  },
   'ride.cancelled_by_operator': {
     fr: { title: 'Course annulée par Neomoov', body: 'Votre course a été annulée par notre équipe. Contactez-nous pour toute question.' },
     en: { title: 'Ride cancelled by Neomoov', body: 'Your ride was cancelled by our team. Contact us with any questions.' },
@@ -124,6 +140,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Nouveau message', body: 'Vous avez un nouveau message concernant votre course.' },
     en: { title: 'New message', body: 'You have a new message about your ride.' },
   },
+  'ride.operator_message_sms': {
+    fr: { title: 'Message de Neomoov', body: (d) => `Message de Neomoov${ride(d)} : « ${str(d['body'])} ». Répondez à ce texto pour nous répondre.` },
+    en: { title: 'Message from Neomoov', body: (d) => `Message from Neomoov${ride(d)}: "${str(d['body'])}". Reply to this text to answer.` },
+  },
   'ride.message_sms': {
     fr: { title: 'Message de votre chauffeur', body: (d) => `Message de votre chauffeur${ride(d)} : « ${str(d['body'])} ». Répondez à ce texto pour lui écrire.` },
     en: { title: 'Message from your driver', body: (d) => `Message from your driver${ride(d)}: "${str(d['body'])}". Reply to this text to write back.` },
@@ -131,6 +151,14 @@ const TEMPLATES: Record<string, Template> = {
   'ride.voice_confirmation': {
     fr: { title: 'Réservation Neomoov confirmée', body: (d, l) => `Votre course${ride(d)} est réservée pour le ${when(d['requestedAt'], l)}. Prix fixe : ${money(d['totalCents'], l)}, payé au chauffeur. Merci d'avoir appelé Neomoov.` },
     en: { title: 'Neomoov booking confirmed', body: (d, l) => `Your ride${ride(d)} is booked for ${when(d['requestedAt'], l)}. Fixed price: ${money(d['totalCents'], l)}, paid to the driver. Thank you for calling Neomoov.` },
+  },
+  'ride.passenger_approaching': {
+    fr: { title: 'Votre chauffeur approche', body: (d) => `Votre chauffeur Neomoov arrive dans environ 2 minutes${d['vehicle'] ? ` : ${str(d['vehicle'])}, plaque ${str(d['plate'])}` : ''}.` },
+    en: { title: 'Your driver is close', body: (d) => `Your Neomoov driver arrives in about 2 minutes${d['vehicle'] ? `: ${str(d['vehicle'])}, plate ${str(d['plate'])}` : ''}.` },
+  },
+  'ride.passenger_arrived': {
+    fr: { title: 'Votre chauffeur est arrivé', body: (d) => `Votre chauffeur Neomoov vous attend au point de départ${d['vehicle'] ? ` : ${str(d['vehicle'])}, plaque ${str(d['plate'])}` : ''}.` },
+    en: { title: 'Your driver has arrived', body: (d) => `Your Neomoov driver is waiting at the pickup point${d['vehicle'] ? `: ${str(d['vehicle'])}, plate ${str(d['plate'])}` : ''}.` },
   },
   'ride.passenger_tracking': {
     fr: { title: 'Votre course Neomoov', body: (d) => `${str(d['passengerName']) ? `${str(d['passengerName'])}, une` : 'Une'} course Neomoov a été réservée pour vous. Suivi : ${str(d['trackingUrl'])}` },
@@ -240,6 +268,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Sanction terminée', body: () => 'Votre sanction est terminée : vous recevez de nouveau toutes les courses.' },
     en: { title: 'Sanction ended', body: () => 'Your sanction has ended: you receive all rides again.' },
   },
+  'alert.benchmark_exceeded': {
+    fr: { title: 'Veille prix : devis au-dessus des concurrents', body: (d) => `${str(d['count'])} devis des dernières 24 heures dépassaient la référence Uber ou Lyft (${Array.isArray(d['categories']) ? (d['categories'] as unknown[]).map(str).join(', ') : ''}). Remise d'alignement appliquée sur les frais de service quand la marge le permettait. Voir My Hub.` },
+    en: { title: 'Price watch: quotes above competitors', body: (d) => `${str(d['count'])} quotes in the last 24 hours exceeded the Uber or Lyft reference (${Array.isArray(d['categories']) ? (d['categories'] as unknown[]).map(str).join(', ') : ''}). Alignment discount applied on service fees when the margin allowed. See My Hub.` },
+  },
   'alert.stuck_ride': {
     fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
     en: { title: 'Alert: stuck ride', body: (d) => `Ride${ride(d)} has been "${str(d['state'])}" for ${str(d['minutes'])} minutes. Check it in My Hub.` },
@@ -277,6 +309,10 @@ const TEMPLATES: Record<string, Template> = {
   'alert.agent_escalation': {
     fr: { title: 'Conversation à reprendre', body: (d) => `L'agent relation client transmet une conversation (${str(d['reason']) || 'escalade'}) : ${str(d['summary'])}` },
     en: { title: 'Conversation to take over', body: (d) => `The customer relations agent handed over a conversation (${str(d['reason']) || 'escalation'}): ${str(d['summary'])}` },
+  },
+  'alert.client_cancellations': {
+    fr: { title: 'Annulations répétées d\'un client', body: (d) => `${str(d['clientName']) || 'Un client'}${d['clientPhone'] ? ` (${str(d['clientPhone'])})` : ''} a ${str(d['cancelled'])} annulation(s) et ${str(d['noShows'])} absence(s) sur ${str(d['days'])} jours, dernière course ${str(d['lastPublicNumber'])}. À examiner dans My Hub.` },
+    en: { title: 'Repeated client cancellations', body: (d) => `${str(d['clientName']) || 'A client'}${d['clientPhone'] ? ` (${str(d['clientPhone'])})` : ''} has ${str(d['cancelled'])} cancellation(s) and ${str(d['noShows'])} no-show(s) in ${str(d['days'])} days, last ride ${str(d['lastPublicNumber'])}. Review in My Hub.` },
   },
   'alert.agent_budget': {
     fr: { title: 'Agent IA en mode manuel', body: (d) => `Plafond quotidien de dépense atteint : l'agent ${str(d['agentCode'])} passe en mode manuel.` },

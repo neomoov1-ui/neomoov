@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadEnv } from '../src/config/env.js';
+import { apiDocsServed, loadEnv } from '../src/config/env.js';
 
 const base = { NODE_ENV: 'test', DATABASE_URL: 'postgresql://user:pass@localhost:5432/neomoov_test' };
 
@@ -45,7 +45,20 @@ describe('configuration', () => {
     expect(() => loadEnv(secrets, { dotenv: false })).toThrow(/REDIS_URL/);
     expect(() => loadEnv({ ...secrets, REDIS_URL: 'redis://redis:6379' }, { dotenv: false })).toThrow(/SOCIAL_LOGIN_PROVIDER/);
     expect(() => loadEnv({ ...secrets, REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'mock' }, { dotenv: false })).toThrow(/SOCIAL_LOGIN_PROVIDER/);
-    expect(loadEnv({ ...secrets, REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real' }, { dotenv: false }).SOCIAL_LOGIN_PROVIDER).toBe('real');
+    const ready = { ...secrets, REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real' };
+    // Revue finale : aucun retour silencieux aux simulateurs en production ; chaque simulation est déclarée.
+    expect(() => loadEnv(ready, { dotenv: false })).toThrow(/fournisseurs simulés non déclarés.*SMS_PROVIDER/);
+    const all = 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus';
+    expect(loadEnv({ ...ready, ALLOW_MOCK_PROVIDERS: all }, { dotenv: false }).SOCIAL_LOGIN_PROVIDER).toBe('real');
+    expect(() => loadEnv({ ...ready, ALLOW_MOCK_PROVIDERS: 'payment,sev' }, { dotenv: false })).toThrow(/storage/);
+    const real = { ...ready, SMS_PROVIDER: 'real', EMAIL_PROVIDER: 'real', PUSH_PROVIDER: 'real', MAPS_PROVIDER: 'real', STORAGE_PROVIDER: 'real', LLM_PROVIDER: 'real', VIRUS_SCANNER_PROVIDER: 'real' };
+    expect(loadEnv({ ...real, ALLOW_MOCK_PROVIDERS: 'payment, SEV ,whatsapp,voice' }, { dotenv: false }).PAYMENT_PROVIDER).toBe('mock');
+  });
+
+  it('documentation OpenAPI : servie hors production, fermée en production sauf demande', () => {
+    expect(apiDocsServed({ NODE_ENV: 'development', API_DOCS: undefined })).toBe(true);
+    expect(apiDocsServed({ NODE_ENV: 'production', API_DOCS: undefined })).toBe(false);
+    expect(apiDocsServed({ NODE_ENV: 'production', API_DOCS: 'on' })).toBe(true);
   });
 
   it('fournit des secrets de repli non secrets hors production', () => {

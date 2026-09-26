@@ -42,6 +42,7 @@ export class PaymentJobsService implements OnModuleInit {
     this.events.on('ride.cancelled_by_client', (p) => this.enqueue({ kind: 'fee', rideId: p.rideId, feeCents: p.feeCents, fee: 'cancellation_fee' }, `fee:${p.rideId}`));
     this.events.on('ride.no_show', (p) => this.enqueue({ kind: 'fee', rideId: p.rideId, feeCents: p.feeCents, fee: 'no_show_fee' }, `fee:${p.rideId}`));
     this.events.on('ride.no_driver', (p) => this.enqueue({ kind: 'released', rideId: p.rideId, reason: 'no_driver' }, `released:${p.rideId}`));
+    this.events.on('ride.interrupted', (p) => this.enqueue({ kind: 'released', rideId: p.rideId, reason: 'interrupted' }, `released:${p.rideId}`));
     this.events.on('ride.cancelled_by_driver', (p) => this.enqueue({ kind: 'released', rideId: p.rideId, reason: 'cancelled_by_driver' }, `released:${p.rideId}:${p.occurredAt.getTime()}`));
   }
 

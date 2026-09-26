@@ -6,7 +6,11 @@ const apiOrigin = new URL(process.env['NEXT_PUBLIC_API_BASE_URL'] || 'http://loc
 const socketOrigin = apiOrigin.replace(/^http/, 'ws');
 const TURNSTILE = 'https://challenges.cloudflare.com';
 const TILES = 'https://tile.openstreetmap.org https://*.tile.openstreetmap.org';
-/** Sites autorisés à intégrer la réservation (`/reserver`) en iframe, séparés par des espaces (WordPress, partenaires). */
+/**
+ * Sites autorisés à intégrer la réservation (`/reserver`) en iframe, séparés par des espaces (WordPress, partenaires).
+ * Lu au build (les en-têtes sont figés dans l'image) : argument de build de `apps/web/Dockerfile`, passé par
+ * `infra/compose.prod.yml` et par la variable GitHub `BOOKING_FRAME_ANCESTORS` du flux Images.
+ */
 const bookingAncestors = process.env['BOOKING_FRAME_ANCESTORS'] || 'https://neomoov.net https://www.neomoov.net';
 
 /** Suivi des erreurs (Sentry) : le navigateur envoie les événements à l'adresse d'ingestion du DSN ; rien sans DSN. */

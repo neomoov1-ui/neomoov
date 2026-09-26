@@ -6,11 +6,11 @@ import type {
   AdminAgent, AdminApproval, AdminDispatchView, AdminCreateRide, AutocompleteSuggestion, PlaceDetails, PublicTrackingView, AdminClient, AdminDashboard, AdminDataRequest, AdminDocument, AdminDriverDetail, AdminDriverListItem, DriverPrograms, AdminIncident, AdminInvoice,
   AdminLead, AdminListQuery, AdminPromotion, AdminReport, AdminRideListItem, AdminRideListQuery, AdminSetting, AdminStaff, AdminStatement, AdminVehicle,
   ApprovalDecisionInput, CancellationResult, DocumentReview, IncidentDecision, LeadInput, LeadStatus, MfaEnrollment, Page, PackView, PricingRuleInput,
-  PricingRuleView, QuoteRequest, QuotesResponse, RideEventView, RideView, SanctionInput, StaffLogin, StaffLoginResponse, StaffNote, TokensView, VehicleReview,
+  PricingRuleView, QuoteRequest, QuotesResponse, RideEventView, RideMessageView, RideView, SanctionInput, StaffLogin, StaffLoginResponse, StaffNote, TokensView, VehicleReview,
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
-import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration } from '@neomoov/domain';
+import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration, StatementSettleOffline } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
 import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeView, PrivacyBreachInput, PrivacyBreachView, StaffCreate } from '@neomoov/domain';
@@ -79,12 +79,15 @@ export function adminResource(t: Transport) {
     ridePayments: (rideId: string) => t.get<PaymentView[]>(`/admin/rides/${id(rideId)}/payments`),
     refundRide: (rideId: string, body: RefundInput, idempotencyKey?: string) => t.post<RefundView>(`/admin/rides/${id(rideId)}/refund`, body, idempotencyKey ? { idempotencyKey } : {}),
     rideEvents: (rideId: string) => t.get<RideEventView[]>(`/admin/rides/${id(rideId)}/events`),
+    rideMessages: (rideId: string) => t.get<RideMessageView[]>(`/admin/rides/${id(rideId)}/messages`),
+    sendRideMessage: (rideId: string, body: string) => t.post<RideMessageView>(`/admin/rides/${id(rideId)}/messages`, { body }),
     createRide: (body: AdminCreateRide) => t.post<RideView>('/admin/rides', body),
     assignRide: (rideId: string, body: { driverId: string; vehicleId?: string; note?: string }) => t.post<RideView>(`/admin/rides/${id(rideId)}/assign`, body),
     reassignRide: (rideId: string, body: { reason: string; excludeDriver?: boolean }) => t.post<RideView>(`/admin/rides/${id(rideId)}/reassign`, body),
     holdRide: (rideId: string, reason: string) => t.post<RideView>(`/admin/rides/${id(rideId)}/hold`, { reason }),
     releaseRide: (rideId: string) => t.post<RideView>(`/admin/rides/${id(rideId)}/release`),
     cancelRide: (rideId: string, body: { reason: string; chargeFee?: boolean }) => t.post<CancellationResult>(`/admin/rides/${id(rideId)}/cancel`, body),
+    interruptRide: (rideId: string, body: { reason: string; incidentType?: 'accident' | 'other' }) => t.post<{ state: string; incidentId: string }>(`/admin/rides/${id(rideId)}/interrupt`, body),
     /** Courses figées (étape 15) : l'exploitation décide, rien n'est corrigé automatiquement. */
     stuckRides: () => t.get<StuckRideView[]>('/admin/rides/stuck'),
     simulate: (body: SimulateQuote) => t.post<SimulateResponse>('/admin/pricing/simulate', body),
@@ -138,6 +141,7 @@ export function adminResource(t: Transport) {
     statement: (statementId: string) => t.get<AdminStatementDetail>(`/admin/statements/${id(statementId)}`),
     issueStatement: (statementId: string) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/issue`),
     payStatement: (statementId: string) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/pay`),
+    settleStatementOffline: (statementId: string, body: StatementSettleOffline) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/settle-offline`, body),
     adjustStatement: (statementId: string, body: StatementAdjust) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/adjust`, body),
     statementPdfPath: (statementId: string) => `/admin/statements/${id(statementId)}/pdf`,
     balances: () => t.get<AdminBalance[]>('/admin/balances'),

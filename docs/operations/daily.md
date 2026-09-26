@@ -8,7 +8,8 @@
 |---|---|---|
 | Toute la nuit | Répartition, rappels des réservations (J-1), alertes des planifiées non confirmées, notifications, reprises des paiements et du SEV | Tableau de bord, Incidents, Files de tâches |
 | 3 h | Conservation Loi 25 (purges), seulement si une sauvegarde a été confirmée depuis moins de 26 heures | Conformité et conservation, « Dernières tâches » |
-| 3 h 30 | Sauvegarde chiffrée de la base (tâche planifiée du serveur) | Journal de la sauvegarde |
+| 3 h 30 | Sauvegarde chiffrée de la base (tâche planifiée `/etc/cron.d/neomoov-backup`, posée par `infra/server-setup.sh`, active dès que `BACKUP_PASSPHRASE` est posée) | Journal de la sauvegarde |
+| Toutes les 5 minutes | Relance des conteneurs dont la sonde de santé échoue | `/var/log/neomoov-restart.log` |
 | 4 h | Agent qualité : mesures et propositions de sanctions | Agents IA, file d'approbation ; Qualité des chauffeurs |
 | La nuit | Conformité : échéances, rappels J-30, J-7, J-1, suspensions au lendemain de l'échéance, levées | Conformité et conservation |
 | 7 h | Rapport quotidien de l'agent d'analyse (hebdomadaire le lundi), envoyé par courriel | Agents IA, « Rapports de l'agent d'analyse » |
@@ -18,12 +19,13 @@
 
 | Événement | Comment il arrive |
 |---|---|
-| SOS d'un client ou d'un chauffeur | Texto à chaque administrateur et opérateur, alerte en direct dans My Hub, appel de l'agent vocal au numéro `alerts.founder_phone` s'il est réglé |
-| Aucun chauffeur, planifiée non confirmée, incident | Alerte en direct dans My Hub (onglet ouvert seulement) |
-| Course figée, relevé en échec | Notification push au personnel : **le personnel n'ayant pas d'appareil enregistré, elle n'arrive nulle part** ; seule la vérification du matin les rattrape |
-| API ou site injoignable | **Rien pour l'instant** : la surveillance externe (Better Stack) et Sentry ne sont pas branchés |
+| SOS d'un client ou d'un chauffeur | Texto et courriel à chaque administrateur et opérateur, alerte en direct dans My Hub, appel de l'agent vocal au numéro `alerts.founder_phone` s'il est réglé (Vapi réel seulement) |
+| Aucun chauffeur, planifiée non confirmée, course figée, relevé en échec, véhicule non conforme signalé, escalade d'un agent, budget d'un agent atteint | Courriel à chaque administrateur et opérateur ; les trois premiers aussi sur le **Tableau de bord** |
+| Autre incident (plainte, objet perdu, garantie modèle) | Alerte en direct dans My Hub (onglet ouvert seulement) ; vérification du matin |
+| Erreur de l'application (API, web, mobiles) | Sentry : branché dans les cinq applications, **inactif tant que les DSN ne sont pas posés** (`docs/runbooks/observabilite.md`, section 2) |
+| API ou site injoignable | **Rien pour l'instant** : les moniteurs de disponibilité de Better Stack ne sont pas créés |
 
-Conséquence : pendant les heures d'exploitation, garder un onglet My Hub ouvert sur le **Tableau de bord** (pastille « Temps réel actif »).
+Conditions : les courriels et textos ne partent qu'avec Resend et Twilio réels, vers le courriel et le téléphone du compte de chaque membre du personnel. Pendant les heures d'exploitation, garder quand même un onglet My Hub ouvert sur le **Tableau de bord** (pastille « Temps réel actif »).
 
 ## Le matin (40 à 50 minutes pendant la bêta)
 
@@ -38,7 +40,7 @@ Dans cet ordre : la sécurité des personnes d'abord, l'argent ensuite, le reste
 | 5 | Courses du jour | **Tableau de bord** (en recherche, planifiées non confirmées) ; **Courses**, vues « Répartition » et « Planifiées » | Toute planifiée du jour confirmée par un chauffeur ; une course qui cherche depuis longtemps ou semble figée : `docs/runbooks/reattribution.md`. Carte **Courses figées** du tableau de bord : vide, ou chaque course traitée depuis sa fiche | 5 min |
 | 6 | Files de tâches | Administration, **Files de tâches** | Colonne « En échec » à zéro ; sinon lire le motif, **Relancer** si le fournisseur est revenu (`docs/runbooks/degraded-mode.md`) | 2 min |
 | 7 | File d'approbation des agents | Pilotage, **Agents IA**, « File d'approbation » | Remboursements et crédits proposés par l'agent relation client, décisions de documents de l'agent recrutement, sanctions de l'agent qualité, anomalies de l'agent comptabilité : approuver (exécuté une seule fois) ou refuser avec motif | 5 à 10 min |
-| 8 | Conversations escaladées | **Agents IA**, « Conversations de l'assistance » | Répondre aux clients que l'agent a confiés à l'équipe | 5 min |
+| 8 | Conversations escaladées | **Agents IA**, « Conversations de l'assistance » | Répondre aux clients que l'agent a confiés à l'équipe et aux chauffeurs (leurs messages de l'écran Assistance vont directement à l'équipe) | 5 min |
 | 9 | Dépense des agents | **Agents IA** : « Dépense du jour » et plafond | Un agent passé en mode manuel faute de budget : le remettre en service ou le laisser en manuel (`docs/runbooks/drapeaux-et-reglages.md`) | 1 min |
 | 10 | Rapport de l'agent d'analyse | **Agents IA**, « Rapports de l'agent d'analyse » (ou le courriel de 7 h) | Lire ; noter les tendances (annulations, sans chauffeur) | 3 min |
 | 11 | Dossiers des chauffeurs | **Tableau de bord** (« Chauffeurs à valider », « Documents à vérifier ») ; **Documents** ; **Véhicules** ; **Chauffeurs** | Valider ou refuser chaque document (l'agent recrutement propose, l'humain décide), statut des véhicules, **Activer** un chauffeur complet | 5 min |

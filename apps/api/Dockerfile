@@ -36,6 +36,8 @@ COPY --from=build /repo/packages/domain/dist packages/domain/dist
 COPY --from=build /repo/packages/db/dist packages/db/dist
 COPY --from=build /repo/packages/db/drizzle packages/db/drizzle
 COPY --from=build /repo/apps/api/dist apps/api/dist
+# Prompts système des agents, lus par les données de départ (`db:seed` lancé depuis cette image) : sans eux, agents sans prompt.
+COPY docs/agents docs/agents
 USER node
 WORKDIR /app/apps/api
 EXPOSE 4000

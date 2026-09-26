@@ -44,6 +44,7 @@ import { ZonesService } from '../pricing/zones.service.js';
 import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
+import { RideContextService } from './ride-context.service.js';
 import { dispatchSummaryOf, parseGeoPoint, preferencesOf, type RideRow } from './ride-view.js';
 import { RidesService, SYSTEM_ACTOR, type ActorRef } from './rides.service.js';
 
@@ -164,8 +165,6 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private runner = false;
   private subscriptions: Array<() => void> = [];
   private readonly localLocks = new Map<string, Promise<void>>();
-  /** Type de chaque organisation (plateforme ou partenaire), fixé à sa création : lu une fois par processus. */
-  private readonly organizationTypes = new Map<string, string | null>();
   /** Courses dont l'acceptation (chauffeur ou client) clôt elle-même la répartition : l'événement `ride.assigned` est ignoré. */
   private readonly closingAssignments = new Set<string>();
   /** Courses dont le client a été prévenu que le chauffeur demandé n'a pas la course (D37) ; la base fait foi après un redémarrage. */
@@ -187,6 +186,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     private readonly zones: ZonesService,
     private readonly outbox: NotificationsOutbox,
     private readonly audit: AuditService,
+    private readonly context: RideContextService,
   ) {}
 
   private get db() {
@@ -624,40 +624,15 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
 
   // --- Candidats ---
 
-  /** Course VIP (catégorie au-dessus de Neo Premium), aéroport ou entreprise : bonus Illimité (5.4). */
-  private async premiumContextOf(ride: RideRow): Promise<boolean> {
-    if (ride.reservedCategory !== 'neo_premium') return true;
-    const [fromAirport, toAirport] = await Promise.all([this.zones.isAirport(parseGeoPoint(ride.originGeo)), this.zones.isAirport(parseGeoPoint(ride.destinationGeo))]);
-    return fromAirport || toAirport || (await this.isBusinessRide(ride));
+  /** Course VIP (catégorie au-dessus de Neo Premium), aéroport ou entreprise : bonus Illimité (5.4), chauffeurs restreints écartés (5.11). */
+  private premiumContextOf(ride: RideRow): Promise<boolean> {
+    return this.context.premium(ride);
   }
 
   /** Contexte premium calculé au premier besoin puis réutilisé pendant le pas (il ne change pas au fil des vagues). */
   private premiumOnce(ride: RideRow): () => Promise<boolean> {
     let memo: Promise<boolean> | null = null;
     return () => (memo ??= this.premiumContextOf(ride));
-  }
-
-  /**
-   * Organisation partenaire de la course (flotte, compagnie de taxi, marque blanche, D42) ; la plateforme Neomoov, posée
-   * par défaut sur chaque course, n'en est pas une.
-   */
-  private async partnerOrganizationId(ride: RideRow): Promise<string | null> {
-    if (!ride.organizationId) return null;
-    let type = this.organizationTypes.get(ride.organizationId);
-    if (type === undefined) {
-      const [org] = await this.db.select({ type: schema.organizations.type }).from(schema.organizations).where(eq(schema.organizations.id, ride.organizationId)).limit(1);
-      type = org?.type ?? null;
-      if (org) this.organizationTypes.set(ride.organizationId, type);
-    }
-    return type !== null && type !== 'platform' ? ride.organizationId : null;
-  }
-
-  /** Course d'entreprise : compte entreprise du client ou organisation partenaire. */
-  private async isBusinessRide(ride: RideRow): Promise<boolean> {
-    if (await this.partnerOrganizationId(ride)) return true;
-    if (!ride.clientId) return false;
-    const [client] = await this.db.select({ businessAccountId: schema.clients.businessAccountId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1);
-    return Boolean(client?.businessAccountId);
   }
 
   /** Chauffeur demandé (priorité et exclusivité) : le favori du devis, sinon le chauffeur du véhicule choisi (D37). */
@@ -1070,7 +1045,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     const [client] = ride.clientId ? await this.db.select().from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
     if (!client) throw AppError.conflict('NEGOTIATION_NOT_ELIGIBLE', 'Réservation sans compte client', { reason: 'guest' });
     const [quote] = ride.quoteId ? await this.db.select({ flatRateCode: schema.quotes.flatRateCode }).from(schema.quotes).where(eq(schema.quotes.id, ride.quoteId)).limit(1) : [];
-    const ineligible = negotiationIneligibility({ flatRateCode: quote?.flatRateCode ?? null, category: ride.reservedCategory, organizationId: await this.partnerOrganizationId(ride), businessAccountId: client.businessAccountId });
+    const ineligible = negotiationIneligibility({ flatRateCode: quote?.flatRateCode ?? null, category: ride.reservedCategory, organizationId: await this.context.partnerOrganizationId(ride), businessAccountId: client.businessAccountId });
     if (ineligible) throw AppError.conflict('NEGOTIATION_NOT_ELIGIBLE', 'La négociation n\'est pas offerte pour cette course', { reason: ineligible });
     let group = client.experimentGroup as NegotiationMode | null;
     if (!group) {

@@ -1,0 +1,1 @@
+ALTER TABLE "weekly_statements" ADD COLUMN "offline_settlement" jsonb;

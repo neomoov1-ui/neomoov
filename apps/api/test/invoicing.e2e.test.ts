@@ -239,10 +239,13 @@ describe('facturation certifiée : factures, numérotation, notes de crédit, SE
     expect(view.lines).toEqual([{ code: 'cancellation_fee', label: 'Frais d\'annulation', amountCents: cancelled.feeCents, party: 'driver' }]);
     expect(sev.calls.find((c) => c.document.invoiceId === invoice!.id)?.method).toBe('registerCancellation');
 
-    const [noShow, free] = await insertRides(driver, 2, { state: 'no_show', cancellationFeeCents: 700, finalPriceCents: null, stateTimestamps: { no_show: new Date().toISOString() } });
+    const [noShow, free, direct] = await insertRides(driver, 3, { state: 'no_show', cancellationFeeCents: 700, finalPriceCents: null, stateTimestamps: { no_show: new Date().toISOString() } });
+    await db(app).update(schema.rides).set({ paymentChoice: 'prepaid', paymentMethod: 'card_app' }).where(eq(schema.rides.id, noShow!));
     await db(app).update(schema.rides).set({ state: 'cancelled_by_client', cancellationFeeCents: 0 }).where(eq(schema.rides.id, free!));
     expect((await invoicing().issueForRide(noShow!))?.invoice).toMatchObject({ kind: 'no_show', totalCents: 700 });
     expect(await invoicing().issueForRide(free!)).toBeNull();
+    // Payée au chauffeur : frais non encaissés en V1, donc aucune facture de frais (revue finale).
+    expect(await invoicing().issueForRide(direct!)).toBeNull();
   });
 
   it('remboursements : une note de crédit par remboursement (carte puis crédit), montants positifs, rattachée à la facture et au SEV', async ({ skip }) => {
@@ -303,6 +306,26 @@ describe('facturation certifiée : factures, numérotation, notes de crédit, SE
     expect(storage.objects.get(original!.pdfKey!)!.body.equals(firstPdf)).toBe(false);
     const credit = sev.calls.find((c) => c.document.invoiceId === note!.id);
     expect(credit?.document.original).toEqual({ number: original!.number, transactionId: transmitted.sevTransactionId });
+  });
+
+  it("remboursement réussi sans note de crédit (tâche perdue) : note émise par la passe périodique", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : la passe périodique ne rattrapait que les factures de course ; un remboursement dont la tâche était
+    // perdue (file sans Redis, trois échecs, PDF d'origine en erreur) n'avait jamais de note de crédit.
+    const { ride } = await completedRide();
+    const original = await until(() => mainInvoice(ride.id), (i) => i?.sevStatus === 'acknowledged' && Boolean(i?.pdfKey), 'facture de la course');
+    const [payment] = await db(app).select().from(schema.payments).where(and(eq(schema.payments.rideId, ride.id), eq(schema.payments.kind, 'ride')));
+    const stripeRefundId = `re_lost_${RUN}_${Math.random().toString(36).slice(2, 8)}`;
+    const [refund] = await db(app)
+      .insert(schema.refunds)
+      .values({ paymentId: payment!.id, mode: 'refund', amountCents: 700, reason: 'Tâche perdue (test)', stripeRefundId, status: 'succeeded', idempotencyKey: `refund:${ride.id}:${stripeRefundId}`, createdAt: new Date(Date.now() - 10 * 60_000) })
+      .returning({ id: schema.refunds.id });
+    expect((await invoicesOf(ride.id)).filter((i) => i.kind === 'credit_note')).toHaveLength(0);
+    await app.get(InvoiceJobsService).sweep();
+    const notes = (await invoicesOf(ride.id)).filter((i) => i.kind === 'credit_note');
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toMatchObject({ totalCents: 700, creditNoteOfId: original!.id });
+    expect((notes[0]!.lines as { creditNote?: { refundId?: string } }).creditNote?.refundId).toBe(refund!.id);
   });
 
   it('SEV : échec puis reprise manuelle, erreur après le nombre maximal de tentatives, reprise périodique, état dans My Hub', async ({ skip }) => {

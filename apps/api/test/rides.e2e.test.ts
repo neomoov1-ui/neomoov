@@ -1,10 +1,11 @@
 import 'reflect-metadata';
 import { schema } from '@neomoov/db';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DomainEventsService } from '../src/common/domain-events.js';
+import { ApproachNotifierService } from '../src/modules/rides/approach-notifier.service.js';
 import { bearer, cleanupTestData, createDriver, createStaffAndLogin, db, loginByOtp, startTestApp, type TestDriver } from './helpers.js';
 
 const PLATEAU = { address: '4500 rue Saint-Denis, Montréal', coordinates: { lat: 45.523, lng: -73.582 } };
@@ -82,6 +83,13 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
 
     expect((await request(server()).post(`/v1/driver/rides/${rideId}/depart`).set(bearer(driver.tokens)).expect(200)).body.state).toBe('en_route');
     expect((await request(server()).post(`/v1/driver/rides/${rideId}/depart`).set(bearer(driver.tokens)).expect(200)).body.state).toBe('en_route');
+    // Réservation : attribution par push, courriel et texto ; départ par push et texto, une seule fois même rejoué.
+    const clientNotices = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, client.user.id), sql`${schema.notifications.data}->>'rideId' = ${rideId}`));
+    const channelsOf = (template: string) => clientNotices.filter((n) => n.template === template).map((n) => n.channel).sort();
+    expect(channelsOf('ride.scheduled_assigned')).toEqual(['email', 'push', 'sms']);
+    expect(channelsOf('ride.scheduled_driver_departed')).toEqual(['push', 'sms']);
+    expect(channelsOf('ride.assigned')).toEqual([]);
+    expect(clientNotices.find((n) => n.template === 'ride.scheduled_driver_departed')!.data).toMatchObject({ plate: expect.any(String) });
     expect((await request(server()).post(`/v1/driver/rides/${rideId}/arrive`).set(bearer(driver.tokens)).expect(200)).body.state).toBe('arrived');
     const started = await request(server()).post(`/v1/driver/rides/${rideId}/start`).set(bearer(driver.tokens)).expect(200);
     expect(started.body.state).toBe('in_progress');
@@ -142,11 +150,25 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     expect(row).toEqual({ fee: 500, reason: 'changed_plans' });
     const twice = await request(server()).post(`/v1/rides/${late.id}/cancel`).set(bearer(client)).send({ reason: 'changed_plans' }).expect(200);
     expect(twice.body.feeCents).toBe(500);
+    // Trois annulations en 7 jours : alerte à l'exploitation (courriel), une seule fois par fenêtre.
+    const [clientRow] = await db(app).select({ id: schema.clients.id }).from(schema.clients).where(eq(schema.clients.userId, client.user.id));
+    const cancellationAlerts = () => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.template, 'alert.client_cancellations'), sql`${schema.notifications.data}->>'clientId' = ${clientRow!.id}`));
+    const deadline = Date.now() + 10_000;
+    while (!(await cancellationAlerts()).length && Date.now() < deadline) await new Promise((r) => setTimeout(r, 150));
+    const alerts = await cancellationAlerts();
+    expect(alerts.length).toBeGreaterThan(0);
+    expect(alerts.every((a) => a.channel === 'email')).toBe(true);
+    expect(alerts[0]!.data).toMatchObject({ cancelled: 3, noShows: 0, days: 7 });
+    expect(new Set(alerts.map((a) => a.recipientUserId)).size).toBe(alerts.length);
     const enRoute = (await requestRide(client, await quoteFor(client))).body;
     await assign(admin.tokens, enRoute.id, driver);
     await request(server()).post(`/v1/driver/rides/${enRoute.id}/depart`).set(bearer(driver.tokens)).expect(200);
     const enRouteCancel = await request(server()).post(`/v1/rides/${enRoute.id}/cancel`).set(bearer(client)).send({ reason: 'driver_not_moving' }).expect(200);
     expect(enRouteCancel.body.feeCents).toBe(500);
+    // Quatrième annulation : pas de seconde alerte dans la même fenêtre.
+    await new Promise((r) => setTimeout(r, 500));
+    expect(await cancellationAlerts()).toHaveLength(alerts.length);
+    await db(app).delete(schema.notifications).where(inArray(schema.notifications.id, alerts.map((a) => a.id)));
   });
 
   it('non-présentation : refusée avant cinq minutes ou sans deux contacts, puis 7,00 $', async ({ skip }) => {
@@ -189,6 +211,15 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     expect(sent.body.senderKind).toBe('client');
     const inbox = await request(server()).get(`/v1/rides/${ride.id}/messages`).set(bearer(driver.tokens)).expect(200);
     expect(inbox.body[0]).toMatchObject({ body: 'Je porte un manteau rouge', mine: false, senderKind: 'client' });
+    // Exploitation (My Hub) : lit le fil, écrit ; le client et le chauffeur sont prévenus et voient le message.
+    expect((await request(server()).get(`/v1/admin/rides/${ride.id}/messages`).set(bearer(admin.tokens)).expect(200)).body).toHaveLength(1);
+    const fromOperator = await request(server()).post(`/v1/admin/rides/${ride.id}/messages`).set(bearer(admin.tokens)).send({ body: 'Entrée par la porte 3' }).expect(201);
+    expect(fromOperator.body).toMatchObject({ senderKind: 'operator', mine: true });
+    expect((await request(server()).get(`/v1/rides/${ride.id}/messages`).set(bearer(client)).expect(200)).body.at(-1)).toMatchObject({ body: 'Entrée par la porte 3', senderKind: 'operator', mine: false });
+    const pinged = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.template, 'ride.message'), sql`${schema.notifications.data}->>'messageId' = ${fromOperator.body.id}`));
+    expect(new Set(pinged.map((n) => n.recipientUserId))).toEqual(new Set([client.user.id, driver.userId]));
+    const readonly = await createStaffAndLogin(app, ['readonly']);
+    expect((await request(server()).post(`/v1/admin/rides/${ride.id}/messages`).set(bearer(readonly.tokens)).send({ body: 'x' })).status).toBe(403);
     const shared = await request(server()).post(`/v1/rides/${ride.id}/share`).set(bearer(client)).expect(200);
     expect(shared.body.trackingUrl).toContain(`/suivi/${shared.body.token}`);
     const tracking = await request(server()).get(`/v1/public/track/${shared.body.token}`).expect(200);
@@ -236,6 +267,13 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     const second = await createDriver(app);
     await assign(admin.tokens, created.body.id, second);
     expect(await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, passengerPhone), eq(schema.notifications.template, 'ride.passenger_tracking')))).toHaveLength(1);
+    // Approche et arrivée : texto au passager, avec le véhicule à reconnaître.
+    await request(server()).post(`/v1/driver/rides/${created.body.id}/depart`).set(bearer(second.tokens)).expect(200);
+    expect(await app.get(ApproachNotifierService).onPosition(created.body.id, { lat: PLATEAU.coordinates.lat + 0.001, lng: PLATEAU.coordinates.lng })).toBe(true);
+    await request(server()).post(`/v1/driver/rides/${created.body.id}/arrive`).set(bearer(second.tokens)).expect(200);
+    const passengerSms = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, passengerPhone), inArray(schema.notifications.template, ['ride.passenger_approaching', 'ride.passenger_arrived'])));
+    expect(passengerSms.map((n) => n.template).sort()).toEqual(['ride.passenger_approaching', 'ride.passenger_arrived']);
+    expect(passengerSms.every((n) => n.channel === 'sms' && (n.data as { plate: string | null }).plate)).toBe(true);
     // Un passager qui est le client lui-même ne reçoit rien.
     const ownQuote = await quoteFor(client);
     const self = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key()).send({ quoteId: ownQuote.id, type: 'scheduled', requestedAt: inThreeHours(), paymentMethod: 'card_app', maxConsentedCents: ownQuote.maxConsentedCents, passenger: { name: 'Moi', phone: client.user.phone } }).expect(201);
@@ -257,7 +295,7 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     const xlDriver = await createDriver(app, 'neo_xl');
     const ok = await request(server()).post(`/v1/admin/rides/${created.body.id}/assign`).set(bearer(admin.tokens)).send({ driverId: xlDriver.driverId }).expect(200);
     expect(ok.body.servedCategory).toBe('neo_xl');
-    const guestNotification = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, guestPhone), eq(schema.notifications.template, 'ride.assigned')));
+    const guestNotification = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, guestPhone), eq(schema.notifications.template, 'ride.scheduled_assigned')));
     expect(guestNotification).toHaveLength(1);
 
     // Présence : hors ligne par défaut, en ligne avec position, positions acceptées puis expiration.

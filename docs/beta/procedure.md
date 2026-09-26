@@ -9,23 +9,16 @@
 | 1 | API en ligne et saine : `curl -s https://api.neomoov.net/v1/health` renvoie `"status":"ok"` | `docs/runbooks/redemarrer-un-service.md` |
 | 2 | My Hub accessible avec second facteur pour le fondateur et au moins un opérateur | `docs/runbooks/personnel-my-hub.md` |
 | 3 | Sauvegarde quotidienne en place et vérifiée | `docs/runbooks/sauvegardes.md` |
-| 4 | Fournisseurs réels branchés pour ce que la bêta utilise : textos (Twilio), courriels (Resend), notifications push (Expo), cartes (Google), stockage des documents (Supabase Storage), antivirus | `docs/operations/acces-a-fournir.md` |
-| 5 | Coordonnées d'assistance visibles dans les applications : réglages `support.phone` et `support.email`. Ils ne sont pas créés par les données de départ et My Hub ne modifie qu'un réglage existant : les créer une fois dans Supabase, « SQL Editor » (valeurs de l'entreprise, pas celles d'une personne), puis les modifier ensuite dans My Hub | Requête ci-dessous |
+| 4 | Fournisseurs réels branchés pour ce que la bêta utilise : textos (Twilio), courriels (Resend), notifications push (Expo), cartes (Google), modèle de langage (Anthropic), stockage des documents (Supabase Storage), antivirus (ClamAV) ; seuls restent simulés ceux de `ALLOW_MOCK_PROVIDERS` (proposition : `payment,sev,whatsapp,voice`) | `docs/operations/acces-a-fournir.md` |
+| 5 | Coordonnées d'assistance visibles dans les applications : réglages `support.phone` (format international) et `support.email`, créés vides par les données de départ, à remplir dans My Hub, **Paramètres** (valeurs de l'entreprise, pas celles d'une personne) | Écran Assistance des deux applications |
 | 6 | Numéro de transfert de l'agent vocal (`voice.transfer_number`) et numéro d'alerte SOS (`alerts.founder_phone`) remplacés dans My Hub, Paramètres | `docs/runbooks/drapeaux-et-reglages.md` |
 | 7 | Politique de confidentialité et conditions d'utilisation publiées sur neomoov.net et à jour (version `legal.*` des réglages) | neomoov.net |
 | 8 | Builds `production` des deux applications disponibles dans TestFlight et en test interne Google Play | `docs/runbooks/publication-mobile.md` |
 | 9 | Comptes de test créés | `comptes-de-test.md` |
 | 10 | Point juridique sur les courses rémunérées réglé | `README.md` de ce dossier |
-| 11 | Paiement : pendant la bêta, **paiement au chauffeur** (espèces ou terminal) seulement. Le prépaiement par carte dans l'application n'est pas encore branché (feuille de paiement Stripe à ajouter) et Stripe est en mode test | Consigne aux testeurs (section 3) |
+| 11 | Paiement : pendant la bêta, **paiement au chauffeur** (espèces, Interac ou terminal) seulement. Le prépaiement par carte dans l'application n'est pas encore branché (feuille de paiement Stripe à ajouter) : avec `PAYMENT_PROVIDER=mock` en production, la carte n'est pas proposée (`CARD_PAYMENTS` vide). Un chauffeur qui encaisse lui-même ses courses peut alors devoir des sommes à Neomoov (relevé au net négatif) : conduite à tenir dans `docs/runbooks/releves.md`, « Limite connue : solde négatif » | Consigne aux testeurs (section 3) |
 
-Création des réglages d'assistance (à adapter, une seule fois) :
-
-```
-INSERT INTO settings (key, scope, value, description) VALUES
-  ('support.phone', 'global', '"+1XXXXXXXXXX"'::jsonb, 'Téléphone de l''assistance affiché dans les applications'),
-  ('support.email', 'global', '"assistance@neomoov.net"'::jsonb, 'Courriel de l''assistance affiché dans les applications')
-ON CONFLICT DO NOTHING;
-```
+Sur une base chargée avant le 26 septembre 2026, les deux réglages peuvent manquer : relancer le chargement des données de départ (`docs/runbooks/base-de-donnees.md`, section 4), qui ajoute les réglages absents sans toucher aux autres, puis les remplir dans My Hub.
 
 ## 2. Vagues d'invitation (proposition)
 
@@ -86,7 +79,7 @@ Le testeur ouvre le lien avec le compte Google de son téléphone, accepte, puis
 | Incidents de course (SOS, plainte, objet perdu) | Tous | My Hub, **Incidents** : ils ne passent pas par le tableau de bêta |
 | Plantages | Automatique | App Store Connect (TestFlight, Plantages), Play Console (Android vitals) |
 
-Manque connu : le formulaire de retour intégré à l'écran Assistance des applications, prévu par le prompt 16, n'existe pas ; l'écran affiche seulement le téléphone et le courriel de l'assistance, et la conversation avec l'assistance (API `POST /v1/me/support/messages`) n'est pas encore reliée aux écrans.
+L'écran Assistance des deux applications contient une conversation (`POST /v1/me/support/messages`) : côté client, avec l'agent relation client, qui confie la conversation à l'équipe au besoin ; côté chauffeur, directement avec l'équipe. L'équipe répond depuis My Hub, **Agents IA**, « Conversations de l'assistance ». Un testeur peut y signaler un problème, mais ce n'est pas un formulaire de retour de bêta : reporter au tableau ce qui y relève de la bêta. Manque connu : le formulaire de retour intégré prévu par le prompt 16 (capture, catégorie) n'existe pas.
 
 Chaque retour est reporté dans `suivi-des-retours.md` le jour même, sans nom ni coordonnée : le code du testeur suffit.
 

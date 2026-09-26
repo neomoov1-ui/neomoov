@@ -30,11 +30,16 @@ export function isNightTime(date: Date, surcharges: SurchargeRules, timeZone: st
   return hour >= surcharges.nightStartHour || hour < surcharges.nightEndHour;
 }
 
-/** Heure de pointe : sert seulement à refuser l'Offre Flex. Il n'existe aucun multiplicateur de pointe. */
+/**
+ * Heure de pointe : sert seulement à refuser l'Offre Flex. Il n'existe aucun multiplicateur de pointe. Une plage qui
+ * passe minuit (fin au-delà de 1 440 minutes, par exemple vendredi 22 h à 2 h) couvre aussi le début du lendemain : la
+ * nuit de vendredi à samedi, samedi 1 h est en pointe (revue 17.B).
+ */
 export function isPeakHours(date: Date, windows: PeakWindow[], timeZone: string): boolean {
   const { weekday, hour, minute } = localTimeParts(date, timeZone);
   const now = hour * 60 + minute;
-  return windows.some((w) => w.days.includes(weekday) && now >= w.startMinute && now < w.endMinute);
+  const previousDay = (weekday + 6) % 7;
+  return windows.some((w) => (w.days.includes(weekday) && now >= w.startMinute && now < w.endMinute) || (w.days.includes(previousDay) && now + 1440 < w.endMinute));
 }
 
 /** Forfait applicable entre deux zones, dans le sens défini ou dans les deux sens. */

@@ -34,6 +34,8 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('invoice.issued', 'client', ['email']),
   rule('ride.cancelled_by_client', 'driver', ['push']),
   rule('ride.cancelled_by_operator', 'client', ['push']),
+  rule('ride.driver_reminder', 'driver', ['push']),
+  rule('ride.interrupted', 'client', ['push', 'sms'], true),
   rule('ride.no_show', 'client', ['push']),
   rule('ride.no_driver', 'client', ['push']),
   rule('ride.reassigning', 'client', ['push']),
@@ -43,16 +45,23 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('ride.negotiation_fallback', 'client', ['push']),
   rule('ride.removed_no_movement', 'driver', ['push']),
   rule('ride.passenger_tracking', 'passenger', ['sms']),
+  rule('ride.passenger_approaching', 'passenger', ['sms']),
+  rule('ride.passenger_arrived', 'passenger', ['sms']),
   /** Réservation par l'agent vocal : confirmation écrite par texto à l'appelant. */
   rule('ride.voice_confirmation', 'passenger', ['sms']),
   // Réservation planifiée : confirmation, rappel, attribution.
   rule('ride.scheduled_confirmed', 'client', ['push', 'email', 'sms']),
   rule('ride.scheduled_reminder', 'client', ['push', 'email', 'sms']),
   rule('ride.scheduled_confirmed_driver', 'driver', ['push']),
+  rule('ride.scheduled_assigned', 'client', ['push', 'email', 'sms'], true),
+  /** Départ vers une réservation : le courriel arriverait trop tard pour servir (décision de la revue finale). */
+  rule('ride.scheduled_driver_departed', 'client', ['push', 'sms']),
   // Messages dans la course.
   rule('ride.message', 'client', ['push']),
   /** Client sans application (réservation par téléphone ou pour un tiers) : le texte du chauffeur par texto, réponse relayée. */
   rule('ride.message_sms', 'passenger', ['sms']),
+  /** Message de l'exploitation à un client sans application. */
+  rule('ride.operator_message_sms', 'passenger', ['sms']),
   // Paiements.
   rule('payment.authorization_failed', 'client', ['push', 'email'], true),
   rule('payment.balance_due', 'client', ['push', 'email']),
@@ -89,6 +98,8 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('alert.settlement_failed', 'staff', ['email']),
   rule('alert.agent_escalation', 'staff', ['email']),
   rule('alert.agent_budget', 'staff', ['email']),
+  rule('alert.client_cancellations', 'staff', ['email']),
+  rule('alert.benchmark_exceeded', 'staff', ['email']),
 ];
 
 const BY_TEMPLATE = new Map(NOTIFICATION_MATRIX.map((r) => [r.template, r]));

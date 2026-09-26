@@ -4,15 +4,29 @@
 
 ## 1. Créer le premier administrateur (une fois, depuis le poste ou le serveur)
 
-Le mot de passe passe par une variable d'environnement, jamais par un argument (il resterait dans l'historique du shell).
+Le mot de passe passe par la variable d'environnement `STAFF_PASSWORD` (au moins 12 caractères), jamais par un argument (il resterait dans l'historique du shell). La façon de la poser dépend du terminal :
+
+| Terminal | Commande |
+|---|---|
+| Git Bash (poste) ou `bash` (serveur) | `read -rs STAFF_PASSWORD && export STAFF_PASSWORD` : taper le mot de passe (rien ne s'affiche), puis Entrée. À défaut : `export STAFF_PASSWORD='…'` |
+| PowerShell | `$env:STAFF_PASSWORD = '…'` |
+| Invite de commandes (cmd) | `set STAFF_PASSWORD=…` |
+
+Depuis le poste, avec la `DATABASE_URL` de la base visée dans `.env` :
 
 ```
-cd C:\Users\PC\code\neomoov
-set STAFF_PASSWORD=<mot de passe d'au moins 12 caractères>      # PowerShell : $env:STAFF_PASSWORD = '…'
+cd C:/Users/PC/code/neomoov
 pnpm --filter @neomoov/api create-staff --email admin@neomoov.net --phone +15145550100 --first Christopher --last N --roles admin
 ```
 
-Sur le serveur : même commande dans le conteneur de l'API (`docker compose -f infra/compose.prod.yml run --rm --no-deps -e STAFF_PASSWORD api node dist/scripts/create-staff.js --email … --phone … --first … --last … --roles admin`).
+Sur le serveur (base de production ; en production, les données de départ ne créent aucun compte, ce geste est donc obligatoire), dans `/opt/neomoov`, après avoir posé `STAFF_PASSWORD` dans `bash` :
+
+```
+docker compose -f infra/compose.prod.yml run --rm --no-deps -e STAFF_PASSWORD api node dist/scripts/create-staff.js --email … --phone … --first … --last … --roles admin
+unset STAFF_PASSWORD
+```
+
+Le script démarre l'API sans l'exposer : il exige donc une configuration valide (`.env` complet, `ALLOW_MOCK_PROVIDERS` compris, `docs/operations/acces-a-fournir.md`) et Redis démarré. Relancé avec le courriel ou le téléphone d'un membre existant, il met à jour ce compte (rôles ajoutés, mot de passe remplacé) : c'est la voie de secours si le seul administrateur a perdu son mot de passe.
 
 Rôles : `admin` (tout), `operator` (exploitation), `finance` (relevés, factures), `readonly` (lecture seule). Plusieurs rôles séparés par des virgules.
 
@@ -44,7 +58,7 @@ My Hub (administrateur) : **Administration**, **Clés de service** : liste (pré
 
 ### Clé publique du site (réservation web, préinscription, WordPress)
 
-Une clé à la seule portée `public:write` (`POST /v1/admin/api-keys` avec `{"name": "Site web", "scopes": ["public:write"]}`) ouvre `POST /v1/public/quotes`, `POST /v1/public/leads` et `GET /v1/public/places/*`, rien d'autre. Elle se range dans la variable `NEOMOOV_PUBLIC_API_KEY` du serveur web (jamais dans une page) ; le site WordPress l'utilise de la même façon, depuis son serveur. Détail et exemple d'appel : `docs/api-publique.md`.
+Une clé à la seule portée `public:write` (écran **Clés de service**, nom « Site web », portée `public:write` ; ou `POST /v1/admin/api-keys` avec `{"name": "Site web", "scopes": ["public:write"]}`) ouvre `POST /v1/public/quotes`, `POST /v1/public/leads` et `GET /v1/public/places/*`, rien d'autre. Elle se range dans la variable `NEOMOOV_PUBLIC_API_KEY` du serveur web (jamais dans une page) ; le site WordPress l'utilise de la même façon, depuis son serveur. Détail et exemple d'appel : `docs/api-publique.md`.
 
 ## 6. Journal d'audit
 

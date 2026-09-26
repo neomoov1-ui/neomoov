@@ -6,7 +6,7 @@
  * Chaque action est journalisée avec l'acteur (intercepteur d'audit et entrées explicites des services).
  */
 import {
-  adminCancelRideSchema, adminClientSchema, adminDashboardSchema, adminDataRequestSchema, adminDocumentSchema,
+  adminCancelRideSchema, adminInterruptRideSchema, interruptionResultSchema, adminClientSchema, adminDashboardSchema, adminDataRequestSchema, adminDocumentSchema,
   adminDriverDetailSchema, adminDriverListItemSchema, adminIncidentSchema, adminInvoiceSchema, adminLeadSchema, adminListQuerySchema, adminPromotionSchema,
   adminReportSchema, adminRideListItemSchema, adminRideListQuerySchema, adminSettingSchema, adminStaffSchema, adminStatementSchema, adminVehicleSchema,
   cancellationResultSchema, documentReviewSchema, driverProgramsSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
@@ -79,6 +79,17 @@ export class AdminOverviewController {
   @ApiErrors(400, 401, 403, 404, 409, 429)
   cancelRide(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(adminCancelRideSchema)) body: z.infer<typeof adminCancelRideSchema>, @CurrentUser() user: UserActor) {
     return this.rides.cancelByOperator(id, user, body);
+  }
+
+  @Post('rides/:id/interrupt')
+  @Roles(...STAFF_WRITE_ROLES)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Interruption d\'une course en cours (accident, chauffeur injoignable) : incident ouvert, autorisation levée, aucune facture automatique' })
+  @ZodBody(adminInterruptRideSchema)
+  @ZodResponse(200, interruptionResultSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  interruptRide(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(adminInterruptRideSchema)) body: z.infer<typeof adminInterruptRideSchema>, @CurrentUser() user: UserActor) {
+    return this.rides.interruptByOperator(id, user, body);
   }
 
   @Get('reports')

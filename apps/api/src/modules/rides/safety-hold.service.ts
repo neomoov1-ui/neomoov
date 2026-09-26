@@ -17,6 +17,7 @@ import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
+import { liftSuspension } from '../drivers/driver-status.js';
 
 /** Préfixe du motif des blocages préventifs : jamais levés par la conformité ni par le solde. */
 export const SAFETY_SANCTION_PREFIX = 'Sécurité : ';
@@ -94,12 +95,8 @@ export class SafetyHoldService {
       return;
     }
     await this.db.update(schema.sanctions).set({ endsAt: now, decidedByUserId: actor.userId }).where(eq(schema.sanctions.id, hold.id));
-    const [still] = await this.db
-      .select({ id: schema.sanctions.id })
-      .from(schema.sanctions)
-      .where(and(eq(schema.sanctions.driverId, hold.driverId), eq(schema.sanctions.type, 'suspension'), or(isNull(schema.sanctions.endsAt), sql`${schema.sanctions.endsAt} > ${now.toISOString()}::timestamptz`)))
-      .limit(1);
-    if (!still) await this.db.update(schema.drivers).set({ status: 'active' }).where(and(eq(schema.drivers.id, hold.driverId), eq(schema.drivers.status, 'suspended')));
+    const lifted = await liftSuspension(this.db, hold.driverId, now);
+    const still = lifted === 'suspended';
     if (driver) await this.outbox.queue({ recipientUserId: driver.userId, template: 'safety.lifted', data: {} });
     this.audit.record({ action: 'safety.lifted', entity: 'drivers', entityId: hold.driverId, before: { status: driver?.status ?? null }, after: { incidentId, status: still ? driver?.status ?? null : 'active' } });
   }

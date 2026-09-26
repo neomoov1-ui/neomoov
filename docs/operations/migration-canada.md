@@ -9,7 +9,7 @@
 | Caddy, API (2 instances), worker, web, Redis | VPS KVM LWS, centre de données en France (Paris) | En transit et en mémoire ; Redis contient des tâches en attente (identifiants, textes de notifications) |
 | Base PostgreSQL et PostGIS | Supabase, région « Canada (Central) », c'est-à-dire AWS `ca-central-1`, à Montréal | Toutes, au repos |
 | Documents des chauffeurs | Supabase Storage, même région (D49) | Pièces d'identité, permis, assurances |
-| Sauvegardes logiques | Disque du VPS en France (`/var/backups/neomoov`), 14 jours | Copie chiffrée de toute la base |
+| Sauvegardes logiques | Disque du VPS en France (`/var/backups/neomoov`), 35 jours | Copie chiffrée de toute la base |
 | Fournisseurs (Stripe, Twilio, Resend, Expo, Google, Anthropic, Vapi, Meta) | Surtout aux États-Unis | Selon le service ; inchangés par la migration (EFVP, `docs/privacy/efvp.md`) |
 
 Deux constats orientent le plan :
@@ -74,7 +74,7 @@ ssh root@<ancienne IP> "tar -C /var/lib/docker/volumes/neomoov_caddy_data/_data 
 ```
 
 7. Déployer sur le nouveau serveur : `git remote add canada ssh://root@<nouvelle IP>/opt/neomoov.git`, puis `git push canada main`.
-8. Ajouter le service ClamAV s'il a été ajouté à la composition entre-temps (il manque aujourd'hui, voir le rapport de l'étape 16), la tâche planifiée de sauvegarde (`docs/runbooks/sauvegardes.md`) et `BACKUP_REMOTE` vers un seau S3 de `ca-central-1`.
+8. Vérifier ce que le script de préparation pose désormais seul : tâches planifiées de sauvegarde (`/etc/cron.d/neomoov-backup`) et de relance des conteneurs malades (`/etc/cron.d/neomoov-restart-unhealthy`). L'antivirus ClamAV fait partie de la composition (profil `antivirus`, environ 1,2 Go de mémoire) : il suit `COMPOSE_PROFILES` du `.env` copié. Installer rclone et poser `BACKUP_REMOTE` vers un seau S3 de `ca-central-1`. Si le déploiement passe par GitHub Actions, ajouter la clé publique de `DEPLOY_SSH_KEY` à `/root/.ssh/authorized_keys` de la cible.
 
 ### Phase 2 : répétition (J-7 à J-3), contre la base de staging
 
@@ -114,6 +114,7 @@ Après la fenêtre :
 - Retirer l'ancienne IP de la restriction de la clé Google Maps.
 - Remonter la TTL du DNS à 3 600 secondes après 48 heures.
 - Mettre à jour `docs/runbooks/deploiement-lws.md` (adresse, nom du dépôt distant) et le registre d'exploitation.
+- GitHub, environnement `production` : variable `PRODUCTION_HOST` vers la nouvelle adresse et secret `DEPLOY_KNOWN_HOSTS` avec la clé d'hôte de la cible (`docs/operations/acces-a-fournir.md`, section 4) ; sans cela, le prochain déploiement par GitHub Actions viserait l'ancien serveur ou échouerait.
 
 ## 5. Tests de réception
 

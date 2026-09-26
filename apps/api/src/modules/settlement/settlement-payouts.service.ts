@@ -6,7 +6,7 @@
  * automatique dès que le solde est régularisé. `driver_balances` reflète les relevés non réglés.
  */
 import { schema } from '@neomoov/db';
-import { evaluateSuspension, type AdminBalance, type AdminStatementDetail } from '@neomoov/domain';
+import { evaluateSuspension, type AdminBalance, type AdminStatementDetail, type StatementSettleOffline } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, isNotNull, lt, ne, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -71,25 +71,67 @@ export class SettlementPayoutsService {
       }
     } else if (!driver.stripeDebitPaymentMethodId) outcome = { status: 'failed', failureCode: 'debit_method_missing' };
     else {
-      const charge = await this.provider.chargeOffSession({
-        amountCents: -row.netCents, customerRef: await this.payments.customerFor(driver.userId), paymentMethodRef: driver.stripeDebitPaymentMethodId,
-        idempotencyKey: `statement:${id}:charge:${attempts}`, description: `Relevé Neomoov ${row.periodStart} au ${row.periodEnd}`, metadata: { statement_id: id },
-      });
-      outcome = charge.status === 'captured' || charge.status === 'authorized' ? { status: 'charged', chargeRef: charge.intentId } : { status: 'failed', failureCode: charge.failureCode ?? charge.status };
+      // Une erreur du fournisseur (réseau, panne) donne un relevé en échec, repris le lundi : laissé « émis », il n'était
+      // plus jamais prélevé ni compté dans le solde du chauffeur (revue 17.B).
+      try {
+        const charge = await this.provider.chargeOffSession({
+          amountCents: -row.netCents, customerRef: await this.payments.customerFor(driver.userId), paymentMethodRef: driver.stripeDebitPaymentMethodId,
+          idempotencyKey: `statement:${id}:charge:${attempts}`, description: `Relevé Neomoov ${row.periodStart} au ${row.periodEnd}`, metadata: { statement_id: id },
+        });
+        outcome = charge.status === 'captured' || charge.status === 'authorized' ? { status: 'charged', chargeRef: charge.intentId } : { status: 'failed', failureCode: charge.failureCode ?? charge.status };
+      } catch (error) {
+        this.logger.error({ err: error, statementId: id }, 'Prélèvement du relevé en erreur');
+        outcome = { status: 'failed', failureCode: 'charge_failed' };
+      }
     }
     const settled = outcome.status !== 'failed';
     // Seul un relevé encore à régler change d'état : deux règlements simultanés n'écrivent qu'une fois.
-    await this.db
+    const changed = await this.db
       .update(schema.weeklyStatements)
       .set({
         status: outcome.status, attempts, failureCode: outcome.failureCode ?? null, ...(settled ? { settledAt: now } : {}),
         ...(outcome.transferRef ? { stripeTransferId: outcome.transferRef } : {}), ...(outcome.chargeRef ? { stripeChargeId: outcome.chargeRef } : {}),
       })
-      .where(and(eq(schema.weeklyStatements.id, id), inArray(schema.weeklyStatements.status, ['issued', 'failed'])));
+      .where(and(eq(schema.weeklyStatements.id, id), inArray(schema.weeklyStatements.status, ['issued', 'failed'])))
+      .returning({ id: schema.weeklyStatements.id });
     this.audit.record({ action: settled ? 'statement.settled' : 'statement.settlement_failed', entity: 'weekly_statements', entityId: id, after: { status: outcome.status, netCents: row.netCents, attempts, failureCode: outcome.failureCode ?? null } });
     if (!settled) {
       await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.settlement_failed', data: { statementId: id, netCents: row.netCents, reason: outcome.failureCode ?? null } });
+      // Revue finale : l'exploitation est prévenue de chaque règlement en échec (courriel), pas seulement le chauffeur.
+      await this.outbox.queueForStaff('alert.settlement_failed', { statementId: id, netCents: row.netCents, reason: outcome.failureCode ?? null, attempts });
+    } else if (changed.length && row.netCents > 0) {
+      // Versement réussi : le chauffeur est prévenu une seule fois (état changé par ce règlement).
+      await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.paid', data: { statementId: id, netCents: row.netCents } });
     }
+    await this.refreshBalance(row.driverId, now);
+    return this.statements.detail(id);
+  }
+
+  /**
+   * Règlement constaté hors plateforme par les finances (revue finale, E5) : un relevé négatif payé par Interac,
+   * virement ou espèces, ou un net positif versé à la main, sort de la boucle des essais et de la suspension. Le relevé
+   * passe à `charged` (le chauffeur a payé) ou `paid` (Neomoov a versé), avec le moyen, la référence et l'auteur ;
+   * rejoué avec la même référence, il ne change rien ; le solde est recalculé (réactivation automatique).
+   */
+  async settleOffline(id: string, actor: { userId: string }, input: StatementSettleOffline, now = new Date()): Promise<AdminStatementDetail> {
+    const [row] = await this.db.select().from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, id)).limit(1);
+    if (!row) throw AppError.notFound('STATEMENT_NOT_FOUND', 'Relevé introuvable');
+    if (row.status === 'draft') throw AppError.conflict('STATEMENT_NOT_ISSUED', 'Émettez le relevé avant de le régler');
+    if (row.status === 'paid' || row.status === 'charged') {
+      if (row.offlineSettlement?.reference === input.reference) return this.statements.detail(id);
+      throw AppError.conflict('STATEMENT_ALREADY_SETTLED', 'Ce relevé est déjà réglé', { status: row.status });
+    }
+    const offlineSettlement = { method: input.method, reference: input.reference, note: input.note ?? null, byUserId: actor.userId };
+    const status = row.netCents < 0 ? 'charged' : 'paid';
+    const changed = await this.db
+      .update(schema.weeklyStatements)
+      .set({ status, settledAt: now, failureCode: null, offlineSettlement })
+      .where(and(eq(schema.weeklyStatements.id, id), inArray(schema.weeklyStatements.status, ['issued', 'failed'])))
+      .returning({ id: schema.weeklyStatements.id });
+    if (!changed.length) return this.statements.detail(id);
+    this.audit.record({ action: 'statement.settled_offline', entity: 'weekly_statements', entityId: id, before: { status: row.status, failureCode: row.failureCode }, after: { status, netCents: row.netCents, method: input.method, reference: input.reference, note: input.note ?? null } });
+    const [driver] = await this.db.select({ userId: schema.drivers.userId }).from(schema.drivers).where(eq(schema.drivers.id, row.driverId)).limit(1);
+    if (driver && row.netCents > 0) await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.paid', data: { statementId: id, netCents: row.netCents } });
     await this.refreshBalance(row.driverId, now);
     return this.statements.detail(id);
   }

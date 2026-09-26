@@ -8,12 +8,16 @@
  */
 import { localClock, reportsDue, type AgentRunView, type Language } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { DomainEventsService, type DomainEvents } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
+import { DB, type Database } from '../../infra/db.module.js';
 import { QueueService } from '../../infra/queue.module.js';
+import { AuditService } from '../audit/audit.service.js';
+import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { AccountingAgent, AnalyticsAgent, RecruitmentAgent } from './back-office.agents.js';
 import { CustomerRelationsAgent } from './customer-relations.agent.js';
 import { QualityAgent } from './quality.agent.js';
@@ -33,6 +37,9 @@ export class AgentJobsService implements OnModuleInit {
     private readonly accounting: AccountingAgent,
     private readonly analytics: AnalyticsAgent,
     private readonly quality: QualityAgent,
+    @Inject(DB) private readonly database: Database,
+    private readonly audit: AuditService,
+    private readonly outbox: NotificationsOutbox,
   ) {}
 
   get triggersEnabled(): boolean {
@@ -79,10 +86,33 @@ export class AgentJobsService implements OnModuleInit {
       case 'reports':
         await this.reportTick(new Date());
         await this.qualityTick(new Date());
+        await this.benchmarkTick(new Date());
         return;
       default:
         this.logger.warn({ job: name }, 'Tâche d\'agent inconnue');
     }
+  }
+
+  /**
+   * Veille prix (D33) : une fois par jour, à partir de l'heure des rapports, alerte la direction (courriel) si des devis
+   * des dernières 24 heures ont dépassé la référence concurrente (`pricing.benchmark_exceeded`). Le marqueur du jour est
+   * inscrit au journal d'audit, même sans dépassement, pour ne jamais alerter deux fois.
+   */
+  async benchmarkTick(now = new Date()): Promise<number | null> {
+    const [tz, hour] = await Promise.all([this.settings.string('service.time_zone', 'America/Toronto'), this.settings.number('agents.report_hour', 7)]);
+    const clock = localClock(now, tz);
+    if (clock.hour < hour) return null;
+    const db = this.database.db;
+    const [done] = await db.execute<{ id: string }>(sql`SELECT id FROM audit_log WHERE action = 'pricing.benchmark_digest' AND after->>'date' = ${clock.date} LIMIT 1`);
+    if (done) return null;
+    const since = new Date(now.getTime() - 86_400_000).toISOString();
+    const [row] = await db.execute<{ n: number; categories: string[] | null }>(sql`
+      SELECT count(*)::int AS n, array_agg(DISTINCT after->>'category') AS categories FROM audit_log
+      WHERE action = 'pricing.benchmark_exceeded' AND occurred_at >= ${since}::timestamptz AND occurred_at <= ${now.toISOString()}::timestamptz`);
+    const count = Number(row?.n ?? 0);
+    await this.audit.recordSystem({ action: 'pricing.benchmark_digest', entity: 'quotes', after: { date: clock.date, count } });
+    if (count > 0) await this.outbox.queueForStaff('alert.benchmark_exceeded', { date: clock.date, count, categories: (row?.categories ?? []).filter(Boolean) });
+    return count;
   }
 
   /** Qualité (5.11) : une passe par jour de Montréal à partir de `quality.run_hour` (4 h), référence = date (aucune en double). */

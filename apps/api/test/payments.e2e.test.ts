@@ -219,6 +219,38 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect(await ridePayment(ride.id)).toMatchObject({ status: 'authorized' });
   });
 
+  it("course terminée sans autorisation valide : prélèvement hors session, sinon solde dû (jamais abandonnée en silence)", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : une carte « pending » (autorisation différée jamais faite) ou « failed » à l'attribution était ignorée
+    // à la fin de course : ni capture, ni incident, ni solde dû.
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+
+    const client = await loginByOtp(app);
+    const pickup = new Date(Date.now() + 10 * 86_400_000).toISOString();
+    const deferred = (await book(client, await quote(client, pickup), { requestedAt: pickup }).expect(201)).body as { id: string };
+    await assigned(admin.tokens, deferred.id, driver);
+    await until(() => db(app!).select({ type: schema.rideEvents.type }).from(schema.rideEvents).where(eq(schema.rideEvents.rideId, deferred.id)), (rows) => rows.some((r) => r.type === 'payment_authorization_deferred'), 'autorisation différée');
+    const done = await drive(driver, deferred.id);
+    const charged = await until(() => ridePayment(deferred.id), (p) => p?.status === 'captured', 'prélèvement hors session');
+    expect(charged!.capturedCents).toBe(done.finalPriceCents);
+
+    provider.nextCard = { brand: 'visa', last4: '0002', declined: true };
+    const declined = await loginByOtp(app);
+    provider.nextCard = { brand: 'visa', last4: '4242' };
+    const ride = (await book(declined, await quote(declined)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, driver);
+    await until(() => ridePayment(ride.id), (p) => p?.status === 'failed', 'refus à l’attribution');
+    const finished = await drive(driver, ride.id);
+    await until(() => db(app!).select({ balance: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, declined.user.id)), (rows) => rows[0]?.balance === finished.finalPriceCents, 'solde dû');
+    const balance = (await request(server()).get('/v1/me/balance').set(bearer(declined)).expect(200)).body;
+    expect(balance).toMatchObject({ balanceDueCents: finished.finalPriceCents, rides: [{ rideId: ride.id, amountDueCents: finished.finalPriceCents }] });
+    // Rejoué, l'événement de fin de course n'ajoute rien au solde.
+    await app.get(PaymentsService).onRideCompleted(ride.id);
+    const [after] = await db(app).select({ balance: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, declined.user.id));
+    expect(after!.balance).toBe(finished.finalPriceCents);
+  });
+
   it('échec de capture : nouvelle tentative réussie ; deux refus : incident, solde dû, réservations bloquées, règlement idempotent', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
@@ -259,6 +291,34 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect((await book(client, await quote(client))).status).toBe(201);
   });
 
+  it("dépassement de l'autorisation : le solde dû est prélevé au règlement, jamais effacé sans paiement", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : settle() recalculait le solde à partir des seuls paiements « failed » ; le dépassement d'une capture
+    // réussie (paiement « captured ») était remis à zéro sans aucun prélèvement.
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await book(client, await quote(client)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, driver);
+    const authorized = await until(() => ridePayment(ride.id), (p) => p?.status === 'authorized', 'autorisation');
+    // Autorisation ramenée à 10 $ : le prix final la dépasse.
+    await db(app).update(schema.payments).set({ authorizedCents: 1000 }).where(eq(schema.payments.id, authorized!.id));
+    const done = await drive(driver, ride.id);
+    const shortfall = done.finalPriceCents - 1000;
+    expect(shortfall).toBeGreaterThan(0);
+    await until(() => ridePayment(ride.id), (p) => p?.status === 'captured', 'capture partielle');
+    await until(() => db(app!).select({ balance: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, client.user.id)), (rows) => rows[0]?.balance === shortfall, 'solde dû du dépassement');
+    const balance = (await request(server()).get('/v1/me/balance').set(bearer(client)).expect(200)).body;
+    expect(balance).toMatchObject({ balanceDueCents: shortfall, rides: [{ rideId: ride.id, amountDueCents: shortfall }] });
+
+    const settled = (await request(server()).post('/v1/me/settle').set(bearer(client)).send({}).expect(200)).body;
+    expect(settled).toEqual({ paidCents: shortfall, balanceDueCents: 0 });
+    const extra = (await paymentsOf(ride.id)).filter((p) => p.kind === 'balance');
+    expect(extra.map((p) => [p.status, p.capturedCents])).toEqual([['captured', shortfall]]);
+    const replay = (await request(server()).post('/v1/me/settle').set(bearer(client)).send({}).expect(200)).body;
+    expect(replay).toEqual({ paidCents: 0, balanceDueCents: 0 });
+  });
+
   it('annulation après le départ du chauffeur : frais capturés sur l\'autorisation ; annulation gratuite : autorisation levée', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
@@ -281,6 +341,28 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect(free.feeCents).toBe(0);
     const released = await until(() => ridePayment(early.id), (p) => p?.status === 'cancelled', 'autorisation levée');
     expect(provider.intents.get(released!.stripePaymentIntentId!)?.status).toBe('canceled');
+  });
+
+  it('annulation par le chauffeur : la course réattribuée garde son autorisation et est capturée à la fin', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : l'annulation du chauffeur levait l'autorisation alors que la course repart en répartition ; le
+    // second chauffeur la terminait sans aucune capture (course gratuite).
+    const client = await loginByOtp(app);
+    const first = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const second = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await book(client, await quote(client)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, first);
+    const authorized = await until(() => ridePayment(ride.id), (p) => p?.status === 'authorized', 'autorisation');
+    await request(server()).post(`/v1/driver/rides/${ride.id}/cancel`).set(bearer(first.tokens)).send({ reason: 'Véhicule en panne' }).expect(200);
+    // Traitement de l'événement d'annulation (normalement par la file), rendu déterministe pour le test.
+    await app.get(PaymentsService).onRideReleased(ride.id, 'cancelled_by_driver');
+    expect((await ridePayment(ride.id))?.status).toBe('authorized');
+    await assigned(admin.tokens, ride.id, second);
+    const done = await drive(second, ride.id);
+    const captured = await until(() => ridePayment(ride.id), (p) => p?.status === 'captured', 'capture après réattribution');
+    expect(captured!.stripePaymentIntentId).toBe(authorized!.stripePaymentIntentId);
+    expect(captured!.capturedCents).toBe(done.finalPriceCents);
   });
 
   it('paiement direct confirmé par le chauffeur à la fin de course ; un écart ouvre un incident ; refusé pour une course payée par carte', async ({ skip }) => {
@@ -341,6 +423,26 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect(receipt[0]!.refundedCents).toBe(1_000);
     const forbidden = await request(server()).post(`/v1/admin/rides/${ride.id}/refund`).set(bearer(client)).send({ amountCents: 100, reason: 'Pour moi' });
     expect(forbidden.status).toBe(403);
+  });
+
+  it('crédits simultanés : leur total ne dépasse jamais le prix de la course', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : le plafond (prix moins le déjà rendu) était lu hors transaction ; deux crédits décidés en même temps
+    // avec des clés différentes passaient tous les deux (40 $ de crédit pour une course de 25 $).
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await book(client, await quote(client)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, driver);
+    await until(() => ridePayment(ride.id), (p) => p?.status === 'authorized', 'autorisation');
+    const done = await drive(driver, ride.id);
+    await until(() => ridePayment(ride.id), (p) => p?.status === 'captured', 'capture');
+    const amount = Math.ceil(done.finalPriceCents * 0.6);
+    const results = await Promise.all([1, 2, 3].map(() => request(server()).post(`/v1/admin/rides/${ride.id}/refund`).set(bearer(admin.tokens)).set('Idempotency-Key', key()).send({ amountCents: amount, reason: 'Geste commercial', mode: 'credit' })));
+    expect(results.filter((r) => r.status === 201)).toHaveLength(1);
+    expect(results.filter((r) => r.status === 400).every((r) => r.body.code === 'REFUND_TOO_HIGH')).toBe(true);
+    const credits = await db(app).select().from(schema.credits).where(eq(schema.credits.userId, client.user.id));
+    expect(credits.filter((c) => c.origin === 'refund').reduce((s, c) => s + c.amountCents, 0)).toBe(amount);
   });
 
   it('webhook : signature vérifiée, même événement reçu trois fois = une écriture et un traitement, reprise des échecs', async ({ skip }) => {

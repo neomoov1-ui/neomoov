@@ -19,6 +19,7 @@ import { ComplianceService } from '../compliance/compliance.service.js';
 import type { UserActor } from '../auth/actor.js';
 import { PresenceService } from '../rides/presence.service.js';
 import { FieldCipher } from '../../common/field-cipher.js';
+import { statusAfterSuspension } from '../drivers/driver-status.js';
 
 type DriverRow = typeof schema.drivers.$inferSelect;
 
@@ -160,9 +161,11 @@ export class AdminDriversService {
     const now = new Date();
     await this.db.transaction(async (tx) => {
       await tx.update(schema.sanctions).set({ endsAt: now }).where(and(eq(schema.sanctions.driverId, id), eq(schema.sanctions.type, 'suspension'), or(isNull(schema.sanctions.endsAt), sql`${schema.sanctions.endsAt} > now()`)));
-      await tx.update(schema.drivers).set({ status: 'active', activatedAt: driver.activatedAt ?? now }).where(eq(schema.drivers.id, id));
+      // Réactivation humaine : toutes les suspensions sont levées ; une restriction encore en cours est conservée.
+      const next = (await statusAfterSuspension(tx, id, now)) === 'restricted' ? 'restricted' : 'active';
+      await tx.update(schema.drivers).set({ status: next, activatedAt: driver.activatedAt ?? now }).where(eq(schema.drivers.id, id));
     });
-    this.audit.record({ action: 'admin.driver_reactivated', entity: 'drivers', entityId: id, before: { status: driver.status }, after: { status: 'active' } });
+    this.audit.record({ action: 'admin.driver_reactivated', entity: 'drivers', entityId: id, before: { status: driver.status } });
     return this.detail(id);
   }
 

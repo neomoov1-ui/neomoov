@@ -11,23 +11,25 @@ import {
 } from './types.js';
 
 type Mode = 'mock' | 'real';
-const choose = <T>(token: symbol, key: keyof AppEnv, mock: () => T, real: (env: AppEnv) => T): Provider => ({
+const choose = <T>(token: symbol, key: keyof AppEnv, mock: (env: AppEnv) => T, real: (env: AppEnv) => T): Provider => ({
   provide: token,
   inject: [APP_ENV],
-  useFactory: (env: AppEnv) => ((env[key] as Mode) === 'real' ? real(env) : mock()),
+  useFactory: (env: AppEnv) => ((env[key] as Mode) === 'real' ? real(env) : mock(env)),
 });
+/** En production, un fournisseur simulé refuse tout webhook (la signature de test est publique). */
+const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 'production' });
 
 /** Un fournisseur par service, simulé par défaut, réel quand `<SERVICE>_PROVIDER=real` et que la clé est présente. */
 @Global()
 @Module({
   providers: [
     choose<MapsProvider>(MAPS_PROVIDER, 'MAPS_PROVIDER', () => new MockMapsProvider(), realMaps),
-    choose<PaymentProvider>(PAYMENT_PROVIDER, 'PAYMENT_PROVIDER', () => new MockPaymentProvider(), realPayment),
-    choose<SmsProvider>(SMS_PROVIDER, 'SMS_PROVIDER', () => new MockSmsProvider(), realSms),
+    choose<PaymentProvider>(PAYMENT_PROVIDER, 'PAYMENT_PROVIDER', (env) => new MockPaymentProvider(mockWebhooks(env)), realPayment),
+    choose<SmsProvider>(SMS_PROVIDER, 'SMS_PROVIDER', (env) => new MockSmsProvider(mockWebhooks(env)), realSms),
     choose<EmailProvider>(EMAIL_PROVIDER, 'EMAIL_PROVIDER', () => new MockEmailProvider(), realEmail),
     choose<PushProvider>(PUSH_PROVIDER, 'PUSH_PROVIDER', () => new MockPushProvider(), realPush),
-    choose<WhatsAppProvider>(WHATSAPP_PROVIDER, 'WHATSAPP_PROVIDER', () => new MockWhatsAppProvider(), realWhatsApp),
-    choose<VoiceProvider>(VOICE_PROVIDER, 'VOICE_PROVIDER', () => new MockVoiceProvider(), realVoice),
+    choose<WhatsAppProvider>(WHATSAPP_PROVIDER, 'WHATSAPP_PROVIDER', (env) => new MockWhatsAppProvider(mockWebhooks(env)), realWhatsApp),
+    choose<VoiceProvider>(VOICE_PROVIDER, 'VOICE_PROVIDER', (env) => new MockVoiceProvider(mockWebhooks(env)), realVoice),
     choose<SevProvider>(SEV_PROVIDER, 'SEV_PROVIDER', () => new MockSevProvider(), realSev),
     choose<LlmProvider>(LLM_PROVIDER, 'LLM_PROVIDER', () => new MockLlmProvider(), realLlm),
     choose<StorageProvider>(STORAGE_PROVIDER, 'STORAGE_PROVIDER', () => new MockStorageProvider(), realStorage),

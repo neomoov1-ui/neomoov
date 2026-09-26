@@ -2,9 +2,12 @@ import 'reflect-metadata';
 import { schema } from '@neomoov/db';
 import { buildStatement, classifyRideForStatement, mulDivRound, packBillingLines, splitTaxes, type SettlementRide, type StatementLine, type TaxRates, type TokensView } from '@neomoov/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { MockPaymentProvider } from '../src/adapters/mock/index.js';
+import { PAYMENT_PROVIDER } from '../src/adapters/types.js';
+import { AppError } from '../src/common/app-error.js';
 import { SettlementJobsService } from '../src/modules/settlement/settlement-jobs.service.js';
 import { SettlementPayoutsService } from '../src/modules/settlement/settlement-payouts.service.js';
 import { StatementsService } from '../src/modules/settlement/statements.service.js';
@@ -182,8 +185,31 @@ describe('règlement hebdomadaire (intégration)', () => {
     expect((await request(server()).post('/v1/admin/statements/generate').set(bearer(readonly.tokens)).send({ periodStart: '2026-06-08' })).status).toBe(403);
   });
 
+  it("pourboire et garantie arrivés après l'émission : portés par le relevé suivant, une seule fois", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : une course déjà portée par un relevé émis était exclue de tous les relevés suivants ; un pourboire
+    // laissé ou une garantie validée après l'émission n'étaient jamais versés ni débités au chauffeur.
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const late = await ride(driver, { at: '2026-07-14T15:00:00Z', fareCents: 2_500 });
+    const first = (await statements().generate({ periodStart: '2026-07-13', driverId: driver.driverId })).statements[0]!;
+    await statements().issue(first.id!);
+    await db(app).update(schema.rides).set({ tipCents: 400, guaranteeOutcome: 'validated' }).where(eq(schema.rides.id, late.id));
+    // La passe de tous les chauffeurs (aperçu, sans écriture) retient ce chauffeur ; puis son brouillon est créé.
+    const pass = await statements().generate({ periodStart: '2026-07-20', preview: true });
+    expect(pass.statements.some((s) => s.driverId === driver.driverId)).toBe(true);
+    const next = (await statements().generate({ periodStart: '2026-07-20', driverId: driver.driverId })).statements[0];
+    expect(next).toBeDefined();
+    const guaranteeCents = late.settlement.fareCents + splitTaxes(late.settlement, rates).fareTaxesCents;
+    expect(sortLines(next!.lines.map((l) => ({ kind: l.kind, amountCents: Math.abs(l.amountCents) })))).toEqual(sortLines([{ kind: 'tip_platform', amountCents: 400 }, { kind: 'adjustment_negative', amountCents: guaranteeCents }]));
+    expect(next!.netCents).toBe(400 - guaranteeCents);
+    await statements().issue(next!.id!);
+    const after = await statements().generate({ periodStart: '2026-07-27', driverId: driver.driverId });
+    expect(after.statements).toHaveLength(0);
+  });
+
   it('versement Connect d\'un net positif, rejouable ; net nul réglé sans mouvement', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
+    const operator = await createStaffAndLogin(app, ['operator']);
     const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     await ride(driver, { at: '2026-06-16T15:00:00Z', fareCents: 3_000 });
     const draft = (await statements().generate({ periodStart: '2026-06-15', driverId: driver.driverId })).statements[0]!;
@@ -196,6 +222,10 @@ describe('règlement hebdomadaire (intégration)', () => {
     expect(paid.body.transferRef).toMatch(/^tr_mock/);
     const replay = await request(server()).post(`/v1/admin/statements/${draft.id}/pay`).set(bearer(staff.tokens)).expect(200);
     expect(replay.body).toMatchObject({ status: 'paid', transferRef: paid.body.transferRef, attempts: 2 });
+    // Versement : un seul avis au chauffeur, même rejoué ; l'échec précédent (compte absent) a alerté l'exploitation.
+    const notices = (template: string) => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.template, template), sql`${schema.notifications.data}->>'statementId' = ${draft.id!}`));
+    expect((await notices('statement.paid')).filter((n) => n.recipientUserId === driver.userId && n.channel === 'push')).toHaveLength(1);
+    expect((await notices('alert.settlement_failed')).some((n) => n.recipientUserId === operator.userId)).toBe(true);
     const [balance] = await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.driverId));
     expect(balance).toMatchObject({ balanceCents: 0, suspendedForBalanceAt: null });
   });
@@ -249,6 +279,49 @@ describe('règlement hebdomadaire (intégration)', () => {
     const late = new Date('2026-07-11T12:00:00Z');
     await payouts().refreshBalance(small.driverId, late);
     expect((await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, small.driverId)))[0]!.suspendedForBalanceAt?.toISOString()).toBe(late.toISOString());
+
+    // Réglé hors plateforme (Interac) : relevé prélevé avec sa référence, solde régularisé, réactivation ; rejouable.
+    const offline = { method: 'interac', reference: `INT-${small.driverId.slice(0, 8)}`, note: 'Virement reçu le 12 juillet' };
+    const readonly = await createStaffAndLogin(app, ['readonly']);
+    expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(readonly.tokens)).send(offline)).status).toBe(403);
+    expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(staff.tokens)).send({ method: 'interac', reference: '' })).status).toBe(400);
+    const settledOffline = await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(staff.tokens)).send(offline).expect(200);
+    expect(settledOffline.body).toMatchObject({ status: 'charged', failureCode: null, offlineSettlement: { method: 'interac', reference: offline.reference, note: offline.note, byUserId: staff.userId } });
+    expect(settledOffline.body.settledAt).not.toBeNull();
+    expect((await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, small.driverId)))[0]).toMatchObject({ balanceCents: 0, unpaidSince: null, suspendedForBalanceAt: null });
+    expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(staff.tokens)).send(offline).expect(200)).body.status).toBe('charged');
+    const other = await request(server()).post(`/v1/admin/statements/${smallDraft.id}/settle-offline`).set(bearer(staff.tokens)).send({ ...offline, reference: 'AUTRE-REF' });
+    expect(other.status).toBe(409);
+    expect(other.body.code).toBe('STATEMENT_ALREADY_SETTLED');
+    // Un relevé déjà réglé n'est plus jamais prélevé par la reprise du lundi.
+    expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/pay`).set(bearer(staff.tokens)).expect(200)).body).toMatchObject({ status: 'charged', attempts: 1 });
+  });
+
+  it("prélèvement en erreur (Stripe indisponible) : relevé en échec, repris le lundi, jamais laissé « émis »", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : une exception du prélèvement laissait le relevé « issued » ; ni la reprise du lundi (relevés
+    // « failed ») ni la passe du vendredi suivant (autre période) ne le reprenaient : dette jamais prélevée.
+    const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    await pack(driver, 'elite', '2026-06-30T13:00:00Z');
+    await db(app).update(schema.drivers).set({ stripeDebitPaymentMethodId: 'pm_test_debit_ok' }).where(eq(schema.drivers.id, driver.driverId));
+    const draft = (await statements().generate({ periodStart: '2026-06-29', driverId: driver.driverId })).statements[0]!;
+    expect(draft.netCents).toBeLessThan(0);
+    const friday = new Date('2026-07-10T10:30:00Z');
+    await statements().issue(draft.id!, friday);
+    const provider = app.get<MockPaymentProvider>(PAYMENT_PROVIDER);
+    const outage = vi.spyOn(provider, 'chargeOffSession').mockRejectedValueOnce(new AppError('PAYMENT_PROVIDER_ERROR', 'Stripe indisponible (panne simulée)', 502));
+    try {
+      const failed = await payouts().settle(draft.id!, friday);
+      expect(failed).toMatchObject({ status: 'failed', attempts: 1, failureCode: 'charge_failed' });
+    } finally {
+      outage.mockRestore();
+    }
+    const [balance] = await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.driverId));
+    expect(balance).toMatchObject({ balanceCents: draft.netCents });
+    await db(app).update(schema.weeklyStatements).set({ updatedAt: friday }).where(eq(schema.weeklyStatements.id, draft.id!));
+    expect(await payouts().retryFailed(new Date('2026-07-13T11:00:00Z'))).toBeGreaterThanOrEqual(1);
+    const [after] = await db(app).select({ status: schema.weeklyStatements.status }).from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, draft.id!));
+    expect(after!.status).toBe('charged');
   });
 
   it('passe du vendredi 6 h : relevés de la semaine précédente générés, émis et réglés ; rien la veille ni deux fois', async ({ skip }) => {

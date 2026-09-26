@@ -36,7 +36,7 @@ const statement = buildStatement('00000000-0000-4000-8000-0000000driver', period
 const detail = {
   id: '00000000-0000-4000-8000-00000statement', driverId: statement.driverId, driverPublicNumber: 'CH-00042', driverName: 'Chauffeur Exemple', periodStart: period.startDate, periodEnd: period.endDate,
   status: 'paid' as const, creditsCents: statement.creditsCents, debitsCents: statement.debitsCents, netCents: statement.netCents, issuedAt: '2026-09-25T10:00:00.000Z', settledAt: '2026-09-25T10:02:00.000Z',
-  attempts: 1, failureCode: null, transferRef: 'tr_exemple', chargeRef: null, pdfAvailable: true,
+  attempts: 1, failureCode: null, transferRef: 'tr_exemple', chargeRef: null, offlineSettlement: null, pdfAvailable: true,
   lines: statement.lines.map((l) => ({ kind: l.kind, label: l.label ?? l.kind, amountCents: isCredit(l.kind) ? l.amountCents : -l.amountCents, rideId: l.rideId ?? null, packPurchaseId: l.packPurchaseId ?? null, occurredAt: l.occurredAt.toISOString() })),
 };
 

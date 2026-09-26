@@ -87,6 +87,12 @@ done
 EOF
 chmod +x /opt/neomoov.git/hooks/post-receive
 
+log "sauvegarde quotidienne chiffrée (3 h 30, active dès que BACKUP_PASSPHRASE est dans .env)"
+cat > /etc/cron.d/neomoov-backup <<'EOF'
+30 3 * * * root cd /opt/neomoov && grep -q "^BACKUP_PASSPHRASE=." .env && set -a && . ./.env && set +a && infra/scripts/backup.sh >> /var/log/neomoov-backup.log 2>&1
+EOF
+chmod 644 /etc/cron.d/neomoov-backup
+
 log "relance automatique des conteneurs malades (toutes les 5 minutes)"
 cat > /etc/cron.d/neomoov-restart-unhealthy <<'EOF'
 */5 * * * * root [ -x /opt/neomoov/infra/scripts/restart-unhealthy.sh ] && /opt/neomoov/infra/scripts/restart-unhealthy.sh >> /var/log/neomoov-restart.log 2>&1

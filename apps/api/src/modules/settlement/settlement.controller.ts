@@ -5,7 +5,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  adminBalanceSchema, adminStatementDetailSchema, statementAdjustSchema, statementGenerateSchema, statementGenerationSchema, uuid,
+  adminBalanceSchema, adminStatementDetailSchema, statementAdjustSchema, statementGenerateSchema, statementGenerationSchema, statementSettleOfflineSchema, uuid,
 } from '@neomoov/domain';
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Res, StreamableFile } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
@@ -71,6 +71,17 @@ export class AdminSettlementController {
   @ApiErrors(401, 403, 404, 409, 429)
   pay(@Param('id', zodPipe(uuid)) id: string) {
     return this.payouts.settle(id);
+  }
+
+  @Post('statements/:id/settle-offline')
+  @Roles(...STAFF_FINANCE_ROLES)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Constate un règlement hors plateforme (Interac, virement, espèces, chèque) avec sa référence : relevé réglé, solde recalculé, réactivation automatique' })
+  @ZodBody(statementSettleOfflineSchema)
+  @ZodResponse(200, adminStatementDetailSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  settleOffline(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(statementSettleOfflineSchema)) body: z.infer<typeof statementSettleOfflineSchema>, @CurrentUser() user: UserActor) {
+    return this.payouts.settleOffline(id, user, body);
   }
 
   @Post('statements/:id/adjust')

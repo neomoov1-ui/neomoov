@@ -170,7 +170,8 @@ export default function RideScreen() {
           {active ? (
             <View style={styles.row}>
               <Button label={t('ride.message')} variant="ghost" onPress={() => setSheet('messages')} style={styles.flex} />
-              <Button label={t('ride.call')} variant="ghost" onPress={() => (data.job.callNumber ? void Linking.openURL(`tel:${data.job.callNumber}`) : setNotice(t('ride.noCall')))} style={styles.flex} />
+              {/* Appel masqué (relais téléphonique) pas encore en service : sans numéro de relais, pas de bouton, la messagerie suffit. */}
+              {data.job.callNumber ? <Button label={t('ride.call')} variant="ghost" onPress={() => void Linking.openURL(`tel:${data.job.callNumber}`)} style={styles.flex} /> : null}
             </View>
           ) : null}
         </Card>

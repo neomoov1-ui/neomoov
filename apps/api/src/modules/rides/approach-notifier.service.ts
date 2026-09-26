@@ -1,7 +1,7 @@
 /**
  * « Chauffeur en approche » (section 5.14) : quand le chauffeur en route arrive à moins de `notifications.approach_meters`
  * (700 m, environ 2 minutes en ville) du point de départ, le client est prévenu une seule fois (push, texto pour un
- * client sans application). Les positions arrivent toutes les 3 à 5 secondes : le point de départ de la course est gardé
+ * client sans application, et au passager d'un tiers). Les positions arrivent toutes les 3 à 5 secondes : le point de départ de la course est gardé
  * en mémoire, et l'envoi unique est garanti en base (verrou par course, signal `driver_approaching` du journal), même
  * quand plusieurs processus reçoivent la même position.
  */
@@ -78,6 +78,7 @@ export class ApproachNotifierService implements OnModuleInit {
     const ride = await this.rides.getRide(rideId);
     const recipient = await this.rides.recipientOf(ride);
     await this.outbox.queue({ ...recipient, template: 'ride.driver_approaching', data: { rideId, publicNumber: ride.publicNumber } });
+    await this.rides.notifyPassenger(ride, 'ride.passenger_approaching', recipient.language);
     return true;
   }
 }

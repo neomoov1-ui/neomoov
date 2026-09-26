@@ -21,6 +21,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { AgentRunnerService, type AgentExecution } from './agent-runner.service.js';
 import { AgentToolsService, QUALITY_SANCTION_PREFIX } from './agent-tools.service.js';
+import { statusAfterSuspension } from '../drivers/driver-status.js';
 
 export const QUALITY = 'quality';
 
@@ -161,18 +162,16 @@ export class QualityAgent {
     for (const e of expired) {
       const wanted = e.type === 'restriction' ? 'restricted' : e.type === 'suspension' ? 'suspended' : null;
       if (!wanted || e.status !== wanted) continue;
-      // Toute autre sanction du même effet encore en cours (décision humaine, conformité, sécurité) garde le statut.
-      const [still] = await this.db.execute<{ n: number }>(sql`
-        SELECT count(*)::int AS n FROM sanctions WHERE driver_id = ${e.driverId}::uuid AND type IN ('restriction', 'suspension')
-          AND (ends_at IS NULL OR ends_at > ${now.toISOString()}::timestamptz)`);
-      const [balance] = await this.db.execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM driver_balances WHERE driver_id = ${e.driverId}::uuid AND suspended_for_balance_at IS NOT NULL`);
-      if (Number(still?.n ?? 0) > 0 || Number(balance?.n ?? 0) > 0) continue;
-      const [row] = await this.db.update(schema.drivers).set({ status: 'active' }).where(and(eq(schema.drivers.id, e.driverId), eq(schema.drivers.status, wanted))).returning({ id: schema.drivers.id });
+      // Statut après la sanction échue : une autre suspension (décision humaine, conformité, sécurité, solde) garde le
+      // chauffeur suspendu ; une restriction encore en cours le garde restreint ; sinon actif.
+      const next = await statusAfterSuspension(this.db, e.driverId, now);
+      if (next === wanted || next === 'suspended') continue;
+      const [row] = await this.db.update(schema.drivers).set({ status: next }).where(and(eq(schema.drivers.id, e.driverId), eq(schema.drivers.status, wanted))).returning({ id: schema.drivers.id });
       if (!row) continue;
       reinstated += 1;
       await this.outbox.queue({ recipientUserId: e.userId, template: 'quality.reinstated', data: {} });
-      this.audit.record({ action: 'quality.reinstated', entity: 'drivers', entityId: e.driverId, before: { status: wanted }, after: { status: 'active' } });
-      this.logger.info({ driverId: e.driverId }, 'Sanction de qualité échue : chauffeur de nouveau actif');
+      this.audit.record({ action: 'quality.reinstated', entity: 'drivers', entityId: e.driverId, before: { status: wanted }, after: { status: next } });
+      this.logger.info({ driverId: e.driverId, status: next }, 'Sanction de qualité échue : chauffeur réintégré');
     }
     return reinstated;
   }
