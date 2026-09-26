@@ -12,7 +12,7 @@ import { Action, Badge, Card, Checkbox, DataTable, Dialog, Field, Input, Notice,
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
 
-type Panel = null | 'assign' | 'reassign' | 'hold' | 'cancel';
+type Panel = null | 'assign' | 'reassign' | 'hold' | 'cancel' | 'interrupt';
 const CLOSED = ['completed', 'rated', 'disputed', 'no_driver', 'cancelled_by_client', 'cancelled_by_driver', 'no_show', 'interrupted', 'expired'];
 
 /** Fiche d'une course : détail, répartition (offres), chronologie, et actions de l'opérateur. */
@@ -62,7 +62,9 @@ export default function RideDetailPage() {
           {r.driver ? <Action tone="secondary" onClick={() => setPanel('reassign')}>{t('hub.rides.reassign')}</Action> : null}
           <Action tone="secondary" onClick={() => setPanel('hold')}>{t('hub.rides.hold')}</Action>
           <Action tone="secondary" onClick={() => action.mutate(() => hubApi.admin.releaseRide(id))}>{t('hub.rides.release')}</Action>
-          <Action tone="danger" onClick={() => setPanel('cancel')}>{t('hub.rides.cancel')}</Action>
+          {r.state === 'in_progress'
+            ? <Action tone="danger" onClick={() => setPanel('interrupt')}>{t('hub.rides.interrupt')}</Action>
+            : <Action tone="danger" onClick={() => setPanel('cancel')}>{t('hub.rides.cancel')}</Action>}
         </div>
       ) : null}
       {action.isError && !panel ? <Notice tone="danger">{errorText(action.error)}</Notice> : null}
@@ -133,6 +135,10 @@ export default function RideDetailPage() {
       <ReasonDialog
         open={panel === 'cancel'} title={t('hub.rides.cancel')} danger onClose={() => setPanel(null)} busy={action.isPending} error={action.isError ? errorText(action.error) : null}
         checkbox={t('hub.rides.chargeFee')} onSubmit={(reason, checked) => action.mutate(() => hubApi.admin.cancelRide(id, { reason, chargeFee: checked }))}
+      />
+      <ReasonDialog
+        open={panel === 'interrupt'} title={t('hub.rides.interrupt')} danger onClose={() => setPanel(null)} busy={action.isPending} error={action.isError ? errorText(action.error) : null}
+        checkbox={t('hub.rides.accident')} onSubmit={(reason, checked) => action.mutate(() => hubApi.admin.interruptRide(id, { reason, incidentType: checked ? 'accident' : 'other' }))}
       />
     </div>
   );

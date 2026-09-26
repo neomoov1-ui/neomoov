@@ -88,6 +88,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Course annulée', body: (d, l) => (Number(d['feeCents']) > 0 ? `La course a été annulée. Frais d'annulation : ${money(d['feeCents'], l)}.` : 'La course a été annulée.') },
     en: { title: 'Ride cancelled', body: (d, l) => (Number(d['feeCents']) > 0 ? `The ride was cancelled. Cancellation fee: ${money(d['feeCents'], l)}.` : 'The ride was cancelled.') },
   },
+  'ride.interrupted': {
+    fr: { title: 'Course interrompue', body: 'Votre course a été interrompue par l\'équipe Neomoov. Aucun montant n\'est prélevé automatiquement ; nous vous contactons.' },
+    en: { title: 'Ride interrupted', body: 'Your ride was interrupted by the Neomoov team. No amount is charged automatically; we will contact you.' },
+  },
   'ride.cancelled_by_operator': {
     fr: { title: 'Course annulée par Neomoov', body: 'Votre course a été annulée par notre équipe. Contactez-nous pour toute question.' },
     en: { title: 'Ride cancelled by Neomoov', body: 'Your ride was cancelled by our team. Contact us with any questions.' },

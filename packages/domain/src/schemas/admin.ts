@@ -101,6 +101,10 @@ export const adminRideListItemSchema = z.object({
 });
 export type AdminRideListItem = z.infer<typeof adminRideListItemSchema>;
 export const adminCancelRideSchema = z.object({ reason: z.string().trim().min(3).max(300), chargeFee: z.boolean().default(false) });
+/** Interruption d'une course en cours (accident, malaise, chauffeur injoignable) : incident ouvert, aucune facturation automatique. */
+export const adminInterruptRideSchema = z.object({ reason: z.string().trim().min(3).max(500), incidentType: z.enum(['accident', 'other']).default('other') });
+export const interruptionResultSchema = z.object({ state: z.enum(RIDE_STATES), incidentId: uuid });
+export type AdminInterruptRide = z.input<typeof adminInterruptRideSchema>;
 
 // Chauffeurs, documents, véhicules -----------------------------------------------------------------------------------
 

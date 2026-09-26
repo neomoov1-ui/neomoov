@@ -660,6 +660,30 @@ export class RidesService {
     return { state: result.ride.state, feeCents };
   }
 
+  /**
+   * Interruption d'une course en cours par l'exploitation (accident, malaise, chauffeur injoignable) : transition
+   * `incident` vers `interrupted`, incident ouvert pour décision humaine, autorisation de paiement levée, aucune facture
+   * ni ligne de registre automatique (la course n'est pas terminée) ; client et chauffeur prévenus.
+   */
+  async interruptByOperator(rideId: string, actor: UserActor, input: { reason: string; incidentType: 'accident' | 'other' }): Promise<{ state: RideState; incidentId: string }> {
+    const operator: ActorRef = { kind: 'operator', userId: actor.userId };
+    const result = await this.applyTransition(rideId, 'incident', operator, { data: { reason: input.reason, incidentType: input.incidentType }, set: { cancellationReason: 'other', cancellationComment: input.reason } });
+    const payload = await this.publish(result, 'incident', operator, { reason: input.reason });
+    const [existing] = await this.db.select({ id: schema.incidents.id }).from(schema.incidents).where(and(eq(schema.incidents.rideId, rideId), eq(schema.incidents.reportedByKind, 'operator'), eq(schema.incidents.type, input.incidentType), eq(schema.incidents.description, `Course interrompue : ${input.reason}`))).limit(1);
+    if (result.replayed && existing) return { state: result.ride.state, incidentId: existing.id };
+    const [incident] = await this.db
+      .insert(schema.incidents)
+      .values({ rideId, type: input.incidentType, severity: input.incidentType === 'accident' ? 'high' : 'medium', reportedByUserId: actor.userId, reportedByKind: 'operator', description: `Course interrompue : ${input.reason}` })
+      .returning({ id: schema.incidents.id });
+    this.events.emit('ride.interrupted', { ...payload, incidentId: incident!.id });
+    this.events.emit('ride.incident', { rideId, incidentId: incident!.id, type: input.incidentType, severity: input.incidentType === 'accident' ? 'high' : 'medium', reportedByUserId: actor.userId });
+    const recipient = await this.recipientOf(result.ride);
+    await this.outbox.queue({ ...recipient, template: 'ride.interrupted', data: { rideId, publicNumber: result.ride.publicNumber } });
+    if (payload.driverUserId) await this.outbox.queue({ recipientUserId: payload.driverUserId, template: 'ride.interrupted', data: { rideId, publicNumber: result.ride.publicNumber } });
+    this.audit.record({ action: 'admin.ride_interrupted', entity: 'rides', entityId: rideId, after: { reason: input.reason, incidentId: incident!.id } });
+    return { state: result.ride.state, incidentId: incident!.id };
+  }
+
   async cancelByDriver(rideId: string, driverActor: UserActor, reason: string): Promise<RideView> {
     await this.rideOfDriver(rideId, driverActor);
     const released = await this.releaseDriver(rideId, { kind: 'driver', userId: driverActor.userId }, reason, { sanction: true, source: 'driver' });

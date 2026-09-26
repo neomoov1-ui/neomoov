@@ -85,6 +85,7 @@ export function adminResource(t: Transport) {
     holdRide: (rideId: string, reason: string) => t.post<RideView>(`/admin/rides/${id(rideId)}/hold`, { reason }),
     releaseRide: (rideId: string) => t.post<RideView>(`/admin/rides/${id(rideId)}/release`),
     cancelRide: (rideId: string, body: { reason: string; chargeFee?: boolean }) => t.post<CancellationResult>(`/admin/rides/${id(rideId)}/cancel`, body),
+    interruptRide: (rideId: string, body: { reason: string; incidentType?: 'accident' | 'other' }) => t.post<{ state: string; incidentId: string }>(`/admin/rides/${id(rideId)}/interrupt`, body),
     /** Courses figées (étape 15) : l'exploitation décide, rien n'est corrigé automatiquement. */
     stuckRides: () => t.get<StuckRideView[]>('/admin/rides/stuck'),
     simulate: (body: SimulateQuote) => t.post<SimulateResponse>('/admin/pricing/simulate', body),
