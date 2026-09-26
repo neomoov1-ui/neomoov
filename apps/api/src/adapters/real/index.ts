@@ -16,6 +16,7 @@ import { ClamAvScanner } from './clamav.js';
 import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
 import { ResendEmailProvider } from './resend.js';
+import { S3StorageProvider } from './s3.js';
 import { StripePaymentProvider } from './stripe.js';
 import { TwilioSmsProvider } from './twilio.js';
 import { VapiVoiceProvider } from './vapi.js';
@@ -67,13 +68,6 @@ class RealSevProvider extends NotDelivered implements SevProvider {
   healthcheck(): Promise<never> { return this.reject(); }
 }
 
-class RealStorageProvider extends NotDelivered implements StorageProvider {
-  getObject(): Promise<never> { return this.reject(); }
-  putObject(): Promise<never> { return this.reject(); }
-  getSignedUrl(): Promise<never> { return this.reject(); }
-  deleteObject(): Promise<never> { return this.reject(); }
-}
-
 function build<T>(factory: new (name: string, service: string, variable: string) => T, name: string, service: string, variable: keyof AppEnv, env: AppEnv): T {
   requireKey(service, variable, env);
   return new factory(name, service, variable);
@@ -122,7 +116,15 @@ export const realVirusScanner = (env: AppEnv): VirusScanner => {
   requireKey('antivirus (ClamAV)', 'CLAMAV_HOST', env);
   return new ClamAvScanner(env.CLAMAV_HOST!, env.CLAMAV_PORT);
 };
-export const realStorage = (env: AppEnv): StorageProvider =>
-  env.S3_ACCESS_KEY
-    ? build(RealStorageProvider, 's3', 'stockage objet (S3 compatible)', 'S3_ACCESS_KEY', env)
-    : build(RealStorageProvider, 'r2', 'stockage objet (S3 compatible ou R2)', 'R2_ACCESS_KEY_ID', env);
+/**
+ * Stockage objet (D49) : Supabase Storage par son accès S3 (`S3_ENDPOINT` du tableau de bord, `S3_REGION`, `S3_BUCKET`,
+ * `S3_ACCESS_KEY`, `S3_SECRET_KEY`), sinon Cloudflare R2 (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`).
+ */
+export const realStorage = (env: AppEnv): StorageProvider => {
+  if (env.S3_ACCESS_KEY) {
+    for (const variable of ['S3_ENDPOINT', 'S3_SECRET_KEY', 'S3_BUCKET'] as const) requireKey('stockage objet (S3 compatible)', variable, env);
+    return new S3StorageProvider({ endpoint: env.S3_ENDPOINT!, region: env.S3_REGION ?? 'ca-central-1', bucket: env.S3_BUCKET!, accessKeyId: env.S3_ACCESS_KEY, secretAccessKey: env.S3_SECRET_KEY! });
+  }
+  for (const variable of ['R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_ACCOUNT_ID', 'R2_BUCKET'] as const) requireKey('stockage objet (S3 compatible ou R2)', variable, env);
+  return new S3StorageProvider({ endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`, region: 'auto', bucket: env.R2_BUCKET!, accessKeyId: env.R2_ACCESS_KEY_ID!, secretAccessKey: env.R2_SECRET_ACCESS_KEY! });
+};

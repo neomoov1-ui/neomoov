@@ -33,6 +33,12 @@ export class OtpService {
     private readonly rateLimit: RateLimitService,
   ) {}
 
+  /** Code fixe d'un compte d'examen des magasins (numéro listé dans `REVIEW_PHONES`), sinon null. */
+  private reviewCode(phone: string): string | null {
+    if (!this.env.REVIEW_PHONES || !this.env.REVIEW_OTP_CODE) return null;
+    return this.env.REVIEW_PHONES.split(',').map((p) => p.trim()).includes(phone) ? this.env.REVIEW_OTP_CODE : null;
+  }
+
   private hash(phone: string, code: string): string {
     return hmacHex(this.env.ENCRYPTION_KEY!, `${phone}:${code}`);
   }
@@ -62,13 +68,19 @@ export class OtpService {
       if (!byIp.allowed) throw new AppError('OTP_RATE_LIMITED', 'Trop de codes demandés depuis cette adresse, réessayez plus tard', 429, { retryAfter: byIp.resetIn });
     }
 
-    const code = randomDigits(6);
+    const review = this.reviewCode(phone);
+    const code = review ?? randomDigits(6);
     const expiresAt = new Date(Date.now() + ttl * 1000);
     await this.database.db.transaction(async (tx) => {
       // Un seul code actif par numéro : les précédents sont consommés.
       await tx.update(schema.otpCodes).set({ consumedAt: new Date() }).where(and(eq(schema.otpCodes.phone, phone), isNull(schema.otpCodes.consumedAt)));
       await tx.insert(schema.otpCodes).values({ phone, codeHash: this.hash(phone, code), expiresAt });
     });
+    if (review) {
+      // Compte d'examen des magasins : aucun texto (le numéro n'est pas joignable), code connu des examinateurs.
+      this.logger.info({ phone: maskPhone(phone) }, 'Code de connexion d\'un compte d\'examen des magasins');
+      return { expiresIn: ttl, retryAfter: resend };
+    }
     await this.sms.send({ to: phone, body: t(language, 'sms.otp', { code, minutes: Math.round(ttl / 60) }) });
     if (this.env.NODE_ENV === 'development') this.logger.info({ phone: maskPhone(phone), devOtpCode: code }, 'Code SMS (affiché en développement seulement)');
     return { expiresIn: ttl, retryAfter: resend };

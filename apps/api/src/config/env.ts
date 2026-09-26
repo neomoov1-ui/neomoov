@@ -97,7 +97,16 @@ export const envSchema = z.object({
    * (les fichiers de test tournent en parallèle sur la même base ; celui des agents les active).
    */
   AGENT_TRIGGERS: z.enum(['on', 'off']).optional(),
+  /**
+   * Examen des applications par Apple et Google : numéros déclarés (E.164, séparés par des virgules) qui reçoivent
+   * toujours le code `REVIEW_OTP_CODE`, sans texto. Secret : ne jamais publier le code ailleurs que dans les notes
+   * d'examen des magasins ; vider les deux variables après la publication.
+   */
+  REVIEW_PHONES: optionalString,
+  REVIEW_OTP_CODE: optionalString,
   S3_ENDPOINT: optionalString,
+  /** Région de l'accès S3 (Supabase : celle du projet, ca-central-1 par défaut). */
+  S3_REGION: optionalString,
   S3_BUCKET: optionalString,
   S3_ACCESS_KEY: optionalString,
   S3_SECRET_KEY: optionalString,
@@ -158,6 +167,12 @@ export function loadEnv(source?: Record<string, string | undefined>, { dotenv = 
     throw new Error(`Configuration invalide. ${details}`);
   }
   const env = parsed.data;
+  if (env.REVIEW_PHONES) {
+    if (!env.REVIEW_OTP_CODE || !/^\d{6}$/.test(env.REVIEW_OTP_CODE)) throw new Error('Configuration invalide : REVIEW_OTP_CODE (6 chiffres) est obligatoire avec REVIEW_PHONES.');
+    if (/^(\d)\1{5}$|^(123456|654321)$/.test(env.REVIEW_OTP_CODE)) throw new Error('Configuration invalide : REVIEW_OTP_CODE trop facile à deviner.');
+    const bad = env.REVIEW_PHONES.split(',').map((p) => p.trim()).filter((p) => !/^\+\d{8,15}$/.test(p));
+    if (bad.length) throw new Error('Configuration invalide : REVIEW_PHONES doit lister des numéros au format E.164.');
+  }
   if (env.NODE_ENV === 'production') {
     const missing = (['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'ENCRYPTION_KEY'] as const).filter((k) => !env[k]);
     if (missing.length) throw new Error(`Configuration invalide en production : ${missing.join(', ')} obligatoire(s).`);
