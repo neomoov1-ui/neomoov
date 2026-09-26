@@ -130,7 +130,11 @@ export class AgentToolsService {
         try {
           result = await spec.run(ctx, parsed.data as never);
         } catch (error) {
-          if (!(error instanceof AppError)) throw error;
+          if (!(error instanceof AppError)) {
+            // Erreur inattendue (base, modèle) : journalisée sans détail pour le modèle, puis propagée à l'exécution.
+            ctx.recordToolCall({ tool: name, input: logSafe(rawInput, 1_000), ok: false, result: { status: 'error', message: error instanceof Error ? error.name : 'Erreur' }, approvalId: null, durationMs: Date.now() - started });
+            throw error;
+          }
           result = error.status === 404 ? notFound(error.message) : refused(error.message, { errorCode: error.code });
         }
       }
@@ -146,8 +150,13 @@ export class AgentToolsService {
       description: this.specs[name].description,
       inputSchema: this.specs[name].schema,
       run: async (input: Record<string, unknown>) => {
-        const r = await this.call(ctx, name, input);
-        return { ok: r.ok, status: r.status, message: r.message, data: r.data };
+        try {
+          const r = await this.call(ctx, name, input);
+          return { ok: r.ok, status: r.status, message: r.message, data: r.data };
+        } catch (error) {
+          this.logger.error({ err: error, tool: name, runId: ctx.runId }, 'Outil d\'agent en erreur');
+          return { ok: false, status: 'refused', message: 'Erreur interne de l\'outil : escalader à un humain', data: null };
+        }
       },
     }));
   }

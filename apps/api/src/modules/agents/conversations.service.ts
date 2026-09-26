@@ -115,10 +115,13 @@ export class ConversationsService {
     return messages;
   }
 
-  /** Canal de réponse : WhatsApp pour WhatsApp, push pour l'application, texto sinon ; le personnel voit tout dans My Hub. */
-  private replyChannel(conversation: ConversationRow): { channel: NotificationChannel; recipientUserId: string | null; recipientAddress: string | null } | null {
+  /**
+   * Canal de réponse : WhatsApp pour WhatsApp, push pour l'application (l'accusé de réception reste à l'écran, sans
+   * push), écran pour la réservation web, texto sinon ; le personnel voit tout dans My Hub.
+   */
+  private replyChannel(conversation: ConversationRow, author: string): { channel: NotificationChannel; recipientUserId: string | null; recipientAddress: string | null } | null {
     if (conversation.channel === 'whatsapp' && conversation.phone) return { channel: 'whatsapp', recipientUserId: conversation.userId, recipientAddress: conversation.phone };
-    if (conversation.userId && (conversation.channel === 'app' || conversation.channel === 'web')) return { channel: conversation.channel === 'app' ? 'push' : 'in_app', recipientUserId: conversation.userId, recipientAddress: null };
+    if (conversation.userId && (conversation.channel === 'app' || conversation.channel === 'web')) return { channel: conversation.channel === 'app' && author !== 'system' ? 'push' : 'in_app', recipientUserId: conversation.userId, recipientAddress: null };
     if (conversation.phone) return { channel: 'sms', recipientUserId: conversation.userId, recipientAddress: conversation.phone };
     if (conversation.userId) return { channel: 'push', recipientUserId: conversation.userId, recipientAddress: null };
     return null;
@@ -131,7 +134,7 @@ export class ConversationsService {
       .values({ conversationId: conversation.id, direction: 'outbound', author, body: text.slice(0, 4000), agentRunId })
       .returning({ id: schema.conversationMessages.id });
     await this.db.update(schema.conversations).set({ lastMessageAt: new Date() }).where(eq(schema.conversations.id, conversation.id));
-    const target = this.replyChannel(conversation);
+    const target = this.replyChannel(conversation, author);
     if (target) {
       await this.outbox.queue({ ...target, template: 'agent.reply', language: conversation.language === 'en' ? 'en' : 'fr', data: { text, conversationId: conversation.id } });
     } else {

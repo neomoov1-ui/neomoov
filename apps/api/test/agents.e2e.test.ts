@@ -290,8 +290,9 @@ describe('agents IA : exécuteur, outils, file d\'approbation, agents V1 (intég
     const en = await conversationOf(english.user.id);
     expect(en.conversation).toMatchObject({ language: 'en', status: 'open' });
     expect(en.messages.map((m) => m.body)).toEqual(['How far in advance can I book?', 'Got it, thank you. I am looking into your request and will reply in a moment.', 'Rides can be booked at least 2 hours in advance.']);
-    const [notification] = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, english.user.id), eq(schema.notifications.template, 'agent.reply'))).orderBy(sql`${schema.notifications.createdAt} DESC`).limit(1);
-    expect(notification).toMatchObject({ channel: 'push', language: 'en' });
+    // Accusé à l'écran seulement, réponse en push, dans la langue du client.
+    const replies = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, english.user.id), eq(schema.notifications.template, 'agent.reply'))).orderBy(schema.notifications.createdAt);
+    expect(replies.map((n) => [n.channel, n.language])).toEqual([['in_app', 'en'], ['push', 'en']]);
 
     // Agent en mode manuel : aucun appel au modèle, relais humain.
     const [agent] = await db(app).select({ mode: schema.agents.mode }).from(schema.agents).where(eq(schema.agents.code, 'customer_relations'));
