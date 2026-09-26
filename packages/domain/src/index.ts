@@ -20,4 +20,5 @@ export * from './geo/polygon.js';
 export * from './privacy/masking.js';
 export * from './payments/payments.js';
 export * from './promotions/promotions.js';
+export * from './notifications/matrix.js';
 export * from './schemas/index.js';
