@@ -6,7 +6,7 @@
 import { schema } from '@neomoov/db';
 import { localDate, maskPhone, type AdminDashboard, type AdminReport, type AdminRideListItem, type Page, type PaymentMethod, type RideState, type RideType, type VehicleCategory } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, gte, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -47,7 +47,7 @@ export class AdminOverviewService {
       this.db.select({ n: count() }).from(schema.rides).where(and(inArray(schema.rides.state, ['requested', 'offering']), sql`(${schema.rides.requestedAt} IS NULL OR ${schema.rides.requestedAt} > now() - interval '1 hour')`)),
       this.db.select({ n: count() }).from(schema.rides).where(and(eq(schema.rides.type, 'scheduled'), inArray(schema.rides.state, ['requested', 'offering', 'assigned']), gte(schema.rides.requestedAt, now))),
       this.db.select({ n: count() }).from(schema.drivers).where(eq(schema.drivers.status, 'pending')),
-      this.db.select({ n: count() }).from(schema.driverDocuments).where(eq(schema.driverDocuments.status, 'pending')),
+      this.db.select({ n: count() }).from(schema.driverDocuments).innerJoin(schema.drivers, eq(schema.drivers.id, schema.driverDocuments.driverId)).where(and(eq(schema.driverDocuments.status, 'pending'), ne(schema.drivers.status, 'offboarded'))),
       this.db.select({ n: count() }).from(schema.incidents).where(inArray(schema.incidents.status, ['open', 'investigating'])),
       this.db.select({ n: count() }).from(schema.approvals).where(eq(schema.approvals.decision, 'pending')),
       this.db

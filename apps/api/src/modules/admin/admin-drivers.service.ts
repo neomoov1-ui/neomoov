@@ -9,7 +9,7 @@ import {
   type AdminVehicle, type DocumentStatus, type DocumentType, type Page, type VehicleCategory, type VehicleStatus,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
@@ -170,7 +170,9 @@ export class AdminDriversService {
 
   private async documentsOf(driverIds: string[] | null, status?: DocumentStatus, page?: { limit: number; offset: number }): Promise<AdminDocument[]> {
     const conditions: SQL[] = [];
+    // La file de revue ignore les chauffeurs sortis du service ; leur fiche garde tous leurs documents.
     if (driverIds) conditions.push(inArray(schema.driverDocuments.driverId, driverIds));
+    else conditions.push(ne(schema.drivers.status, 'offboarded'));
     if (status) conditions.push(eq(schema.driverDocuments.status, status));
     const rows = await this.db
       .select({ doc: schema.driverDocuments, publicNumber: schema.drivers.publicNumber, first: schema.users.firstName, last: schema.users.lastName })
@@ -193,7 +195,11 @@ export class AdminDriversService {
     const status = (query.status ?? 'pending') as DocumentStatus;
     const [items, [total]] = await Promise.all([
       this.documentsOf(null, status, { limit: query.pageSize, offset: (query.page - 1) * query.pageSize }),
-      this.db.select({ n: count() }).from(schema.driverDocuments).where(eq(schema.driverDocuments.status, status)),
+      this.db
+        .select({ n: count() })
+        .from(schema.driverDocuments)
+        .innerJoin(schema.drivers, eq(schema.drivers.id, schema.driverDocuments.driverId))
+        .where(and(eq(schema.driverDocuments.status, status), ne(schema.drivers.status, 'offboarded'))),
     ]);
     return { items, total: total?.n ?? 0, page: query.page, pageSize: query.pageSize };
   }
