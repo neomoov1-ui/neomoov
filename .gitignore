@@ -42,3 +42,6 @@ logs/
 # Tests de bout en bout du web (état et sessions de test)
 apps/web/e2e/.auth/
 apps/web/e2e/.state.json
+
+# Résultats des tests de charge (générés par k6)
+tests/load/results/
