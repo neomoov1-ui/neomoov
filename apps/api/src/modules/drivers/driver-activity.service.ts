@@ -8,7 +8,7 @@ import { schema } from '@neomoov/db';
 import {
   activatePack, activationPriceCents, activePack, analyseDriving, daysBetween, isCredit, localDate, remainingRides, scoreSuggestions,
   type DriverAlert, type DriverDocumentsView, type DriverHomeView, type DriverJob, type DriverPacksView, type DriverRideView, type DriverScoreView, type DriverStatementView,
-  type EarningsView, type LoyalClientView, type PackDefinition, type PackPurchase, type PaymentMethod, type ScheduledRideView, type ScoreTargets,
+  type EarningsView, type LoyalClientView, type PaymentMethod, type ScheduledRideView, type ScoreTargets,
   type StatementLineKind, type StatementSummary,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -20,6 +20,7 @@ import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
+import { lockDriverPacks, packDefinitionOf, PackLifecycleService, purchaseOf } from '../rides/pack-lifecycle.service.js';
 import { PresenceService } from '../rides/presence.service.js';
 import { parseGeoPoint, preferencesOf, selectRides, type RideRow } from '../rides/ride-view.js';
 import { RidesService } from '../rides/rides.service.js';
@@ -27,7 +28,6 @@ import { DriverProfileService, type DriverRow } from './driver-profile.service.j
 
 type Period = 'day' | 'week' | 'month';
 type PackRow = typeof schema.packs.$inferSelect;
-type PurchaseRow = typeof schema.packPurchases.$inferSelect;
 
 const DAY_MS = 86_400_000;
 
@@ -71,6 +71,7 @@ export class DriverActivityService {
     private readonly events: DomainEventsService,
     private readonly audit: AuditService,
     private readonly payments: PaymentsService,
+    private readonly packLifecycle: PackLifecycleService,
   ) {}
 
   private get db() {
@@ -255,24 +256,6 @@ export class DriverActivityService {
 
   // Packs ------------------------------------------------------------------------------------------------------------
 
-  private packDefinition(row: PackRow): PackDefinition {
-    return { code: row.code, ridesIncluded: row.ridesIncluded, priceCents: row.priceCents, validityDays: row.validityDays, discovery: row.code === 'discovery', priorityBonus: row.code === 'unlimited' };
-  }
-
-  private purchaseOf(row: PurchaseRow): PackPurchase {
-    return {
-      id: row.id, driverId: row.driverId, packCode: row.packCode, ridesIncluded: row.ridesIncluded, ridesRemaining: row.ridesRemaining ?? 0, carriedOverRemaining: row.carriedOverRemaining,
-      activatedAt: row.activatedAt, expiresAt: row.expiresAt, status: row.status, autoRenew: row.autoRenew, nextPackCode: row.nextPackCode, rolloverDone: row.rolloverDone, billing: row.billing,
-    };
-  }
-
-  private async packSettings() {
-    const [lowThreshold, rolloverWindowDays, discoveryFirstDrivers] = await Promise.all([
-      this.settings.number('packs.low_threshold', 3), this.settings.number('packs.rollover_window_days', 7), this.settings.number('packs.discovery_free_first_drivers', 100),
-    ]);
-    return { lowThreshold, rolloverWindowDays, discoveryFirstDrivers };
-  }
-
   async packs(userId: string): Promise<DriverPacksView> {
     return this.packsOf(await this.profiles.requireDriver(userId));
   }
@@ -281,18 +264,18 @@ export class DriverActivityService {
     const [catalog, purchases, settings, required, rank] = await Promise.all([
       this.db.select().from(schema.packs).where(eq(schema.packs.active, true)).orderBy(asc(schema.packs.sortOrder)),
       this.db.select().from(schema.packPurchases).where(eq(schema.packPurchases.driverId, driver.id)).orderBy(desc(schema.packPurchases.activatedAt)),
-      this.packSettings(),
+      this.packLifecycle.packSettings(),
       this.settings.get<boolean>('drivers.require_active_pack', false),
-      this.db.select({ n: sql<number>`count(*)::int` }).from(schema.drivers).where(lte(schema.drivers.createdAt, driver.createdAt)),
+      this.packLifecycle.signupRank(this.db, driver.createdAt),
     ]);
     const now = new Date();
-    const domainPurchases = purchases.map((p) => this.purchaseOf(p));
-    const profile = { driverId: driver.id, isRLuxeEvTenant: false, discoveryUsed: purchases.some((p) => p.packCode === 'discovery'), signupRank: rank[0]?.n ?? Number.MAX_SAFE_INTEGER };
+    const domainPurchases = purchases.map(purchaseOf);
+    const profile = { driverId: driver.id, isRLuxeEvTenant: driver.isRLuxeEvTenant, discoveryUsed: purchases.some((p) => p.packCode === 'discovery'), signupRank: rank };
     const active = activePack(domainPurchases, now);
     const names = new Map(catalog.map((c) => [c.code, c.name]));
     return {
       catalog: catalog.map((c) => {
-        const price = activationPriceCents(this.packDefinition(c), profile, settings);
+        const price = activationPriceCents(packDefinitionOf(c), profile, settings);
         return { code: c.code, name: c.name, ridesIncluded: c.ridesIncluded, priceCents: c.priceCents, validityDays: c.validityDays, priceForMeCents: price.priceCents, available: price.allowed };
       }),
       active: active ? { id: active.id, code: active.packCode as PackRow['code'], name: names.get(active.packCode as PackRow['code']) ?? active.packCode, ridesRemaining: remainingRides(active), expiresAt: active.expiresAt.toISOString(), autoRenew: active.autoRenew } : null,
@@ -312,27 +295,28 @@ export class DriverActivityService {
     const driver = await this.profiles.requireDriver(userId);
     const [pack] = await this.db.select().from(schema.packs).where(and(eq(schema.packs.code, input.packCode), eq(schema.packs.active, true))).limit(1);
     if (!pack) throw AppError.notFound('PACK_NOT_FOUND', 'Pack introuvable');
-    const settings = await this.packSettings();
+    const settings = await this.packLifecycle.packSettings();
     // Un verrou par chauffeur : deux activations simultanées ne créent jamais deux packs actifs ni deux Découverte.
     const created = await this.db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${driver.id}))`);
+      await lockDriverPacks(tx, driver.id);
       const purchases = await tx.select().from(schema.packPurchases).where(eq(schema.packPurchases.driverId, driver.id));
       const now = new Date();
-      const current = activePack(purchases.map((p) => this.purchaseOf(p)), now);
+      const current = activePack(purchases.map(purchaseOf), now);
       if (current) {
         const set = current.packCode === input.packCode ? { autoRenew: input.autoRenew, nextPackCode: null } : { nextPackCode: input.packCode, autoRenew: true };
         await tx.update(schema.packPurchases).set(set).where(eq(schema.packPurchases.id, current.id));
         return null;
       }
-      const [rank] = await tx.select({ n: sql<number>`count(*)::int` }).from(schema.drivers).where(lte(schema.drivers.createdAt, driver.createdAt));
-      const profile = { driverId: driver.id, isRLuxeEvTenant: false, discoveryUsed: purchases.some((p) => p.packCode === 'discovery'), signupRank: rank?.n ?? Number.MAX_SAFE_INTEGER };
-      const price = activationPriceCents(this.packDefinition(pack), profile, settings);
+      const profile = { driverId: driver.id, isRLuxeEvTenant: driver.isRLuxeEvTenant, discoveryUsed: purchases.some((p) => p.packCode === 'discovery'), signupRank: await this.packLifecycle.signupRank(tx, driver.createdAt) };
+      const price = activationPriceCents(packDefinitionOf(pack), profile, settings);
       if (!price.allowed) throw AppError.conflict('DISCOVERY_ALREADY_USED', 'Le pack Découverte ne s\'active qu\'une seule fois');
-      const purchase = activatePack(randomUUID(), driver.id, this.packDefinition(pack), price.priceCents, now, input.autoRenew);
+      const purchase = activatePack(randomUUID(), driver.id, packDefinitionOf(pack), price.priceCents, now, input.autoRenew);
       await tx.insert(schema.packPurchases).values({
         id: purchase.id, driverId: driver.id, packCode: pack.code, pricePaidCents: price.priceCents, ridesIncluded: purchase.ridesIncluded, ridesRemaining: purchase.ridesIncluded === null ? null : purchase.ridesRemaining,
         carriedOverRemaining: 0, activatedAt: purchase.activatedAt, expiresAt: purchase.expiresAt, status: 'active', autoRenew: purchase.autoRenew, billing: purchase.billing,
       });
+      // Report des courses d'un pack expiré depuis moins de 7 jours (une seule fois) ; fin du renouvellement des packs remplacés.
+      await this.packLifecycle.afterActivation(tx, driver.id, now, settings);
       return { id: purchase.id, priceCents: price.priceCents };
     });
     if (created) this.audit.record({ action: 'driver.pack_activated', entity: 'pack_purchases', entityId: created.id, after: { packCode: pack.code, priceCents: created.priceCents } });

@@ -225,6 +225,15 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   if (clients.length) rideConditions.push(inArray(schema.rides.clientId, clients.map((c) => c.id)));
   if (drivers.length) rideConditions.push(inArray(schema.rides.driverId, drivers.map((d) => d.id)));
   const rides = await database.select({ id: schema.rides.id }).from(schema.rides).where(or(...rideConditions));
+  // Usages de promotions (étape 8) : rendus au budget des promotions avant la suppression des courses et des clients.
+  const useConditions = [
+    ...(rides.length ? [sql`ride_id IN ${rides.map((r) => r.id)}`] : []),
+    ...(clients.length ? [sql`client_id IN ${clients.map((c) => c.id)}`] : []),
+  ];
+  if (useConditions.length) {
+    await database.execute(sql`WITH removed AS (DELETE FROM promotion_uses WHERE ${sql.join(useConditions, sql` OR `)} RETURNING promotion_id, discount_cents)
+      UPDATE promotions p SET spent_cents = GREATEST(0, p.spent_cents - r.total) FROM (SELECT promotion_id, sum(discount_cents)::int AS total FROM removed GROUP BY promotion_id) r WHERE p.id = r.promotion_id`);
+  }
   if (rides.length) {
     const rideIds = rides.map((r) => r.id);
     await database.delete(schema.incidents).where(inArray(schema.incidents.rideId, rideIds));

@@ -19,6 +19,7 @@ import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { REDIS } from '../../infra/redis.module.js';
+import { PackLifecycleService } from './pack-lifecycle.service.js';
 import { parseGeoPoint } from './ride-view.js';
 
 const GEO_KEY = 'presence:geo';
@@ -60,6 +61,7 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     @Inject(APP_LOGGER) private readonly logger: Logger,
     private readonly settings: SettingsService,
     private readonly events: DomainEventsService,
+    private readonly packs: PackLifecycleService,
   ) {}
 
   private get db() {
@@ -113,8 +115,9 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
       .where(and(eq(schema.consents.userId, driver.userId), eq(schema.consents.purpose, 'geolocation')));
     if (geolocation && geolocation.total > 0 && geolocation.active === 0) reasons.push('geolocation_consent_withdrawn');
     if (await this.settings.get<boolean>('drivers.require_active_pack', false)) {
-      const [pack] = await this.db.select({ id: schema.packPurchases.id }).from(schema.packPurchases).where(and(eq(schema.packPurchases.driverId, driver.id), eq(schema.packPurchases.status, 'active'))).limit(1);
-      if (!pack) reasons.push('pack_required');
+      // Pack utilisable (non échu, non épuisé) ou renouvellement automatique ; sinon le motif précis (aucun, épuisé, expiré).
+      const blocker = await this.packs.blocker(driver.id);
+      if (blocker) reasons.push(blocker);
     }
     const [balance] = await this.db.select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.id)).limit(1);
     if (balance?.suspendedForBalanceAt) reasons.push('balance_suspended');

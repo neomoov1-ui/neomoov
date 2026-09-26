@@ -23,6 +23,7 @@ import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { lineLabel } from './labels.js';
 import { DEFAULT_CITY, PricingRulesService } from './pricing-rules.service.js';
+import { PromotionsService } from './promotions.service.js';
 import { ZonesService } from './zones.service.js';
 
 export interface QuoteActor {
@@ -75,6 +76,7 @@ export class QuotesService {
     private readonly zones: ZonesService,
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
+    private readonly promotions: PromotionsService,
   ) {}
 
   private get db() {
@@ -108,7 +110,7 @@ export class QuotesService {
 
     const categories: VehicleCategory[] = input.category ? [input.category] : (loaded.rules.categories.map((c) => c.category) as VehicleCategory[]);
     const [route, client] = await Promise.all([this.routeFor(origin, destination, stops, pickupAt, overrides), this.clientOf(actor.userId)]);
-    const promotion = input.options.promoCode ? await this.promotionFor(input.options.promoCode, client?.id ?? null) : null;
+    const promotionCandidates = await this.promotions.candidates(input.options.promoCode, client?.id ?? null);
     const clientCompletedRides = overrides.clientCompletedRides ?? client?.rideCount ?? 0;
     const creditsAvailableCents = overrides.creditsAvailableCents ?? (actor.userId ? await this.creditsOf(actor.userId) : 0);
     const [marginPpm, maxAgeDays, validitySeconds] = await Promise.all([
@@ -120,9 +122,11 @@ export class QuotesService {
     const validUntil = new Date(now.getTime() + validitySeconds * 1000);
 
     // Calcul pur, catégorie par catégorie (moins de 100 ms hors cartographie).
+    const promotionBase = { now, distanceMeters: route.distanceMeters, originZone: originZone?.code ?? null, destinationZone: destinationZone?.code ?? null, pickupAt, timeZone: loaded.timeZone, clientCompletedRides };
     const computed = categories.map((category) => {
-      // Une promotion réservée à d'autres catégories ne fait pas échouer le devis de celle-ci : elle n'y est pas appliquée.
-      const applicablePromotion = promotion && promotion.categories && !promotion.categories.includes(category) ? null : promotion;
+      // Promotions (5.9) : le code saisi s'il est admissible pour cette catégorie, sinon une promotion automatique
+      // (troisième, dixième course). Une promotion réservée à d'autres catégories n'est simplement pas appliquée ici.
+      const applicablePromotion = this.promotions.choose(promotionCandidates, promotionBase, category);
       let quote: Quote;
       try {
         quote = computeQuote(
@@ -305,32 +309,6 @@ export class QuotesService {
       .from(schema.credits)
       .where(and(eq(schema.credits.userId, userId), gt(schema.credits.remainingCents, 0), or(isNull(schema.credits.expiresAt), gt(schema.credits.expiresAt, new Date()))));
     return row?.total ?? 0;
-  }
-
-  /** Promotion active et encore utilisable par ce client (5.9), traduite pour le moteur ; sinon 400 avec le code. */
-  private async promotionFor(code: string, clientId: string | null): Promise<Promotion> {
-    const now = new Date();
-    const [row] = await this.db.select().from(schema.promotions).where(and(eq(schema.promotions.code, code), eq(schema.promotions.active, true))).limit(1);
-    if (!row || row.validFrom > now || (row.validTo && row.validTo <= now)) throw new AppError('PROMO_CODE_UNKNOWN', 'Code promo inconnu ou expiré', 400, { code });
-    if (row.budgetCents !== null && row.spentCents >= row.budgetCents) throw new AppError('PROMOTION_NOT_APPLICABLE', 'Cette promotion est épuisée', 400, { code });
-    const [uses] = await this.db
-      .select({ total: sql<number>`count(*)::int`, mine: sql<number>`count(*) filter (where ${schema.promotionUses.clientId} = ${clientId ?? '00000000-0000-4000-8000-000000000000'})::int` })
-      .from(schema.promotionUses)
-      .where(eq(schema.promotionUses.promotionId, row.id));
-    if (row.globalLimit !== null && (uses?.total ?? 0) >= row.globalLimit) throw new AppError('PROMOTION_NOT_APPLICABLE', 'Cette promotion a atteint sa limite', 400, { code });
-    if ((uses?.mine ?? 0) >= row.perClientLimit) throw new AppError('PROMOTION_NOT_APPLICABLE', 'Vous avez déjà utilisé cette promotion', 400, { code });
-    const conditions = (row.conditions ?? {}) as { maxDistanceMeters?: number; categories?: string[] };
-    const common = { code: row.code, ...(conditions.maxDistanceMeters !== undefined ? { maxDistanceMeters: conditions.maxDistanceMeters } : {}), ...(conditions.categories ? { categories: conditions.categories } : {}) };
-    switch (row.type) {
-      case 'nth_ride':
-        return { ...common, kind: 'free_ride', nthRide: row.value, waivesFees: row.waivesFees };
-      case 'free_ride':
-        return { ...common, kind: 'free_ride', waivesFees: row.waivesFees };
-      case 'percent':
-        return { ...common, kind: 'percent', percentBps: row.value, ...(row.maxDiscountCents !== null ? { maxDiscountCents: row.maxDiscountCents } : {}) };
-      default:
-        throw new AppError('PROMOTION_NOT_APPLICABLE', 'Ce type de promotion ne s\'applique pas à un devis', 400, { code });
-    }
   }
 
   /** Relevés concurrentiels récents pour ces zones (dans les deux sens), ces catégories et cette plage horaire (D33). */
