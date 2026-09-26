@@ -10,7 +10,7 @@ import { AppExceptionFilter } from './common/app-exception.filter.js';
 import { correlationMiddleware } from './common/correlation.middleware.js';
 import { HttpMetrics, httpMetricsMiddleware } from './common/http-metrics.js';
 import { createLogger, PinoNestLogger } from './common/logger.js';
-import type { AppEnv } from './config/env.js';
+import { apiDocsServed, type AppEnv } from './config/env.js';
 import { assertRoutePolicies } from './modules/auth/route-policies.js';
 import { AppIoAdapter } from './common/app-io.adapter.js';
 import { REDIS } from './infra/redis.module.js';
@@ -63,7 +63,8 @@ export async function createApp(env: AppEnv, logger: Logger = createLogger('api'
     app,
     new DocumentBuilder().setTitle('Neomoov API').setDescription('API de la plateforme Neomoov (Groupe NSK Inc.). Préfixe /v1.').setVersion('1.0').addBearerAuth().build(),
   );
-  SwaggerModule.setup('v1/docs', app, document, { jsonDocumentUrl: 'v1/docs/openapi.json' });
+  // Production : la carte des routes n'est pas publiée (API_DOCS=on pour l'ouvrir) ; le document reste exporté pour le client.
+  if (apiDocsServed(env)) SwaggerModule.setup('v1/docs', app, document, { jsonDocumentUrl: 'v1/docs/openapi.json' });
   documents.set(app, document);
   // Refus par défaut : toute route déclare sa politique d'accès, sinon l'API ne démarre pas (prompt 03).
   assertRoutePolicies(app);

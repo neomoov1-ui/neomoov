@@ -145,6 +145,8 @@ export const envSchema = z.object({
   FEATURE_IMMEDIATE_RIDES: flag,
   /** Paiement par carte (Stripe) proposé : `on` ou `off` ; par défaut, jamais en production avec le simulateur de paiement. */
   CARD_PAYMENTS: z.enum(['on', 'off']).optional(),
+  /** Documentation OpenAPI servie sur `/v1/docs` : `on` ou `off` ; par défaut, jamais en production (carte des routes). */
+  API_DOCS: z.enum(['on', 'off']).optional(),
   FEATURE_INSTALLMENTS: flag,
   FEATURE_RIDE_SERIES: flag,
 });
@@ -163,6 +165,11 @@ const MOCKABLE_PROVIDERS = (Object.keys(PROVIDER_ALIASES) as ProviderKey[]).map(
  * Carte proposée aux clients : forcée par `CARD_PAYMENTS`, sinon partout sauf en production avec le simulateur de
  * paiement (bêta sans Stripe : paiement au chauffeur seulement, aucune carte fictive acceptée).
  */
+/** `/v1/docs` servie : forcée par `API_DOCS`, sinon partout sauf en production (revue finale). */
+export function apiDocsServed(env: Pick<AppEnv, 'API_DOCS' | 'NODE_ENV'>): boolean {
+  return env.API_DOCS ? env.API_DOCS === 'on' : env.NODE_ENV !== 'production';
+}
+
 export function cardPaymentsEnabled(env: Pick<AppEnv, 'CARD_PAYMENTS' | 'NODE_ENV' | 'PAYMENT_PROVIDER'>): boolean {
   if (env.CARD_PAYMENTS) return env.CARD_PAYMENTS === 'on';
   return !(env.NODE_ENV === 'production' && env.PAYMENT_PROVIDER !== 'real');
