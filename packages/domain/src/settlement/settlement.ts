@@ -91,6 +91,28 @@ export function splitTaxes(ride: SettlementRide, rates: TaxRates): { fareTaxesCe
   return { fareTaxesCents: taxesOn(ride.fareCents, rates), feeTaxesCents };
 }
 
+/** Taxes d'une course par nature, pour la facture et le registre des taxes (section 5.13). */
+export interface TaxDetail {
+  /** TPS et TVQ sur le tarif complet : taxes du chauffeur, fournisseur du transport (décision D26). */
+  fare: { gstCents: number; qstCents: number };
+  /** TPS et TVQ perçues sur les frais de service et la redevance : taxes de Neomoov. */
+  fee: { gstCents: number; qstCents: number };
+}
+
+/**
+ * Même répartition que `splitTaxes`, taxe par taxe : la part des frais est ce qui a été perçu au-delà des taxes du
+ * tarif effectivement payé (jamais négative), la part du tarif porte sur le tarif complet.
+ */
+export function splitTaxDetail(ride: SettlementRide, rates: TaxRates): TaxDetail {
+  const collectedFare = ride.fareCents - ride.promotionCompensationCents;
+  const gstOn = (cents: number): number => mulDivRound(cents, rates.gstRatePpm, 1_000_000);
+  const qstOn = (cents: number): number => mulDivRound(cents, rates.qstRatePpm, 1_000_000);
+  return {
+    fare: { gstCents: gstOn(ride.fareCents), qstCents: qstOn(ride.fareCents) },
+    fee: { gstCents: Math.max(0, ride.gstCents - gstOn(collectedFare)), qstCents: Math.max(0, ride.qstCents - qstOn(collectedFare)) },
+  };
+}
+
 /**
  * Lignes de relevé d'une course. Paiement via la plateforme : la part du tarif payée par le client, les taxes
  * sur le tarif complet et le pourboire sont crédités. Paiement direct (espèces, Interac, terminal) : le chauffeur

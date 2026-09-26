@@ -1,0 +1,2 @@
+ALTER TABLE "invoices" ADD COLUMN "kind" varchar(20) DEFAULT 'ride' NOT NULL;--> statement-breakpoint
+ALTER TABLE "invoices" ADD CONSTRAINT "invoices_kind" CHECK ("invoices"."kind" IN ('ride', 'cancellation', 'no_show', 'credit_note'));
