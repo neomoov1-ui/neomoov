@@ -30,7 +30,7 @@ export function documentTypes(value: unknown): string[] {
  * Chauffeur actif, documents exigés approuvés et valides, pack actif si exigé, solde non bloquant, aucune suspension ;
  * avec `pendingOffersExcept`, aucune offre en attente pour une autre course que celle-ci.
  */
-export function driverEligible(rules: Pick<EligibilityRules, 'requiredDocuments' | 'requireActivePack'>, pendingOffersExcept?: string): SQL {
+export function driverEligible(rules: Pick<EligibilityRules, 'requiredDocuments' | 'requireActivePack'>, pendingOffersExcept?: string, options: { premiumContext?: boolean } = {}): SQL {
   const documents = rules.requiredDocuments.length
     ? sql`AND NOT EXISTS (SELECT 1 FROM unnest(${sql.raw(`ARRAY[${rules.requiredDocuments.map((t) => `'${t}'`).join(',')}]::text[]`)}) AS req(type)
            WHERE NOT EXISTS (SELECT 1 FROM driver_documents dd WHERE dd.driver_id = d.id AND dd.type::text = req.type AND dd.status = 'approved' AND (dd.expires_on IS NULL OR dd.expires_on >= current_date)))`
@@ -44,7 +44,10 @@ export function driverEligible(rules: Pick<EligibilityRules, 'requiredDocuments'
   const pending = pendingOffersExcept
     ? sql`AND NOT EXISTS (SELECT 1 FROM ride_offers o WHERE o.driver_id = d.id AND o.state = 'sent' AND o.expires_at > now() AND o.ride_id <> ${pendingOffersExcept}::uuid)`
     : sql``;
-  return sql`(d.status = 'active' ${documents} ${pack}
+  // Restriction (5.11) : plus de courses VIP, aéroport ni entreprise ; les autres restent ouvertes. Sans contexte connu
+  // (liste des véhicules d'un devis, véhicule choisi), un chauffeur restreint n'est pas proposé.
+  const status = options.premiumContext === false ? sql`d.status IN ('active', 'restricted')` : sql`d.status = 'active'`;
+  return sql`(${status} ${documents} ${pack}
     AND NOT EXISTS (SELECT 1 FROM driver_balances b WHERE b.driver_id = d.id AND b.suspended_for_balance_at IS NOT NULL)
     AND NOT EXISTS (SELECT 1 FROM sanctions s WHERE s.driver_id = d.id AND s.type = 'suspension' AND (s.ends_at IS NULL OR s.ends_at > now()))
     ${pending})`;

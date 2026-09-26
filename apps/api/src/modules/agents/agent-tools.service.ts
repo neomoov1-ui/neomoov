@@ -10,7 +10,7 @@ import { schema } from '@neomoov/db';
 import {
   compareDocumentIdentity, DOCUMENT_TYPES, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, financialDecision, flagAnomalyToolSchema, issueCreditToolSchema, listStatementLinesToolSchema,
   localClock, lookupClientToolSchema, lookupDriverToolSchema, lookupRideToolSchema, openIncidentToolSchema, proposeDecisionToolSchema, queryMetricsToolSchema, redactSensitive, refundToolSchema,
-  sendMessageToolSchema, compareIdentityToolSchema, uuid, type ExtractedDocumentFields, type ToolResultView,
+  sendMessageToolSchema, compareIdentityToolSchema, proposeSanctionToolSchema, uuid, type ExtractedDocumentFields, type ToolResultView,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
@@ -26,6 +26,8 @@ import { AuditService } from '../audit/audit.service.js';
 import { CreditsService } from '../credits/credits.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
+import { ComplianceService } from '../compliance/compliance.service.js';
+import { PresenceService } from '../rides/presence.service.js';
 import { SafetyHoldService } from '../rides/safety-hold.service.js';
 import { logSafe, type AgentRunContext } from './agent-runner.service.js';
 import { ConversationsService } from './conversations.service.js';
@@ -33,13 +35,13 @@ import { FieldCipher } from '../../common/field-cipher.js';
 
 export const TOOL_NAMES = [
   'lookupRide', 'lookupClient', 'lookupDriver', 'issueCredit', 'refund', 'openIncident', 'escalateToHuman', 'sendMessage',
-  'extractDocumentFields', 'compareIdentity', 'proposeDecision', 'listStatementLines', 'flagAnomaly', 'queryMetrics',
+  'extractDocumentFields', 'compareIdentity', 'proposeDecision', 'listStatementLines', 'flagAnomaly', 'queryMetrics', 'proposeSanction',
 ] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 export type ToolResult = ToolResultView;
 
 /** Action proposée dans la file d'approbation (nom de l'outil qui l'a proposée). */
-export type ApprovalAction = 'refund' | 'issueCredit' | 'proposeDecision' | 'flagAnomaly';
+export type ApprovalAction = 'refund' | 'issueCredit' | 'proposeDecision' | 'flagAnomaly' | 'proposeSanction';
 
 export interface ActionMeta {
   approvalId: string | null;
@@ -66,6 +68,10 @@ export type DocumentFields = z.infer<typeof documentFieldsSchema>;
 const refundActionSchema = z.object({ rideId: uuid, amountCents: z.number().int().positive(), reason: z.string().min(1), mode: z.enum(['refund', 'credit']).default('refund') });
 const creditActionSchema = z.object({ userId: uuid, amountCents: z.number().int().positive(), reason: z.string().min(1) });
 const documentActionSchema = z.object({ documentId: uuid, decision: z.enum(['approve', 'reject']), reason: z.string().default('') });
+const sanctionActionSchema = z.object({ driverId: uuid, type: z.enum(['warning', 'restriction', 'suspension']), reason: z.string().min(3) });
+
+/** Préfixe du motif des sanctions de l'agent qualité : leur échéance rend le chauffeur actif (passe quotidienne). */
+export const QUALITY_SANCTION_PREFIX = 'Qualité : ';
 
 const done = (data: unknown, message: string): ToolResult => ({ ok: true, status: 'done', approvalId: null, data, message });
 const refused = (message: string, data: unknown = null): ToolResult => ({ ok: false, status: 'refused', approvalId: null, data, message });
@@ -93,6 +99,8 @@ export class AgentToolsService {
     private readonly overview: AdminOverviewService,
     private readonly safety: SafetyHoldService,
     private readonly fields: FieldCipher,
+    private readonly presence: PresenceService,
+    private readonly compliance: ComplianceService,
   ) {
     this.specs = {
       lookupRide: { description: 'Courses du client de la conversation : les plus récentes, ou une course par identifiant ou numéro public (état, dates, adresses, prix, montant payé et remboursé, prénom du chauffeur).', schema: lookupRideToolSchema, run: (c, i) => this.lookupRide(c, i) },
@@ -107,6 +115,7 @@ export class AgentToolsService {
       compareIdentity: { description: 'Compare les champs extraits d\'un document avec le profil et la déclaration du chauffeur.', schema: compareIdentityToolSchema, run: (c, i) => this.compareIdentity(c, i) },
       proposeDecision: { description: 'Propose d\'approuver ou de rejeter un document ; la décision finale est toujours humaine.', schema: proposeDecisionToolSchema, run: (c, i) => this.proposeDecision(c, i) },
       listStatementLines: { description: 'Relevé hebdomadaire d\'un chauffeur : totaux, lignes et courses terminées de la période (montants en cents).', schema: listStatementLinesToolSchema, run: (c, i) => this.listStatementLines(c, i) },
+      proposeSanction: { description: 'Propose une sanction graduée (avertissement, restriction, suspension temporaire) pour un chauffeur, avec ses motifs chiffrés (validation humaine en mode approbation).', schema: proposeSanctionToolSchema, run: (c, i) => this.proposeSanction(c, i) },
       flagAnomaly: { description: 'Signale une anomalie d\'un relevé à la comptabilité, avec son explication (validation humaine).', schema: flagAnomalyToolSchema, run: (c, i) => this.flagAnomaly(c, i) },
       queryMetrics: { description: 'Indicateurs d\'exploitation d\'une période (dates locales incluses) : courses, revenus, taux, note, clients et chauffeurs, file d\'attente de l\'exploitation.', schema: queryMetricsToolSchema, run: (c, i) => this.queryMetrics(c, i) },
     };
@@ -351,10 +360,16 @@ export class AgentToolsService {
           .update(schema.driverDocuments)
           .set({ status, verifiedByUserId: meta.approverUserId, verifiedByAgentCode: meta.agentCode, verifiedAt: new Date(), rejectionReason: status === 'rejected' ? d.reason.slice(0, 500) : null })
           .where(and(eq(schema.driverDocuments.id, d.documentId), eq(schema.driverDocuments.status, 'pending')))
-          .returning({ id: schema.driverDocuments.id });
+          .returning({ id: schema.driverDocuments.id, driverId: schema.driverDocuments.driverId });
         if (!row) throw AppError.conflict('DOCUMENT_ALREADY_REVIEWED', 'Ce document a déjà été vérifié ou n\'existe plus');
         this.audit.record({ action: `agent.document_${status}`, entity: 'driver_documents', entityId: row.id, after: { status, approvalId: meta.approvalId, agentCode: meta.agentCode } });
+        // Comme la revue humaine (étape 14) : un document approuvé met à jour les échéances et lève une suspension de conformité.
+        if (status === 'approved') await this.compliance.refreshDriver(row.driverId);
         return { documentId: row.id, status };
+      }
+      case 'proposeSanction': {
+        const d = payload(sanctionActionSchema);
+        return this.applySanction(d, meta);
       }
       case 'flagAnomaly':
         // Une anomalie approuvée est confirmée : la correction du relevé (ajustement) reste une décision de la comptabilité.
@@ -505,6 +520,56 @@ export class AgentToolsService {
     const data = await this.statementData(input.statementId);
     const { driverId: _driverId, ...statement } = data.statement;
     return done({ ...data, statement }, `${data.lines.length} ligne(s), ${data.rides.length} course(s)`);
+  }
+
+  /**
+   * Sanction approuvée (ou appliquée en mode automatique) : ligne `sanctions` au motif préfixé, échéance selon les
+   * réglages (`quality.restriction_days`, `quality.suspension_days`), statut du chauffeur (restreint : plus de courses
+   * VIP ni aéroport ; suspendu : hors ligne), avis au chauffeur. Idempotente par clé (une approbation rejouée ne double
+   * rien). Jamais de radiation : elle reste une décision humaine depuis la fiche du chauffeur.
+   */
+  private async applySanction(d: { driverId: string; type: 'warning' | 'restriction' | 'suspension'; reason: string }, meta: ActionMeta): Promise<Record<string, unknown>> {
+    const [restrictionDays, suspensionDays] = await Promise.all([this.settings.number('quality.restriction_days', 14), this.settings.number('quality.suspension_days', 7)]);
+    const now = new Date();
+    const days = d.type === 'restriction' ? restrictionDays : d.type === 'suspension' ? suspensionDays : 0;
+    const endsAt = days > 0 ? new Date(now.getTime() + days * 86_400_000) : null;
+    const reference = `${d.reason.slice(0, 900)} [${meta.idempotencyKey.slice(0, 80)}]`;
+    const applied = await this.db.transaction(async (tx) => {
+      const [driver] = await tx.execute<{ status: string; user_id: string }>(sql`SELECT status, user_id FROM drivers WHERE id = ${d.driverId}::uuid FOR UPDATE`);
+      if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Chauffeur introuvable');
+      const [existing] = await tx.select({ id: schema.sanctions.id }).from(schema.sanctions).where(and(eq(schema.sanctions.driverId, d.driverId), eq(schema.sanctions.reason, reference))).limit(1);
+      if (existing) return { sanctionId: existing.id, userId: driver.user_id, status: driver.status, replayed: true };
+      const [row] = await tx.insert(schema.sanctions).values({ driverId: d.driverId, type: d.type, reason: reference, startsAt: now, endsAt, decidedByUserId: meta.approverUserId }).returning({ id: schema.sanctions.id });
+      let status = driver.status;
+      if (d.type === 'restriction' && driver.status === 'active') status = 'restricted';
+      if (d.type === 'suspension' && (driver.status === 'active' || driver.status === 'restricted')) status = 'suspended';
+      if (status !== driver.status) await tx.update(schema.drivers).set({ status: status as 'restricted' | 'suspended' }).where(eq(schema.drivers.id, d.driverId));
+      return { sanctionId: row!.id, userId: driver.user_id, status, replayed: false };
+    });
+    if (!applied.replayed) {
+      if (d.type === 'suspension') {
+        const [presence] = await this.db.select({ currentRideId: schema.driverPresence.currentRideId }).from(schema.driverPresence).where(eq(schema.driverPresence.driverId, d.driverId)).limit(1);
+        if (presence && !presence.currentRideId) await this.presence.setStatus(applied.userId, { status: 'offline' }).catch(() => undefined);
+      }
+      await this.outbox.queue({ recipientUserId: applied.userId, template: `quality.${d.type}`, data: { reason: d.reason.replace(QUALITY_SANCTION_PREFIX, ''), endsAt: endsAt?.toISOString() ?? null } });
+      this.audit.record({ action: `agent.sanction_${d.type}`, entity: 'drivers', entityId: d.driverId, after: { sanctionId: applied.sanctionId, status: applied.status, endsAt: endsAt?.toISOString() ?? null, approvalId: meta.approvalId, agentCode: meta.agentCode } });
+    }
+    return { sanctionId: applied.sanctionId, type: d.type, status: applied.status, endsAt: endsAt?.toISOString() ?? null };
+  }
+
+  /** Qualité (5.11) : en mode approbation, proposition dans la file ; en mode automatique, sanction appliquée aussitôt. */
+  private async proposeSanction(ctx: AgentRunContext, input: z.infer<typeof proposeSanctionToolSchema>): Promise<ToolResult> {
+    const [driver] = await this.db.select({ id: schema.drivers.id, status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, input.driverId)).limit(1);
+    if (!driver) return notFound('Chauffeur introuvable');
+    if (driver.status !== 'active' && driver.status !== 'restricted') return refused(`Chauffeur au statut ${driver.status} : aucune sanction proposée`);
+    const reason = input.justification.startsWith(QUALITY_SANCTION_PREFIX) ? input.justification : `${QUALITY_SANCTION_PREFIX}${input.justification}`;
+    const data = { driverId: driver.id, type: input.type, reason, reasons: input.reasons };
+    if (ctx.mode === 'auto') {
+      const result = await this.executeAction('proposeSanction', data, { approvalId: null, approverUserId: null, agentCode: ctx.agent.code, idempotencyKey: `${ctx.runId}:sanction:${driver.id}` });
+      return done(result, 'Sanction appliquée');
+    }
+    const approvalId = await this.createApproval(ctx, 'proposeSanction', data, reason);
+    return { ok: true, status: 'pending_approval', approvalId, data: { type: input.type }, message: 'Sanction proposée pour validation' };
   }
 
   /** Anomalie d'un relevé : soumise à la comptabilité (validation humaine de tout écart non expliqué). */

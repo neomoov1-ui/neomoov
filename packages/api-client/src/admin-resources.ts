@@ -11,7 +11,7 @@ import type {
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
 import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration } from '@neomoov/domain';
-import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationView } from '@neomoov/domain';
+import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -30,6 +30,24 @@ export interface AuditEntryView {
   correlationId: string | null;
   occurredAt: string;
 }
+/** Échéance de conformité (GET /v1/admin/compliance). */
+export interface ComplianceCheckView {
+  id: string;
+  entityType: 'driver' | 'vehicle';
+  entityId: string;
+  type: string;
+  label: string;
+  dueOn: string;
+  status: 'pending' | 'overdue';
+  remindersSent: number;
+  suspendedAt: string | null;
+}
+export interface ComplianceRunReport { synced: number; reminders: number; suspended: number; lifted: number }
+export interface InspectionInput { inspectedOn: string; passed: boolean; odometerKm?: number; notes?: string }
+/** Tâche de conservation (Loi 25) journalisée, ou blocage faute de sauvegarde vérifiée. */
+export interface RetentionJobView { id: string; type: string; executedAt: string; rowsProcessed: number; details: Record<string, unknown> }
+export interface QueueStatsView { mode: 'redis' | 'memory'; queues: Array<{ name: string; waiting: number; active: number; failed: number; dropped?: number }> }
+export interface FailedJobView { id: string; name: string; failedReason: string | null; attempts: number; failedAt: string | null }
 type ListQuery = Partial<AdminListQuery>;
 
 export function staffAuthResource(t: Transport) {
@@ -112,6 +130,21 @@ export function adminResource(t: Transport) {
     zones: () => t.get<ZoneGeometry[]>('/admin/zones'),
     updateZone: (code: string, body: ZoneUpdate) => t.put<ZoneGeometry>(`/admin/zones/${id(code)}`, body),
     report: (from: string, to: string) => t.get<AdminReport>('/admin/reports', { query: { from, to } }),
+    /** Conformité (étape 14) : échéances, passe quotidienne, inspection d'un véhicule. */
+    complianceChecks: (query: { status?: 'pending' | 'overdue'; driverId?: string } = {}) => t.get<ComplianceCheckView[]>('/admin/compliance', { query }),
+    runCompliance: () => t.post<ComplianceRunReport>('/admin/compliance/run', {}),
+    recordInspection: (vehicleId: string, body: InspectionInput) => t.post<{ vehicleId: string; status: string; nextInspectionDueOn: string | null }>(`/admin/compliance/vehicles/${id(vehicleId)}/inspections`, body),
+    /** Conservation (Loi 25) : tâches journalisées, sauvegarde vérifiée, passe à la demande. */
+    retentionJobs: () => t.get<RetentionJobView[]>('/admin/retention/jobs'),
+    confirmBackup: (body: { note: string; verifiedAt?: string }) => t.post<{ verifiedAt: string }>('/admin/retention/backup-verified', body),
+    runRetention: () => t.post<Array<{ type: string; rowsProcessed: number; details: Record<string, unknown> }>>('/admin/retention/run', {}),
+    /** Files de tâches (étape 15) : état, tâches en échec, relance. */
+    queues: () => t.get<QueueStatsView>('/admin/queues'),
+    failedJobs: (name: string) => t.get<FailedJobView[]>(`/admin/queues/${id(name)}/failed`),
+    retryJobs: (name: string, jobId?: string) => t.post<{ retried: number }>(`/admin/queues/${id(name)}/retry`, jobId ? { jobId } : {}),
+    /** Qualité des chauffeurs (5.11) : mesures, propositions de l'agent qualité, passe à la demande. */
+    quality: () => t.get<QualityReviewView[]>('/admin/quality'),
+    runQuality: () => t.post<QualityRunResult>('/admin/quality/run', {}),
     audit: (query: { limit?: number; cursor?: string; entity?: string; action?: string } = {}) => t.get<{ items: AuditEntryView[]; nextCursor: string | null }>('/admin/audit', { query }),
   };
 }

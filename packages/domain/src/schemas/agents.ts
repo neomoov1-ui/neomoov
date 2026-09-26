@@ -6,7 +6,8 @@
  */
 import { z } from 'zod';
 import { AGENT_EFFORTS, STATEMENT_ANOMALY_KINDS } from '../agents/agents.js';
-import { AGENT_MODES, AGENT_RUN_STATUSES, CONVERSATION_CHANNELS, INCIDENT_SEVERITIES, LANGUAGES } from '../enums.js';
+import { AGENT_MODES, AGENT_RUN_STATUSES, CONVERSATION_CHANNELS, INCIDENT_SEVERITIES, LANGUAGES, SANCTION_TYPES } from '../enums.js';
+import { QUALITY_REASONS } from '../drivers/quality.js';
 import { adminListQuerySchema } from './admin.js';
 import { cents, isoDate, localDateString, phoneE164, uuid } from './common.js';
 
@@ -146,6 +147,13 @@ export const flagAnomalyToolSchema = z.object({
   severity: z.enum(INCIDENT_SEVERITIES).default('medium'),
 });
 export const queryMetricsToolSchema = z.object({ from: localDateString, to: localDateString });
+/** Agent qualité (5.11) : sanction graduée proposée pour un chauffeur, motifs et chiffres à l'appui (validation humaine). */
+export const proposeSanctionToolSchema = z.object({
+  driverId: uuid,
+  type: z.enum(SANCTION_TYPES),
+  reasons: z.array(z.enum(QUALITY_REASONS)).min(1).max(5),
+  justification: z.string().trim().min(3).max(1000),
+});
 
 /** Contexte ajouté aux entrées sur les routes internes : client concerné, agent (personnel ou rôle `agent` ; une clé porte le sien). */
 export const toolRouteContextSchema = z.object({
@@ -154,6 +162,21 @@ export const toolRouteContextSchema = z.object({
 });
 export const sendMessageRouteSchema = sendMessageToolSchema.extend({ conversationId: uuid });
 export const agentRunResultSchema = z.object({ run: agentRunSchema.nullable(), replayed: z.boolean(), conversationId: uuid.nullable() });
+
+/** Écran Qualité de My Hub (5.11) : mesures d'un chauffeur, sanction proposée par la règle, couverture en cours. */
+export const qualityReviewSchema = z.object({
+  driverId: uuid,
+  publicNumber: z.string(),
+  name: z.string().nullable(),
+  status: z.string(),
+  metrics: z.object({ ratingAverage: z.number().nullable(), ratingCount: count, lateCancellations7d: count, seriousIncidents: count }),
+  proposal: z.object({ type: z.enum(SANCTION_TYPES), reasons: z.array(z.enum(QUALITY_REASONS)) }).nullable(),
+  covered: z.enum(SANCTION_TYPES).nullable(),
+  pendingApproval: z.boolean(),
+});
+export type QualityReviewView = z.infer<typeof qualityReviewSchema>;
+export const qualityRunResultSchema = z.object({ run: agentRunSchema.nullable(), replayed: z.boolean(), evaluated: count, proposed: count, reinstated: count });
+export type QualityRunResult = z.infer<typeof qualityRunResultSchema>;
 
 /** Résultat d'un outil exposé sur les routes internes. */
 export const toolResultSchema = z.object({

@@ -704,6 +704,8 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private async immediateRows(ride: RideRow, cfg: DispatchConfig, filter: { radius: SearchRadius; excluded: string[]; onlyDriverId?: string }): Promise<CandidateRow[]> {
     const origin = parseGeoPoint(ride.originGeo);
     const { clientFavourite } = this.favouriteOf(ride);
+    // Chauffeur restreint (5.11) : candidat seulement hors contexte VIP, aéroport ou entreprise.
+    const premiumContext = await this.premiumContextOf(ride);
     const chainMeters = Math.round(cfg.chainMaxSeconds * cfg.fallbackSpeedMps);
     const point = sql`ST_SetSRID(ST_MakePoint(${origin.lng}::float, ${origin.lat}::float), 4326)::geography`;
     const radiusFilter = filter.radius === null ? sql`` : sql`AND ST_DWithin(p.position::geography, ${point}, ${filter.radius}::float)`;
@@ -719,7 +721,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       FROM driver_presence p
       JOIN drivers d ON d.id = p.driver_id
       JOIN vehicle_categories vc ON vc.code = p.category
-      WHERE ${driverEligible(cfg, ride.id)}
+      WHERE ${driverEligible(cfg, ride.id, { premiumContext })}
         AND ${categoryAtLeast(ride.reservedCategory)}
         AND (p.is_available OR (p.current_ride_id IS NOT NULL AND EXISTS (
               SELECT 1 FROM rides cr WHERE cr.id = p.current_ride_id AND cr.state = 'in_progress'
@@ -795,6 +797,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   /** Réservation planifiée : chauffeurs actifs qui acceptent les planifiées, catégorie conforme, sans conflit d'horaire ; favoris d'abord. */
   private async searchScheduledCandidates(ride: RideRow, excluded: string[], cfg: DispatchConfig): Promise<Candidate[]> {
     const { requested, clientFavourite } = this.favouriteOf(ride);
+    const premiumContext = await this.premiumContextOf(ride);
     const excludedFilter = excluded.length ? sql`AND d.id NOT IN (${sql.join(excluded.map((id) => sql`${id}::uuid`), sql`, `)})` : sql``;
     const query = sql`
       SELECT d.id AS driver_id, d.user_id, d.rating_average AS rating, d.ride_count, v.id AS vehicle_id, v.category, ST_AsGeoJSON(p.position) AS position, NULL::float AS distance_m,
@@ -805,7 +808,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       FROM drivers d
       ${currentVehicleJoin}
       LEFT JOIN driver_presence p ON p.driver_id = d.id
-      WHERE ${driverEligible(cfg, ride.id)}
+      WHERE ${driverEligible(cfg, ride.id, { premiumContext })}
         AND ${categoryAtLeast(ride.reservedCategory)}
         AND ${scheduledSlotFree(cfg, ride.requestedAt ?? new Date(), ride.id)}
         ${excludedFilter} AND ${paymentAccepted(ride.paymentChoice, ride.paymentMethod)}

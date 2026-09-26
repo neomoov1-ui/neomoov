@@ -10,6 +10,7 @@ const fr = {
     dashboard: 'Tableau de bord', rides: 'Courses', newRide: 'Nouvelle course', drivers: 'Chauffeurs', documents: 'Documents', vehicles: 'Véhicules',
     clients: 'Clients', leads: 'Prospects', tariffs: 'Tarifs', zones: 'Zones', offers: 'Packs et promotions', statements: 'Relevés', invoices: 'Factures',
     incidents: 'Incidents', dataRequests: 'Demandes de droits', agents: 'Agents IA', reports: 'Rapports', settings: 'Paramètres', staff: 'Équipe', audit: 'Journal d\'audit',
+    quality: 'Qualité des chauffeurs', compliance: 'Conformité et conservation', queues: 'Files de tâches',
     ledgers: 'Registres et exports',
   },
   shell: { signedInAs: 'Connecté : {{name}}', logout: 'Se déconnecter', menu: 'Menu', skip: 'Aller au contenu', live: 'Temps réel actif', polling: 'Actualisation périodique', readOnly: 'Lecture seule' },
@@ -87,6 +88,23 @@ const fr = {
     issueHint: 'Émis, le relevé ne change plus : il part au chauffeur avec son PDF.', adjustHint: 'Un relevé émis se corrige sur le brouillon de la semaine suivante.', view: 'Voir',
   },
   invoices: { title: 'Factures', number: 'Numéro', ride: 'Course', supplier: 'Fournisseur', total: 'Total', payment: 'Paiement', sev: 'État SEV', issued: 'Émise le' },
+  quality: {
+    title: 'Qualité des chauffeurs', intro: 'Chaque nuit, l\'agent qualité mesure la note des 50 dernières courses notées, les annulations tardives sur 7 jours et les incidents graves, puis propose une sanction graduée dans la file d\'approbation (Agents IA). La radiation reste une décision humaine, depuis la fiche du chauffeur.',
+    driver: 'Chauffeur', status: 'Statut', rating: 'Note (courses notées)', late: 'Annulations tardives (7 j)', incidents: 'Incidents graves', proposal: 'Proposition', coverage: 'En cours',
+    pending: 'En attente d\'approbation', none: 'Aucune', run: 'Lancer la passe maintenant', runDone: '{{evaluated}} chauffeurs évalués, {{proposed}} propositions, {{reinstated}} reprises.', onlyFlagged: 'Seulement les chauffeurs à suivre',
+    types: { warning: 'Avertissement', restriction: 'Restriction', suspension: 'Suspension' },
+  },
+  compliance: {
+    title: 'Conformité et conservation', checks: 'Échéances des chauffeurs et des véhicules', entity: 'Concerne', type: 'Échéance', dueOn: 'Date', status: 'État', reminders: 'Rappels', suspendedAt: 'Suspendu le',
+    statuses: { pending: 'À venir', overdue: 'Dépassée' }, entities: { driver: 'Chauffeur', vehicle: 'Véhicule' }, all: 'Toutes', run: 'Lancer la passe', runDone: '{{synced}} échéances à jour, {{reminders}} rappels, {{suspended}} suspensions, {{lifted}} levées.',
+    inspect: 'Inspection', inspectTitle: 'Inspection du véhicule', inspectedOn: 'Date de l\'inspection', passed: 'Inspection réussie', odometer: 'Kilométrage', notes: 'Remarques', saved: 'Inspection enregistrée ; prochaine échéance : {{date}}.',
+    retention: 'Conservation (Loi 25)', retentionIntro: 'Les purges de la nuit ne tournent qu\'après une sauvegarde vérifiée depuis moins de 26 heures (manuel des sauvegardes).', jobs: 'Dernières tâches', job: 'Tâche', executedAt: 'Exécutée le', rows: 'Lignes',
+    backup: 'Confirmer la sauvegarde vérifiée', backupNote: 'Vérification faite (journal de la sauvegarde, restauration)', backupDone: 'Sauvegarde vérifiée enregistrée.', purge: 'Lancer la conservation maintenant', purgeDone: '{{count}} tâches exécutées.',
+  },
+  queues: {
+    title: 'Files de tâches', intro: 'État des files du worker ; une tâche en échec se relance ici quand le fournisseur revient (manuel du mode dégradé).', mode: 'Mode : {{mode}}', name: 'File', waiting: 'En attente', active: 'En cours', failed: 'En échec',
+    showFailed: 'Voir les échecs', job: 'Tâche', reason: 'Motif', attempts: 'Essais', failedAt: 'Échec le', retry: 'Relancer', retryAll: 'Tout relancer', retried: '{{count}} tâches relancées.', noFailed: 'Aucune tâche en échec.',
+  },
   incidents: { title: 'Incidents et sécurité', type: 'Type', severity: 'Gravité', status: 'État', reportedBy: 'Signalé par', description: 'Description', decision: 'Décision', decide: 'Décider', privacyOnly: 'Registre des incidents de confidentialité', privacy: 'Confidentialité',
     hold: { active: 'Chauffeur bloqué', lifted: 'Blocage levé', kept: 'Blocage maintenu', field: 'Chauffeur bloqué à titre préventif', hint: 'Décider ou clore exige de choisir : le chauffeur reste suspendu tant que le blocage est maintenu.', lift: 'Lever le blocage : le chauffeur peut reprendre', keep: 'Maintenir la suspension (décision humaine)' },
     guarantee: {
@@ -151,6 +169,7 @@ const en: typeof fr = {
     dashboard: 'Dashboard', rides: 'Rides', newRide: 'New ride', drivers: 'Drivers', documents: 'Documents', vehicles: 'Vehicles',
     clients: 'Customers', leads: 'Leads', tariffs: 'Rates', zones: 'Zones', offers: 'Packs and promotions', statements: 'Statements', invoices: 'Invoices',
     incidents: 'Incidents', dataRequests: 'Privacy requests', agents: 'AI agents', reports: 'Reports', settings: 'Settings', staff: 'Team', audit: 'Audit log',
+    quality: 'Driver quality', compliance: 'Compliance and retention', queues: 'Job queues',
     ledgers: 'Ledgers and exports',
   },
   shell: { signedInAs: 'Signed in: {{name}}', logout: 'Sign out', menu: 'Menu', skip: 'Skip to content', live: 'Live updates on', polling: 'Periodic refresh', readOnly: 'Read only' },
@@ -228,6 +247,23 @@ const en: typeof fr = {
     issueHint: 'Once issued, the statement no longer changes: it goes to the driver with its PDF.', adjustHint: 'An issued statement is corrected on the following week\'s draft.', view: 'View',
   },
   invoices: { title: 'Invoices', number: 'Number', ride: 'Ride', supplier: 'Supplier', total: 'Total', payment: 'Payment', sev: 'SEV status', issued: 'Issued on' },
+  quality: {
+    title: 'Driver quality', intro: 'Every night, the quality agent measures the rating over the last 50 rated rides, late cancellations over 7 days and serious incidents, then proposes a graduated sanction in the approval queue (AI agents). Offboarding remains a human decision, from the driver record.',
+    driver: 'Driver', status: 'Status', rating: 'Rating (rated rides)', late: 'Late cancellations (7 d)', incidents: 'Serious incidents', proposal: 'Proposal', coverage: 'In effect',
+    pending: 'Awaiting approval', none: 'None', run: 'Run the pass now', runDone: '{{evaluated}} drivers evaluated, {{proposed}} proposals, {{reinstated}} reinstated.', onlyFlagged: 'Only drivers to watch',
+    types: { warning: 'Warning', restriction: 'Restriction', suspension: 'Suspension' },
+  },
+  compliance: {
+    title: 'Compliance and retention', checks: 'Driver and vehicle deadlines', entity: 'Concerns', type: 'Deadline', dueOn: 'Date', status: 'Status', reminders: 'Reminders', suspendedAt: 'Suspended on',
+    statuses: { pending: 'Upcoming', overdue: 'Overdue' }, entities: { driver: 'Driver', vehicle: 'Vehicle' }, all: 'All', run: 'Run the pass', runDone: '{{synced}} deadlines up to date, {{reminders}} reminders, {{suspended}} suspensions, {{lifted}} lifted.',
+    inspect: 'Inspection', inspectTitle: 'Vehicle inspection', inspectedOn: 'Inspection date', passed: 'Inspection passed', odometer: 'Odometer (km)', notes: 'Notes', saved: 'Inspection recorded; next deadline: {{date}}.',
+    retention: 'Retention (Law 25)', retentionIntro: 'Nightly purges only run after a backup verified less than 26 hours ago (backup runbook).', jobs: 'Latest jobs', job: 'Job', executedAt: 'Run on', rows: 'Rows',
+    backup: 'Confirm verified backup', backupNote: 'Check done (backup log, restore)', backupDone: 'Verified backup recorded.', purge: 'Run retention now', purgeDone: '{{count}} jobs run.',
+  },
+  queues: {
+    title: 'Job queues', intro: 'Worker queue status; a failed job is retried here once the provider is back (degraded mode runbook).', mode: 'Mode: {{mode}}', name: 'Queue', waiting: 'Waiting', active: 'Active', failed: 'Failed',
+    showFailed: 'Show failures', job: 'Job', reason: 'Reason', attempts: 'Attempts', failedAt: 'Failed on', retry: 'Retry', retryAll: 'Retry all', retried: '{{count}} jobs retried.', noFailed: 'No failed jobs.',
+  },
   incidents: { title: 'Incidents and safety', type: 'Type', severity: 'Severity', status: 'Status', reportedBy: 'Reported by', description: 'Description', decision: 'Decision', decide: 'Decide', privacyOnly: 'Privacy incident register', privacy: 'Privacy',
     hold: { active: 'Driver on hold', lifted: 'Hold lifted', kept: 'Hold kept', field: 'Driver on precautionary hold', hint: 'Deciding or closing requires a choice: the driver stays suspended while the hold is kept.', lift: 'Lift the hold: the driver can resume', keep: 'Keep the suspension (human decision)' },
     guarantee: {

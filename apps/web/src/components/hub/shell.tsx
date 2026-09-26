@@ -17,9 +17,9 @@ const NAV: Array<{ group: string; items: Array<{ key: string; href: string }> }>
   { group: 'clients', items: [{ key: 'clients', href: '/hub/clients' }, { key: 'leads', href: '/hub/prospects' }] },
   { group: 'offer', items: [{ key: 'tariffs', href: '/hub/tarifs' }, { key: 'zones', href: '/hub/zones' }, { key: 'offers', href: '/hub/offres' }] },
   { group: 'finance', items: [{ key: 'statements', href: '/hub/releves' }, { key: 'invoices', href: '/hub/factures' }, { key: 'ledgers', href: '/hub/registres' }] },
-  { group: 'safety', items: [{ key: 'incidents', href: '/hub/incidents' }, { key: 'dataRequests', href: '/hub/demandes' }] },
+  { group: 'safety', items: [{ key: 'incidents', href: '/hub/incidents' }, { key: 'quality', href: '/hub/qualite' }, { key: 'compliance', href: '/hub/conformite' }, { key: 'dataRequests', href: '/hub/demandes' }] },
   { group: 'intelligence', items: [{ key: 'agents', href: '/hub/agents' }, { key: 'reports', href: '/hub/rapports' }] },
-  { group: 'admin', items: [{ key: 'settings', href: '/hub/parametres' }, { key: 'staff', href: '/hub/equipe' }, { key: 'audit', href: '/hub/journal' }] },
+  { group: 'admin', items: [{ key: 'settings', href: '/hub/parametres' }, { key: 'staff', href: '/hub/equipe' }, { key: 'queues', href: '/hub/files' }, { key: 'audit', href: '/hub/journal' }] },
 ];
 
 /** Cadre de My Hub : navigation par modules (barre latérale, repliable sur mobile), utilisateur, langue, déconnexion. */

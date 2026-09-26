@@ -224,6 +224,22 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Suspension levée', body: () => 'Après examen du signalement, vous pouvez de nouveau recevoir des courses.' },
     en: { title: 'Suspension lifted', body: () => 'After review of the report, you can receive rides again.' },
   },
+  'quality.warning': {
+    fr: { title: 'Avertissement qualité', body: (d) => `${str(d['reason'])}. Nous comptons sur vous pour remonter la note ; l'équipe reste disponible pour en parler.` },
+    en: { title: 'Quality warning', body: (d) => `${str(d['reason'])}. We count on you to bring your rating back up; the team is available to talk about it.` },
+  },
+  'quality.restriction': {
+    fr: { title: 'Courses VIP et aéroport retirées', body: (d) => `${str(d['reason'])}. Vous recevez toujours les autres courses${d['endsAt'] ? ` ; reprise prévue le ${str(d['endsAt']).slice(0, 10)}` : ''}.` },
+    en: { title: 'VIP and airport rides removed', body: (d) => `${str(d['reason'])}. You still receive other rides${d['endsAt'] ? `; expected to resume on ${str(d['endsAt']).slice(0, 10)}` : ''}.` },
+  },
+  'quality.suspension': {
+    fr: { title: 'Suspension temporaire', body: (d) => `${str(d['reason'])}. Vous ne recevez plus de courses${d['endsAt'] ? ` jusqu'au ${str(d['endsAt']).slice(0, 10)}` : ''} ; l'équipe vous contacte.` },
+    en: { title: 'Temporary suspension', body: (d) => `${str(d['reason'])}. You no longer receive rides${d['endsAt'] ? ` until ${str(d['endsAt']).slice(0, 10)}` : ''}; the team will contact you.` },
+  },
+  'quality.reinstated': {
+    fr: { title: 'Sanction terminée', body: () => 'Votre sanction est terminée : vous recevez de nouveau toutes les courses.' },
+    en: { title: 'Sanction ended', body: () => 'Your sanction has ended: you receive all rides again.' },
+  },
   'alert.stuck_ride': {
     fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
     en: { title: 'Alert: stuck ride', body: (d) => `Ride${ride(d)} has been "${str(d['state'])}" for ${str(d['minutes'])} minutes. Check it in My Hub.` },

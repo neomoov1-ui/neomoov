@@ -170,6 +170,13 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'alerts.founder_phone', value: '', description: 'Numéro du fondateur appelé par l\'agent vocal en cas de SOS (vide : pas d\'appel)' },
   { key: 'voice.sos_assistant_id', value: '', description: 'Assistant Vapi qui appelle le fondateur en cas de SOS (vide : pas d\'appel)' },
   { key: 'voice.transfer_number', value: '+15145550100', description: 'Numéro vers lequel l\'agent vocal transfère un appel (humain de garde), à remplacer par le vrai numéro' },
+  { key: 'quality.thresholds', value: { warningBelow: 4.6, restrictionBelow: 4.4, suspensionBelow: 4.2, minRatings: 10, lateCancellations: 3, seriousIncidents: 3 }, description: 'Sanctions graduées (5.11) : seuils de la note sur 50 courses, nombre minimal de notes, annulations tardives sur 7 jours, incidents graves' },
+  { key: 'quality.late_cancellation_minutes', value: 60, description: 'Annulation tardive d\'une planifiée : à moins de 60 minutes de la prise en charge (toujours tardive après le départ du chauffeur ou sur une immédiate)' },
+  { key: 'quality.incident_window_days', value: 90, description: 'Fenêtre des incidents graves comptés par l\'agent qualité' },
+  { key: 'quality.warning_cooldown_days', value: 30, description: 'Pas de nouvel avertissement qualité avant 30 jours' },
+  { key: 'quality.restriction_days', value: 14, description: 'Durée d\'une restriction de qualité (courses VIP et aéroport retirées)' },
+  { key: 'quality.suspension_days', value: 7, description: 'Durée d\'une suspension temporaire de qualité ; la radiation reste humaine' },
+  { key: 'quality.run_hour', value: 4, description: 'Heure de Montréal de la passe quotidienne de l\'agent qualité' },
   { key: 'watchdog.arrived_minutes', value: 30, description: 'Course « chauffeur arrivé » sans départ ni absence déclarée : alerte après 30 minutes' },
   { key: 'watchdog.en_route_minutes', value: 90, description: 'Chauffeur en route vers le client : alerte après 90 minutes' },
   { key: 'watchdog.in_progress_minutes', value: 240, description: 'Course en cours : alerte après 4 heures' },
@@ -237,6 +244,7 @@ export const AGENTS = [
   { code: 'driver_recruitment', name: 'Recrutement chauffeurs (vérification documentaire)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'driver_recruitment.v1', tools: ['extractDocumentFields', 'compareIdentity', 'proposeDecision'], thresholds: { finalValidation: 'human' } },
   { code: 'accounting', name: 'Comptabilité (contrôle des relevés)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'accounting.v1', tools: ['listStatementLines', 'flagAnomaly'], thresholds: { unexplainedVarianceCents: 100 } },
   { code: 'analytics', name: 'Analyse et rapports', mode: 'auto', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'analytics.v1', tools: ['queryMetrics'], thresholds: {} },
+  { code: 'quality', name: 'Qualité des chauffeurs (sanctions graduées)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: ['proposeSanction'], thresholds: { finalSuspension: 'human' } },
   { code: 'voice_call_center', name: 'Centre d\'appels vocal (Vapi)', mode: 'auto', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: ['quote', 'createRide', 'rideStatus', 'cancelRide', 'transferToHuman'], thresholds: { transferOnDistress: true } },
 ] as const;
 

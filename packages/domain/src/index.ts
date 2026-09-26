@@ -17,6 +17,7 @@ export * from './drivers/driving.js';
 export * from './drivers/documents.js';
 export * from './drivers/compliance.js';
 export * from './drivers/safety.js';
+export * from './drivers/quality.js';
 export * from './drivers/training.js';
 export * from './drivers/onboarding.js';
 export * from './geo/polygon.js';
