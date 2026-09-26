@@ -13,7 +13,7 @@ const fr = {
     payment: 'Paiement', payDriver: 'Payer au chauffeur après la course (espèces ou terminal)', payCard: 'Payer par carte maintenant',
     cardSoon: 'Le paiement par carte en ligne sera ouvert avec la mise en service de Stripe. Choisissez le paiement au chauffeur.',
     specialRequests: 'Demandes spéciales (facultatif)', flight: 'Numéro de vol (facultatif)', confirm: 'Confirmer la réservation', confirming: 'Réservation en cours…',
-    confirmedTitle: 'Réservation confirmée', confirmedBody: 'Course {{number}} le {{date}}. Vous recevrez un texto quand un chauffeur sera attribué.', track: 'Suivre la course', again: 'Nouvelle réservation',
+    confirmedTitle: 'Réservation confirmée', confirmedBody: 'Prise en charge le {{date}}. Vous recevrez un texto quand un chauffeur sera attribué.', track: 'Suivre la course', again: 'Nouvelle réservation',
     requoted: 'Le prix a été recalculé : {{amount}}.',
     errors: {
       lead: 'Le départ doit être au moins 2 heures après maintenant.', address: 'Choisissez une adresse dans la liste.', quote: 'Prix indisponible pour ce trajet.', code: 'Code incorrect ou expiré.',
@@ -59,7 +59,7 @@ const en: typeof fr = {
     payment: 'Payment', payDriver: 'Pay the driver after the ride (cash or terminal)', payCard: 'Pay by card now',
     cardSoon: 'Online card payment opens once Stripe goes live. Please choose to pay the driver.',
     specialRequests: 'Special requests (optional)', flight: 'Flight number (optional)', confirm: 'Confirm the booking', confirming: 'Booking…',
-    confirmedTitle: 'Booking confirmed', confirmedBody: 'Ride {{number}} on {{date}}. We will text you when a driver is assigned.', track: 'Track the ride', again: 'New booking',
+    confirmedTitle: 'Booking confirmed', confirmedBody: 'Pickup on {{date}}. We will text you when a driver is assigned.', track: 'Track the ride', again: 'New booking',
     requoted: 'The price was recalculated: {{amount}}.',
     errors: {
       lead: 'Pickup must be at least 2 hours from now.', address: 'Pick an address from the list.', quote: 'No price available for this trip.', code: 'Wrong or expired code.',
