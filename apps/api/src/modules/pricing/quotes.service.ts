@@ -7,7 +7,7 @@
 import { schema } from '@neomoov/db';
 import {
   benchmarkCheck, benchmarkTimeWindow, computeQuote, PricingError, type CompetitorBenchmark, type Language, type Place, type Promotion, type Quote, type QuoteDetail,
-  type QuoteRequest, type QuoteView, type QuotesResponse, type SimulateQuote, type VehicleCategory,
+  type PaymentMethod, type QuoteRequest, type QuoteView, type QuotesResponse, type SimulateQuote, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, getTableColumns, gt, gte, inArray, isNull, or, sql } from 'drizzle-orm';
@@ -235,9 +235,22 @@ export class QuotesService {
       estimated: route.estimated,
       polyline: route.polyline ?? null,
       quotes: views,
+      paymentMethods: await this.availablePaymentMethods(Boolean(input.requestedAt)),
       pricingRulesVersion: loaded.version,
       benchmark: computed.map(({ category, checked }) => ({ category, referenceCents: checked.referenceCents, exceeded: checked.exceeded })),
     };
+  }
+
+  /**
+   * Modes proposables au client (5.6) : la carte dans l'application toujours ; espèces, Interac ou terminal seulement si
+   * au moins un chauffeur actif les accepte (en ligne pour une course immédiate, acceptant les planifiées pour une
+   * réservation). Une seule ville en V1 : la zone est la ville.
+   */
+  private async availablePaymentMethods(scheduled: boolean): Promise<PaymentMethod[]> {
+    const [row] = await this.db.execute<{ cash: boolean | null; interac: boolean | null; terminal: boolean | null }>(sql`
+      SELECT bool_or(accepts_cash) AS cash, bool_or(accepts_interac) AS interac, bool_or(accepts_terminal) AS terminal
+      FROM drivers WHERE status = 'active' AND ${scheduled ? sql`accepts_scheduled` : sql`is_online`}`);
+    return ['card_app', 'apple_pay', 'google_pay', ...(row?.cash ? (['cash'] as const) : []), ...(row?.interac ? (['interac'] as const) : []), ...(row?.terminal ? (['terminal'] as const) : [])];
   }
 
   /** Préavis (D32) : au moins `rides.min_lead_seconds` avant la prise en charge, au plus `rides.max_lead_days` ; sans heure, course immédiate seulement si le drapeau l'autorise. */

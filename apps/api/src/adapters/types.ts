@@ -51,24 +51,62 @@ export interface MapsProvider {
 export interface PaymentAuthorization {
   intentId: string;
   status: 'requires_action' | 'authorized' | 'captured' | 'canceled' | 'failed';
+  /** Secret client quand une authentification (3-D Secure) est demandée par la banque. */
   clientSecret?: string;
+  /** Code d'échec de la banque ou de Stripe (`card_declined`, `insufficient_funds`…). */
+  failureCode?: string;
 }
 
+/** Carte enregistrée, telle que Stripe la décrit : jamais le numéro, seulement la marque et les 4 derniers chiffres. */
+export interface CardDetails {
+  ref: string;
+  brand: string;
+  last4: string;
+  expMonth: number | null;
+  expYear: number | null;
+}
+
+export interface SetupIntentResult {
+  setupIntentId: string;
+  status: 'succeeded' | 'requires_payment_method' | 'requires_confirmation' | 'requires_action' | 'processing' | 'canceled';
+  customerRef: string | null;
+  card: CardDetails | null;
+}
+
+/** Événement de webhook vérifié : `data.object` est l'objet Stripe concerné (PaymentIntent, compte, transfert, litige…). */
+export interface WebhookEvent {
+  id: string;
+  type: string;
+  data: { object: Record<string, unknown> };
+}
+
+/**
+ * Paiements (Stripe en production, simulé ailleurs ; section 5.6, prompt 07). Aucune donnée de carte ne transite par
+ * l'API : seulement des identifiants Stripe. Toute opération financière porte une clé d'idempotence.
+ */
 export interface PaymentProvider {
   readonly name: string;
   createCustomer(input: { externalId: string; email?: string; phone?: string }): Promise<{ customerRef: string }>;
   createSetupIntent(customerRef: string): Promise<{ setupIntentId: string; clientSecret: string }>;
+  /** Relit un SetupIntent confirmé par l'application : la carte vient de Stripe, jamais de l'application. */
+  retrieveSetupIntent(setupIntentId: string): Promise<SetupIntentResult>;
+  detachPaymentMethod(paymentMethodRef: string): Promise<void>;
+  /** Autorisation à capture différée (`capture_method: manual`) sur une carte enregistrée. */
   authorize(input: { amountCents: number; currency: 'CAD'; customerRef: string; paymentMethodRef: string; idempotencyKey: string; metadata?: Record<string, string> }): Promise<PaymentAuthorization>;
+  /** Capture (partielle possible) : jamais plus que l'autorisation. */
   capture(intentId: string, amountCents: number, idempotencyKey: string): Promise<PaymentAuthorization>;
-  cancel(intentId: string): Promise<void>;
-  refund(input: { intentId: string; amountCents: number; idempotencyKey: string; reason?: string }): Promise<{ refundId: string }>;
-  chargeOffSession(input: { amountCents: number; customerRef: string; paymentMethodRef: string; idempotencyKey: string; description: string }): Promise<PaymentAuthorization>;
-  /** Vérifie la signature d'un webhook et renvoie l'événement typé ; lance une erreur si la signature est invalide. */
-  verifyWebhook(rawBody: string | Buffer, signature: string): Promise<{ id: string; type: string; data: unknown }>;
+  cancel(intentId: string, idempotencyKey?: string): Promise<void>;
+  refund(input: { intentId: string; amountCents: number; idempotencyKey: string; reason?: string }): Promise<{ refundId: string; status: 'pending' | 'succeeded' | 'failed' }>;
+  /** Paiement hors session sur une méthode enregistrée (pourboire, solde dû, prélèvement d'un chauffeur). */
+  chargeOffSession(input: { amountCents: number; customerRef: string; paymentMethodRef: string; idempotencyKey: string; description: string; metadata?: Record<string, string> }): Promise<PaymentAuthorization>;
+  /** Vérifie la signature d'un webhook et renvoie l'événement ; lance une erreur si la signature est invalide. */
+  verifyWebhook(rawBody: string | Buffer, signature: string): Promise<WebhookEvent>;
   /** Stripe Connect Express (5.6, versements aux chauffeurs) : compte, lien d'inscription hébergé par Stripe, état. */
   createConnectAccount(input: { externalId: string; email?: string; phone?: string }): Promise<{ accountRef: string }>;
   createConnectOnboardingLink(input: { accountRef: string; returnUrl: string; refreshUrl: string }): Promise<{ url: string; expiresAt: Date }>;
   connectAccountStatus(accountRef: string): Promise<{ onboarded: boolean; payoutsEnabled: boolean }>;
+  /** Transfert vers un compte connecté (versement du vendredi, étape 9). */
+  transfer(input: { accountRef: string; amountCents: number; idempotencyKey: string; description: string }): Promise<{ transferId: string }>;
 }
 
 export interface SmsProvider {

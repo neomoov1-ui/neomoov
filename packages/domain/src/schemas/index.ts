@@ -19,6 +19,7 @@ export * from './dispatch.js';
 export * from './client.js';
 export * from './driver.js';
 export * from './admin.js';
+export * from './payments.js';
 import { PAYMENT_CHOICES } from './rides.js';
 import { driverJobSchema } from './driver.js';
 import { dispatchSummarySchema, negotiationSummarySchema } from './dispatch.js';

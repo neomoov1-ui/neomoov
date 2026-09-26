@@ -18,4 +18,5 @@ export * from './drivers/training.js';
 export * from './drivers/onboarding.js';
 export * from './geo/polygon.js';
 export * from './privacy/masking.js';
+export * from './payments/payments.js';
 export * from './schemas/index.js';

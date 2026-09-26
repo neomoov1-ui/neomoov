@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { AppError } from '../../common/app-error.js';
 import { haversineMeters } from '../../common/geo.js';
 import type {
-  AutocompleteSuggestion, EmailProvider, GeoPoint, GeocodeResult, LlmProvider, MapsProvider, PaymentAuthorization, PaymentProvider,
+  AutocompleteSuggestion, CardDetails, EmailProvider, GeoPoint, GeocodeResult, LlmProvider, MapsProvider, PaymentAuthorization, PaymentProvider, SetupIntentResult, WebhookEvent,
   PushProvider, RouteRequest, RouteResult, SevInvoiceInput, SevProvider, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider,
 } from '../types.js';
 
@@ -88,62 +88,108 @@ export class MockMapsProvider implements MapsProvider {
   }
 }
 
+/**
+ * Paiements simulés (prompt 07) : mêmes règles que Stripe pour ce que l'API en attend. Chaque écriture est idempotente
+ * par sa clé (un rejeu renvoie le même résultat, sans second mouvement). Une méthode dont l'identifiant finit par
+ * `_declined` est refusée ; `captureFailures` fait échouer les N prochaines captures (tests des nouvelles tentatives) ;
+ * `nextCard` choisit la carte que « confirme » le prochain SetupIntent.
+ */
 export class MockPaymentProvider implements PaymentProvider {
   readonly name = 'mock';
   readonly calls: Array<{ method: string; args: unknown[] }> = [];
-  readonly intents = new Map<string, PaymentAuthorization & { amountCents: number; capturedCents?: number }>();
-  private readonly idempotency = new Map<string, string>();
+  readonly intents = new Map<string, PaymentAuthorization & { amountCents: number; capturedCents?: number; refundedCents: number }>();
+  readonly setupIntents = new Map<string, { customerRef: string; card: CardDetails }>();
+  readonly transfers = new Map<string, { accountRef: string; amountCents: number }>();
+  private readonly idempotency = new Map<string, unknown>();
+  captureFailures = 0;
+  nextCard: { brand: string; last4: string; declined?: boolean } = { brand: 'visa', last4: '4242' };
+
+  private once<T>(key: string, run: () => T): T {
+    if (this.idempotency.has(key)) return this.idempotency.get(key) as T;
+    const result = run();
+    this.idempotency.set(key, result);
+    return result;
+  }
 
   async createCustomer(input: { externalId: string }) {
     this.calls.push({ method: 'createCustomer', args: [input] });
-    return { customerRef: `cus_mock_${input.externalId}` };
+    return { customerRef: `cus_mock_${input.externalId.replace(/-/g, '').slice(0, 20)}` };
   }
   async createSetupIntent(customerRef: string) {
     this.calls.push({ method: 'createSetupIntent', args: [customerRef] });
     const id = nextId('seti_mock');
-    return { setupIntentId: id, clientSecret: `${id}_secret` };
+    const ref = `${nextId('pm_mock')}${this.nextCard.declined ? '_declined' : ''}`;
+    this.setupIntents.set(id, { customerRef, card: { ref, brand: this.nextCard.brand, last4: this.nextCard.last4, expMonth: 12, expYear: new Date().getFullYear() + 3 } });
+    return { setupIntentId: id, clientSecret: `${id}_secret_mock` };
   }
-  async authorize(input: Parameters<PaymentProvider["authorize"]>[0]) {
+  /** Le SetupIntent simulé est réputé confirmé par l'application : la carte choisie à sa création est renvoyée. */
+  async retrieveSetupIntent(setupIntentId: string): Promise<SetupIntentResult> {
+    this.calls.push({ method: 'retrieveSetupIntent', args: [setupIntentId] });
+    const intent = this.setupIntents.get(setupIntentId);
+    if (!intent) return { setupIntentId, status: 'requires_payment_method', customerRef: null, card: null };
+    return { setupIntentId, status: 'succeeded', customerRef: intent.customerRef, card: intent.card };
+  }
+  async detachPaymentMethod(paymentMethodRef: string) {
+    this.calls.push({ method: 'detachPaymentMethod', args: [paymentMethodRef] });
+  }
+  async authorize(input: Parameters<PaymentProvider['authorize']>[0]) {
     this.calls.push({ method: 'authorize', args: [input] });
-    const existing = this.idempotency.get(input.idempotencyKey);
-    if (existing) return this.intents.get(existing)!;
-    const intentId = nextId('pi_mock');
-    const status: PaymentAuthorization['status'] = input.paymentMethodRef.endsWith('_declined') ? 'failed' : 'authorized';
-    const intent = { intentId, status, amountCents: input.amountCents };
-    this.intents.set(intentId, intent);
-    this.idempotency.set(input.idempotencyKey, intentId);
-    return intent;
+    return this.once(`authorize:${input.idempotencyKey}`, () => {
+      const intentId = nextId('pi_mock');
+      const declined = input.paymentMethodRef.endsWith('_declined');
+      const intent = { intentId, status: declined ? ('failed' as const) : ('authorized' as const), amountCents: input.amountCents, refundedCents: 0, ...(declined ? { failureCode: 'card_declined' } : {}) };
+      this.intents.set(intentId, intent);
+      return { intentId, status: intent.status, ...(declined ? { failureCode: 'card_declined' } : {}) };
+    });
   }
   async capture(intentId: string, amountCents: number, idempotencyKey: string) {
     this.calls.push({ method: 'capture', args: [intentId, amountCents, idempotencyKey] });
+    const key = `capture:${idempotencyKey}`;
+    if (this.idempotency.has(key)) return this.idempotency.get(key) as PaymentAuthorization;
     const intent = this.intents.get(intentId);
     if (!intent) throw new Error(`Intent inconnu : ${intentId}`);
     if (amountCents > intent.amountCents) throw new Error('Capture supérieure à l\'autorisation');
+    if (this.captureFailures > 0) {
+      // Un échec n'est pas mémorisé sous la clé : la nouvelle tentative (autre clé) peut réussir.
+      this.captureFailures -= 1;
+      return { intentId, status: 'failed' as const, failureCode: 'insufficient_funds' };
+    }
+    if (intent.status !== 'authorized') return { intentId, status: 'failed' as const, failureCode: `intent_${intent.status}` };
     intent.status = 'captured';
     intent.capturedCents = amountCents;
-    return intent;
+    const result = { intentId, status: 'captured' as const };
+    this.idempotency.set(key, result);
+    return result;
   }
   async cancel(intentId: string) {
     this.calls.push({ method: 'cancel', args: [intentId] });
     const intent = this.intents.get(intentId);
-    if (intent) intent.status = 'canceled';
+    if (intent && intent.status === 'authorized') intent.status = 'canceled';
   }
   async refund(input: { intentId: string; amountCents: number; idempotencyKey: string }) {
     this.calls.push({ method: 'refund', args: [input] });
-    return { refundId: nextId('re_mock') };
+    return this.once(`refund:${input.idempotencyKey}`, () => {
+      const intent = this.intents.get(input.intentId);
+      if (intent) {
+        if (intent.refundedCents + input.amountCents > (intent.capturedCents ?? 0)) throw new Error('Remboursement supérieur au montant capturé');
+        intent.refundedCents += input.amountCents;
+      }
+      return { refundId: nextId('re_mock'), status: 'succeeded' as const };
+    });
   }
-  async chargeOffSession(input: { amountCents: number; idempotencyKey: string }) {
+  async chargeOffSession(input: Parameters<PaymentProvider['chargeOffSession']>[0]) {
     this.calls.push({ method: 'chargeOffSession', args: [input] });
-    const intentId = nextId('pi_mock');
-    const intent = { intentId, status: 'captured' as const, amountCents: input.amountCents, capturedCents: input.amountCents };
-    this.intents.set(intentId, intent);
-    return intent;
+    return this.once(`charge:${input.idempotencyKey}`, () => {
+      const intentId = nextId('pi_mock');
+      if (input.paymentMethodRef.endsWith('_declined')) return { intentId, status: 'failed' as const, failureCode: 'card_declined' };
+      this.intents.set(intentId, { intentId, status: 'captured', amountCents: input.amountCents, capturedCents: input.amountCents, refundedCents: 0 });
+      return { intentId, status: 'captured' as const };
+    });
   }
-  async verifyWebhook(rawBody: string | Buffer, signature: string) {
+  async verifyWebhook(rawBody: string | Buffer, signature: string): Promise<WebhookEvent> {
     this.calls.push({ method: 'verifyWebhook', args: [signature] });
-    if (signature !== 'mock-signature') throw new Error('Signature de webhook invalide');
-    const parsed = JSON.parse(rawBody.toString()) as { id: string; type: string; data: unknown };
-    return parsed;
+    if (signature !== 'mock-signature') throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);
+    return JSON.parse(rawBody.toString()) as WebhookEvent;
   }
   /** Comptes Connect simulés : l'inscription est considérée terminée dès que le lien a été demandé (aucun formulaire Stripe). */
   readonly connectAccounts = new Map<string, { onboarded: boolean }>();
@@ -166,6 +212,14 @@ export class MockPaymentProvider implements PaymentProvider {
     // Après un redémarrage de l'API, un compte simulé déjà créé est considéré comme inscrit.
     const onboarded = this.connectAccounts.get(accountRef)?.onboarded ?? accountRef.startsWith('acct_mock_');
     return { onboarded, payoutsEnabled: onboarded };
+  }
+  async transfer(input: { accountRef: string; amountCents: number; idempotencyKey: string; description: string }) {
+    this.calls.push({ method: 'transfer', args: [input] });
+    return this.once(`transfer:${input.idempotencyKey}`, () => {
+      const transferId = nextId('tr_mock');
+      this.transfers.set(transferId, { accountRef: input.accountRef, amountCents: input.amountCents });
+      return { transferId };
+    });
   }
 }
 

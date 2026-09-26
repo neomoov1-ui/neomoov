@@ -4,7 +4,7 @@
  */
 import { z } from 'zod';
 import { BENCHMARK_TIME_WINDOWS } from '../pricing/benchmark.js';
-import { LANGUAGES, VEHICLE_CATEGORIES } from '../enums.js';
+import { LANGUAGES, PAYMENT_METHODS, VEHICLE_CATEGORIES } from '../enums.js';
 import { cents, isoDate, signedCents, uuid } from './common.js';
 
 export const coordinatesSchema = z.object({
@@ -125,6 +125,8 @@ export const quotesResponseSchema = z.object({
   estimated: z.boolean(),
   polyline: z.string().nullable(),
   quotes: z.array(quoteSchema),
+  /** Modes de paiement proposables (5.6) : carte toujours, paiement au chauffeur si des chauffeurs de la zone l'acceptent. */
+  paymentMethods: z.array(z.enum(PAYMENT_METHODS)),
 });
 export type QuotesResponse = z.infer<typeof quotesResponseSchema>;
 

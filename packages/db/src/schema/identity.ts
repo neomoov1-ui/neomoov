@@ -16,6 +16,8 @@ export const users = pgTable('users', {
   status: userStatusEnum('status').notNull().default('active'),
   appleId: varchar('apple_id', { length: 255 }),
   googleId: varchar('google_id', { length: 255 }),
+  /** Client Stripe (cartes du client, méthode de prélèvement du chauffeur), créé au premier besoin (étape 7). */
+  stripeCustomerId: varchar('stripe_customer_id', { length: 100 }),
   termsAcceptedAt: tz('terms_accepted_at'),
   privacyPolicyVersion: varchar('privacy_policy_version', { length: 20 }),
   deletedAt: tz('deleted_at'),
@@ -26,6 +28,7 @@ export const users = pgTable('users', {
   uniqueIndex('users_email_unique').on(t.email).where(sql`${t.email} IS NOT NULL`),
   uniqueIndex('users_apple_id_unique').on(t.appleId).where(sql`${t.appleId} IS NOT NULL`),
   uniqueIndex('users_google_id_unique').on(t.googleId).where(sql`${t.googleId} IS NOT NULL`),
+  uniqueIndex('users_stripe_customer_unique').on(t.stripeCustomerId).where(sql`${t.stripeCustomerId} IS NOT NULL`),
   check('users_phone_e164', sql`${t.phone} ~ '^\\+[1-9][0-9]{6,14}$'`),
 ]);
 

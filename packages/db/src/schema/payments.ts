@@ -14,7 +14,16 @@ export const payments = pgTable('payments', {
   rideId: uuid('ride_id').notNull().references(() => rides.id),
   clientId: uuid('client_id').references(() => clients.id),
   method: paymentMethodEnum('method').notNull(),
+  /** Nature (étape 7) : `ride`, `tip` (paiement séparé), frais d'annulation ou d'absence, règlement d'un solde. */
+  kind: varchar('kind', { length: 20 }).notNull().default('ride'),
   stripePaymentIntentId: varchar('stripe_payment_intent_id', { length: 100 }),
+  /** Méthode Stripe choisie à la réservation (carte enregistrée) : l'autorisation d'une planifiée est faite à l'attribution. */
+  stripePaymentMethodId: varchar('stripe_payment_method_id', { length: 100 }),
+  /** Clé d'idempotence de l'opération qui a créé ce paiement : un rejeu ne crée jamais de second paiement. */
+  idempotencyKey: varchar('idempotency_key', { length: 120 }),
+  /** Tentatives de capture (nouvelle tentative, puis ticket et solde dû). */
+  attempts: integer('attempts').notNull().default(0),
+  capturedAt: tz('captured_at'),
   authorizedCents: cents('authorized_cents').notNull().default(0),
   capturedCents: cents('captured_cents').notNull().default(0),
   tipCents: cents('tip_cents').notNull().default(0),
@@ -25,19 +34,55 @@ export const payments = pgTable('payments', {
   failureCode: varchar('failure_code', { length: 60 }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-}, (t) => [index('payments_ride_idx').on(t.rideId), uniqueIndex('payments_intent_unique').on(t.stripePaymentIntentId).where(sql`${t.stripePaymentIntentId} IS NOT NULL`), check('payments_amounts_positive', sql`${t.authorizedCents} >= 0 AND ${t.capturedCents} >= 0 AND ${t.tipCents} >= 0`)]);
+}, (t) => [
+  index('payments_ride_idx').on(t.rideId),
+  uniqueIndex('payments_intent_unique').on(t.stripePaymentIntentId).where(sql`${t.stripePaymentIntentId} IS NOT NULL`),
+  uniqueIndex('payments_idempotency_unique').on(t.idempotencyKey).where(sql`${t.idempotencyKey} IS NOT NULL`),
+  index('payments_failed_idx').on(t.status, t.updatedAt).where(sql`${t.status} = 'failed'`),
+  check('payments_amounts_positive', sql`${t.authorizedCents} >= 0 AND ${t.capturedCents} >= 0 AND ${t.tipCents} >= 0`),
+  check('payments_kind', sql`${t.kind} IN ('ride', 'tip', 'cancellation_fee', 'no_show_fee', 'balance')`),
+]);
 
 export const refunds = pgTable('refunds', {
   id: id(),
   paymentId: uuid('payment_id').notNull().references(() => payments.id),
+  /** `refund` : remboursement sur la carte ; `credit` : crédit sur le compte du client (5.6, au choix du client). */
+  mode: varchar('mode', { length: 10 }).notNull().default('refund'),
   amountCents: cents('amount_cents').notNull(),
-  reason: varchar('reason', { length: 60 }).notNull(),
+  reason: varchar('reason', { length: 300 }).notNull(),
+  creditId: uuid('credit_id'),
+  idempotencyKey: varchar('idempotency_key', { length: 120 }),
   decidedByUserId: uuid('decided_by_user_id'),
   decidedByAgentCode: varchar('decided_by_agent_code', { length: 40 }),
   stripeRefundId: varchar('stripe_refund_id', { length: 100 }),
   status: varchar('status', { length: 20 }).notNull().default('pending'),
   createdAt: createdAt(),
-}, (t) => [index('refunds_payment_idx').on(t.paymentId), check('refunds_amount_positive', sql`${t.amountCents} > 0`), check('refunds_status', sql`${t.status} IN ('pending', 'succeeded', 'failed')`)]);
+}, (t) => [
+  index('refunds_payment_idx').on(t.paymentId),
+  uniqueIndex('refunds_idempotency_unique').on(t.idempotencyKey).where(sql`${t.idempotencyKey} IS NOT NULL`),
+  check('refunds_amount_positive', sql`${t.amountCents} > 0`),
+  check('refunds_status', sql`${t.status} IN ('pending', 'succeeded', 'failed')`),
+  check('refunds_mode', sql`${t.mode} IN ('refund', 'credit')`),
+]);
+
+/**
+ * Événements reçus des fournisseurs de paiement (webhook Stripe) : l'identifiant de l'événement est la clé primaire,
+ * un même événement reçu plusieurs fois n'est traité qu'une fois ; un traitement en échec est repris par la file.
+ */
+export const webhookEvents = pgTable('webhook_events', {
+  id: varchar('id', { length: 100 }).primaryKey(),
+  provider: varchar('provider', { length: 20 }).notNull(),
+  type: varchar('type', { length: 80 }).notNull(),
+  payload: jsonb('payload').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('received'),
+  attempts: integer('attempts').notNull().default(0),
+  lastError: text('last_error'),
+  receivedAt: tz('received_at').notNull().defaultNow(),
+  processedAt: tz('processed_at'),
+}, (t) => [
+  index('webhook_events_pending_idx').on(t.status, t.receivedAt).where(sql`${t.status} IN ('received', 'failed')`),
+  check('webhook_events_status', sql`${t.status} IN ('received', 'processed', 'failed', 'ignored')`),
+]);
 
 export const packs = pgTable('packs', {
   code: packCodeEnum('code').primaryKey(),
