@@ -456,7 +456,7 @@ export class PaymentsService {
     const [client] = ride.clientId ? await this.db.select({ userId: schema.clients.userId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
     if (!client) throw AppError.conflict('NO_CLIENT_ACCOUNT', 'Course sans compte client : crédit impossible');
     const row = await this.db.transaction(async (tx) => {
-      const [credit] = await tx.insert(schema.credits).values({ userId: client.userId, amountCents: input.amountCents, remainingCents: input.amountCents, origin: 'refund', reference: ride.publicNumber, note: input.reason }).returning({ id: schema.credits.id });
+      const [credit] = await tx.insert(schema.credits).values({ userId: client.userId, amountCents: input.amountCents, remainingCents: input.amountCents, origin: 'refund', reference: ride.publicNumber, note: input.reason, expiresAt: new Date(Date.now() + (await this.settings.number('credits.validity_days', 365)) * 86_400_000) }).returning({ id: schema.credits.id });
       const [inserted] = await tx
         .insert(schema.refunds)
         .values({ paymentId: payment.id, mode: 'credit', amountCents: input.amountCents, reason: input.reason, decidedByUserId: actor.userId, decidedByAgentCode: actor.agentCode ?? null, creditId: credit!.id, status: 'succeeded', idempotencyKey: key })
