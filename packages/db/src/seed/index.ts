@@ -85,7 +85,10 @@ export async function seed(db: Database, options: { demo?: boolean } = {}): Prom
 
   // Prompts système versionnés (docs/agents) : une version déjà chargée n'est jamais réécrite ; un agent sans prompt
   // reçoit celui des données de départ.
-  for (const p of readAgentPrompts()) {
+  const prompts = readAgentPrompts();
+  // Image sans `docs/agents` : les agents resteraient sans prompt, sans erreur visible.
+  if (!prompts.length) console.warn('Aucun prompt d\'agent trouvé (docs/agents absent) : agents sans prompt système.');
+  for (const p of prompts) {
     const r = await db.insert(s.agentPrompts).values(p).onConflictDoNothing().returning({ key: s.agentPrompts.key });
     if (r.length) count('agent_prompts');
   }
