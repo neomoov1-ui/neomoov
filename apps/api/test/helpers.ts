@@ -242,7 +242,11 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     await database.execute(sql`DELETE FROM refunds WHERE payment_id IN (SELECT id FROM payments WHERE ride_id IN ${rideIds})`);
     await database.delete(schema.payments).where(inArray(schema.payments.rideId, rideIds));
     // `ride_events` est en ajout seul (déclencheur) : le nettoyage des courses de test le suspend le temps d'une transaction.
+    // Registres de la redevance et des taxes (étape 9) : une ligne par course terminée, retirée dans la même transaction que
+    // la course (une ligne écrite entre-temps par la réaction à `ride.completed` bloquerait la suppression).
     await database.transaction(async (tx) => {
+      await tx.delete(schema.redevanceLedger).where(inArray(schema.redevanceLedger.rideId, rideIds));
+      await tx.delete(schema.taxLedger).where(inArray(schema.taxLedger.rideId, rideIds));
       await tx.execute(sql`ALTER TABLE ride_events DISABLE TRIGGER ride_events_append_only`);
       await tx.delete(schema.rides).where(inArray(schema.rides.id, rideIds));
       await tx.execute(sql`ALTER TABLE ride_events ENABLE TRIGGER ride_events_append_only`);
