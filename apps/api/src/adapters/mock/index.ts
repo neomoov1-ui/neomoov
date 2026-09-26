@@ -7,7 +7,7 @@ import { AppError } from '../../common/app-error.js';
 import { haversineMeters } from '../../common/geo.js';
 import type {
   AutocompleteSuggestion, CardDetails, EmailProvider, GeoPoint, GeocodeResult, LlmProvider, MapsProvider, PaymentAuthorization, PaymentProvider, SetupIntentResult, WebhookEvent,
-  PushProvider, RouteRequest, RouteResult, SevDocument, SevProvider, SevReceipt, SmsDeliveryStatus, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider,
+  PushProvider, RouteRequest, RouteResult, SevDocument, SevProvider, SevReceipt, ScanResult, SmsDeliveryStatus, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider,
 } from '../types.js';
 
 let counter = 0;
@@ -352,6 +352,16 @@ export class MockSevProvider implements SevProvider {
       this.transactions.set(document.invoiceId, transactionId);
     }
     return { transactionId, status: 'acknowledged', raw: { simulated: true, operation: method } };
+  }
+}
+
+/** Antivirus simulé : détecte le fichier de test EICAR (standard des antivirus), rien d'autre. */
+export class MockVirusScanner implements VirusScanner {
+  readonly name = 'mock';
+  readonly scanned: number[] = [];
+  async scan(input: { body: Buffer }): Promise<ScanResult> {
+    this.scanned.push(input.body.length);
+    return input.body.includes(Buffer.from('EICAR-STANDARD-ANTIVIRUS-TEST-FILE')) ? { clean: false, signature: 'Eicar-Test-Signature' } : { clean: true, signature: null };
   }
 }
 

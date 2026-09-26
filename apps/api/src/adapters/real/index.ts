@@ -10,7 +10,8 @@
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { AppEnv } from '../../config/env.js';
-import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider } from '../types.js';
+import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
+import { ClamAvScanner } from './clamav.js';
 import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
 import { ResendEmailProvider } from './resend.js';
@@ -115,6 +116,11 @@ export const realVoice = (env: AppEnv): VoiceProvider => {
 };
 export const realSev = (env: AppEnv): SevProvider => build(RealSevProvider, 'sev', 'facturation certifiée (SEV)', 'SEV_API_KEY', env);
 export const realLlm = (env: AppEnv): LlmProvider => build(RealLlmProvider, 'anthropic', 'modèles de langage (Anthropic)', 'ANTHROPIC_API_KEY', env);
+/** Antivirus : démon ClamAV (conteneur `clamav/clamav`), adresse `CLAMAV_HOST` et port `CLAMAV_PORT` (3310). */
+export const realVirusScanner = (env: AppEnv): VirusScanner => {
+  requireKey('antivirus (ClamAV)', 'CLAMAV_HOST', env);
+  return new ClamAvScanner(env.CLAMAV_HOST!, env.CLAMAV_PORT);
+};
 export const realStorage = (env: AppEnv): StorageProvider =>
   env.S3_ACCESS_KEY
     ? build(RealStorageProvider, 's3', 'stockage objet (S3 compatible)', 'S3_ACCESS_KEY', env)

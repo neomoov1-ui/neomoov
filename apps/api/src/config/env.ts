@@ -51,6 +51,10 @@ export const envSchema = z.object({
   LLM_PROVIDER: providerMode,
   SEV_PROVIDER: providerMode,
   STORAGE_PROVIDER: providerMode,
+  /** Antivirus des documents téléversés : simulé (fichier EICAR) ou ClamAV réel. */
+  VIRUS_SCANNER_PROVIDER: providerMode,
+  CLAMAV_HOST: optionalString,
+  CLAMAV_PORT: z.coerce.number().int().min(1).max(65_535).default(3310),
   // Vérification des jetons Apple et Google : simulée (jetons « mock-apple:<sujet>:<courriel> ») ou réelle (JWKS des fournisseurs).
   SOCIAL_LOGIN_PROVIDER: providerMode,
   // Identifiants acceptés (audience) : bundle ids iOS et identifiant de service web pour Apple, client ids OAuth pour Google, séparés par des virgules.

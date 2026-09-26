@@ -1,0 +1,17 @@
+# Détection de secrets (gitleaks, intégration continue) : règles par défaut, en excluant les valeurs fictives des tests
+# et le modèle sans valeurs `.env.example`. Un vrai secret n'a sa place que dans `.env`, jamais dans le dépôt.
+title = "Neomoov"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Valeurs fictives des tests, des exemples et du modèle de configuration"
+paths = [
+  '''apps/api/test/.*''',
+  '''packages/[^/]+/test/.*''',
+  '''apps/[^/]+/test/.*''',
+  '''apps/web/e2e/.*''',
+  '''docs/examples/.*''',
+  '''\.env\.example$''',
+]

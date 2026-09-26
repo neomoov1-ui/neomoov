@@ -246,6 +246,18 @@ export interface StorageProvider {
   deleteObject(key: string): Promise<void>;
 }
 
+/** Analyse antivirus d'un fichier téléversé (documents des chauffeurs). */
+export interface ScanResult {
+  clean: boolean;
+  /** Nom de la signature détectée, sinon null. */
+  signature: string | null;
+}
+
+export interface VirusScanner {
+  readonly name: string;
+  scan(input: { body: Buffer; filename?: string }): Promise<ScanResult>;
+}
+
 export const PAYMENT_PROVIDER = Symbol('PAYMENT_PROVIDER');
 export const MAPS_PROVIDER = Symbol('MAPS_PROVIDER');
 export const SMS_PROVIDER = Symbol('SMS_PROVIDER');
@@ -256,3 +268,4 @@ export const VOICE_PROVIDER = Symbol('VOICE_PROVIDER');
 export const SEV_PROVIDER = Symbol('SEV_PROVIDER');
 export const LLM_PROVIDER = Symbol('LLM_PROVIDER');
 export const STORAGE_PROVIDER = Symbol('STORAGE_PROVIDER');
+export const VIRUS_SCANNER = Symbol('VIRUS_SCANNER');

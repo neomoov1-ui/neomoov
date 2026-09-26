@@ -13,7 +13,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
-import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
+import { STORAGE_PROVIDER, VIRUS_SCANNER, type StorageProvider, type VirusScanner } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
@@ -57,6 +57,7 @@ export class DriverProfileService {
   constructor(
     @Inject(DB) private readonly database: Database,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+    @Inject(VIRUS_SCANNER) private readonly scanner: VirusScanner,
     @Inject(APP_LOGGER) private readonly logger: Logger,
     private readonly settings: SettingsService,
     private readonly users: UsersService,
@@ -316,6 +317,12 @@ export class DriverProfileService {
       if (!vehicle) throw AppError.notFound('VEHICLE_NOT_FOUND', 'Véhicule introuvable');
     }
     const key = `drivers/${driver.id}/${fields.type}/${randomUUID()}.${sniffed.extension}`;
+    // Étape 14 : analyse antivirus avant tout stockage ; un fichier infecté est refusé et l'essai journalisé.
+    const scan = await this.scanner.scan({ body: file.buffer, ...(file.originalname ? { filename: file.originalname } : {}) });
+    if (!scan.clean) {
+      this.logger.warn({ driverId: driver.id, type: fields.type, signature: scan.signature }, 'Document refusé par l\'antivirus');
+      throw new AppError('DOCUMENT_INFECTED', 'Ce fichier est refusé par l\'analyse antivirus', 422, { signature: scan.signature });
+    }
     await this.storage.putObject({ key, body: file.buffer, contentType: sniffed.contentType });
     const [row] = await this.db
       .insert(schema.driverDocuments)
