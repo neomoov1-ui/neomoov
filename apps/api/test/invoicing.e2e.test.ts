@@ -305,6 +305,26 @@ describe('facturation certifiée : factures, numérotation, notes de crédit, SE
     expect(credit?.document.original).toEqual({ number: original!.number, transactionId: transmitted.sevTransactionId });
   });
 
+  it("remboursement réussi sans note de crédit (tâche perdue) : note émise par la passe périodique", async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : la passe périodique ne rattrapait que les factures de course ; un remboursement dont la tâche était
+    // perdue (file sans Redis, trois échecs, PDF d'origine en erreur) n'avait jamais de note de crédit.
+    const { ride } = await completedRide();
+    const original = await until(() => mainInvoice(ride.id), (i) => i?.sevStatus === 'acknowledged' && Boolean(i?.pdfKey), 'facture de la course');
+    const [payment] = await db(app).select().from(schema.payments).where(and(eq(schema.payments.rideId, ride.id), eq(schema.payments.kind, 'ride')));
+    const stripeRefundId = `re_lost_${RUN}_${Math.random().toString(36).slice(2, 8)}`;
+    const [refund] = await db(app)
+      .insert(schema.refunds)
+      .values({ paymentId: payment!.id, mode: 'refund', amountCents: 700, reason: 'Tâche perdue (test)', stripeRefundId, status: 'succeeded', idempotencyKey: `refund:${ride.id}:${stripeRefundId}`, createdAt: new Date(Date.now() - 10 * 60_000) })
+      .returning({ id: schema.refunds.id });
+    expect((await invoicesOf(ride.id)).filter((i) => i.kind === 'credit_note')).toHaveLength(0);
+    await app.get(InvoiceJobsService).sweep();
+    const notes = (await invoicesOf(ride.id)).filter((i) => i.kind === 'credit_note');
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toMatchObject({ totalCents: 700, creditNoteOfId: original!.id });
+    expect((notes[0]!.lines as { creditNote?: { refundId?: string } }).creditNote?.refundId).toBe(refund!.id);
+  });
+
   it('SEV : échec puis reprise manuelle, erreur après le nombre maximal de tentatives, reprise périodique, état dans My Hub', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const driver = await createDriver(app);
