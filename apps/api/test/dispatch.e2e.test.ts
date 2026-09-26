@@ -358,6 +358,46 @@ describe('répartition automatique et négociation (intégration)', () => {
     expect((await request(server()).post(`/v1/admin/rides/${ride.id}/hold`).set(bearer(a.tokens)).send({ reason: 'Essai' })).status).toBe(403);
   });
 
+  it('chauffeur restreint (5.11) : écarté d\'une course VIP même au plus près, sollicité pour une course ordinaire', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const restricted = await online(NEAR_2, 'neo_prestige');
+    await db(app).update(schema.drivers).set({ status: 'restricted' }).where(eq(schema.drivers.id, restricted.driverId));
+    const control = await online(NEAR, 'neo_prestige');
+    const c = await client();
+    // Course Neo Prestige (VIP) : le chauffeur restreint, le plus proche, n'est pas sollicité ; l'autre l'est.
+    const vip = await requestRide(c, { category: 'neo_prestige' });
+    expect(await offerAt(vip.id, 0)).toMatchObject({ driverId: control.driverId, wave: 1 });
+    await pause(300);
+    expect(offersOf(vip.id).map((o) => o.driverId)).not.toContain(restricted.driverId);
+    // Course Neo Premium ordinaire (ni aéroport, ni entreprise) : le chauffeur restreint reste candidat.
+    const ordinary = await requestRide(await client(), { category: 'neo_premium' });
+    const offer = await offerAt(ordinary.id, 0);
+    expect(offer).toMatchObject({ driverId: restricted.driverId, wave: 1 });
+    // Il peut l'accepter ; l'opérateur, lui, ne peut pas lui attribuer la course VIP.
+    expect((await accept(restricted, offer.offerId).expect(200)).body.driver.id).toBe(restricted.driverId);
+    const forced = await request(server()).post(`/v1/admin/rides/${vip.id}/assign`).set(bearer(admin.tokens)).send({ driverId: restricted.driverId });
+    expect(forced.status).toBe(409);
+    expect(forced.body.code).toBe('DRIVER_RESTRICTED');
+  });
+
+  it('enchaînement (5.4) : un chauffeur en course est sollicité seulement si sa course se termine à moins de 5 minutes de l\'origine', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const a = await online(NEAR);
+    const first = await requestRide(await client());
+    await accept(a, (await offerAt(first.id, 0)).offerId).expect(200);
+    for (const step of ['depart', 'arrive', 'start']) await request(server()).post(`/v1/driver/rides/${first.id}/${step}`).set(bearer(a.tokens)).expect(200);
+    // Destination de la course en cours (centre-ville) à environ 2,8 km de l'origine suivante : au-delà de 300 s à 8 m/s.
+    const next = await requestRide(await client());
+    await until(() => dispatchView(next.id), (v) => (v.dispatch?.wave ?? 0) >= 1, 'première vague');
+    await pause(300);
+    expect(offersOf(next.id)).toHaveLength(0);
+    // La course en cours finit tout près de l'origine suivante : offre d'enchaînement au chauffeur encore en course.
+    await db(app).execute(sql`UPDATE rides SET destination_position = ST_SetSRID(ST_MakePoint(${NEAR_2.lng}::float, ${NEAR_2.lat}::float), 4326)::geography WHERE id = ${first.id}::uuid`);
+    await dispatch().tick(later(21));
+    expect(await offerAt(next.id, 0)).toMatchObject({ driverId: a.driverId });
+    expect((await rideOf(first.id, a.tokens)).state).toBe('in_progress');
+  });
+
   it('aucun candidat : trois balayages complets de la zone, puis « aucun chauffeur »', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     // Catégorie inférieure : jamais candidat pour une course Neo XL.

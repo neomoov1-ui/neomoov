@@ -1,5 +1,5 @@
 /** Courses côté My Hub (étapes 5 et 6) : création par l'opérateur, attribution forcée, panneau de répartition (réattribution, mise en attente, reprise). */
-import { adminAssignSchema, adminCreateRideSchema, adminDispatchViewSchema, adminHoldSchema, adminReassignSchema, dispatchTickReportSchema, dispatchTickSchema, rideEventSchema, rideSchema, uuid } from '@neomoov/domain';
+import { adminAssignSchema, adminCreateRideSchema, adminDispatchViewSchema, adminHoldSchema, adminReassignSchema, dispatchTickReportSchema, dispatchTickSchema, rideEventSchema, rideMessageInputSchema, rideMessageSchema, rideSchema, uuid } from '@neomoov/domain';
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
@@ -42,6 +42,26 @@ export class AdminRidesController {
   @ApiErrors(400, 401, 403, 404, 409, 429)
   assign(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(adminAssignSchema)) body: z.infer<typeof adminAssignSchema>, @CurrentUser() user: UserActor) {
     return this.rides.assign(id, body, { kind: 'operator', userId: user.userId });
+  }
+
+  @Get(':id/messages')
+  @Roles(...STAFF_READ_ROLES)
+  @ApiOperation({ summary: 'Messagerie de la course (client, chauffeur, exploitation)' })
+  @ZodResponse(200, z.array(rideMessageSchema))
+  @ApiErrors(401, 403, 404, 429)
+  messages(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
+    return this.rides.listMessages(id, user);
+  }
+
+  @Post(':id/messages')
+  @Roles(...STAFF_WRITE_ROLES)
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Message de l\'exploitation dans la course : visible du client et du chauffeur, tous deux prévenus (texto pour un client sans application)' })
+  @ZodBody(rideMessageInputSchema)
+  @ZodResponse(201, rideMessageSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  sendMessage(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(rideMessageInputSchema)) body: z.infer<typeof rideMessageInputSchema>, @CurrentUser() user: UserActor) {
+    return this.rides.sendMessage(id, user, body.body);
   }
 
   @Get('stuck')

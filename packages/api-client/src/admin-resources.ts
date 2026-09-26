@@ -6,7 +6,7 @@ import type {
   AdminAgent, AdminApproval, AdminDispatchView, AdminCreateRide, AutocompleteSuggestion, PlaceDetails, PublicTrackingView, AdminClient, AdminDashboard, AdminDataRequest, AdminDocument, AdminDriverDetail, AdminDriverListItem, DriverPrograms, AdminIncident, AdminInvoice,
   AdminLead, AdminListQuery, AdminPromotion, AdminReport, AdminRideListItem, AdminRideListQuery, AdminSetting, AdminStaff, AdminStatement, AdminVehicle,
   ApprovalDecisionInput, CancellationResult, DocumentReview, IncidentDecision, LeadInput, LeadStatus, MfaEnrollment, Page, PackView, PricingRuleInput,
-  PricingRuleView, QuoteRequest, QuotesResponse, RideEventView, RideView, SanctionInput, StaffLogin, StaffLoginResponse, StaffNote, TokensView, VehicleReview,
+  PricingRuleView, QuoteRequest, QuotesResponse, RideEventView, RideMessageView, RideView, SanctionInput, StaffLogin, StaffLoginResponse, StaffNote, TokensView, VehicleReview,
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
@@ -79,6 +79,8 @@ export function adminResource(t: Transport) {
     ridePayments: (rideId: string) => t.get<PaymentView[]>(`/admin/rides/${id(rideId)}/payments`),
     refundRide: (rideId: string, body: RefundInput, idempotencyKey?: string) => t.post<RefundView>(`/admin/rides/${id(rideId)}/refund`, body, idempotencyKey ? { idempotencyKey } : {}),
     rideEvents: (rideId: string) => t.get<RideEventView[]>(`/admin/rides/${id(rideId)}/events`),
+    rideMessages: (rideId: string) => t.get<RideMessageView[]>(`/admin/rides/${id(rideId)}/messages`),
+    sendRideMessage: (rideId: string, body: string) => t.post<RideMessageView>(`/admin/rides/${id(rideId)}/messages`, { body }),
     createRide: (body: AdminCreateRide) => t.post<RideView>('/admin/rides', body),
     assignRide: (rideId: string, body: { driverId: string; vehicleId?: string; note?: string }) => t.post<RideView>(`/admin/rides/${id(rideId)}/assign`, body),
     reassignRide: (rideId: string, body: { reason: string; excludeDriver?: boolean }) => t.post<RideView>(`/admin/rides/${id(rideId)}/reassign`, body),

@@ -160,11 +160,12 @@ describe('parcours critiques complémentaires (intégration)', () => {
     expect(await db(app).select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.phone, phone))).toHaveLength(0);
     await assign(operator.tokens, rideId, driver);
     const texts = await until(
-      () => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, phone), eq(schema.notifications.template, 'ride.assigned'))),
+      () => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, phone), eq(schema.notifications.template, 'ride.scheduled_assigned'))),
       (rows) => rows.length > 0,
       'texto d\'attribution',
     );
-    expect(texts[0]).toMatchObject({ channel: 'sms', recipientUserId: null });
+    expect(texts.map((t) => t.channel)).toEqual(['sms']);
+    expect(texts[0]).toMatchObject({ recipientUserId: null, data: { driverName: expect.any(String), plate: expect.any(String) } });
     const journal = await request(server()).get(`/v1/admin/rides/${rideId}/events`).set(bearer(operator.tokens)).expect(200);
     expect(journal.body.find((e: { type: string }) => e.type === 'driver_accepts')).toMatchObject({ actorKind: 'operator' });
   });

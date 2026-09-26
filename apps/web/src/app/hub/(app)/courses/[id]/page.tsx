@@ -30,6 +30,12 @@ export default function RideDetailPage() {
   const summary = useQuery({ queryKey: ['hub', 'ride', id, 'summary'], queryFn: () => hubApi.admin.rideSummary(id) });
   const events = useQuery({ queryKey: ['hub', 'ride', id, 'events'], queryFn: () => hubApi.admin.rideEvents(id), refetchInterval: 20_000 });
   const dispatch = useQuery({ queryKey: ['hub', 'ride', id, 'dispatch'], queryFn: () => hubApi.admin.rideDispatch(id) });
+  const messages = useQuery({ queryKey: ['hub', 'ride', id, 'messages'], queryFn: () => hubApi.admin.rideMessages(id), refetchInterval: 15_000 });
+  const [draft, setDraft] = useState('');
+  const send = useMutation({
+    mutationFn: (body: string) => hubApi.admin.sendRideMessage(id, body),
+    onSuccess: () => { setDraft(''); void queryClient.invalidateQueries({ queryKey: ['hub', 'ride', id, 'messages'] }); },
+  });
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['hub', 'ride', id] });
   const action = useMutation({
@@ -110,6 +116,28 @@ export default function RideDetailPage() {
           />
         </Card>
       ) : null}
+
+      <Card title={t('hub.rides.messages')}>
+        {messages.isPending ? <Loading /> : messages.isError ? <ErrorBlock error={messages.error} /> : messages.data.length === 0 ? <p className="text-sm text-slate-600">{t('hub.rides.noMessages')}</p> : (
+          <ol className="flex flex-col gap-2 text-sm">
+            {messages.data.map((m) => (
+              <li key={m.id} className="rounded-md bg-slate-50 px-3 py-2">
+                <span className="text-xs font-semibold">{t(`enum.actor.${m.senderKind}`, { defaultValue: m.senderKind })}</span>
+                <span className="ml-2 text-xs text-slate-600">{formatDateTime(m.sentAt, lang)}</span>
+                <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+        {writable && open ? (
+          <form className="mt-3 flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(draft.trim()); }}>
+            <Field label={t('hub.rides.messageLabel')}>{(p) => <Textarea {...p} rows={2} maxLength={1000} value={draft} onChange={(e) => setDraft(e.target.value)} />}</Field>
+            <p className="text-xs text-slate-600">{t('hub.rides.messageHint')}</p>
+            {send.isError ? <Notice tone="danger">{errorText(send.error)}</Notice> : null}
+            <div><Action type="submit" busy={send.isPending} disabled={!draft.trim()}>{t('hub.rides.send')}</Action></div>
+          </form>
+        ) : null}
+      </Card>
 
       <Card title={t('hub.rides.timeline')}>
         {events.isPending ? <Loading /> : events.isError ? <ErrorBlock error={events.error} /> : events.data.length === 0 ? <p className="text-sm text-slate-600">{t('hub.rides.noEvents')}</p> : (

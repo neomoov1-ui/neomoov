@@ -83,6 +83,13 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
 
     expect((await request(server()).post(`/v1/driver/rides/${rideId}/depart`).set(bearer(driver.tokens)).expect(200)).body.state).toBe('en_route');
     expect((await request(server()).post(`/v1/driver/rides/${rideId}/depart`).set(bearer(driver.tokens)).expect(200)).body.state).toBe('en_route');
+    // Réservation : attribution par push, courriel et texto ; départ par push et texto, une seule fois même rejoué.
+    const clientNotices = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, client.user.id), sql`${schema.notifications.data}->>'rideId' = ${rideId}`));
+    const channelsOf = (template: string) => clientNotices.filter((n) => n.template === template).map((n) => n.channel).sort();
+    expect(channelsOf('ride.scheduled_assigned')).toEqual(['email', 'push', 'sms']);
+    expect(channelsOf('ride.scheduled_driver_departed')).toEqual(['push', 'sms']);
+    expect(channelsOf('ride.assigned')).toEqual([]);
+    expect(clientNotices.find((n) => n.template === 'ride.scheduled_driver_departed')!.data).toMatchObject({ plate: expect.any(String) });
     expect((await request(server()).post(`/v1/driver/rides/${rideId}/arrive`).set(bearer(driver.tokens)).expect(200)).body.state).toBe('arrived');
     const started = await request(server()).post(`/v1/driver/rides/${rideId}/start`).set(bearer(driver.tokens)).expect(200);
     expect(started.body.state).toBe('in_progress');
@@ -204,6 +211,15 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     expect(sent.body.senderKind).toBe('client');
     const inbox = await request(server()).get(`/v1/rides/${ride.id}/messages`).set(bearer(driver.tokens)).expect(200);
     expect(inbox.body[0]).toMatchObject({ body: 'Je porte un manteau rouge', mine: false, senderKind: 'client' });
+    // Exploitation (My Hub) : lit le fil, écrit ; le client et le chauffeur sont prévenus et voient le message.
+    expect((await request(server()).get(`/v1/admin/rides/${ride.id}/messages`).set(bearer(admin.tokens)).expect(200)).body).toHaveLength(1);
+    const fromOperator = await request(server()).post(`/v1/admin/rides/${ride.id}/messages`).set(bearer(admin.tokens)).send({ body: 'Entrée par la porte 3' }).expect(201);
+    expect(fromOperator.body).toMatchObject({ senderKind: 'operator', mine: true });
+    expect((await request(server()).get(`/v1/rides/${ride.id}/messages`).set(bearer(client)).expect(200)).body.at(-1)).toMatchObject({ body: 'Entrée par la porte 3', senderKind: 'operator', mine: false });
+    const pinged = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.template, 'ride.message'), sql`${schema.notifications.data}->>'messageId' = ${fromOperator.body.id}`));
+    expect(new Set(pinged.map((n) => n.recipientUserId))).toEqual(new Set([client.user.id, driver.userId]));
+    const readonly = await createStaffAndLogin(app, ['readonly']);
+    expect((await request(server()).post(`/v1/admin/rides/${ride.id}/messages`).set(bearer(readonly.tokens)).send({ body: 'x' })).status).toBe(403);
     const shared = await request(server()).post(`/v1/rides/${ride.id}/share`).set(bearer(client)).expect(200);
     expect(shared.body.trackingUrl).toContain(`/suivi/${shared.body.token}`);
     const tracking = await request(server()).get(`/v1/public/track/${shared.body.token}`).expect(200);
@@ -279,7 +295,7 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     const xlDriver = await createDriver(app, 'neo_xl');
     const ok = await request(server()).post(`/v1/admin/rides/${created.body.id}/assign`).set(bearer(admin.tokens)).send({ driverId: xlDriver.driverId }).expect(200);
     expect(ok.body.servedCategory).toBe('neo_xl');
-    const guestNotification = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, guestPhone), eq(schema.notifications.template, 'ride.assigned')));
+    const guestNotification = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, guestPhone), eq(schema.notifications.template, 'ride.scheduled_assigned')));
     expect(guestNotification).toHaveLength(1);
 
     // Présence : hors ligne par défaut, en ligne avec position, positions acceptées puis expiration.

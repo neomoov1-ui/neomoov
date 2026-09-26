@@ -33,6 +33,7 @@ import { categoryAtLeast, currentVehicleJoin, driverEligible, loadEligibilityRul
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
 import { SafetyHoldService } from './safety-hold.service.js';
+import { RideContextService } from './ride-context.service.js';
 import { dispatchRows, dispatchSummaryOf, driverSummaries, parseGeoPoint, selectRide, selectRides, timestampsOf, toRideView, type RideRow } from './ride-view.js';
 
 export type ActorKind = 'client' | 'driver' | 'operator' | 'system' | 'agent';
@@ -90,6 +91,7 @@ export class RidesService {
     private readonly payments: PaymentsService,
     private readonly promotions: PromotionsService,
     private readonly safety: SafetyHoldService,
+    private readonly context: RideContextService,
   ) {}
 
   private get db() {
@@ -519,7 +521,9 @@ export class RidesService {
     }
     const [driver] = await this.db.select({ id: schema.drivers.id, status: schema.drivers.status, currentVehicleId: schema.drivers.currentVehicleId, userId: schema.drivers.userId }).from(schema.drivers).where(eq(schema.drivers.id, input.driverId)).limit(1);
     if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Chauffeur introuvable');
-    if (driver.status !== 'active') throw AppError.conflict('DRIVER_NOT_ACTIVE', 'Ce chauffeur n\'est pas actif', { status: driver.status });
+    // Restriction (5.11) : un chauffeur restreint reste attribuable, sauf pour une course VIP, aéroport ou entreprise.
+    if (driver.status === 'restricted' && (await this.context.premium(ride))) throw AppError.conflict('DRIVER_RESTRICTED', 'Chauffeur restreint : pas de course VIP, aéroport ni entreprise', { status: driver.status });
+    if (driver.status !== 'active' && driver.status !== 'restricted') throw AppError.conflict('DRIVER_NOT_ACTIVE', 'Ce chauffeur n\'est pas actif', { status: driver.status });
     const vehicleId = input.vehicleId ?? driver.currentVehicleId;
     if (!vehicleId) throw AppError.conflict('VEHICLE_REQUIRED', 'Ce chauffeur n\'a pas de véhicule courant');
     const [vehicle] = await this.db.select({ id: schema.vehicles.id, category: schema.vehicles.category, status: schema.vehicles.status, driverId: schema.vehicles.driverId }).from(schema.vehicles).where(eq(schema.vehicles.id, vehicleId)).limit(1);
@@ -546,8 +550,10 @@ export class RidesService {
     if (!result.replayed) {
       this.events.emit('ride.assigned', payload);
       const recipient = await this.recipientOf(result.ride);
+      // Réservation : l'attribution arrive des heures avant, avec le chauffeur et le véhicule (push, courriel, texto).
+      const scheduled = result.ride.type === 'scheduled';
       await this.outbox.queue([
-        { ...recipient, template: 'ride.assigned', data: { rideId, driverId: driver.id } },
+        { ...recipient, template: scheduled ? 'ride.scheduled_assigned' : 'ride.assigned', data: { rideId, driverId: driver.id, ...(scheduled ? { publicNumber: result.ride.publicNumber, requestedAt: result.ride.requestedAt?.toISOString() ?? null, ...(await this.driverAndVehicle(result.ride)) } : {}) } },
         { recipientUserId: driver.userId, template: 'ride.assigned_to_you', data: { rideId } },
       ]);
       // Course réservée pour un tiers (parcours 4) : le passager reçoit par texto le lien de suivi public.
@@ -733,7 +739,9 @@ export class RidesService {
     await this.publish(result, event, { kind: 'driver', userId: actor.userId });
     if (!result.replayed) {
       const recipient = await this.recipientOf(result.ride);
-      await this.outbox.queue({ ...recipient, template, data: { rideId } });
+      // Départ vers une réservation : push et texto, avec le véhicule à reconnaître.
+      if (event === 'driver_departs' && result.ride.type === 'scheduled') await this.outbox.queue({ ...recipient, template: 'ride.scheduled_driver_departed', data: { rideId, publicNumber: result.ride.publicNumber, ...(await this.driverAndVehicle(result.ride)) } });
+      else await this.outbox.queue({ ...recipient, template, data: { rideId } });
       if (event === 'driver_arrives') await this.notifyPassenger(result.ride, 'ride.passenger_arrived', recipient.language);
     }
     return this.view(result.ride);
@@ -971,6 +979,21 @@ export class RidesService {
     return !sent;
   }
 
+  /** Prénom du chauffeur et véhicule de la course, pour les avis au client (à reconnaître à la prise en charge). */
+  private async driverAndVehicle(ride: RideRow): Promise<{ driverName: string | null; vehicle: string | null; plate: string | null }> {
+    const [row] = ride.driverId
+      ? await this.db
+          .select({ firstName: schema.users.firstName, make: schema.vehicles.make, model: schema.vehicles.model, colour: schema.vehicles.colour, plate: schema.vehicles.plate })
+          .from(schema.drivers)
+          .innerJoin(schema.users, eq(schema.users.id, schema.drivers.userId))
+          .leftJoin(schema.vehicles, eq(schema.vehicles.id, ride.vehicleId ?? schema.drivers.currentVehicleId))
+          .where(eq(schema.drivers.id, ride.driverId))
+          .limit(1)
+      : [];
+    if (!row) return { driverName: null, vehicle: null, plate: null };
+    return { driverName: row.firstName ?? null, vehicle: row.make ? `${row.make} ${row.model ?? ''}${row.colour ? ` ${row.colour}` : ''}`.replace(/\s+/g, ' ').trim() : null, plate: row.plate ?? null };
+  }
+
   /** Numéro du passager quand il n'est ni le client ni l'invité qui a réservé (réservation pour un tiers, parcours 4). */
   private async thirdPartyPhone(ride: RideRow): Promise<string | null> {
     const phone = ride.passengerPhone;
@@ -1047,6 +1070,12 @@ export class RidesService {
     } else {
       const parties = await this.partiesOf(ride);
       if (parties.driverUserId) await this.outbox.queue({ recipientUserId: parties.driverUserId, template: 'ride.message', data: { rideId, messageId: row!.id } });
+      // Message de l'exploitation (My Hub) : le client aussi est prévenu, par texto s'il n'a pas de compte.
+      if (kind === 'operator') {
+        const recipient = await this.recipientOf(ride);
+        if (recipient.recipientUserId) await this.outbox.queue({ ...recipient, template: 'ride.message', data: { rideId, messageId: row!.id } });
+        else await this.outbox.queue({ ...recipient, template: 'ride.operator_message_sms', data: { rideId, messageId: row!.id, publicNumber: ride.publicNumber, body } });
+      }
     }
     return { id: row!.id, rideId, senderKind: kind as RideMessageView['senderKind'], mine: true, body, sentAt: row!.sentAt.toISOString(), readAt: null };
   }

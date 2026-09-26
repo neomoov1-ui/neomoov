@@ -48,6 +48,14 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Réservation confirmée', body: (d, l) => `Votre course${ride(d)} est réservée pour le ${when(d['requestedAt'], l)}.` },
     en: { title: 'Booking confirmed', body: (d, l) => `Your ride${ride(d)} is booked for ${when(d['requestedAt'], l)}.` },
   },
+  'ride.scheduled_assigned': {
+    fr: { title: 'Chauffeur confirmé pour votre réservation', body: (d, l) => `Votre course${ride(d)} du ${when(d['requestedAt'], l)} est confirmée${d['driverName'] ? ` avec ${str(d['driverName'])}` : ''}${d['vehicle'] ? ` : ${str(d['vehicle'])}, plaque ${str(d['plate'])}` : ''}.` },
+    en: { title: 'Driver confirmed for your booking', body: (d, l) => `Your ride${ride(d)} on ${when(d['requestedAt'], l)} is confirmed${d['driverName'] ? ` with ${str(d['driverName'])}` : ''}${d['vehicle'] ? `: ${str(d['vehicle'])}, plate ${str(d['plate'])}` : ''}.` },
+  },
+  'ride.scheduled_driver_departed': {
+    fr: { title: 'Votre chauffeur est en route', body: (d) => `${d['driverName'] ? str(d['driverName']) : 'Votre chauffeur'} est parti vers le point de départ${d['vehicle'] ? ` : ${str(d['vehicle'])}, plaque ${str(d['plate'])}` : ''}.` },
+    en: { title: 'Your driver is on the way', body: (d) => `${d['driverName'] ? str(d['driverName']) : 'Your driver'} has left for the pickup point${d['vehicle'] ? `: ${str(d['vehicle'])}, plate ${str(d['plate'])}` : ''}.` },
+  },
   'ride.scheduled_reminder': {
     fr: { title: 'Rappel de votre course', body: (d, l) => `Votre course est prévue le ${when(d['requestedAt'], l)}.` },
     en: { title: 'Ride reminder', body: (d, l) => `Your ride is scheduled for ${when(d['requestedAt'], l)}.` },
@@ -131,6 +139,10 @@ const TEMPLATES: Record<string, Template> = {
   'ride.message': {
     fr: { title: 'Nouveau message', body: 'Vous avez un nouveau message concernant votre course.' },
     en: { title: 'New message', body: 'You have a new message about your ride.' },
+  },
+  'ride.operator_message_sms': {
+    fr: { title: 'Message de Neomoov', body: (d) => `Message de Neomoov${ride(d)} : « ${str(d['body'])} ». Répondez à ce texto pour nous répondre.` },
+    en: { title: 'Message from Neomoov', body: (d) => `Message from Neomoov${ride(d)}: "${str(d['body'])}". Reply to this text to answer.` },
   },
   'ride.message_sms': {
     fr: { title: 'Message de votre chauffeur', body: (d) => `Message de votre chauffeur${ride(d)} : « ${str(d['body'])} ». Répondez à ce texto pour lui écrire.` },
