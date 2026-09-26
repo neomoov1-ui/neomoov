@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { schema } from '@neomoov/db';
 import { buildStatement, classifyRideForStatement, mulDivRound, packBillingLines, splitTaxes, type SettlementRide, type StatementLine, type TaxRates, type TokensView } from '@neomoov/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SettlementJobsService } from '../src/modules/settlement/settlement-jobs.service.js';
@@ -196,6 +196,10 @@ describe('règlement hebdomadaire (intégration)', () => {
     expect(paid.body.transferRef).toMatch(/^tr_mock/);
     const replay = await request(server()).post(`/v1/admin/statements/${draft.id}/pay`).set(bearer(staff.tokens)).expect(200);
     expect(replay.body).toMatchObject({ status: 'paid', transferRef: paid.body.transferRef, attempts: 2 });
+    // Versement : un seul avis au chauffeur, même rejoué ; l'échec précédent (compte absent) a alerté l'exploitation.
+    const notices = (template: string) => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.template, template), sql`${schema.notifications.data}->>'statementId' = ${draft.id!}`));
+    expect((await notices('statement.paid')).filter((n) => n.recipientUserId === driver.userId && n.channel === 'push')).toHaveLength(1);
+    expect((await notices('alert.settlement_failed')).some((n) => n.recipientUserId === staff.userId)).toBe(true);
     const [balance] = await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.driverId));
     expect(balance).toMatchObject({ balanceCents: 0, suspendedForBalanceAt: null });
   });

@@ -79,16 +79,22 @@ export class SettlementPayoutsService {
     }
     const settled = outcome.status !== 'failed';
     // Seul un relevé encore à régler change d'état : deux règlements simultanés n'écrivent qu'une fois.
-    await this.db
+    const changed = await this.db
       .update(schema.weeklyStatements)
       .set({
         status: outcome.status, attempts, failureCode: outcome.failureCode ?? null, ...(settled ? { settledAt: now } : {}),
         ...(outcome.transferRef ? { stripeTransferId: outcome.transferRef } : {}), ...(outcome.chargeRef ? { stripeChargeId: outcome.chargeRef } : {}),
       })
-      .where(and(eq(schema.weeklyStatements.id, id), inArray(schema.weeklyStatements.status, ['issued', 'failed'])));
+      .where(and(eq(schema.weeklyStatements.id, id), inArray(schema.weeklyStatements.status, ['issued', 'failed'])))
+      .returning({ id: schema.weeklyStatements.id });
     this.audit.record({ action: settled ? 'statement.settled' : 'statement.settlement_failed', entity: 'weekly_statements', entityId: id, after: { status: outcome.status, netCents: row.netCents, attempts, failureCode: outcome.failureCode ?? null } });
     if (!settled) {
       await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.settlement_failed', data: { statementId: id, netCents: row.netCents, reason: outcome.failureCode ?? null } });
+      // Revue finale : l'exploitation est prévenue de chaque règlement en échec (courriel), pas seulement le chauffeur.
+      await this.outbox.queueForStaff('alert.settlement_failed', { statementId: id, netCents: row.netCents, reason: outcome.failureCode ?? null, attempts });
+    } else if (changed.length && row.netCents > 0) {
+      // Versement réussi : le chauffeur est prévenu une seule fois (état changé par ce règlement).
+      await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.paid', data: { statementId: id, netCents: row.netCents } });
     }
     await this.refreshBalance(row.driverId, now);
     return this.statements.detail(id);
