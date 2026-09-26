@@ -32,6 +32,12 @@ export class RideContextService {
     return fromAirport || toAirport || (await this.isBusinessRide(ride));
   }
 
+  /** Transfert vers ou depuis une zone aéroport (règle d'annulation D3). */
+  async isAirportTransfer(ride: RideRow): Promise<boolean> {
+    const [fromAirport, toAirport] = await Promise.all([this.zones.isAirport(parseGeoPoint(ride.originGeo)), this.zones.isAirport(parseGeoPoint(ride.destinationGeo))]);
+    return fromAirport || toAirport;
+  }
+
   /**
    * Organisation partenaire de la course (flotte, compagnie de taxi, marque blanche, D42) ; la plateforme Neomoov, posée
    * par défaut sur chaque course, n'en est pas une.

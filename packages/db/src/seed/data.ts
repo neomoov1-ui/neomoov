@@ -111,6 +111,7 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'rides.scheduled_reassign_before_seconds', value: 1800, description: 'Réattribution si non confirmée 30 minutes avant' },
   { key: 'alerts.client_cancellations_threshold', value: 3, description: 'Annulations ou absences d\'un client qui déclenchent une alerte à l\'exploitation (5.14)' },
   { key: 'alerts.client_cancellations_window_days', value: 7, description: 'Fenêtre, en jours, du décompte des annulations et absences d\'un client' },
+  { key: 'rides.airport_free_cancellation_before_seconds', value: 3600, description: 'Transfert aéroport : annulation gratuite jusqu\'à 1 heure avant l\'heure prévue (décision D3 du fondateur, 26 septembre 2026)' },
   { key: 'rides.scheduled_driver_reminder_before_seconds', value: 5400, description: 'Rappel au chauffeur 90 minutes avant une réservation (matrice 5.14)' },
   { key: 'rides.scheduled_reminder_before_seconds', value: 86_400, description: 'Rappel la veille (J-1) pour les courses à plus de 24 heures' },
   { key: 'rides.share_link_ttl_hours', value: 24, description: 'Validité du lien public de suivi d\'une course' },

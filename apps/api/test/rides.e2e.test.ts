@@ -171,6 +171,24 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     await db(app).delete(schema.notifications).where(inArray(schema.notifications.id, alerts.map((a) => a.id)));
   });
 
+  it('transfert aéroport (D3) : annulation gratuite jusqu\'à 1 heure avant l\'heure prévue, même après l\'attribution', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const YUL = { address: 'Aéroport international Montréal-Trudeau, Dorval', coordinates: { lat: 45.468, lng: -73.742 } };
+    const early = (await requestRide(client, await quoteFor(client, 'neo_premium', CENTRE, YUL))).body;
+    await assign(admin.tokens, early.id, driver);
+    // Attribution antidatée de trois minutes : hors de la fenêtre générale, mais à près de 3 heures du départ.
+    await db(app).update(schema.rides).set({ stateTimestamps: sql`${schema.rides.stateTimestamps} || ${JSON.stringify({ assigned: new Date(Date.now() - 180_000).toISOString() })}::jsonb` }).where(eq(schema.rides.id, early.id));
+    expect((await request(server()).post(`/v1/rides/${early.id}/cancel`).set(bearer(client)).send({ reason: 'changed_plans' }).expect(200)).body.feeCents).toBe(0);
+    // Moins d'une heure avant l'heure prévue : 5,00 $.
+    const late = (await requestRide(client, await quoteFor(client, 'neo_premium', CENTRE, YUL))).body;
+    await assign(admin.tokens, late.id, driver);
+    await db(app).update(schema.rides).set({ requestedAt: new Date(Date.now() + 30 * 60_000), stateTimestamps: sql`${schema.rides.stateTimestamps} || ${JSON.stringify({ assigned: new Date(Date.now() - 180_000).toISOString() })}::jsonb` }).where(eq(schema.rides.id, late.id));
+    expect((await request(server()).post(`/v1/rides/${late.id}/cancel`).set(bearer(client)).send({ reason: 'changed_plans' }).expect(200)).body.feeCents).toBe(500);
+  });
+
   it('non-présentation : refusée avant cinq minutes ou sans deux contacts, puis 7,00 $', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);

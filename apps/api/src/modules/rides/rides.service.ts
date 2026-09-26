@@ -215,14 +215,15 @@ export class RidesService {
   }
 
   private async cancellationRules(): Promise<CancellationRules> {
-    const [freeCancellationSeconds, cancellationFeeCents, noShowFeeCents, noShowMinWaitSeconds, noShowMinContacts] = await Promise.all([
+    const [freeCancellationSeconds, cancellationFeeCents, noShowFeeCents, noShowMinWaitSeconds, noShowMinContacts, airportFreeCancellationBeforeSeconds] = await Promise.all([
       this.settings.number('rides.free_cancellation_seconds', 120),
       this.settings.number('rides.cancellation_fee_cents', 500),
       this.settings.number('rides.no_show_fee_cents', 700),
       this.settings.number('rides.no_show_min_wait_seconds', 300),
       this.settings.number('rides.no_show_min_contacts', 2),
+      this.settings.number('rides.airport_free_cancellation_before_seconds', 3600),
     ]);
-    return { freeCancellationSeconds, cancellationFeeCents, noShowFeeCents, noShowMinWaitSeconds, noShowMinContacts };
+    return { freeCancellationSeconds, cancellationFeeCents, noShowFeeCents, noShowMinWaitSeconds, noShowMinContacts, airportFreeCancellationBeforeSeconds };
   }
 
   private async leadTimeError(): Promise<AppError> {
@@ -618,15 +619,21 @@ export class RidesService {
     return this.cancelAsClient(rideId, { kind, userId: actor.userId }, input);
   }
 
+  /** Heure prévue d'un transfert aéroport (règle d'annulation D3), sinon `null`. */
+  private async airportPickupAt(rideId: string): Promise<Date | null> {
+    const ride = await this.getRide(rideId);
+    return ride.requestedAt && (await this.context.isAirportTransfer(ride)) ? ride.requestedAt : null;
+  }
+
   /** Annulation du côté du client (application, opérateur au téléphone, agent vocal) : frais selon l'état lu sous verrou. */
   private async cancelAsClient(rideId: string, actorRef: ActorRef, input: { reason: string; comment?: string | undefined }): Promise<{ state: RideState; feeCents: number }> {
-    const rules = await this.cancellationRules();
+    const [rules, airportPickupAt] = await Promise.all([this.cancellationRules(), this.airportPickupAt(rideId)]);
     // Les frais dépendent de l'état lu sous verrou : une annulation qui croise « en route » paie le tarif d'annulation.
     const result = await this.applyTransition(rideId, 'client_cancels', actorRef, {
       data: { reason: input.reason },
       set: (locked) => {
         const assignedAt = timestampsOf(locked).assigned;
-        const feeCents = clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date() }, rules);
+        const feeCents = clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date(), airportPickupAt }, rules);
         return { cancellationReason: input.reason, cancellationComment: input.comment ?? null, cancellationFeeCents: feeCents };
       },
     });
@@ -644,13 +651,13 @@ export class RidesService {
    * d'annulation ne sont facturés que sur décision explicite de l'opérateur.
    */
   async cancelByOperator(rideId: string, actor: UserActor, input: { reason: string; chargeFee: boolean }): Promise<{ state: RideState; feeCents: number }> {
-    const rules = await this.cancellationRules();
+    const [rules, airportPickupAt] = await Promise.all([this.cancellationRules(), this.airportPickupAt(rideId)]);
     const operator: ActorRef = { kind: 'operator', userId: actor.userId };
     const result = await this.applyTransition(rideId, 'client_cancels', operator, {
       data: { reason: input.reason, byOperator: true, chargeFee: input.chargeFee },
       set: (locked) => {
         const assignedAt = timestampsOf(locked).assigned;
-        const feeCents = input.chargeFee ? clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date() }, rules) : 0;
+        const feeCents = input.chargeFee ? clientCancellationFeeCents({ state: locked.state, assignedAt: assignedAt ? new Date(assignedAt) : null, now: new Date(), airportPickupAt }, rules) : 0;
         return { cancellationReason: 'other', cancellationComment: input.reason, cancellationFeeCents: feeCents };
       },
     });
