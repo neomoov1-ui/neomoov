@@ -26,6 +26,7 @@ export * from './ledgers.js';
 export * from './agents.js';
 export * from './metrics.js';
 export * from './fairness.js';
+export * from './access.js';
 import { PAYMENT_CHOICES } from './rides.js';
 import { driverJobSchema } from './driver.js';
 import { dispatchSummarySchema, negotiationSummarySchema } from './dispatch.js';

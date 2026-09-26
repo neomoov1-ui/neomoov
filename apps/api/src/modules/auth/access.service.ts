@@ -2,10 +2,11 @@
  * Droits d'un utilisateur (étape 19, amendement v1.2) : permissions de ses anciens rôles (correspondance transitoire) et
  * de ses adhésions actives. Sur les routes de la plateforme, seules comptent les adhésions à la racine : l'isolation des
  * données par organisation arrive à l'étape 20, d'ici là un membre d'une organisation cliente n'y a aucun droit. Mise en
- * cache 30 secondes par utilisateur ; tout changement d'adhésion ou de rôle appelle `invalidate`.
+ * cache 30 secondes par utilisateur ; tout changement d'adhésion ou de rôle appelle `invalidate`. Une permission sensible
+ * tenue par une adhésion exige une session à double authentification (`amr` contient `mfa`).
  */
 import { schema } from '@neomoov/db';
-import { effectivePermissions, type EffectiveMembership, type Permission } from '@neomoov/domain';
+import { effectivePermissions, isPermission, PERMISSIONS, type EffectiveMembership, type Permission } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull } from 'drizzle-orm';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -21,7 +22,8 @@ export class AccessService {
 
   /** Permissions sur les routes de la plateforme : anciens rôles et adhésions actives à l'organisation racine. */
   async platformPermissions(actor: UserActor, now = new Date()): Promise<Set<Permission>> {
-    const key = `${actor.userId}:${[...actor.roles].sort().join(',')}`;
+    const mfa = actor.amr.includes('mfa');
+    const key = `${actor.userId}:${[...actor.roles].sort().join(',')}:${mfa ? 'mfa' : ''}`;
     const hit = this.cache.get(key);
     if (hit && now.getTime() - hit.at < TTL_MS) return hit.permissions;
     const rows = await this.database.db
@@ -32,6 +34,7 @@ export class AccessService {
       .where(and(eq(schema.memberships.userId, actor.userId), isNull(schema.organizations.parentId)));
     const byMembership = new Map<string, EffectiveMembership & { permissions: string[] }>();
     for (const r of rows) {
+      if (!mfa && isPermission(r.permission) && PERMISSIONS[r.permission].sensitive) continue;
       const m = byMembership.get(r.membershipId) ?? { permissions: [], status: r.status as 'active' | 'suspended', expiresAt: r.expiresAt, modules: null };
       m.permissions.push(r.permission);
       byMembership.set(r.membershipId, m);

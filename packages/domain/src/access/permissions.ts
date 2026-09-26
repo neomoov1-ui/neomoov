@@ -5,6 +5,10 @@
  * d'escalade : on n'accorde que ce qu'on détient. Fonctions pures ; la base et l'API appliquent.
  */
 
+/** Types d'organisation : la plateforme (racine) et les organisations clientes et leurs sous-organisations. */
+export const ORGANIZATION_TYPES = ['platform', 'taxi_company', 'vtc_company', 'fleet', 'business', 'establishment', 'solo', 'sub_org', 'white_label'] as const;
+export type OrganizationType = (typeof ORGANIZATION_TYPES)[number];
+
 export const PERMISSION_MODULES = [
   'operations', 'rides', 'dispatch', 'drivers', 'vehicles', 'clients', 'incidents', 'pricing', 'offers', 'payments', 'finance',
   'agents', 'privacy', 'platform', 'organization', 'reports', 'self',
