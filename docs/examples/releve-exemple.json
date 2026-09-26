@@ -1,0 +1,179 @@
+{
+  "id": "00000000-0000-4000-8000-00000statement",
+  "driverId": "00000000-0000-4000-8000-0000000driver",
+  "driverPublicNumber": "CH-00042",
+  "driverName": "Chauffeur Exemple",
+  "periodStart": "2026-09-14",
+  "periodEnd": "2026-09-20",
+  "status": "paid",
+  "creditsCents": 20137,
+  "debitsCents": 7117,
+  "netCents": 13020,
+  "issuedAt": "2026-09-25T10:00:00.000Z",
+  "settledAt": "2026-09-25T10:02:00.000Z",
+  "attempts": 1,
+  "failureCode": null,
+  "transferRef": "tr_exemple",
+  "chargeRef": null,
+  "pdfAvailable": true,
+  "lines": [
+    {
+      "kind": "pack_billed",
+      "label": "Pack Essentiel",
+      "amountCents": -5900,
+      "rideId": null,
+      "packPurchaseId": "00000000-0000-4000-8000-00000000pack",
+      "occurredAt": "2026-09-14T13:00:00.000Z"
+    },
+    {
+      "kind": "pack_taxes",
+      "label": "TPS et TVQ sur le pack",
+      "amountCents": -884,
+      "rideId": null,
+      "packPurchaseId": "00000000-0000-4000-8000-00000000pack",
+      "occurredAt": "2026-09-14T13:00:00.000Z"
+    },
+    {
+      "kind": "ride_fare_platform",
+      "label": "Tarif de la course · NM-2026-09-15-0001",
+      "amountCents": 2455,
+      "rideId": "00000000-0000-4000-8000-000000000001",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-15T11:15:00.000Z"
+    },
+    {
+      "kind": "fare_taxes_platform",
+      "label": "TPS et TVQ sur le tarif · NM-2026-09-15-0001",
+      "amountCents": 368,
+      "rideId": "00000000-0000-4000-8000-000000000001",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-15T11:15:00.000Z"
+    },
+    {
+      "kind": "tip_platform",
+      "label": "Pourboire · NM-2026-09-15-0001",
+      "amountCents": 400,
+      "rideId": "00000000-0000-4000-8000-000000000001",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-15T11:15:00.000Z"
+    },
+    {
+      "kind": "ride_fare_platform",
+      "label": "Tarif de la course · NM-2026-09-16-0002",
+      "amountCents": 3870,
+      "rideId": "00000000-0000-4000-8000-000000000002",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-16T12:15:00.000Z"
+    },
+    {
+      "kind": "fare_taxes_platform",
+      "label": "TPS et TVQ sur le tarif · NM-2026-09-16-0002",
+      "amountCents": 580,
+      "rideId": "00000000-0000-4000-8000-000000000002",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-16T12:15:00.000Z"
+    },
+    {
+      "kind": "service_fee_direct",
+      "label": "Frais de service perçus en direct · NM-2026-09-17-0003",
+      "amountCents": -200,
+      "rideId": "00000000-0000-4000-8000-000000000003",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-17T13:15:00.000Z"
+    },
+    {
+      "kind": "regulatory_fee_direct",
+      "label": "Redevance perçue en direct · NM-2026-09-17-0003",
+      "amountCents": -90,
+      "rideId": "00000000-0000-4000-8000-000000000003",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-17T13:15:00.000Z"
+    },
+    {
+      "kind": "fee_taxes_direct",
+      "label": "Taxes sur les frais perçus en direct · NM-2026-09-17-0003",
+      "amountCents": -43,
+      "rideId": "00000000-0000-4000-8000-000000000003",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-17T13:15:00.000Z"
+    },
+    {
+      "kind": "fare_taxes_platform",
+      "label": "TPS et TVQ sur le tarif · NM-2026-09-18-0004",
+      "amountCents": 368,
+      "rideId": "00000000-0000-4000-8000-000000000004",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-18T14:15:00.000Z"
+    },
+    {
+      "kind": "promotion_compensation",
+      "label": "Compensation de promotion · NM-2026-09-18-0004",
+      "amountCents": 2455,
+      "rideId": "00000000-0000-4000-8000-000000000004",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-18T14:15:00.000Z"
+    },
+    {
+      "kind": "ride_fare_platform",
+      "label": "Tarif de la course · NM-2026-09-19-0005",
+      "amountCents": 5210,
+      "rideId": "00000000-0000-4000-8000-000000000005",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-19T15:15:00.000Z"
+    },
+    {
+      "kind": "fare_taxes_platform",
+      "label": "TPS et TVQ sur le tarif · NM-2026-09-19-0005",
+      "amountCents": 781,
+      "rideId": "00000000-0000-4000-8000-000000000005",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-19T15:15:00.000Z"
+    },
+    {
+      "kind": "toll_reimbursement",
+      "label": "Péage remboursé · NM-2026-09-19-0005",
+      "amountCents": 350,
+      "rideId": "00000000-0000-4000-8000-000000000005",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-19T15:15:00.000Z"
+    },
+    {
+      "kind": "tip_platform",
+      "label": "Pourboire · NM-2026-09-19-0005",
+      "amountCents": 800,
+      "rideId": "00000000-0000-4000-8000-000000000005",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-19T15:15:00.000Z"
+    },
+    {
+      "kind": "adjustment_positive",
+      "label": "Prime de parrainage de lancement",
+      "amountCents": 1500,
+      "rideId": null,
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-20T15:00:00.000Z"
+    },
+    {
+      "kind": "cancellation_fee_platform",
+      "label": "Frais d'annulation · NM-2026-09-20-0006",
+      "amountCents": 1000,
+      "rideId": "00000000-0000-4000-8000-000000000006",
+      "packPurchaseId": null,
+      "occurredAt": "2026-09-20T16:15:00.000Z"
+    }
+  ],
+  "totalsByKind": {
+    "pack_billed": 5900,
+    "pack_taxes": 884,
+    "ride_fare_platform": 11535,
+    "fare_taxes_platform": 2097,
+    "tip_platform": 1200,
+    "service_fee_direct": 200,
+    "regulatory_fee_direct": 90,
+    "fee_taxes_direct": 43,
+    "promotion_compensation": 2455,
+    "toll_reimbursement": 350,
+    "adjustment_positive": 1500,
+    "cancellation_fee_platform": 1000
+  }
+}
