@@ -7,7 +7,7 @@ import type {
   AdminLead, AdminListQuery, AdminPromotion, AdminReport, AdminRideListItem, AdminRideListQuery, AdminSetting, AdminStaff, AdminStatement, AdminVehicle,
   ApprovalDecisionInput, CancellationResult, DocumentReview, IncidentDecision, LeadInput, LeadStatus, MfaEnrollment, Page, PackView, PricingRuleInput,
   PricingRuleView, QuoteRequest, QuotesResponse, RideEventView, RideView, SanctionInput, StaffLogin, StaffLoginResponse, StaffNote, TokensView, VehicleReview,
-  ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse,
+  ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
@@ -47,6 +47,8 @@ export function adminResource(t: Transport) {
     ride: (rideId: string) => t.get<RideView>(`/admin/rides/${id(rideId)}`),
     rideSummary: (rideId: string) => t.get<AdminRideListItem>(`/admin/rides/${id(rideId)}/summary`),
     rideDispatch: (rideId: string) => t.get<AdminDispatchView>(`/admin/rides/${id(rideId)}/dispatch`),
+    ridePayments: (rideId: string) => t.get<PaymentView[]>(`/admin/rides/${id(rideId)}/payments`),
+    refundRide: (rideId: string, body: RefundInput, idempotencyKey?: string) => t.post<RefundView>(`/admin/rides/${id(rideId)}/refund`, body, idempotencyKey ? { idempotencyKey } : {}),
     rideEvents: (rideId: string) => t.get<RideEventView[]>(`/admin/rides/${id(rideId)}/events`),
     createRide: (body: AdminCreateRide) => t.post<RideView>('/admin/rides', body),
     assignRide: (rideId: string, body: { driverId: string; vehicleId?: string; note?: string }) => t.post<RideView>(`/admin/rides/${id(rideId)}/assign`, body),

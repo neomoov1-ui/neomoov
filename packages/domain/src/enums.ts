@@ -47,6 +47,13 @@ export type DriverAcceptedMethod = (typeof DRIVER_ACCEPTED_METHODS)[number];
 export const PAYMENT_STATUSES = ['pending', 'authorized', 'captured', 'paid_direct', 'refunded', 'failed', 'cancelled'] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
+/** Nature d'un paiement (étape 7) : la course, le pourboire (paiement séparé), des frais, le règlement d'un solde dû. */
+export const PAYMENT_KINDS = ['ride', 'tip', 'cancellation_fee', 'no_show_fee', 'balance'] as const;
+export type PaymentKind = (typeof PAYMENT_KINDS)[number];
+
+/** Moyens prépayés par carte dans l'application (autorisation Stripe à capture différée). */
+export const CARD_METHODS = ['card_app', 'apple_pay', 'google_pay'] as const;
+
 export const COLLECTED_BY = ['platform', 'driver'] as const;
 export type CollectedBy = (typeof COLLECTED_BY)[number];
 
@@ -92,7 +99,7 @@ export type StatementStatus = (typeof STATEMENT_STATUSES)[number];
 export const PROMOTION_TYPES = ['percent', 'fixed', 'free_ride', 'nth_ride'] as const;
 export type PromotionType = (typeof PROMOTION_TYPES)[number];
 
-export const CREDIT_ORIGINS = ['referral', 'promotion', 'goodwill', 'guarantee'] as const;
+export const CREDIT_ORIGINS = ['referral', 'promotion', 'goodwill', 'guarantee', 'refund'] as const;
 export type CreditOrigin = (typeof CREDIT_ORIGINS)[number];
 
 export const CONSENT_PURPOSES = ['geolocation', 'marketing', 'audio_recording', 'biometrics', 'data_transfer'] as const;
@@ -101,7 +108,7 @@ export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];
 export const SEV_STATUSES = ['pending', 'sent', 'acknowledged', 'error'] as const;
 export type SevStatus = (typeof SEV_STATUSES)[number];
 
-export const INCIDENT_TYPES = ['sos', 'complaint', 'accident', 'lost_item', 'no_show_dispute', 'model_guarantee', 'privacy', 'other'] as const;
+export const INCIDENT_TYPES = ['sos', 'complaint', 'accident', 'lost_item', 'no_show_dispute', 'model_guarantee', 'privacy', 'payment_failed', 'other'] as const;
 export type IncidentType = (typeof INCIDENT_TYPES)[number];
 
 export const INCIDENT_SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;

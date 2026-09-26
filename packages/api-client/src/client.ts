@@ -1,6 +1,6 @@
 import { ApiError } from './errors.js';
 import { adminResource, publicResource, staffAuthResource } from './admin-resources.js';
-import { authResource, configResource, driverResource, meResource, placesResource, quotesResource, ridesResource } from './resources.js';
+import { authResource, configResource, driverResource, meResource, paymentsResource, placesResource, quotesResource, ridesResource } from './resources.js';
 import type { HealthReport } from './types.js';
 
 export type Language = 'fr-CA' | 'en';
@@ -120,6 +120,7 @@ export class ApiClient {
   readonly quotes = quotesResource(this);
   readonly rides = ridesResource(this);
   readonly driver = driverResource(this);
+  readonly payments = paymentsResource(this);
   readonly staffAuth = staffAuthResource(this);
   readonly admin = adminResource(this);
   readonly public = publicResource(this);

@@ -8,7 +8,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  ACTIVE_RIDE_STATES, canTransition, clientCancellationFeeCents, finalizeQuote, isTerminalState, mulDivRound, noShowCheck, parseSearchRadii, RIDE_EVENTS, RIDE_TRANSITIONS, subtotalForTotal, transition,
+  ACTIVE_RIDE_STATES, canTransition, clientCancellationFeeCents, finalizeQuote, isCardMethod, isTerminalState, mulDivRound, noShowCheck, parseSearchRadii, RIDE_EVENTS, RIDE_TRANSITIONS, subtotalForTotal, transition,
   waitedSecondsBetween, type AdminAssign, type AdminCreateRide, type CancellationRules, type CreateRide, type Language, type NegotiationSummary, type NotificationChannel, type PaymentMethod,
   type Quote, type RideEvent, type RideMessageView, type RideState, type RideView, type SosInput, type VehicleCategory,
 } from '@neomoov/domain';
@@ -26,6 +26,7 @@ import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { hasStaffRole, type UserActor } from '../auth/actor.js';
 import { AuditService } from '../audit/audit.service.js';
+import { PaymentsService, type RideAuthorization } from '../payments/payments.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { categoryAtLeast, currentVehicleJoin, driverEligible, loadEligibilityRules, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
@@ -83,6 +84,7 @@ export class RidesService {
     private readonly audit: AuditService,
     private readonly outbox: NotificationsOutbox,
     private readonly presence: PresenceService,
+    private readonly payments: PaymentsService,
   ) {}
 
   private get db() {
@@ -165,8 +167,8 @@ export class RidesService {
     return { active, items: views };
   }
 
-  async clientOfUser(userId: string): Promise<{ id: string; rideCount: number } | null> {
-    const [row] = await this.db.select({ id: schema.clients.id, rideCount: schema.clients.rideCount }).from(schema.clients).where(eq(schema.clients.userId, userId)).limit(1);
+  async clientOfUser(userId: string): Promise<{ id: string; rideCount: number; balanceDueCents: number } | null> {
+    const [row] = await this.db.select({ id: schema.clients.id, rideCount: schema.clients.rideCount, balanceDueCents: schema.clients.balanceDueCents }).from(schema.clients).where(eq(schema.clients.userId, userId)).limit(1);
     return row ?? null;
   }
 
@@ -233,9 +235,15 @@ export class RidesService {
     const requested = input.vehicleId
       ? await this.requestedVehicle(input.vehicleId, { category: quote.category, requestedAt: quote.requestedAt, paymentChoice: input.paymentChoice, paymentMethod: input.paymentMethod })
       : undefined;
+    // Paiements (étape 7) : aucune course avec un solde dû ; carte prépayée : immédiate autorisée avant sa création
+    // (un refus empêche la demande), planifiée autorisée à l'attribution sur la carte choisie maintenant.
+    this.payments.assertCanBook(client.balanceDueCents);
+    const card = input.paymentChoice === 'prepaid' && isCardMethod(input.paymentMethod) ? await this.payments.methodForClient(client.id, input.paymentMethodId) : null;
+    const authorization: RideAuthorization | null =
+      card && type === 'immediate' ? await this.payments.authorizeBeforeRide({ userId: actor.userId, method: card, maxConsentedCents: input.maxConsentedCents, idempotencyKey, quoteId: input.quoteId }) : null;
     try {
-      const ride = await this.db.transaction((tx) =>
-        this.insertRide(tx, input.quoteId, {
+      const ride = await this.db.transaction(async (tx) => {
+        const inserted = await this.insertRide(tx, input.quoteId, {
           clientId: client.id,
           createdByUserId: actor.userId,
           type,
@@ -247,16 +255,20 @@ export class RidesService {
           preferences: input.preferences,
           specialRequests: input.specialRequests ?? null,
           idempotencyKey,
-        }, { kind: 'client', userId: actor.userId }, requested),
-      );
+        }, { kind: 'client', userId: actor.userId }, requested);
+        if (card) await this.payments.recordRidePayment(tx, { rideId: inserted.id, clientId: client.id, method: input.paymentMethod, paymentMethodRef: card.stripePaymentMethodId, authorization });
+        return inserted;
+      });
       await this.afterCreation(ride, { kind: 'client', userId: actor.userId });
       return { ride: await this.view(ride), created: true };
     } catch (error) {
       const constraint = constraintOf(error);
       if (constraint === 'rides_idempotency_key_unique') {
+        // Rejeu concurrent : l'autorisation (même clé) est celle de la course déjà créée, elle n'est pas levée.
         const replay = await this.byIdempotencyKey(idempotencyKey, actor.userId);
         if (replay) return { ride: await this.view(replay), created: false };
       }
+      if (authorization) await this.payments.releaseAuthorization(authorization.intentId);
       if (constraint === 'rides_quote_unique') throw AppError.conflict('QUOTE_ALREADY_USED', 'Ce devis a déjà servi à une course');
       throw error;
     }
@@ -699,8 +711,9 @@ export class RidesService {
   }
 
   /** Fin de course : attente facturée dans la limite du prix maximal consenti, trace, compteurs ; paiement et facture aux étapes 7 et 9. */
-  async complete(rideId: string, actor: UserActor, input: { measuredDistanceMeters?: number | undefined; measuredDurationSeconds?: number | undefined }): Promise<RideView> {
+  async complete(rideId: string, actor: UserActor, input: { measuredDistanceMeters?: number | undefined; measuredDurationSeconds?: number | undefined; paidDirect?: { method: 'cash' | 'interac' | 'terminal'; amountCents: number } | undefined }): Promise<RideView> {
     const { ride, driver } = await this.rideOfDriver(rideId, actor);
+    if (input.paidDirect && ride.paymentChoice !== 'pay_driver_after') throw AppError.conflict('NOT_DIRECT_PAYMENT', 'Cette course est payée dans l\'application');
     if (ride.state !== 'in_progress') {
       if (ride.state === 'completed' || ride.state === 'rated') return this.view(ride);
       throw AppError.conflict('RIDE_INVALID_TRANSITION', `Transition impossible depuis l'état ${ride.state}`, { state: ride.state, event: 'ride_ends' });
@@ -739,6 +752,9 @@ export class RidesService {
               .onConflictDoUpdate({ target: [schema.clientDriverLinks.clientId, schema.clientDriverLinks.driverId], set: { ridesCount: sql`${schema.clientDriverLinks.ridesCount} + 1`, lastRideAt: result.at } })
           : Promise.resolve(),
       ]);
+      if (input.paidDirect) {
+        await this.payments.recordDirect({ rideId, driverUserId: actor.userId, method: input.paidDirect.method, amountCents: input.paidDirect.amountCents, expectedCents: finalQuote.totalCents, clientId: ride.clientId });
+      }
       this.events.emit('ride.completed', { ...payload, finalPriceCents: finalQuote.totalCents, waitChargeCents });
       const recipient = await this.recipientOf(result.ride);
       await this.outbox.queue([
@@ -835,8 +851,10 @@ export class RidesService {
     if (ride.state !== 'completed' && ride.state !== 'rated') throw AppError.conflict('RIDE_NOT_COMPLETED', 'La course n\'est pas terminée', { state: ride.state });
     const [existing] = await this.db.select({ id: schema.rideRatings.id }).from(schema.rideRatings).where(and(eq(schema.rideRatings.rideId, rideId), eq(schema.rideRatings.authorKind, 'client'))).limit(1);
     if (existing) return this.view(ride);
+    // Pourboire (5.6) : paiement séparé hors session, débité avant l'enregistrement de la note ; un refus n'enregistre rien.
+    if (input.tipCents && input.tipCents > 0) await this.payments.tip(rideId, actor.userId, input.tipCents);
     await this.db.insert(schema.rideRatings).values({ rideId, authorKind: 'client', authorUserId: actor.userId, score: input.score, tags: input.tags, comment: input.comment ?? null });
-    const result = await this.applyTransition(rideId, 'client_rates', { kind: 'client', userId: actor.userId }, { data: { score: input.score, tipCents: input.tipCents ?? 0 }, set: { tipCents: input.tipCents ?? 0 } });
+    const result = await this.applyTransition(rideId, 'client_rates', { kind: 'client', userId: actor.userId }, { data: { score: input.score, tipCents: input.tipCents ?? 0 } });
     if (ride.driverId) {
       await this.db
         .update(schema.drivers)

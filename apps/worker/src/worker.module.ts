@@ -1,5 +1,5 @@
 import {
-  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PaymentJobsService, PaymentsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
   QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
@@ -83,13 +83,29 @@ export class DispatchWorker implements OnModuleInit {
   }
 }
 
+/**
+ * Paiements (étape 7) : avec Redis, le worker traite la file `payments` (autorisation à l'attribution, capture, frais,
+ * webhooks) et reprend toutes les 5 minutes les webhooks en attente ou en échec. Sans Redis, c'est l'API.
+ */
+@Injectable()
+export class PaymentsWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: PaymentJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register({ sweepEveryMs: 300_000 });
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker],
     };
   }
 }

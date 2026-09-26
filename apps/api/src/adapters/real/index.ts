@@ -1,6 +1,6 @@
 /**
  * Implémentations réelles. À l'étape 1, chacune refuse proprement tout appel (PROVIDER_NOT_CONFIGURED, 501) :
- * elles sont remplacées par les vraies intégrations aux étapes 4 (cartes), 7 (paiements), 13 (textos, courriels,
+ * elles sont remplacées par les vraies intégrations aux étapes 4 (cartes, livrée), 7 (paiements, livrée : Stripe), 13 (textos, courriels,
  * push, WhatsApp, voix, modèles de langage), 9 (SEV) et 3 (stockage), quand les clés sont dans `.env`.
  *
  * Chaque classe déclare explicitement ses méthodes (pas de Proxy) : NestJS sonde `onModuleInit` et consorts sur
@@ -12,6 +12,7 @@ import { AppError } from '../../common/app-error.js';
 import type { AppEnv } from '../../config/env.js';
 import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VoiceProvider, WhatsAppProvider } from '../types.js';
 import { GoogleMapsProvider } from './google-maps.js';
+import { StripePaymentProvider } from './stripe.js';
 
 const notConfigured = (service: string, variable: string) =>
   new AppError('PROVIDER_NOT_CONFIGURED', `Le fournisseur ${service} n'est pas configuré (${variable} absente ou adaptateur réel non livré à cette étape).`, HttpStatus.NOT_IMPLEMENTED);
@@ -36,20 +37,6 @@ abstract class NotDelivered {
   toJSON() {
     return { name: this.name, configured: false };
   }
-}
-
-class RealPaymentProvider extends NotDelivered implements PaymentProvider {
-  createCustomer(): Promise<never> { return this.reject(); }
-  createSetupIntent(): Promise<never> { return this.reject(); }
-  authorize(): Promise<never> { return this.reject(); }
-  capture(): Promise<never> { return this.reject(); }
-  cancel(): Promise<never> { return this.reject(); }
-  refund(): Promise<never> { return this.reject(); }
-  chargeOffSession(): Promise<never> { return this.reject(); }
-  verifyWebhook(): Promise<never> { return this.reject(); }
-  createConnectAccount(): Promise<never> { return this.reject(); }
-  createConnectOnboardingLink(): Promise<never> { return this.reject(); }
-  connectAccountStatus(): Promise<never> { return this.reject(); }
 }
 
 class RealSmsProvider extends NotDelivered implements SmsProvider {
@@ -100,7 +87,10 @@ export const realMaps = (env: AppEnv): MapsProvider => {
   requireKey('cartes (Google Maps Platform)', 'GOOGLE_MAPS_SERVER_KEY', env);
   return new GoogleMapsProvider(env.GOOGLE_MAPS_SERVER_KEY!);
 };
-export const realPayment = (env: AppEnv): PaymentProvider => build(RealPaymentProvider, 'stripe', 'paiements (Stripe)', 'STRIPE_SECRET_KEY', env);
+export const realPayment = (env: AppEnv): PaymentProvider => {
+  requireKey('paiements (Stripe)', 'STRIPE_SECRET_KEY', env);
+  return new StripePaymentProvider(env.STRIPE_SECRET_KEY!, env.STRIPE_WEBHOOK_SECRET);
+};
 export const realSms = (env: AppEnv): SmsProvider =>
   env.TWILIO_ACCOUNT_SID
     ? build(RealSmsProvider, 'twilio', 'textos (Twilio)', 'TWILIO_ACCOUNT_SID', env)

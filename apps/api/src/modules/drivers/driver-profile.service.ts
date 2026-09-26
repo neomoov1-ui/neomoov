@@ -13,11 +13,12 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
-import { PAYMENT_PROVIDER, STORAGE_PROVIDER, type PaymentProvider, type StorageProvider } from '../../adapters/types.js';
+import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { DriverPaymentsService } from '../payments/driver-payments.service.js';
 import { UsersService } from '../users/users.service.js';
 
 export type DriverRow = typeof schema.drivers.$inferSelect;
@@ -55,10 +56,10 @@ export class DriverProfileService {
   constructor(
     @Inject(DB) private readonly database: Database,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
-    @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     @Inject(APP_LOGGER) private readonly logger: Logger,
     private readonly settings: SettingsService,
     private readonly users: UsersService,
+    private readonly driverPayments: DriverPaymentsService,
   ) {}
 
   private get db() {
@@ -347,32 +348,14 @@ export class DriverProfileService {
 
   // Compte de versement (Stripe Connect Express) -------------------------------------------------------------------
 
+  /** Compte de versement (Stripe Connect Express), tenu par le module des paiements. */
   async payoutStatus(userId: string): Promise<{ linked: boolean; onboarded: boolean; provider: string }> {
-    let driver = await this.requireDriver(userId);
-    if (driver.stripeConnectAccountId && !driver.stripeConnectOnboarded) {
-      const status = await this.payments.connectAccountStatus(driver.stripeConnectAccountId);
-      if (status.onboarded) {
-        await this.db.update(schema.drivers).set({ stripeConnectOnboarded: true }).where(eq(schema.drivers.id, driver.id));
-        driver = { ...driver, stripeConnectOnboarded: true };
-      }
-    }
-    return { linked: Boolean(driver.stripeConnectAccountId), onboarded: driver.stripeConnectOnboarded, provider: this.payments.name };
+    const status = await this.driverPayments.status(userId);
+    return { linked: status.linked, onboarded: status.onboarded, provider: status.provider };
   }
 
   /** Lien d'inscription Stripe (webview de l'application) ; le compte Express est créé au premier appel. */
-  async payoutLink(userId: string): Promise<{ url: string; expiresAt: string; simulated: boolean }> {
-    const driver = await this.requireDriver(userId);
-    let accountRef = driver.stripeConnectAccountId;
-    if (!accountRef) {
-      const [user] = await this.db.select({ email: schema.users.email, phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
-      accountRef = (await this.payments.createConnectAccount({ externalId: driver.id, ...(user?.email ? { email: user.email } : {}), ...(user?.phone ? { phone: user.phone } : {}) })).accountRef;
-      await this.db.update(schema.drivers).set({ stripeConnectAccountId: accountRef }).where(eq(schema.drivers.id, driver.id));
-    }
-    const [returnUrl, refreshUrl] = await Promise.all([
-      this.settings.string('payout.return_url', 'https://neomoov.net/chauffeurs/versements/retour'),
-      this.settings.string('payout.refresh_url', 'https://neomoov.net/chauffeurs/versements/reprendre'),
-    ]);
-    const link = await this.payments.createConnectOnboardingLink({ accountRef, returnUrl, refreshUrl });
-    return { url: link.url, expiresAt: link.expiresAt.toISOString(), simulated: this.payments.name === 'mock' };
+  payoutLink(userId: string): Promise<{ url: string; expiresAt: string; simulated: boolean }> {
+    return this.driverPayments.onboardingLink(userId);
   }
 }

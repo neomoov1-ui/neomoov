@@ -27,6 +27,9 @@ export { PrivacyJobsService, anonymizedPhone } from './modules/privacy/privacy-j
 export { DomainEventsModule, DomainEventsService, type DomainEvents } from './common/domain-events.js';
 export { PricingModule } from './modules/pricing/pricing.module.js';
 export { RidesModule } from './modules/rides/rides.module.js';
+export { PaymentsModule } from './modules/payments/payments.module.js';
+export { PaymentsService } from './modules/payments/payments.service.js';
+export { PaymentJobsService } from './modules/payments/payment-jobs.service.js';
 export { RidesService } from './modules/rides/rides.service.js';
 export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';

@@ -33,7 +33,7 @@ describe('schémas des devis et des relevés (prompt 04)', () => {
       tollsCents: 0, promotionCode: null, promotionDiscountCents: 0, alignmentDiscountCents: 0, subtotalCents: 2745, gstCents: 137, qstCents: 274, totalCents: 3156, creditsAppliedCents: 0, amountDueCents: 3156,
       maxConsentedCents: 5156, flatRateCode: null, ignoredOptions: [], estimated: false, eta: { seconds: null, status: 'on_availability' }, requestedAt: null, validUntil: '2026-10-01T14:05:00Z', fingerprint: 'abc',
     };
-    const parsed = quotesResponseSchema.parse({ origin: place('A'), destination: place('B'), stops: [], requestedAt: null, distanceMeters: 8000, durationSeconds: 1080, estimated: false, polyline: null, quotes: [quote] });
+    const parsed = quotesResponseSchema.parse({ origin: place('A'), destination: place('B'), stops: [], requestedAt: null, distanceMeters: 8000, durationSeconds: 1080, estimated: false, polyline: null, quotes: [quote], paymentMethods: ['card_app', 'cash'] });
     expect(parsed.quotes[0]!.totalCents).toBe(3156);
   });
 });

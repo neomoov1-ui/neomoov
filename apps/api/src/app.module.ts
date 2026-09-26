@@ -12,6 +12,7 @@ import { AuditModule } from './modules/audit/audit.module.js';
 import { ClientModule } from './modules/client/client.module.js';
 import { DriversModule } from './modules/drivers/drivers.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
+import { PaymentsModule } from './modules/payments/payments.module.js';
 import { PublicModule } from './modules/public/public.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
@@ -27,7 +28,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule],
     };
   }
 }

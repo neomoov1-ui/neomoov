@@ -10,6 +10,7 @@ import type {
   DriverProfileView, DriverRideView, DriverScoreView, DriverStatementView, DriverStatusInput, DriverStatusView, EarningsQuery, EarningsView, LocationUpdate,
   LoyalClientView, OfferCounterInput, OnboardingView, PackActivate, PackUpdate, PayoutLink, PayoutStatus, RateClient, ScheduledRideView, ShiftStartResult,
   StatementSummary, TrainingResult, TrainingView, VehicleInputBody, VehicleView,
+  BalanceView, ConnectStatus, PaymentMethodView, PaymentView, SetupIntentResponse,
 } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
@@ -103,6 +104,25 @@ export function configResource(t: Transport) {
   return {
     /** Configuration publique : drapeaux distants, préavis, catégories. Lue à chaque démarrage de l'application. */
     get: () => t.get<AppConfig>('/config', { auth: false }),
+  };
+}
+
+/** Paiements (prompt 07) : cartes par SetupIntent Stripe, pourboire, reçu, solde dû ; côté chauffeur, Connect et prélèvement. */
+export function paymentsResource(t: Transport) {
+  return {
+    setupIntent: () => t.post<SetupIntentResponse>('/payment-methods/setup-intent'),
+    /** Après confirmation par la feuille de paiement Stripe : l'API relit la carte chez Stripe. */
+    confirm: (setupIntentId: string, makeDefault = true) => t.post<PaymentMethodView>('/payment-methods/confirm', { setupIntentId, makeDefault }),
+    methods: () => t.get<PaymentMethodView[]>('/payment-methods'),
+    remove: (methodId: string) => t.delete(`/payment-methods/${id(methodId)}`),
+    tip: (rideId: string, amountCents: number) => t.post<PaymentView>(`/rides/${id(rideId)}/tip`, { amountCents }),
+    ridePayments: (rideId: string) => t.get<PaymentView[]>(`/rides/${id(rideId)}/payments`),
+    balance: () => t.get<BalanceView>('/me/balance'),
+    settle: (paymentMethodId?: string) => t.post<{ paidCents: number; balanceDueCents: number }>('/me/settle', paymentMethodId ? { paymentMethodId } : {}),
+    connectLink: () => t.post<PayoutLink>('/driver/connect/onboarding-link'),
+    connectStatus: () => t.get<ConnectStatus>('/driver/connect/status'),
+    debitSetupIntent: () => t.post<SetupIntentResponse>('/driver/payment-method'),
+    confirmDebit: (setupIntentId: string) => t.post<ConnectStatus>('/driver/payment-method/confirm', { setupIntentId }),
   };
 }
 

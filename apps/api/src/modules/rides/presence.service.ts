@@ -45,6 +45,8 @@ type DriverRow = typeof schema.drivers.$inferSelect;
 @Injectable()
 export class PresenceService implements OnModuleInit, OnModuleDestroy {
   private buffer: BufferedLocation[] = [];
+  /** Écriture en cours : chaque `flush` l'attend, les écritures restent dans l'ordre et aucune n'est comptée trop tôt. */
+  private inflight: Promise<unknown> = Promise.resolve();
   private readonly lastByDriver = new Map<string, { position: GeoPoint; at: number }>();
   private flushTimer: NodeJS.Timeout | null = null;
   private sweepTimer: NodeJS.Timeout | null = null;
@@ -242,10 +244,22 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Écriture par lots dans `driver_locations` (partition du jour créée au besoin). */
-  async flush(): Promise<number> {
-    if (!this.buffer.length) return 0;
+  /**
+   * Écrit les positions en attente. Attend d'abord l'écriture déjà partie (battement périodique) : sans cela, un appel
+   * pendant cette écriture trouvait le tampon vide et rendait la main avant qu'elle soit en base (trace de fin de
+   * course incomplète).
+   */
+  flush(): Promise<number> {
+    const previous = this.inflight;
     const batch = this.buffer;
     this.buffer = [];
+    const run = previous.catch(() => undefined).then(() => this.write(batch));
+    this.inflight = run;
+    return run;
+  }
+
+  private async write(batch: BufferedLocation[]): Promise<number> {
+    if (!batch.length) return 0;
     try {
       await this.ensurePartitions();
       await this.db.insert(schema.driverLocations).values(batch.map((b) => ({ driverId: b.driverId, position: b.position, speedMps: b.speedMps, headingDegrees: b.headingDegrees, accuracyMeters: b.accuracyMeters, rideId: b.rideId, recordedAt: b.recordedAt })));

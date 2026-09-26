@@ -20,6 +20,9 @@ export const drivers = pgTable('drivers', {
   stripeConnectOnboarded: boolean('stripe_connect_onboarded').notNull().default(false),
   /** Méthode Stripe enregistrée pour les prélèvements (net négatif). */
   stripeDebitPaymentMethodId: varchar('stripe_debit_payment_method_id', { length: 100 }),
+  /** Carte de prélèvement décrite par Stripe à son enregistrement (marque et 4 derniers chiffres seulement). */
+  stripeDebitCardBrand: varchar('stripe_debit_card_brand', { length: 30 }),
+  stripeDebitCardLast4: varchar('stripe_debit_card_last4', { length: 4 }),
   acceptsCash: boolean('accepts_cash').notNull().default(false),
   acceptsInterac: boolean('accepts_interac').notNull().default(false),
   acceptsTerminal: boolean('accepts_terminal').notNull().default(false),

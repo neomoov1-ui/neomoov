@@ -43,6 +43,8 @@ export const completeRideSchema = z.object({
   /** Distance et durée mesurées par l'application, si la trace serveur est incomplète. */
   measuredDistanceMeters: z.number().int().min(0).optional(),
   measuredDurationSeconds: z.number().int().min(0).optional(),
+  /** Paiement direct reçu (espèces, Interac, terminal) : montant confirmé par le chauffeur (prompt 07). */
+  paidDirect: z.object({ method: z.enum(['cash', 'interac', 'terminal']), amountCents: z.number().int().min(0) }).optional(),
 });
 
 export const driverStatusSchema = z.object({
