@@ -18,6 +18,7 @@ import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { PresenceService } from '../rides/presence.service.js';
+import { liftSuspension } from '../drivers/driver-status.js';
 
 type CheckRow = typeof schema.complianceChecks.$inferSelect;
 type EntityType = CheckRow['entityType'];
@@ -206,13 +207,8 @@ export class ComplianceService {
         .update(schema.sanctions)
         .set({ endsAt: now })
         .where(and(eq(schema.sanctions.driverId, check.entityId), eq(schema.sanctions.type, 'suspension'), like(schema.sanctions.reason, `${COMPLIANCE_SANCTION_PREFIX}%`), or(isNull(schema.sanctions.endsAt), sql`${schema.sanctions.endsAt} > now()`)));
-      // Une autre suspension (décision humaine, solde) reste : le statut ne change alors pas.
-      const [still] = await this.db
-        .select({ id: schema.sanctions.id })
-        .from(schema.sanctions)
-        .where(and(eq(schema.sanctions.driverId, check.entityId), eq(schema.sanctions.type, 'suspension'), or(isNull(schema.sanctions.endsAt), sql`${schema.sanctions.endsAt} > now()`)))
-        .limit(1);
-      if (!still) await this.db.update(schema.drivers).set({ status: 'active' }).where(and(eq(schema.drivers.id, check.entityId), eq(schema.drivers.status, 'suspended')));
+      // Une autre suspension (décision humaine, sécurité, solde) garde le chauffeur suspendu ; une restriction en cours le garde restreint.
+      await liftSuspension(this.db, check.entityId, now);
     }
     await this.notifyDriver(driverId, 'compliance.reactivated', { type: check.type, label: complianceLabel(check.type) });
     this.audit.record({ action: 'compliance.reactivated', entity: check.entityType === 'vehicle' ? 'vehicles' : 'drivers', entityId: check.entityId, after: { type: check.type } });
