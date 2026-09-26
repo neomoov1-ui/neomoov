@@ -56,8 +56,8 @@ export const PACKS = [
 ] as const;
 
 export const PROMOTIONS = [
-  { code: 'BIENVENUE3', name: 'Troisième course offerte (jusqu\'à 10 km)', type: 'nth_ride', value: 3, maxDiscountCents: null, conditions: { maxDistanceMeters: 10_000 }, waivesFees: true, globalLimit: null, perClientLimit: 1, budgetCents: 500_000 },
-  { code: 'MERCI10', name: 'Dixième course offerte', type: 'nth_ride', value: 10, maxDiscountCents: null, conditions: {}, waivesFees: true, globalLimit: null, perClientLimit: 1, budgetCents: 500_000 },
+  { code: 'BIENVENUE3', name: 'Troisième course offerte (jusqu\'à 10 km)', type: 'nth_ride', value: 3, maxDiscountCents: null, conditions: { maxDistanceMeters: 10_000, autoApply: true }, waivesFees: true, globalLimit: null, perClientLimit: 1, budgetCents: 500_000 },
+  { code: 'MERCI10', name: 'Dixième course offerte', type: 'nth_ride', value: 10, maxDiscountCents: null, conditions: { autoApply: true }, waivesFees: true, globalLimit: null, perClientLimit: 1, budgetCents: 500_000 },
   { code: 'LANCEMENT30', name: 'Code de lancement : 30 % sur trois courses', type: 'percent', value: 3000, maxDiscountCents: 1500, conditions: { ridesPerClient: 3, maxClients: 1000 }, waivesFees: false, globalLimit: 3000, perClientLimit: 3, budgetCents: 3_000_000 },
 ] as const;
 
@@ -83,6 +83,14 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'rides.min_lead_seconds', value: 7200, description: 'D32 : toute course est réservée au moins 2 heures avant la prise en charge' },
   { key: 'rides.max_lead_days', value: 30, description: 'Réservation au plus 30 jours à l\'avance' },
   { key: 'payments.installment_min_cents', value: 15_000, description: 'D36 : paiement échelonné proposé à partir de 150 $' },
+  { key: 'referral.client_referrer_cents', value: 1_000, description: 'Parrainage client : crédit du parrain à la première course terminée du filleul (10 $)' },
+  { key: 'referral.client_referred_cents', value: 1_000, description: 'Parrainage client : crédit du filleul à sa première course terminée (10 $)' },
+  { key: 'referral.driver_referrer_cents', value: 5_000, description: 'Parrainage chauffeur : crédit de pack du parrain après les courses du filleul (50 $)' },
+  { key: 'referral.driver_threshold_rides', value: 50, description: 'Parrainage chauffeur : courses terminées du filleul avant la récompense' },
+  { key: 'referral.apply_window_days', value: 30, description: 'Délai après l\'inscription pour saisir un code de parrainage (aucune course terminée)' },
+  { key: 'referral.link_base_url', value: 'https://neomoov.net/parrainage', description: 'Adresse des liens de parrainage (le code est ajouté à la fin)' },
+  { key: 'credits.validity_days', value: 365, description: 'Validité des crédits (12 mois)' },
+  { key: 'packs.rluxe_ev_discovery', value: true, description: 'Découverte offert aux locataires R-LuxeEV (5.7)' },
   { key: 'payments.authorization_margin_ppm', value: 150_000, description: 'Marge ajoutée au prix maximal consenti pour l\'autorisation de carte (15 %)' },
   { key: 'payments.authorization_margin_cap_cents', value: 2_000, description: 'Plafond de cette marge (20 $)' },
   { key: 'payments.authorization_lead_days', value: 6, description: 'Autorisation d\'une réservation faite au plus tôt 6 jours avant la prise en charge (une autorisation Stripe expire après 7 jours)' },

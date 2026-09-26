@@ -71,13 +71,15 @@ export interface QuoteOptions {
   stops?: number;
 }
 
-export type PromotionKind = 'percent' | 'free_ride';
+export type PromotionKind = 'percent' | 'fixed' | 'free_ride';
 
 export interface Promotion {
   code: string;
   kind: PromotionKind;
   /** Pour `percent` : remise en points de base (3000 pour 30 %). */
   percentBps?: number;
+  /** Pour `fixed` : remise en cents (jamais plus que le tarif). */
+  fixedCents?: number;
   /** N-ième course du client (3 pour la troisième). */
   nthRide?: number;
   maxDistanceMeters?: number;

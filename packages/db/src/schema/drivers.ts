@@ -23,6 +23,8 @@ export const drivers = pgTable('drivers', {
   /** Carte de prélèvement décrite par Stripe à son enregistrement (marque et 4 derniers chiffres seulement). */
   stripeDebitCardBrand: varchar('stripe_debit_card_brand', { length: 30 }),
   stripeDebitCardLast4: varchar('stripe_debit_card_last4', { length: 4 }),
+  /** Locataire d'un véhicule R-LuxeEV (programme Flotte) : Découverte offert une fois (5.7). */
+  isRLuxeEvTenant: boolean('is_rluxe_ev_tenant').notNull().default(false),
   acceptsCash: boolean('accepts_cash').notNull().default(false),
   acceptsInterac: boolean('accepts_interac').notNull().default(false),
   acceptsTerminal: boolean('accepts_terminal').notNull().default(false),

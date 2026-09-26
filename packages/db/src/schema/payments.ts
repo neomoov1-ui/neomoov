@@ -65,6 +65,15 @@ export const refunds = pgTable('refunds', {
   check('refunds_mode', sql`${t.mode} IN ('refund', 'credit')`),
 ]);
 
+/** Crédits consommés par une course (5.9) : décrément de `credits.remaining_cents` tracé, une ligne par crédit et par course. */
+export const creditUses = pgTable('credit_uses', {
+  id: id(),
+  creditId: uuid('credit_id').notNull().references(() => credits.id),
+  rideId: uuid('ride_id').notNull().references(() => rides.id),
+  amountCents: cents('amount_cents').notNull(),
+  usedAt: createdAt(),
+}, (t) => [uniqueIndex('credit_uses_credit_ride_unique').on(t.creditId, t.rideId), index('credit_uses_ride_idx').on(t.rideId), check('credit_uses_positive', sql`${t.amountCents} > 0`)]);
+
 /**
  * Événements reçus des fournisseurs de paiement (webhook Stripe) : l'identifiant de l'événement est la clé primaire,
  * un même événement reçu plusieurs fois n'est traité qu'une fois ; un traitement en échec est repris par la file.
