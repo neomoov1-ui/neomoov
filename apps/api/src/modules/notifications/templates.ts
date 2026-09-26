@@ -253,5 +253,8 @@ export function renderNotification(code: string, data: Data, language: string | 
     + `<p style="font-size:12px;color:#555;margin-top:32px">${escapeHtml(footer)}</p></body></html>`;
   const deepLink: Record<string, string> = { template: code };
   for (const key of ['rideId', 'offerId', 'statementId', 'invoiceId']) if (typeof data[key] === 'string') deepLink[key] = data[key] as string;
+  // Écran nommé de l'application chauffeur quand la notification ne porte pas d'identifiant (packs, documents, planifiées).
+  const screen = code.startsWith('pack.') ? 'packs' : code.startsWith('document.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled' : null;
+  if (screen) deepLink['screen'] = screen;
   return { title, body, subject: `${title} · Neomoov`, html, deepLink };
 }
