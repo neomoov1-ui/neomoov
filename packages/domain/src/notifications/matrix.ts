@@ -45,6 +45,8 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('ride.negotiation_fallback', 'client', ['push']),
   rule('ride.removed_no_movement', 'driver', ['push']),
   rule('ride.passenger_tracking', 'passenger', ['sms']),
+  rule('ride.passenger_approaching', 'passenger', ['sms']),
+  rule('ride.passenger_arrived', 'passenger', ['sms']),
   /** Réservation par l'agent vocal : confirmation écrite par texto à l'appelant. */
   rule('ride.voice_confirmation', 'passenger', ['sms']),
   // Réservation planifiée : confirmation, rappel, attribution.

@@ -734,6 +734,7 @@ export class RidesService {
     if (!result.replayed) {
       const recipient = await this.recipientOf(result.ride);
       await this.outbox.queue({ ...recipient, template, data: { rideId } });
+      if (event === 'driver_arrives') await this.notifyPassenger(result.ride, 'ride.passenger_arrived', recipient.language);
     }
     return this.view(result.ride);
   }
@@ -960,19 +961,41 @@ export class RidesService {
    * quand son numéro est celui du client ou de l'invité qui a réservé.
    */
   private async passengerNeedsTracking(ride: RideRow): Promise<boolean> {
-    const phone = ride.passengerPhone;
-    if (!phone || phone === ride.guestPhone) return false;
-    const parties = await this.partiesOf(ride);
-    if (parties.clientUserId) {
-      const [client] = await this.db.select({ phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, parties.clientUserId)).limit(1);
-      if (client?.phone === phone) return false;
-    }
+    const phone = await this.thirdPartyPhone(ride);
+    if (!phone) return false;
     const [sent] = await this.db
       .select({ id: schema.notifications.id })
       .from(schema.notifications)
       .where(and(eq(schema.notifications.template, 'ride.passenger_tracking'), eq(schema.notifications.recipientAddress, phone), sql`${schema.notifications.data}->>'rideId' = ${ride.id}`))
       .limit(1);
     return !sent;
+  }
+
+  /** Numéro du passager quand il n'est ni le client ni l'invité qui a réservé (réservation pour un tiers, parcours 4). */
+  private async thirdPartyPhone(ride: RideRow): Promise<string | null> {
+    const phone = ride.passengerPhone;
+    if (!phone || phone === ride.guestPhone) return null;
+    const parties = await this.partiesOf(ride);
+    if (parties.clientUserId) {
+      const [client] = await this.db.select({ phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, parties.clientUserId)).limit(1);
+      if (client?.phone === phone) return null;
+    }
+    return phone;
+  }
+
+  /**
+   * Passager d'un tiers sans l'application (5.14) : approche et arrivée du chauffeur par texto, avec le véhicule à
+   * reconnaître (modèle, couleur, plaque). Rien si le passager est le client lui-même.
+   */
+  async notifyPassenger(ride: RideRow, template: 'ride.passenger_approaching' | 'ride.passenger_arrived', language?: Language): Promise<boolean> {
+    const phone = await this.thirdPartyPhone(ride);
+    if (!phone) return false;
+    const [vehicle] = ride.vehicleId
+      ? await this.db.select({ make: schema.vehicles.make, model: schema.vehicles.model, colour: schema.vehicles.colour, plate: schema.vehicles.plate }).from(schema.vehicles).where(eq(schema.vehicles.id, ride.vehicleId)).limit(1)
+      : [];
+    const lang = language ?? (await this.partiesOf(ride)).clientLanguage;
+    await this.outbox.queue({ recipientUserId: null, recipientAddress: phone, channel: 'sms', language: lang, template, data: { rideId: ride.id, passengerName: ride.passengerName, vehicle: vehicle ? `${vehicle.make} ${vehicle.model}${vehicle.colour ? ` ${vehicle.colour}` : ''}` : null, plate: vehicle?.plate ?? null } });
+    return true;
   }
 
   /** Jeton du suivi public de la course, créé au premier partage (client, ou système pour le passager d'un tiers). */

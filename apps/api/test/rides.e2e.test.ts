@@ -1,10 +1,11 @@
 import 'reflect-metadata';
 import { schema } from '@neomoov/db';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DomainEventsService } from '../src/common/domain-events.js';
+import { ApproachNotifierService } from '../src/modules/rides/approach-notifier.service.js';
 import { bearer, cleanupTestData, createDriver, createStaffAndLogin, db, loginByOtp, startTestApp, type TestDriver } from './helpers.js';
 
 const PLATEAU = { address: '4500 rue Saint-Denis, Montréal', coordinates: { lat: 45.523, lng: -73.582 } };
@@ -236,6 +237,13 @@ describe('courses : cycle de vie, annulations, messages, SOS (intégration)', ()
     const second = await createDriver(app);
     await assign(admin.tokens, created.body.id, second);
     expect(await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, passengerPhone), eq(schema.notifications.template, 'ride.passenger_tracking')))).toHaveLength(1);
+    // Approche et arrivée : texto au passager, avec le véhicule à reconnaître.
+    await request(server()).post(`/v1/driver/rides/${created.body.id}/depart`).set(bearer(second.tokens)).expect(200);
+    expect(await app.get(ApproachNotifierService).onPosition(created.body.id, { lat: PLATEAU.coordinates.lat + 0.001, lng: PLATEAU.coordinates.lng })).toBe(true);
+    await request(server()).post(`/v1/driver/rides/${created.body.id}/arrive`).set(bearer(second.tokens)).expect(200);
+    const passengerSms = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientAddress, passengerPhone), inArray(schema.notifications.template, ['ride.passenger_approaching', 'ride.passenger_arrived'])));
+    expect(passengerSms.map((n) => n.template).sort()).toEqual(['ride.passenger_approaching', 'ride.passenger_arrived']);
+    expect(passengerSms.every((n) => n.channel === 'sms' && (n.data as { plate: string | null }).plate)).toBe(true);
     // Un passager qui est le client lui-même ne reçoit rien.
     const ownQuote = await quoteFor(client);
     const self = await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', key()).send({ quoteId: ownQuote.id, type: 'scheduled', requestedAt: inThreeHours(), paymentMethod: 'card_app', maxConsentedCents: ownQuote.maxConsentedCents, passenger: { name: 'Moi', phone: client.user.phone } }).expect(201);

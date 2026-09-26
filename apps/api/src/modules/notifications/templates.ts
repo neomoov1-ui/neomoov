@@ -140,6 +140,14 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Réservation Neomoov confirmée', body: (d, l) => `Votre course${ride(d)} est réservée pour le ${when(d['requestedAt'], l)}. Prix fixe : ${money(d['totalCents'], l)}, payé au chauffeur. Merci d'avoir appelé Neomoov.` },
     en: { title: 'Neomoov booking confirmed', body: (d, l) => `Your ride${ride(d)} is booked for ${when(d['requestedAt'], l)}. Fixed price: ${money(d['totalCents'], l)}, paid to the driver. Thank you for calling Neomoov.` },
   },
+  'ride.passenger_approaching': {
+    fr: { title: 'Votre chauffeur approche', body: (d) => `Votre chauffeur Neomoov arrive dans environ 2 minutes${d['vehicle'] ? ` : ${str(d['vehicle'])}, plaque ${str(d['plate'])}` : ''}.` },
+    en: { title: 'Your driver is close', body: (d) => `Your Neomoov driver arrives in about 2 minutes${d['vehicle'] ? `: ${str(d['vehicle'])}, plate ${str(d['plate'])}` : ''}.` },
+  },
+  'ride.passenger_arrived': {
+    fr: { title: 'Votre chauffeur est arrivé', body: (d) => `Votre chauffeur Neomoov vous attend au point de départ${d['vehicle'] ? ` : ${str(d['vehicle'])}, plaque ${str(d['plate'])}` : ''}.` },
+    en: { title: 'Your driver has arrived', body: (d) => `Your Neomoov driver is waiting at the pickup point${d['vehicle'] ? `: ${str(d['vehicle'])}, plate ${str(d['plate'])}` : ''}.` },
+  },
   'ride.passenger_tracking': {
     fr: { title: 'Votre course Neomoov', body: (d) => `${str(d['passengerName']) ? `${str(d['passengerName'])}, une` : 'Une'} course Neomoov a été réservée pour vous. Suivi : ${str(d['trackingUrl'])}` },
     en: { title: 'Your Neomoov ride', body: (d) => `${str(d['passengerName']) ? `${str(d['passengerName'])}, a` : 'A'} Neomoov ride was booked for you. Tracking: ${str(d['trackingUrl'])}` },
