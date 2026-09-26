@@ -69,7 +69,7 @@ export function applyPromotion(promotion: Promotion, input: QuoteInput, fareCent
   if (promotion.categories && !promotion.categories.includes(input.category)) refuse('catégorie non admissible');
   if (promotion.maxDistanceMeters !== undefined && input.distanceMeters > promotion.maxDistanceMeters) refuse('distance trop longue');
   if (promotion.nthRide !== undefined && (input.clientCompletedRides ?? 0) + 1 !== promotion.nthRide) refuse('rang de course différent');
-  const discount = promotion.kind === 'free_ride' ? fareCents : mulDivRound(fareCents, promotion.percentBps ?? 0, 10_000);
+  const discount = promotion.kind === 'free_ride' ? fareCents : promotion.kind === 'fixed' ? Math.min(fareCents, promotion.fixedCents ?? 0) : mulDivRound(fareCents, promotion.percentBps ?? 0, 10_000);
   return promotion.maxDiscountCents !== undefined ? Math.min(discount, promotion.maxDiscountCents) : discount;
 }
 

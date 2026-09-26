@@ -1,5 +1,5 @@
 import {
-  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PaymentJobsService, PaymentsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  AdaptersModule, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, PackLifecycleService, PaymentJobsService, PaymentsModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
   QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, type OnModuleInit } from '@nestjs/common';
@@ -99,13 +99,26 @@ export class PaymentsWorker implements OnModuleInit {
   }
 }
 
+/** Packs (étape 8) : avec Redis, le worker porte la passe horaire (expiration, renouvellement, report). Sans Redis, c'est l'API. */
+@Injectable()
+export class PacksWorker implements OnModuleInit {
+  constructor(
+    private readonly packs: PackLifecycleService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.packs.register({ everyMs: 3_600_000 });
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
       imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker],
     };
   }
 }

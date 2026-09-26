@@ -2,7 +2,7 @@
 import { schema } from '@neomoov/db';
 import {
   autocompleteQuerySchema, autocompleteSuggestionSchema, benchmarkInputSchema, benchmarkViewSchema, placeDetailsQuerySchema, placeDetailsSchema, quoteDetailSchema,
-  quoteRequestSchema, quotesResponseSchema, simulateQuoteSchema, simulateResponseSchema, uuid, VEHICLE_CATEGORIES,
+  promotionValidateSchema, promotionValidationSchema, quoteRequestSchema, quotesResponseSchema, simulateQuoteSchema, simulateResponseSchema, uuid, VEHICLE_CATEGORIES,
 } from '@neomoov/domain';
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -11,10 +11,12 @@ import { z } from 'zod';
 import { MAPS_PROVIDER, type MapsProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
+import { SettingsService } from '../../common/settings.service.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { Audit, Authenticated, CurrentActor, CurrentUser, Owns, ReqCtx, Roles, STAFF_READ_ROLES, STAFF_WRITE_ROLES, type Actor, type RequestContext, type UserActor } from '../auth/actor.js';
 import { PricingRulesService } from './pricing-rules.service.js';
+import { PromotionsService } from './promotions.service.js';
 import { QuotesService } from './quotes.service.js';
 import { ZonesService } from './zones.service.js';
 
@@ -70,6 +72,27 @@ export class QuotesController {
   @ApiErrors(401, 403, 404, 429)
   get(@Param('id', zodPipe(uuid)) id: string) {
     return this.quotes.getQuote(id);
+  }
+}
+
+@ApiTags('quotes')
+@ApiBearerAuth()
+@Authenticated()
+@Controller('promotions')
+export class PromotionsController {
+  constructor(
+    private readonly promotions: PromotionsService,
+    private readonly settings: SettingsService,
+  ) {}
+
+  @Post('validate')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Vérifie un code promo (5.9) : motif stable en cas de refus, remise sur le devis indiqué' })
+  @ZodBody(promotionValidateSchema)
+  @ZodResponse(200, promotionValidationSchema)
+  @ApiErrors(400, 401, 404, 429)
+  async validate(@Body(zodPipe(promotionValidateSchema)) body: z.infer<typeof promotionValidateSchema>, @CurrentUser() user: UserActor) {
+    return this.promotions.validate(body, user.userId, await this.settings.string('service.time_zone', 'America/Toronto'));
   }
 }
 

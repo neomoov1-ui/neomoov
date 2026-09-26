@@ -28,6 +28,7 @@ import { hasStaffRole, type UserActor } from '../auth/actor.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PaymentsService, type RideAuthorization } from '../payments/payments.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
+import { PromotionsService } from '../pricing/promotions.service.js';
 import { categoryAtLeast, currentVehicleJoin, driverEligible, loadEligibilityRules, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
@@ -85,6 +86,7 @@ export class RidesService {
     private readonly outbox: NotificationsOutbox,
     private readonly presence: PresenceService,
     private readonly payments: PaymentsService,
+    private readonly promotions: PromotionsService,
   ) {}
 
   private get db() {
@@ -257,6 +259,8 @@ export class RidesService {
           idempotencyKey,
         }, { kind: 'client', userId: actor.userId }, requested);
         if (card) await this.payments.recordRidePayment(tx, { rideId: inserted.id, clientId: client.id, method: input.paymentMethod, paymentMethodRef: card.stripePaymentMethodId, authorization });
+        // Promotion du devis (5.9) : usage et budget réservés avec la course, dans la même transaction.
+        await this.promotions.reserve(tx, { rideId: inserted.id, clientId: client.id, promotionCode: quote.promoCode, discountCents: quote.promotionDiscountCents });
         return inserted;
       });
       await this.afterCreation(ride, { kind: 'client', userId: actor.userId });

@@ -1,7 +1,7 @@
 /** Section 4.2 : clients. */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, jsonb, pgTable, primaryKey, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, integer, index, jsonb, pgTable, primaryKey, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 import { cents, createdAt, geoPoint, id, tz, updatedAt } from './_helpers.js';
 import { users } from './identity.js';
 
@@ -72,9 +72,21 @@ export const referrals = pgTable('referrals', {
   referrerUserId: uuid('referrer_user_id').notNull().references(() => users.id),
   referredUserId: uuid('referred_user_id').references(() => users.id),
   code: varchar('code', { length: 20 }).notNull(),
+  /** `client` : 10 $ et 10 $ à la première course du filleul ; `driver` : 50 $ de crédit de pack après 50 courses du filleul. */
+  kind: varchar('kind', { length: 10 }).notNull().default('client'),
+  /** Courses terminées du filleul qui déclenchent la récompense. */
+  thresholdRides: integer('threshold_rides').notNull().default(1),
   status: varchar('status', { length: 20 }).notNull().default('pending'),
   referrerCreditCents: cents('referrer_credit_cents').notNull().default(0),
   referredCreditCents: cents('referred_credit_cents').notNull().default(0),
   completedAt: tz('completed_at'),
   createdAt: createdAt(),
-}, (t) => [uniqueIndex('referrals_code_unique').on(t.code), index('referrals_referrer_idx').on(t.referrerUserId), check('referrals_status', sql`${t.status} IN ('pending', 'completed', 'expired')`), check('referrals_credits_positive', sql`${t.referrerCreditCents} >= 0 AND ${t.referredCreditCents} >= 0`)]);
+}, (t) => [
+  // Un filleul n'a qu'un parrain par type ; un même code sert à plusieurs filleuls.
+  uniqueIndex('referrals_referred_kind_unique').on(t.referredUserId, t.kind).where(sql`${t.referredUserId} IS NOT NULL`),
+  index('referrals_referrer_idx').on(t.referrerUserId),
+  index('referrals_code_idx').on(t.code),
+  check('referrals_status', sql`${t.status} IN ('pending', 'completed', 'expired')`),
+  check('referrals_kind', sql`${t.kind} IN ('client', 'driver')`),
+  check('referrals_credits_positive', sql`${t.referrerCreditCents} >= 0 AND ${t.referredCreditCents} >= 0`),
+]);

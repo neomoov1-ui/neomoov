@@ -72,6 +72,8 @@ describe('prérequis du passage en ligne', () => {
     expect(describeBlocker('training_required').fix).toBe('/training');
     expect(describeBlocker('payout_required').fix).toBe('/payout');
     expect(describeBlocker('pack_required').fix).toBe('/packs');
+    expect(describeBlocker('pack_exhausted')).toEqual({ key: 'pack_exhausted', params: {}, fix: '/packs' });
+    expect(describeBlocker('pack_expired').fix).toBe('/packs');
     expect(describeBlocker('geolocation_consent_withdrawn').fix).toBe('/profile');
     expect(describeBlocker('vehicle_missing').fix).toBe('/onboarding/vehicle');
     expect(describeBlocker('balance_suspended').fix).toBeNull();

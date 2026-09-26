@@ -71,6 +71,20 @@
       "when": 1790388623805,
       "tag": "0009_driver-debit-card",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790393528009,
+      "tag": "0010_packs-promotions",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790396554494,
+      "tag": "0011_driver-pack-credit",
+      "breakpoints": true
     }
   ]
 }

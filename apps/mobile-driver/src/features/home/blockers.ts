@@ -28,7 +28,9 @@ export function describeBlocker(reason: string): Blocker {
     case 'payout_required':
       return { key: 'payout_required', params: {}, fix: '/payout' };
     case 'pack_required':
-      return { key: 'pack_required', params: {}, fix: '/packs' };
+    case 'pack_exhausted':
+    case 'pack_expired':
+      return { key: reason, params: {}, fix: '/packs' };
     case 'geolocation_consent_withdrawn':
       return { key: 'geolocation_consent_withdrawn', params: {}, fix: '/profile' };
     case 'balance_suspended':

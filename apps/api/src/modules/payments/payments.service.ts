@@ -190,8 +190,10 @@ export class PaymentsService {
   }
 
   /** Autorisation d'une course immédiate, avant sa création : un refus empêche la demande (message clair). */
-  async authorizeBeforeRide(input: { userId: string; method: MethodRow; maxConsentedCents: number; idempotencyKey: string; quoteId: string }): Promise<RideAuthorization> {
+  async authorizeBeforeRide(input: { userId: string; method: MethodRow; maxConsentedCents: number; idempotencyKey: string; quoteId: string }): Promise<RideAuthorization | null> {
     const amount = authorizationCents(input.maxConsentedCents, await this.authorizationRules());
+    // Course offerte (rien à payer) : aucune autorisation, la ligne de paiement est close à la fin de course.
+    if (amount <= 0) return null;
     const auth = await this.provider.authorize({
       amountCents: amount, currency: 'CAD', customerRef: await this.customerFor(input.userId), paymentMethodRef: input.method.stripePaymentMethodId,
       idempotencyKey: `ride-auth:${input.idempotencyKey}`, metadata: { quote_id: input.quoteId },
@@ -256,6 +258,7 @@ export class PaymentsService {
     const [client] = ride.clientId ? await this.db.select({ userId: schema.clients.userId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
     if (!client) return;
     const amount = authorizationCents(ride.maxConsentedCents, await this.authorizationRules());
+    if (amount <= 0) return;
     const auth = await this.provider.authorize({
       amountCents: amount, currency: 'CAD', customerRef: await this.customerFor(client.userId), paymentMethodRef: payment.stripePaymentMethodId,
       idempotencyKey: `ride-auth:${rideId}`, metadata: { ride_id: rideId, public_number: ride.publicNumber },
@@ -286,9 +289,18 @@ export class PaymentsService {
   /** Fin de course : capture du montant dû (prix final moins les crédits), jamais au-delà de l'autorisation. */
   async onRideCompleted(rideId: string): Promise<void> {
     const payment = await this.ridePayment(rideId);
-    if (!payment || !payment.stripePaymentIntentId || payment.status !== 'authorized') return;
+    if (!payment || (payment.status !== 'authorized' && payment.status !== 'pending')) return;
     const ride = await this.rideOf(rideId);
     const due = Math.max(0, (ride.finalPriceCents ?? ride.quotedTotalCents) - ride.creditsAppliedCents);
+    // Course entièrement couverte (crédits, promotion) : rien à capturer ; l'autorisation éventuelle est levée (Stripe
+    // refuse une capture nulle) et la ligne de paiement est close.
+    if (due === 0) {
+      if (payment.status === 'authorized' && payment.stripePaymentIntentId) return this.cancelRidePayment(payment, 'nothing_due');
+      await this.db.update(schema.payments).set({ status: 'cancelled' }).where(eq(schema.payments.id, payment.id));
+      await this.journal(rideId, 'payment_nothing_due', {});
+      return;
+    }
+    if (!payment.stripePaymentIntentId || payment.status !== 'authorized') return;
     await this.captureWithRetry(payment, due, 'ride_captured');
   }
 
@@ -456,7 +468,7 @@ export class PaymentsService {
     const [client] = ride.clientId ? await this.db.select({ userId: schema.clients.userId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
     if (!client) throw AppError.conflict('NO_CLIENT_ACCOUNT', 'Course sans compte client : crédit impossible');
     const row = await this.db.transaction(async (tx) => {
-      const [credit] = await tx.insert(schema.credits).values({ userId: client.userId, amountCents: input.amountCents, remainingCents: input.amountCents, origin: 'refund', reference: ride.publicNumber, note: input.reason }).returning({ id: schema.credits.id });
+      const [credit] = await tx.insert(schema.credits).values({ userId: client.userId, amountCents: input.amountCents, remainingCents: input.amountCents, origin: 'refund', reference: ride.publicNumber, note: input.reason, expiresAt: new Date(Date.now() + (await this.settings.number('credits.validity_days', 365)) * 86_400_000) }).returning({ id: schema.credits.id });
       const [inserted] = await tx
         .insert(schema.refunds)
         .values({ paymentId: payment.id, mode: 'credit', amountCents: input.amountCents, reason: input.reason, decidedByUserId: actor.userId, decidedByAgentCode: actor.agentCode ?? null, creditId: credit!.id, status: 'succeeded', idempotencyKey: key })

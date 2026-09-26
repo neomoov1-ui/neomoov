@@ -33,4 +33,5 @@ export { PaymentJobsService } from './modules/payments/payment-jobs.service.js';
 export { RidesService } from './modules/rides/rides.service.js';
 export { PresenceService } from './modules/rides/presence.service.js';
 export { ScheduledService } from './modules/rides/scheduled.service.js';
+export { PackLifecycleService } from './modules/rides/pack-lifecycle.service.js';
 export { DispatchService } from './modules/rides/dispatch.service.js';

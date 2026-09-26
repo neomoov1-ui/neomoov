@@ -188,6 +188,8 @@ export const adminDriverDetailSchema = z.object({
     paymentModes: z.object({ cash: z.boolean(), interac: z.boolean(), terminal: z.boolean() }),
     payout: z.object({ linked: z.boolean(), onboarded: z.boolean() }),
     activatedAt: isoDate.nullable(),
+    /** Locataire d'un véhicule R-LuxeEV : pack Découverte offert (5.7). */
+    rLuxeEvTenant: z.boolean(),
   }),
   vehicles: z.array(adminVehicleSchema),
   documents: z.array(adminDocumentSchema),
@@ -197,6 +199,9 @@ export const adminDriverDetailSchema = z.object({
 });
 export type AdminDriverDetail = z.infer<typeof adminDriverDetailSchema>;
 export const driverSuspendSchema = z.object({ reason: z.string().trim().min(3).max(500) });
+/** Programmes du chauffeur modifiables par le personnel. */
+export const driverProgramsSchema = z.object({ rLuxeEvTenant: z.boolean() });
+export type DriverPrograms = z.infer<typeof driverProgramsSchema>;
 
 // Clients ------------------------------------------------------------------------------------------------------------
 

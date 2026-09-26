@@ -59,6 +59,9 @@ export const rides = pgTable('rides', {
   tipCents: cents('tip_cents').notNull().default(0),
   promotionId: uuid('promotion_id'),
   promotionDiscountCents: cents('promotion_discount_cents').notNull().default(0),
+  /** Garantie modèle (prompt 08) : issue de la décision (`validated`, `rejected`) ; tarif du chauffeur maintenu si la faute n'est pas la sienne. */
+  guaranteeOutcome: varchar('guarantee_outcome', { length: 20 }),
+  driverFareProtected: boolean('driver_fare_protected').notNull().default(false),
   creditsAppliedCents: cents('credits_applied_cents').notNull().default(0),
   modelGuaranteeApplied: boolean('model_guarantee_applied').notNull().default(false),
   favoriteDriverRequested: boolean('favorite_driver_requested').notNull().default(false),

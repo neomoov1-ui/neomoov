@@ -108,6 +108,7 @@ export class AdminDriversService {
         paymentModes: { cash: driver.acceptsCash, interac: driver.acceptsInterac, terminal: driver.acceptsTerminal },
         payout: { linked: Boolean(driver.stripeConnectAccountId), onboarded: driver.stripeConnectOnboarded },
         activatedAt: driver.activatedAt?.toISOString() ?? null,
+        rLuxeEvTenant: driver.isRLuxeEvTenant,
       },
       vehicles,
       documents,
@@ -123,6 +124,16 @@ export class AdminDriversService {
     if (driver.status === 'offboarded') throw AppError.conflict('DRIVER_OFFBOARDED', 'Ce chauffeur a quitté le service');
     await this.db.update(schema.drivers).set({ status: 'active', activatedAt: driver.activatedAt ?? new Date() }).where(eq(schema.drivers.id, id));
     this.audit.record({ action: 'admin.driver_activated', entity: 'drivers', entityId: id, before: { status: driver.status }, after: { status: 'active' } });
+    return this.detail(id);
+  }
+
+  /** Programmes (5.7) : locataire R-LuxeEV, qui rend le pack Découverte gratuit (une seule fois par chauffeur). */
+  async setPrograms(id: string, input: { rLuxeEvTenant: boolean }, actor: UserActor) {
+    const driver = await this.requireDriver(id);
+    if (driver.isRLuxeEvTenant !== input.rLuxeEvTenant) {
+      await this.db.update(schema.drivers).set({ isRLuxeEvTenant: input.rLuxeEvTenant }).where(eq(schema.drivers.id, id));
+      this.audit.record({ action: 'admin.driver_programs', entity: 'drivers', entityId: id, before: { rLuxeEvTenant: driver.isRLuxeEvTenant }, after: { rLuxeEvTenant: input.rLuxeEvTenant } });
+    }
     return this.detail(id);
   }
 
