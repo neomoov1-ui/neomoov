@@ -316,10 +316,19 @@ export class PaymentsService {
     await this.captureWithRetry({ ...payment, kind }, feeCents, kind === 'no_show_fee' ? 'no_show_fee_captured' : 'cancellation_fee_captured');
   }
 
-  /** Aucun chauffeur, annulation par le chauffeur : l'autorisation est levée, rien n'est dû. */
+  /**
+   * Aucun chauffeur : l'autorisation est levée, rien n'est dû. Annulation par le chauffeur : la course repart aussitôt en
+   * répartition (5.2) et sera servie par un autre chauffeur ; l'autorisation (ou la ligne en attente d'une planifiée) est
+   * gardée, sinon la course réattribuée se terminerait sans capture (revue 17.B). Si elle finit sans être servie, c'est
+   * l'événement de cette fin (aucun chauffeur, annulation du client) qui lève l'autorisation.
+   */
   async onRideReleased(rideId: string, reason: string): Promise<void> {
     const payment = await this.ridePayment(rideId);
     if (!payment) return;
+    if (reason === 'cancelled_by_driver') {
+      await this.journal(rideId, 'payment_authorization_kept', { reason });
+      return;
+    }
     if (payment.status === 'authorized' && payment.stripePaymentIntentId) return this.cancelRidePayment(payment, reason);
     if (payment.status === 'pending') await this.db.update(schema.payments).set({ status: 'cancelled' }).where(eq(schema.payments.id, payment.id));
   }

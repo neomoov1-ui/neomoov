@@ -283,6 +283,28 @@ describe('paiements : cartes, autorisation, capture, pourboire, direct, rembours
     expect(provider.intents.get(released!.stripePaymentIntentId!)?.status).toBe('canceled');
   });
 
+  it('annulation par le chauffeur : la course réattribuée garde son autorisation et est capturée à la fin', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    // Revue 17.B : l'annulation du chauffeur levait l'autorisation alors que la course repart en répartition ; le
+    // second chauffeur la terminait sans aucune capture (course gratuite).
+    const client = await loginByOtp(app);
+    const first = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const second = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const ride = (await book(client, await quote(client)).expect(201)).body as { id: string };
+    await assigned(admin.tokens, ride.id, first);
+    const authorized = await until(() => ridePayment(ride.id), (p) => p?.status === 'authorized', 'autorisation');
+    await request(server()).post(`/v1/driver/rides/${ride.id}/cancel`).set(bearer(first.tokens)).send({ reason: 'Véhicule en panne' }).expect(200);
+    // Traitement de l'événement d'annulation (normalement par la file), rendu déterministe pour le test.
+    await app.get(PaymentsService).onRideReleased(ride.id, 'cancelled_by_driver');
+    expect((await ridePayment(ride.id))?.status).toBe('authorized');
+    await assigned(admin.tokens, ride.id, second);
+    const done = await drive(second, ride.id);
+    const captured = await until(() => ridePayment(ride.id), (p) => p?.status === 'captured', 'capture après réattribution');
+    expect(captured!.stripePaymentIntentId).toBe(authorized!.stripePaymentIntentId);
+    expect(captured!.capturedCents).toBe(done.finalPriceCents);
+  });
+
   it('paiement direct confirmé par le chauffeur à la fin de course ; un écart ouvre un incident ; refusé pour une course payée par carte', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const client = await loginByOtp(app);
