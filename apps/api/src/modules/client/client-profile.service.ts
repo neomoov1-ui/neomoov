@@ -27,7 +27,7 @@ export class ClientProfileService {
   async config(): Promise<AppConfig> {
     const s = this.settings;
     const [minLeadSeconds, maxLeadDays, freeCancellationSeconds, cancellationFeeCents, floorPpm, windowSeconds, phone, email, privacyPolicyVersion, termsUrl, privacyUrl] = await Promise.all([
-      s.number('rides.min_lead_seconds', 7200), s.number('rides.max_lead_days', 30), s.number('rides.free_cancellation_seconds', 120), s.number('rides.cancellation_fee_cents', 500),
+      s.number('rides.min_lead_seconds', 7200), s.number('rides.max_lead_days', 90), s.number('rides.free_cancellation_seconds', 120), s.number('rides.cancellation_fee_cents', 500),
       s.number('pricing.negotiation_floor_ppm', 700_000), s.number('negotiation.window_seconds', 600), s.get<string | null>('support.phone', null), s.get<string | null>('support.email', null),
       s.string('legal.privacy_policy_version', '1.0'), s.string('legal.terms_url', 'https://neomoov.net/conditions-d-utilisation/'), s.string('legal.privacy_url', 'https://neomoov.net/politique-de-confidentialite/'),
     ]);

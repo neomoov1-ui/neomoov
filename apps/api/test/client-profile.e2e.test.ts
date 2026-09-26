@@ -22,7 +22,7 @@ describe('configuration publique et profil client (intégration)', () => {
     if (!app) return skip('DATABASE_URL absente');
     const res = await request(server()).get('/v1/config').expect(200);
     expect(res.body.features).toMatchObject({ negotiation: true, negotiationAboveMax: false, immediateRides: false, installments: false });
-    expect(res.body.booking).toMatchObject({ minLeadSeconds: 7200, maxLeadDays: 30, freeCancellationSeconds: 120, cancellationFeeCents: 500 });
+    expect(res.body.booking).toMatchObject({ minLeadSeconds: 7200, maxLeadDays: 90, freeCancellationSeconds: 120, cancellationFeeCents: 500 });
     expect(res.body.negotiation.floorPpm).toBe(700_000);
     expect(res.body.tips).toEqual({ suggestedCents: [0, 200, 300, 500], maxCents: 10_000 });
     expect(res.body.legal).toMatchObject({ privacyPolicyVersion: expect.any(String), termsUrl: expect.stringContaining('neomoov.net'), privacyUrl: expect.stringContaining('neomoov.net') });

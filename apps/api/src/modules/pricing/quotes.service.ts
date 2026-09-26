@@ -266,7 +266,7 @@ export class QuotesService {
 
   /** Préavis (D32) : au moins `rides.min_lead_seconds` avant la prise en charge, au plus `rides.max_lead_days` ; sans heure, course immédiate seulement si le drapeau l'autorise. */
   private async resolvePickup(requestedAt: string | undefined, now: Date, ignoreLeadTime: boolean): Promise<Date> {
-    const [minLead, maxLeadDays] = await Promise.all([this.settings.number('rides.min_lead_seconds', 7200), this.settings.number('rides.max_lead_days', 30)]);
+    const [minLead, maxLeadDays] = await Promise.all([this.settings.number('rides.min_lead_seconds', 7200), this.settings.number('rides.max_lead_days', 90)]);
     const tooShort = () =>
       new AppError('LEAD_TIME_TOO_SHORT', `Réservez au moins ${describeLead(minLead)} à l'avance`, 400, { minLeadSeconds: minLead, earliestPickupAt: new Date(now.getTime() + minLead * 1000).toISOString() });
     if (!requestedAt) {
