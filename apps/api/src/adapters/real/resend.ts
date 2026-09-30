@@ -23,7 +23,7 @@ export class ResendEmailProvider implements EmailProvider {
     return { name: this.name, configured: true };
   }
 
-  async send(input: { to: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }> {
+  async send(input: { to: string; from?: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }> {
     const res = await this.fetchImpl(API, {
       method: 'POST',
       headers: {
@@ -31,7 +31,8 @@ export class ResendEmailProvider implements EmailProvider {
         ...(input.idempotencyKey ? { 'idempotency-key': input.idempotencyKey } : {}),
       },
       body: JSON.stringify({
-        from: this.from, to: [input.to], subject: input.subject, html: input.html, ...(input.text ? { text: input.text } : {}),
+        // Expéditeur de la marque (étape 22) : son domaine doit être authentifié chez Resend, sinon `EMAIL_FROM`.
+        from: input.from ?? this.from, to: [input.to], subject: input.subject, html: input.html, ...(input.text ? { text: input.text } : {}),
         ...(input.attachments?.length ? { attachments: input.attachments.map((a) => ({ filename: a.filename, content: a.content.toString('base64'), content_type: a.contentType })) } : {}),
       }),
     });

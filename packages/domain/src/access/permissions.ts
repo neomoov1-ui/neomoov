@@ -105,6 +105,9 @@ export const PERMISSIONS = {
   'members.manage': p('organization', 'Changer le rôle d\'un membre, le suspendre ou le retirer', { sensitive: true }),
   'roles.read': p('organization', 'Rôles et catalogue des permissions'),
   'roles.manage': p('organization', 'Créer et modifier des rôles personnalisés', { sensitive: true }),
+  'brand.edit': p('organization', 'Marque de l\'organisation : nom, logo, couleurs, textes, assistance, expéditeur, conditions'),
+  'domains.manage': p('organization', 'Domaines web de l\'organisation (réservation, My Hub)'),
+  'domains.verify': p('organization', 'Marquer un domaine vérifié après contrôle du DNS', { platformOnly: true }),
   'driver.app': p('self', 'Espace du chauffeur (ses courses, son dossier, ses revenus)'),
 } as const satisfies Record<string, PermissionDefinition>;
 

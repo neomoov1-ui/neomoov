@@ -85,12 +85,15 @@ export const organizations = pgTable('organizations', {
   gstNumber: varchar('gst_number', { length: 30 }),
   qstNumber: varchar('qst_number', { length: 30 }),
   settings: jsonb('settings').notNull().default(sql`'{}'::jsonb`),
+  /** Code de rattachement (étape 22) : 8 caractères sans ambiguïté, généré par la base (`generate_join_code()`), unique. */
+  joinCode: varchar('join_code', { length: 8 }).notNull().default(sql`generate_join_code()`),
   active: boolean('active').notNull().default(true),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [
   uniqueIndex('organizations_code_unique').on(t.code),
   uniqueIndex('organizations_path_unique').on(t.path),
+  uniqueIndex('organizations_join_code_unique').on(t.joinCode),
   index('organizations_parent_idx').on(t.parentId),
   check('organizations_type', sql`${t.type} IN ('platform', 'fleet', 'taxi_company', 'vtc_company', 'business', 'establishment', 'solo', 'sub_org', 'white_label')`),
   check('organizations_status', sql`${t.status} IN ('trial', 'active', 'read_only', 'suspended', 'closed')`),

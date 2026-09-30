@@ -5,7 +5,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { Authenticated, CurrentUser, NoAudit, Public, type UserActor } from '../auth/actor.js';
+import { Authenticated, CurrentActor, CurrentUser, NoAudit, Public, type Actor, type UserActor } from '../auth/actor.js';
 import { ClientProfileService } from './client-profile.service.js';
 
 @ApiTags('config')
@@ -15,11 +15,11 @@ export class ConfigController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Configuration publique des applications : drapeaux distants (négociation…), préavis, annulation, catégories, assistance' })
+  @ApiOperation({ summary: 'Configuration publique des applications : drapeaux distants (négociation…), préavis, annulation, catégories, assistance ; avec un jeton, la marque de l\'organisation de l\'appelant et ses organisations (étape 22)' })
   @ZodResponse(200, appConfigSchema)
   @ApiErrors(429)
-  get() {
-    return this.profile.config();
+  get(@CurrentActor() actor: Actor | undefined) {
+    return this.profile.config(actor?.kind === 'user' ? actor.userId : null);
   }
 }
 

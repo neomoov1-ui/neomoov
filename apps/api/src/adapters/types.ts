@@ -130,7 +130,8 @@ export interface SmsProvider {
 
 export interface EmailProvider {
   readonly name: string;
-  send(input: { to: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }>;
+  /** `from` (« Nom <adresse> ») : expéditeur de la marque d'une organisation (étape 22) ; sinon `EMAIL_FROM`. */
+  send(input: { to: string; from?: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }>;
 }
 
 export interface PushTicket {
