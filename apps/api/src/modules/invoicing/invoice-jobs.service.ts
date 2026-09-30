@@ -14,6 +14,7 @@ import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { QueueService } from '../../infra/queue.module.js';
+import { OrgScopeService } from '../organizations/org-scope.service.js';
 import { InvoicingService, type IssueResult } from './invoicing.service.js';
 import { SevService, type SevOutcome } from './sev.service.js';
 
@@ -43,6 +44,7 @@ export class InvoiceJobsService implements OnModuleInit {
     private readonly sev: SevService,
     private readonly queues: QueueService,
     private readonly events: DomainEventsService,
+    private readonly scope: OrgScopeService,
     @Inject(APP_LOGGER) private readonly logger: Logger,
     @Inject(APP_ENV) private readonly env: AppEnv,
   ) {}
@@ -73,20 +75,27 @@ export class InvoiceJobsService implements OnModuleInit {
     this.queues.add('invoicing', job.kind, job, { jobId }).catch((error: unknown) => this.logger.error({ err: error, job }, 'Tâche de facturation non mise en file'));
   }
 
+  /** Chaque tâche d'une course d'organisation cliente s'exécute sous le contexte de cette organisation (étape 20). */
   async run(job: InvoicingJob | { at?: string }): Promise<void> {
     const task = 'kind' in job ? job : ({ kind: 'sweep' } as const);
     switch (task.kind) {
       case 'ride':
-        return this.afterIssue(await this.invoicing.issueForRide(task.rideId));
+        return this.scope.runForOrganization(await this.invoicing.organizationOfRide(task.rideId), async () => this.afterIssue(await this.invoicing.issueForRide(task.rideId)));
       case 'refund':
         // La facture de la course d'abord (émise, transmise et rendue si elle manquait), puis la note de crédit.
-        await this.afterIssue(await this.invoicing.issueForRide(task.rideId));
-        return this.afterIssue(await this.invoicing.issueCreditNote(task.refundId));
+        return this.scope.runForOrganization(await this.invoicing.organizationOfRide(task.rideId), async () => {
+          await this.afterIssue(await this.invoicing.issueForRide(task.rideId));
+          await this.afterIssue(await this.invoicing.issueCreditNote(task.refundId));
+        });
       case 'transmit':
-        await this.transmitAndRender(task.invoiceId);
+        await this.scope.runForOrganization(await this.invoicing.organizationOfInvoice(task.invoiceId), async () => {
+          await this.transmitAndRender(task.invoiceId);
+        });
         return;
       case 'render':
-        await this.invoicing.renderPdf(task.invoiceId);
+        await this.scope.runForOrganization(await this.invoicing.organizationOfInvoice(task.invoiceId), async () => {
+          await this.invoicing.renderPdf(task.invoiceId);
+        });
         return;
       case 'sweep':
         await this.sweep();
@@ -141,6 +150,15 @@ export class InvoiceJobsService implements OnModuleInit {
    * traité à part : une facture en échec est journalisée et n'arrête pas les autres.
    */
   async sweep(now = new Date()): Promise<InvoicingSweepReport> {
+    // Étape 20 : un lot par organisation cliente qui a des chauffeurs, sous son contexte, puis la plateforme.
+    const reports = await this.scope.runGrouped(await this.scope.clientOrganizationsOfDrivers(), () => this.sweepHere(now), 'facturation');
+    return reports.reduce<InvoicingSweepReport>(
+      (sum, r) => ({ transmitted: sum.transmitted + r.transmitted, issued: sum.issued + r.issued, credited: sum.credited + r.credited, rendered: sum.rendered + r.rendered }),
+      { transmitted: 0, issued: 0, credited: 0, rendered: 0 },
+    );
+  }
+
+  private async sweepHere(now: Date): Promise<InvoicingSweepReport> {
     const transmitted = await this.sev.retryDue(now);
     for (const id of transmitted) await this.safely('render', id, () => this.invoicing.renderPdf(id));
     let issued = 0;

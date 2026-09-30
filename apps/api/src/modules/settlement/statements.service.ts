@@ -15,6 +15,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
+import { organizationIdFor } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -64,6 +65,8 @@ interface DriverInfo {
   userId: string;
   publicNumber: string;
   name: string | null;
+  /** Organisation du chauffeur (étape 20) : le relevé lui appartient. */
+  organizationId: string | null;
 }
 
 function shift(date: string, days: number): string {
@@ -177,12 +180,12 @@ export class StatementsService {
 
   private async driverInfo(driverId: string): Promise<DriverInfo | null> {
     const [row] = await this.db
-      .select({ id: schema.drivers.id, userId: schema.drivers.userId, publicNumber: schema.drivers.publicNumber, first: schema.users.firstName, last: schema.users.lastName })
+      .select({ id: schema.drivers.id, userId: schema.drivers.userId, publicNumber: schema.drivers.publicNumber, organizationId: schema.drivers.organizationId, first: schema.users.firstName, last: schema.users.lastName })
       .from(schema.drivers)
       .innerJoin(schema.users, eq(schema.users.id, schema.drivers.userId))
       .where(eq(schema.drivers.id, driverId))
       .limit(1);
-    return row ? { id: row.id, userId: row.userId, publicNumber: row.publicNumber, name: [row.first, row.last].filter(Boolean).join(' ') || null } : null;
+    return row ? { id: row.id, userId: row.userId, publicNumber: row.publicNumber, organizationId: row.organizationId, name: [row.first, row.last].filter(Boolean).join(' ') || null } : null;
   }
 
   /**
@@ -311,7 +314,7 @@ export class StatementsService {
       await tx.delete(schema.statementLines).where(eq(schema.statementLines.statementId, existing.id));
       [row] = (await tx.update(schema.weeklyStatements).set(totals).where(eq(schema.weeklyStatements.id, existing.id)).returning()) as [StatementRow];
     } else {
-      [row] = (await tx.insert(schema.weeklyStatements).values({ driverId: driver.id, periodStart: period.startDate, periodEnd: period.endDate, status: 'draft', ...totals }).returning()) as [StatementRow];
+      [row] = (await tx.insert(schema.weeklyStatements).values({ driverId: driver.id, organizationId: organizationIdFor(driver.organizationId), periodStart: period.startDate, periodEnd: period.endDate, status: 'draft', ...totals }).returning()) as [StatementRow];
     }
     if (statement.lines.length) {
       await tx.insert(schema.statementLines).values(

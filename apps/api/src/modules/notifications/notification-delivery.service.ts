@@ -244,6 +244,21 @@ export class NotificationDeliveryService {
     return updated;
   }
 
+  /** Organisation au nom de laquelle un avis part (lot de la tâche d'envoi, étape 20) ; `null` : plateforme ou avis inconnu. */
+  async organizationOf(id: string): Promise<string | null> {
+    const [row] = await this.db.select({ organizationId: schema.notifications.organizationId }).from(schema.notifications).where(eq(schema.notifications.id, id)).limit(1);
+    return row?.organizationId ?? null;
+  }
+
+  /** Organisations des avis encore à envoyer (mêmes bornes que la reprise) : un lot par organisation cliente. */
+  async pendingOrganizations(now = new Date()): Promise<Array<string | null>> {
+    const rows = await this.db
+      .selectDistinct({ organizationId: schema.notifications.organizationId })
+      .from(schema.notifications)
+      .where(and(isNull(schema.notifications.sentAt), isNull(schema.notifications.error), sql`${schema.notifications.createdAt} > ${new Date(now.getTime() - 2 * 86_400_000).toISOString()}::timestamptz`));
+    return rows.map((r) => r.organizationId);
+  }
+
   /** Statut de livraison d'un texto (webhook Twilio), y compris un texto de secours d'un push. */
   async onSmsStatus(status: SmsDeliveryStatus, now = new Date()): Promise<boolean> {
     if (status.status === 'pending') return false;

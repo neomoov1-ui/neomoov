@@ -13,6 +13,12 @@ export interface OrgScopeContext {
   path: string;
   /** Exécuteur Drizzle de la transaction restreinte (typé par le fournisseur de base). */
   tx: unknown;
+  /**
+   * Vrai une fois la transaction restreinte terminée : le travail asynchrone qui lui survit (abonnés aux événements de
+   * domaine, files en mémoire) retombe alors sur le pool de la plateforme au lieu d'un exécuteur mort, mais garde
+   * l'organisation du contexte pour étiqueter ce qu'il écrit.
+   */
+  ended: boolean;
 }
 
 export const orgScopeStorage = new AsyncLocalStorage<OrgScopeContext>();
@@ -20,6 +26,29 @@ export const orgScopeStorage = new AsyncLocalStorage<OrgScopeContext>();
 /** Contexte d'organisation de la requête ou de la tâche en cours, ou `null` pour la plateforme. */
 export function currentOrgScope(): OrgScopeContext | null {
   return orgScopeStorage.getStore() ?? null;
+}
+
+/**
+ * Organisation à poser sur une ligne créée maintenant : celle du contexte (requête ou tâche d'une organisation cliente),
+ * sinon `fallback` (organisation de la course ou du chauffeur concerné, quand le service la connaît), sinon la plateforme.
+ * Les défauts et déclencheurs de la migration 0022 font la même dérivation côté base pour les insertions qui ne passent pas ici.
+ */
+export function organizationIdFor(fallback?: string | null): string | null {
+  return currentOrgScope()?.organizationId ?? fallback ?? null;
+}
+
+/**
+ * Exécute `fn` hors de tout contexte d'organisation : pour les données réservées à la plateforme (personnel de l'exploitation,
+ * comptes Stripe des personnes) qu'une transaction restreinte ne voit pas ou ne peut pas modifier. Les requêtes lancées dans
+ * `fn` passent par le pool de la plateforme, hors de la transaction en cours.
+ */
+export function withoutOrgScope<T>(fn: () => T): T {
+  return orgScopeStorage.exit(fn);
+}
+
+/** Préfixe des clés de stockage des fichiers écrits sous le contexte d'une organisation cliente (`org/<identifiant>/`) ; vide pour la plateforme. */
+export function storageKeyPrefix(organizationId?: string | null): string {
+  return organizationId ? `org/${organizationId}/` : '';
 }
 
 /** Identifiant d'organisation porté par un chemin matérialisé (`/a/b/` donne `b`). */

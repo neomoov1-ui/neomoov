@@ -17,6 +17,7 @@ import { STORAGE_PROVIDER, VIRUS_SCANNER, type StorageProvider, type VirusScanne
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { ReferralsService } from '../credits/referrals.service.js';
@@ -320,7 +321,8 @@ export class DriverProfileService {
       const [vehicle] = await this.db.select({ id: schema.vehicles.id }).from(schema.vehicles).where(and(eq(schema.vehicles.id, fields.vehicleId), eq(schema.vehicles.driverId, driver.id))).limit(1);
       if (!vehicle) throw AppError.notFound('VEHICLE_NOT_FOUND', 'Véhicule introuvable');
     }
-    const key = `drivers/${driver.id}/${fields.type}/${randomUUID()}.${sniffed.extension}`;
+    // Étape 20 : sous le contexte d'une organisation cliente, ses documents sont rangés sous son préfixe de stockage.
+    const key = `${storageKeyPrefix(currentOrgScope()?.organizationId)}drivers/${driver.id}/${fields.type}/${randomUUID()}.${sniffed.extension}`;
     // Étape 14 : analyse antivirus avant tout stockage ; un fichier infecté est refusé et l'essai journalisé.
     const scan = await this.scanner.scan({ body: file.buffer, ...(file.originalname ? { filename: file.originalname } : {}) });
     if (!scan.clean) {

@@ -19,6 +19,7 @@ import { PAYMENT_PROVIDER, type PaymentAuthorization, type PaymentProvider, type
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { organizationIdFor, withoutOrgScope } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -67,8 +68,10 @@ export class PaymentsService {
     if (!user) throw AppError.notFound('USER_NOT_FOUND', 'Utilisateur introuvable');
     if (user.customer) return user.customer;
     const { customerRef } = await this.provider.createCustomer({ externalId: userId, ...(user.email ? { email: user.email } : {}), phone: user.phone });
-    await this.db.update(schema.users).set({ stripeCustomerId: customerRef }).where(and(eq(schema.users.id, userId), isNull(schema.users.stripeCustomerId)));
-    const [stored] = await this.db.select({ customer: schema.users.stripeCustomerId }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+    // Étape 20 : le client Stripe appartient à la plateforme (compte Stripe de Neomoov) ; une transaction restreinte ne peut pas
+    // modifier `users`, la référence est donc gardée hors contexte, sinon elle serait recréée à chaque besoin.
+    await withoutOrgScope(() => this.db.update(schema.users).set({ stripeCustomerId: customerRef }).where(and(eq(schema.users.id, userId), isNull(schema.users.stripeCustomerId))));
+    const [stored] = await withoutOrgScope(() => this.db.select({ customer: schema.users.stripeCustomerId }).from(schema.users).where(eq(schema.users.id, userId)).limit(1));
     return stored?.customer ?? customerRef;
   }
 
@@ -423,7 +426,8 @@ export class PaymentsService {
   }
 
   private async openIncident(rideId: string | null, description: string, severity: 'medium' | 'high'): Promise<void> {
-    const [incident] = await this.db.insert(schema.incidents).values({ rideId, type: 'payment_failed', severity, reportedByKind: 'system', description }).returning({ id: schema.incidents.id });
+    // Étape 20 : organisation du contexte ; hors contexte, la base la dérive de la course (déclencheur de 0022).
+    const [incident] = await this.db.insert(schema.incidents).values({ rideId, organizationId: organizationIdFor(), type: 'payment_failed', severity, reportedByKind: 'system', description }).returning({ id: schema.incidents.id });
     if (rideId) this.events.emit('ride.incident', { rideId, incidentId: incident!.id, type: 'payment_failed', severity, reportedByUserId: null });
   }
 
@@ -534,7 +538,7 @@ export class PaymentsService {
       const [total] = await tx.select({ total: sql<number>`COALESCE(sum(${schema.refunds.amountCents}), 0)::int` }).from(schema.refunds).where(and(eq(schema.refunds.paymentId, payment.id), ne(schema.refunds.status, 'failed')));
       const ceiling = Math.max(0, (ride.finalPriceCents ?? ride.quotedTotalCents) - Number(total?.total ?? 0));
       if (input.amountCents > ceiling) throw new AppError('REFUND_TOO_HIGH', 'Crédit supérieur au prix de la course', 400, { refundableCents: ceiling });
-      const [credit] = await tx.insert(schema.credits).values({ userId: client.userId, amountCents: input.amountCents, remainingCents: input.amountCents, origin: 'refund', reference: ride.publicNumber, note: input.reason, expiresAt: new Date(Date.now() + validityDays * 86_400_000) }).returning({ id: schema.credits.id });
+      const [credit] = await tx.insert(schema.credits).values({ userId: client.userId, organizationId: organizationIdFor(ride.organizationId), amountCents: input.amountCents, remainingCents: input.amountCents, origin: 'refund', reference: ride.publicNumber, note: input.reason, expiresAt: new Date(Date.now() + validityDays * 86_400_000) }).returning({ id: schema.credits.id });
       const [inserted] = await tx
         .insert(schema.refunds)
         .values({ paymentId: payment.id, mode: 'credit', amountCents: input.amountCents, reason: input.reason, decidedByUserId: actor.userId, decidedByAgentCode: actor.agentCode ?? null, creditId: credit!.id, status: 'succeeded', idempotencyKey: key })

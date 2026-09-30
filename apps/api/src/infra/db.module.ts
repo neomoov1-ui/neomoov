@@ -16,7 +16,9 @@ export type Database = ReturnType<typeof createDatabase>;
 export function scopedDatabase(real: Database): Database {
   return {
     get db() {
-      return (currentOrgScope()?.tx as Database['db'] | undefined) ?? real.db;
+      // Contexte terminé (transaction validée ou annulée) : le travail asynchrone qui lui survit passe par le pool.
+      const scope = currentOrgScope();
+      return scope && !scope.ended ? (scope.tx as Database['db']) : real.db;
     },
     client: real.client,
     close: real.close,

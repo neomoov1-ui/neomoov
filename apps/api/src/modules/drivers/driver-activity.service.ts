@@ -514,7 +514,7 @@ export class DriverActivityService {
     const mapping = INCIDENT_MAPPING[input.kind] ?? INCIDENT_MAPPING['other']!;
     const [incident] = await this.db
       .insert(schema.incidents)
-      .values({ rideId: ride.id, type: mapping.type, severity: mapping.severity, reportedByUserId: userId, reportedByKind: 'driver', description: `[${input.kind}] ${input.description}` })
+      .values({ rideId: ride.id, organizationId: organizationIdFor(ride.organizationId), type: mapping.type, severity: mapping.severity, reportedByUserId: userId, reportedByKind: 'driver', description: `[${input.kind}] ${input.description}` })
       .returning({ id: schema.incidents.id });
     await this.rides.mark(ride.id, 'incident_reported', { kind: 'driver', userId }, { incidentId: incident!.id, kind: input.kind });
     this.events.emit('ride.incident', { rideId: ride.id, incidentId: incident!.id, type: mapping.type, severity: mapping.severity, reportedByUserId: userId });

@@ -21,6 +21,8 @@ export interface RideEventPayload {
   clientUserId: string | null;
   driverId: string | null;
   driverUserId: string | null;
+  /** Organisation de la course (étape 20) ; absent pour les événements construits avant cette étape. */
+  organizationId?: string | null;
   fromState: string | null;
   toState: string;
   event: string;

@@ -5,6 +5,10 @@
  * soldes impayés (suspension ou réactivation). Chaque étape est rejouable : un relevé émis n'est jamais regénéré, un
  * relevé réglé jamais réglé deux fois. Les PDF sont produits ici, jamais dans une requête HTTP. Avec Redis, c'est le
  * worker qui porte la file ; sans Redis, l'API (hors tests, qui appellent les passes directement).
+ *
+ * Étape 20 : la passe se fait par lots, un par organisation cliente qui a des chauffeurs, sous son contexte (ses relevés
+ * seulement, lignes créées à son nom), puis la plateforme sans contexte, qui traite tout ce qui reste comme avant. Le PDF
+ * d'un relevé est produit sous le contexte de son organisation (clé de stockage préfixée).
  */
 import { schema } from '@neomoov/db';
 import { localDate, periodForGeneration } from '@neomoov/domain';
@@ -14,10 +18,12 @@ import type { Logger } from 'pino';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { QueueService } from '../../infra/queue.module.js';
+import { OrgScopeService } from '../organizations/org-scope.service.js';
 import { SettlementPayoutsService } from './settlement-payouts.service.js';
 import { renderStatementPdf } from './statement-pdf.js';
 import { StatementsService } from './statements.service.js';
@@ -46,6 +52,7 @@ export class SettlementJobsService implements OnModuleInit {
     private readonly payouts: SettlementPayoutsService,
     private readonly queues: QueueService,
     private readonly events: DomainEventsService,
+    private readonly scope: OrgScopeService,
   ) {}
 
   onModuleInit() {
@@ -74,8 +81,17 @@ export class SettlementJobsService implements OnModuleInit {
     await this.queues.add('settlements', 'pdf', { kind: 'pdf', statementId } satisfies SettlementJob, { jobId: `pdf:${statementId}` });
   }
 
-  /** Passe du quart d'heure. `now` permet aux tests de simuler l'horloge (vendredi 6 h, lundi, délai de 7 jours). */
+  /** Passe du quart d'heure, par lots d'organisation. `now` permet aux tests de simuler l'horloge (vendredi 6 h, lundi, délai de 7 jours). */
   async tick(now: Date): Promise<SettlementTickReport> {
+    const reports = await this.scope.runGrouped(await this.scope.clientOrganizationsOfDrivers(), () => this.pass(now), 'règlement hebdomadaire');
+    return reports.reduce<SettlementTickReport>(
+      (sum, r) => ({ generated: sum.generated + r.generated, issued: sum.issued + r.issued, settled: sum.settled + r.settled, retried: sum.retried + r.retried, reviewed: sum.reviewed + r.reviewed }),
+      { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 },
+    );
+  }
+
+  /** Une passe complète (génération, émission, règlement, reprise, revue des soldes) sur ce que le contexte courant voit. */
+  private async pass(now: Date): Promise<SettlementTickReport> {
     const report: SettlementTickReport = { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 };
     const timeZone = await this.statements.timeZone();
     const [generationDay, generationHour, retryWeekday] = await Promise.all([
@@ -98,12 +114,19 @@ export class SettlementJobsService implements OnModuleInit {
     return report;
   }
 
+  /** PDF d'un relevé, produit sous le contexte de son organisation (plateforme : sans contexte). */
   private async renderPdf(statementId: string): Promise<void> {
+    const [row] = await this.database.db.select({ organizationId: schema.weeklyStatements.organizationId }).from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, statementId)).limit(1);
+    if (!row) return;
+    await this.scope.runForOrganization(row.organizationId, () => this.renderPdfHere(statementId));
+  }
+
+  private async renderPdfHere(statementId: string): Promise<void> {
     const detail = await this.statements.detail(statementId);
     if (detail.status === 'draft') return;
     const [timeZone, companyName] = await Promise.all([this.statements.timeZone(), this.settings.string('company.legal_name', 'Neomoov')]);
     const pdf = await renderStatementPdf(detail, { timeZone, companyName });
-    const key = `statements/${detail.driverId}/${detail.periodStart}-${statementId}.pdf`;
+    const key = `${storageKeyPrefix(currentOrgScope()?.organizationId)}statements/${detail.driverId}/${detail.periodStart}-${statementId}.pdf`;
     await this.storage.putObject({ key, body: pdf, contentType: 'application/pdf' });
     await this.database.db.update(schema.weeklyStatements).set({ pdfKey: key }).where(eq(schema.weeklyStatements.id, statementId));
   }
