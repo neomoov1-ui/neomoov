@@ -86,7 +86,7 @@ export function listRoutePolicies(app: INestApplication, globalPrefix = 'v1'): R
   return policies.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
 }
 
-const describe = (routes: RoutePolicy[]) => routes.map((p) => `${p.method} ${p.path} (${p.controller}.${p.handler})`).join(', ');
+const routeList = (routes: RoutePolicy[]) => routes.map((p) => `${p.method} ${p.path} (${p.controller}.${p.handler})`).join(', ');
 
 /**
  * Refus par défaut : une route sans `@Public`, `@Authenticated`, `@Can`, `@Roles` ni `@Scopes` empêche le démarrage ; de
@@ -95,9 +95,9 @@ const describe = (routes: RoutePolicy[]) => routes.map((p) => `${p.method} ${p.p
 export function assertRoutePolicies(app: INestApplication, globalPrefix = 'v1'): RoutePolicy[] {
   const policies = listRoutePolicies(app, globalPrefix);
   const missing = policies.filter((p) => !p.public && !p.authenticated && !p.permissions.length && !p.roles.length && !p.scopes.length);
-  if (missing.length) throw new Error(`Routes sans politique d'accès (refus par défaut) : ${describe(missing)}`);
+  if (missing.length) throw new Error(`Routes sans politique d'accès (refus par défaut) : ${routeList(missing)}`);
   const orgPrefix = `/${globalPrefix}/org/`;
   const unscoped = policies.filter((p) => (p.orgScoped && !p.permissions.length) || (p.path.startsWith(orgPrefix) && !p.orgScoped));
-  if (unscoped.length) throw new Error(`Routes d'organisation sans @OrgScoped ou sans @Can (refus par défaut) : ${describe(unscoped)}`);
+  if (unscoped.length) throw new Error(`Routes d'organisation sans @OrgScoped ou sans @Can (refus par défaut) : ${routeList(unscoped)}`);
   return policies;
 }
