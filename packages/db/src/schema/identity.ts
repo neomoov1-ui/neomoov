@@ -102,8 +102,10 @@ export const auditLog = pgTable('audit_log', {
   ipAddress: inet('ip_address'),
   /** Identifiant de corrélation de la requête HTTP (en-tête x-correlation-id), pour relier audit et journaux. */
   correlationId: varchar('correlation_id', { length: 64 }),
+  /** Organisation dans laquelle l'action a eu lieu (étape 20) ; nulle pour la plateforme. */
+  organizationId: uuid('organization_id'),
   occurredAt: tz('occurred_at').notNull().defaultNow(),
-}, (t) => [index('audit_log_entity_idx').on(t.entity, t.entityId), index('audit_log_actor_idx').on(t.actorUserId, t.occurredAt), index('audit_log_time_idx').on(t.occurredAt)]);
+}, (t) => [index('audit_log_entity_idx').on(t.entity, t.entityId), index('audit_log_actor_idx').on(t.actorUserId, t.occurredAt), index('audit_log_time_idx').on(t.occurredAt), index('audit_log_org_idx').on(t.organizationId, t.occurredAt)]);
 
 export const featureFlags = pgTable('feature_flags', {
   code: varchar('code', { length: 60 }).primaryKey(),

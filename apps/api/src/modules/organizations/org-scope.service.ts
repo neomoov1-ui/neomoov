@@ -10,6 +10,7 @@ import { inScope, type MembershipScope } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
+import { organizationIdOfPath, orgScopeStorage } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
 
 export type ScopedExecutor = Parameters<Parameters<Database['db']['transaction']>[0]>[0];
@@ -20,14 +21,25 @@ const PATH = /^(\/[0-9a-f-]{36})+\/$/;
 export class OrgScopeService {
   constructor(@Inject(DB) private readonly database: Database) {}
 
-  /** Exécute `fn` dans une transaction restreinte au sous-arbre `orgPath`. */
+  /**
+   * Exécute `fn` dans une transaction restreinte au sous-arbre `orgPath`. Pendant `fn`, `database.db` de tous les services
+   * désigne cette transaction (contexte propagé par AsyncLocalStorage) : les politiques d'isolation s'appliquent à chaque
+   * lecture et écriture, et le journal d'audit porte l'organisation. Réentrant : un appel imbriqué ouvre un point de sauvegarde.
+   */
   async run<T>(orgPath: string, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
     if (!PATH.test(orgPath)) throw new AppError('INVALID_ORGANIZATION_SCOPE', 'Portée d\'organisation invalide', 500);
     return this.database.db.transaction(async (tx) => {
       await tx.execute(sql`SET LOCAL ROLE neomoov_scoped`);
       await tx.execute(sql`SELECT set_config('app.scope_path', ${orgPath}, true)`);
-      return fn(tx);
+      return orgScopeStorage.run({ organizationId: organizationIdOfPath(orgPath), path: orgPath, tx }, () => fn(tx));
     });
+  }
+
+  /** Comme `run`, pour une organisation désignée par son identifiant (404 si elle n'existe pas). */
+  async runFor<T>(organizationId: string, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
+    const [org] = await this.database.db.select({ path: schema.organizations.path }).from(schema.organizations).where(eq(schema.organizations.id, organizationId)).limit(1);
+    if (!org) throw AppError.notFound('ORGANIZATION_NOT_FOUND', 'Organisation introuvable');
+    return this.run(org.path, fn);
   }
 
   /**

@@ -217,6 +217,8 @@ export const promotionUses = pgTable('promotion_uses', {
 export const credits = pgTable('credits', {
   id: id(),
   userId: uuid('user_id').notNull().references(() => users.id),
+  /** Organisation qui a accordé le crédit (étape 20) ; nulle pour la plateforme. */
+  organizationId: uuid('organization_id'),
   amountCents: cents('amount_cents').notNull(),
   remainingCents: cents('remaining_cents').notNull(),
   origin: creditOriginEnum('origin').notNull(),
@@ -224,4 +226,4 @@ export const credits = pgTable('credits', {
   note: text('note'),
   expiresAt: tz('expires_at'),
   createdAt: createdAt(),
-}, (t) => [index('credits_user_idx').on(t.userId).where(sql`${t.remainingCents} > 0`), check('credits_positive', sql`${t.amountCents} > 0 AND ${t.remainingCents} BETWEEN 0 AND ${t.amountCents}`)]);
+}, (t) => [index('credits_user_idx').on(t.userId).where(sql`${t.remainingCents} > 0`), index('credits_org_idx').on(t.organizationId), check('credits_positive', sql`${t.amountCents} > 0 AND ${t.remainingCents} BETWEEN 0 AND ${t.amountCents}`)]);

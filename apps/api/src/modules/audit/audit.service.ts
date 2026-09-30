@@ -8,6 +8,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Logger } from 'pino';
 import { APP_LOGGER } from '../../common/logger.js';
+import { currentOrgScope } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import type { Actor } from '../auth/actor.js';
 
@@ -79,11 +80,14 @@ export class AuditService {
     if (!entries.length) return;
     const actorUserId = context.actor?.kind === 'user' ? context.actor.userId : null;
     const actorAgentCode = context.actor?.kind === 'service' ? (context.actor.agentCode ?? `key:${context.actor.name}`).slice(0, 40) : null;
+    // Étape 20 : une entrée écrite dans un contexte d'organisation lui appartient (visible dans son journal, invisible ailleurs).
+    const organizationId = currentOrgScope()?.organizationId ?? null;
     try {
       await this.database.db.insert(schema.auditLog).values(
         entries.map((e) => ({
           actorUserId,
           actorAgentCode,
+          organizationId,
           action: e.action.slice(0, 80),
           entity: e.entity.slice(0, 60),
           entityId: e.entityId && /^[0-9a-f-]{36}$/i.test(e.entityId) ? e.entityId : null,

@@ -1,5 +1,5 @@
 {
-  "id": "a4ddb327-179e-4d7c-a425-f8d2a67dbe20",
+  "id": "b9b6ced6-5a67-4b6b-8626-67e6d44b30ed",
   "prevId": "b4001f80-4d63-4708-8e87-4b1fc7a46553",
   "version": "7",
   "dialect": "postgresql",
@@ -196,6 +196,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "occurred_at": {
           "name": "occurred_at",
           "type": "timestamp with time zone",
@@ -250,6 +256,27 @@
         "audit_log_time_idx": {
           "name": "audit_log_time_idx",
           "columns": [
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_log_org_idx": {
+          "name": "audit_log_org_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
             {
               "expression": "occurred_at",
               "isExpression": false,
@@ -6053,6 +6080,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "amount_cents": {
           "name": "amount_cents",
           "type": "integer",
@@ -6111,6 +6144,21 @@
           ],
           "isUnique": false,
           "where": "\"credits\".\"remaining_cents\" > 0",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "credits_org_idx": {
+          "name": "credits_org_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -8069,6 +8117,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "type": {
           "name": "type",
           "type": "incident_type",
@@ -8183,6 +8237,27 @@
           "columns": [
             {
               "expression": "ride_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "incidents_org_idx": {
+          "name": "incidents_org_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -10641,6 +10716,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
           "type": "varchar(12)",
@@ -10688,6 +10769,27 @@
           "columns": [
             {
               "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_message_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "conversations_org_idx": {
+          "name": "conversations_org_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -10818,6 +10920,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "channel": {
           "name": "channel",
           "type": "notification_channel",
@@ -10889,6 +10997,27 @@
           "columns": [
             {
               "expression": "recipient_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notifications_org_idx": {
+          "name": "notifications_org_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -10995,6 +11124,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
           "type": "varchar(20)",
@@ -11056,6 +11191,21 @@
           "columns": [
             {
               "expression": "phone",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "leads_org_idx": {
+          "name": "leads_org_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

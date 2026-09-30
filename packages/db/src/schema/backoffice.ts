@@ -26,6 +26,8 @@ export const leads = pgTable('leads', {
   message: text('message'),
   language: varchar('language', { length: 2 }).notNull().default('fr'),
   source: varchar('source', { length: 30 }).notNull(),
+  /** Organisation destinataire du prospect (étape 20) ; nulle pour la plateforme. */
+  organizationId: uuid('organization_id'),
   status: varchar('status', { length: 20 }).notNull().default('new'),
   consentAt: tz('consent_at').notNull(),
   createdAt: createdAt(),
@@ -33,6 +35,7 @@ export const leads = pgTable('leads', {
 }, (t) => [
   index('leads_kind_status_idx').on(t.kind, t.status, t.createdAt),
   index('leads_phone_idx').on(t.phone),
+  index('leads_org_idx').on(t.organizationId),
   check('leads_kind', sql`${t.kind} IN ('driver', 'business', 'partner')`),
   check('leads_status', sql`${t.status} IN ('new', 'contacted', 'converted', 'discarded')`),
 ]);
