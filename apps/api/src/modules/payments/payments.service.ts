@@ -92,7 +92,8 @@ export class PaymentsService {
       setupIntentId: intent.setupIntentId,
       clientSecret: intent.clientSecret,
       customerId,
-      publishableKey: this.env.STRIPE_PUBLISHABLE_KEY ?? null,
+      // Fournisseur simulé : aucune clé publiable, l'application ne doit pas initialiser Stripe.
+      publishableKey: this.provider.name === 'mock' ? null : (this.env.STRIPE_PUBLISHABLE_KEY ?? null),
       applePayMerchantId: merchant || null,
       merchantCountry: 'CA',
       simulated: this.provider.name === 'mock',
