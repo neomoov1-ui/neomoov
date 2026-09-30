@@ -14,6 +14,7 @@ import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGene
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
 import type { AdminSanctionAppealView, AppealStatus, SanctionAppealDecision } from '@neomoov/domain';
+import type { InvitationCreate, MembershipUpdate, MembershipView, OrganizationCreate, OrganizationView, RoleCreate, RoleView } from '@neomoov/domain';
 import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeView, PrivacyBreachInput, PrivacyBreachView, StaffCreate } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
@@ -178,6 +179,17 @@ export function adminResource(t: Transport) {
     /** Charte d'équité (D7) : réponses et appels des chauffeurs, décision motivée, exclusion d'une note. */
     sanctionAppeals: (query: { status?: AppealStatus } = {}) => t.get<AdminSanctionAppealView[]>('/admin/fairness/appeals', { query }),
     decideSanctionAppeal: (appealId: string, body: SanctionAppealDecision) => t.post<AdminSanctionAppealView>(`/admin/fairness/appeals/${id(appealId)}/decide`, body),
+    /** Étape 19 : organisations en arbre, catalogue des permissions, rôles personnalisés, membres et invitations. */
+    organizations: () => t.get<OrganizationView[]>('/admin/organizations'),
+    createOrganization: (body: OrganizationCreate) => t.post<OrganizationView>('/admin/organizations', body),
+    permissions: () => t.get<Array<{ code: string; module: string; description: string; sensitive: boolean; platformOnly: boolean }>>('/admin/permissions'),
+    roles: (organizationId?: string) => t.get<RoleView[]>('/admin/roles', organizationId ? { query: { organizationId } } : undefined),
+    createRole: (body: RoleCreate) => t.post<RoleView>('/admin/roles', body),
+    updateRolePermissions: (roleId: string, permissions: string[]) => t.put<RoleView>(`/admin/roles/${id(roleId)}/permissions`, { permissions }),
+    members: (organizationId: string) => t.get<MembershipView[]>(`/admin/organizations/${id(organizationId)}/members`),
+    invite: (organizationId: string, body: Partial<InvitationCreate> & Pick<InvitationCreate, 'roleId'>) => t.post<{ id: string; token: string; expiresAt: string }>(`/admin/organizations/${id(organizationId)}/invitations`, body),
+    updateMembership: (membershipId: string, body: MembershipUpdate) => t.patch<MembershipView>(`/admin/memberships/${id(membershipId)}`, body),
+    removeMembership: (membershipId: string) => t.delete<void>(`/admin/memberships/${id(membershipId)}`),
     excludeRating: (ratingId: string, reason: string) => t.post<{ id: string; excludedAt: string; driverRating: { average: number; count: number } | null }>(`/admin/ratings/${id(ratingId)}/exclude`, { reason }),
     audit: (query: AuditFilters & { limit?: number; cursor?: string } = {}) => t.get<{ items: AuditEntryView[]; nextCursor: string | null }>('/admin/audit', { query }),
     /** Chemin de l'export CSV filtré du journal d'audit (administrateur), avec sa chaîne de requête. */

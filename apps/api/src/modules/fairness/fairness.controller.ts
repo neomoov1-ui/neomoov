@@ -10,13 +10,13 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { Authenticated, CurrentUser, Roles, STAFF_WRITE_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, Authenticated, CurrentUser, type UserActor } from '../auth/actor.js';
 import { FairnessService } from './fairness.service.js';
 
 @ApiTags('driver')
 @ApiBearerAuth()
 @Authenticated()
-@Roles('driver')
+@Can('driver.app')
 @Controller('driver')
 export class DriverFairnessController {
   constructor(private readonly fairness: FairnessService) {}
@@ -47,7 +47,7 @@ export class AdminFairnessController {
   constructor(private readonly fairness: FairnessService) {}
 
   @Get('fairness/appeals')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('fairness.appeals.decide')
   @ApiOperation({ summary: 'Réponses et appels des chauffeurs, les plus anciens d\'abord, avec le retard sur le délai de 4 heures ouvrables' })
   @ZodQuery(sanctionAppealListQuerySchema)
   @ZodResponse(200, z.array(adminSanctionAppealSchema))
@@ -58,7 +58,7 @@ export class AdminFairnessController {
 
   @Post('fairness/appeals/:id/decide')
   @HttpCode(200)
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('fairness.appeals.decide')
   @ApiOperation({ summary: 'Décision motivée sur une réponse ou un appel ; un appel est tranché par une autre personne ; « overturned » lève la sanction' })
   @ZodBody(sanctionAppealDecisionSchema)
   @ZodResponse(200, adminSanctionAppealSchema)
@@ -69,7 +69,7 @@ export class AdminFairnessController {
 
   @Post('ratings/:id/exclude')
   @HttpCode(200)
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('fairness.appeals.decide')
   @ApiOperation({ summary: 'Retire une note du client du calcul de la note du chauffeur, avec le motif ; note du chauffeur recalculée' })
   @ZodBody(ratingExclusionSchema)
   @ZodResponse(200, z.object({ id: uuid, excludedAt: z.string(), driverRating: z.object({ average: z.number(), count: z.number().int() }).nullable() }))

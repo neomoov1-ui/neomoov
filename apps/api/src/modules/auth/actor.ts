@@ -1,10 +1,10 @@
 /**
  * Acteur d'une requête (utilisateur authentifié ou compte de service) et décorateurs de politique d'accès.
- * Politique par défaut : refus. Chaque route déclare `@Public()`, `@Authenticated()`, `@Roles(...)` ou `@Scopes(...)`,
+ * Politique par défaut : refus. Chaque route déclare `@Public()`, `@Authenticated()`, `@Can(...)`, `@Roles(...)` ou `@Scopes(...)`,
  * ce que `assertRoutePolicies` vérifie au démarrage (prompt 03, section 8 : autorisation par rôle et par ressource).
  */
 import { createParamDecorator, SetMetadata, type ExecutionContext } from '@nestjs/common';
-import { STAFF_ROLES, type UserRole } from '@neomoov/domain';
+import { STAFF_ROLES, type Permission, type UserRole } from '@neomoov/domain';
 import type { Request } from 'express';
 import { AppError } from '../../common/app-error.js';
 
@@ -37,6 +37,7 @@ declare module 'express' {
 export const PUBLIC_KEY = 'neomoov:public';
 export const AUTHENTICATED_KEY = 'neomoov:authenticated';
 export const ROLES_KEY = 'neomoov:roles';
+export const CAN_KEY = 'neomoov:can';
 export const SCOPES_KEY = 'neomoov:scopes';
 export const OWNS_KEY = 'neomoov:owns';
 export const AUDIT_KEY = 'neomoov:audit';
@@ -46,6 +47,11 @@ export const NO_AUDIT_KEY = 'neomoov:audit:skip';
 export const Public = () => SetMetadata(PUBLIC_KEY, true);
 /** Tout utilisateur authentifié, quel que soit son rôle (profil, appareils, consentements). */
 export const Authenticated = () => SetMetadata(AUTHENTICATED_KEY, true);
+/**
+ * Permissions admises (étape 19) : une seule suffit. Droits = anciens rôles (correspondance du domaine) et adhésions
+ * actives ; remplace `@Roles` sur toutes les routes du personnel et de l'espace chauffeur.
+ */
+export const Can = (...permissions: Permission[]) => SetMetadata(CAN_KEY, permissions);
 /** Rôles admis. Un `admin` est admis sur toute route ouverte à un rôle du personnel. */
 export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);
 /** Portées admises pour les comptes de service (clés d'API) ; une route sans `@Scopes` leur est fermée. */

@@ -286,6 +286,9 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   await database.execute(sql`DELETE FROM credit_uses WHERE credit_id IN (SELECT id FROM credits WHERE user_id IN ${ids})`);
   await database.delete(schema.referrals).where(or(inArray(schema.referrals.referrerUserId, ids), inArray(schema.referrals.referredUserId, ids)));
   await database.delete(schema.credits).where(inArray(schema.credits.userId, ids));
+  // Étape 19 : adhésions et invitations des comptes de test (rôles et organisations créés par un test : retirés par lui).
+  await database.delete(schema.memberships).where(or(inArray(schema.memberships.userId, ids), inArray(schema.memberships.invitedByUserId, ids)));
+  await database.delete(schema.invitations).where(inArray(schema.invitations.invitedByUserId, ids));
   await database.delete(schema.users).where(inArray(schema.users.id, ids));
   createdUserIds.clear();
 }

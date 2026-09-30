@@ -12,10 +12,11 @@ import { AppError } from '../../common/app-error.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { AUTHENTICATED_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, isStaffRole, hasStaffRole, requestContext, type Actor, type OwnsOptions, type UserActor } from './actor.js';
+import { AUTHENTICATED_KEY, CAN_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, isStaffRole, hasStaffRole, requestContext, type Actor, type OwnsOptions, type UserActor } from './actor.js';
+import { AccessService } from './access.service.js';
 import { ApiKeysService, isApiKey } from './api-keys.service.js';
 import { TokensService } from './tokens.service.js';
-import type { UserRole } from '@neomoov/domain';
+import { hasAnyPermission, type Permission, type UserRole } from '@neomoov/domain';
 
 function bearer(req: Request): string | null {
   const header = req.header('authorization');
@@ -65,6 +66,7 @@ export class AuthGuard implements CanActivate {
     private readonly apiKeys: ApiKeysService,
     private readonly rateLimit: RateLimitService,
     private readonly settings: SettingsService,
+    private readonly access: AccessService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -97,6 +99,7 @@ export class AuthGuard implements CanActivate {
       }
     }
 
+    const can = this.reflector.getAllAndOverride<Permission[]>(CAN_KEY, targets) ?? [];
     const roles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, targets) ?? [];
     const scopes = this.reflector.getAllAndOverride<string[]>(SCOPES_KEY, targets) ?? [];
     const authenticated = this.reflector.getAllAndOverride<boolean>(AUTHENTICATED_KEY, targets) === true;
@@ -104,6 +107,11 @@ export class AuthGuard implements CanActivate {
     if (actor.kind === 'service') {
       if (!scopes.length) throw AppError.forbidden('SERVICE_ACCOUNT_NOT_ALLOWED', 'Cette route n\'est pas ouverte aux comptes de service');
       if (!ApiKeysService.hasScope(actor, scopes)) throw AppError.forbidden('INSUFFICIENT_SCOPE', 'Portée insuffisante pour cette clé', { required: scopes });
+      return true;
+    }
+    if (can.length) {
+      // Code d'erreur inchangé pour les applications déjà publiées ; la permission manquante est donnée en détail.
+      if (!hasAnyPermission(await this.access.platformPermissions(actor), can)) throw AppError.forbidden('FORBIDDEN_ROLE', 'Votre rôle ne permet pas cette action', { required: can });
       return true;
     }
     if (roles.length) {

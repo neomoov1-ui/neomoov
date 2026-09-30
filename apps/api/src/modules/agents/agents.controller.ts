@@ -19,7 +19,7 @@ import { z } from 'zod';
 import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { CurrentActor, CurrentUser, NoAudit, Roles, Scopes, STAFF_READ_ROLES, type Actor, type UserActor } from '../auth/actor.js';
+import { Can, CurrentActor, CurrentUser, NoAudit, Scopes, type Actor, type UserActor } from '../auth/actor.js';
 import { AgentApprovalsService } from './agent-approvals.service.js';
 import { AgentRunnerService } from './agent-runner.service.js';
 import type { ToolName } from './agent-tools.service.js';
@@ -30,7 +30,6 @@ import { QualityAgent } from './quality.agent.js';
 type ListQuery = z.infer<typeof adminListQuerySchema>;
 const agentCode = z.string().regex(/^[a-z0-9_]{2,40}$/);
 const withContext = <T extends z.ZodObject>(schema: T) => schema.extend(toolRouteContextSchema.shape);
-const TOOL_ROLES = ['admin', 'operator', 'agent'] as const;
 
 @ApiTags('agents')
 @ApiBearerAuth()
@@ -44,7 +43,7 @@ export class AgentsAdminController {
   ) {}
 
   @Get('quality')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('quality.read')
   @NoAudit()
   @ApiOperation({ summary: 'Qualité des chauffeurs (5.11) : note sur 50 courses, annulations tardives sur 7 jours, incidents graves, sanction proposée par la règle et couverture en cours' })
   @ZodResponse(200, z.array(qualityReviewSchema))
@@ -54,7 +53,7 @@ export class AgentsAdminController {
   }
 
   @Post('quality/run')
-  @Roles('admin', 'operator')
+  @Can('quality.run')
   @HttpCode(200)
   @ApiOperation({ summary: 'Passe de l\'agent qualité à la demande : échéances levées, propositions dans la file d\'approbation (aucune en double)' })
   @ZodResponse(200, qualityRunResultSchema)
@@ -65,7 +64,7 @@ export class AgentsAdminController {
   }
 
   @Get('agents')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('agents.read')
   @NoAudit()
   @ApiOperation({ summary: 'Agents IA : mode, modèle, effort, seuils, exécutions sur 7 jours, approbations en attente, dépense du jour et plafond' })
   @ZodResponse(200, z.array(adminAgentSchema))
@@ -75,7 +74,7 @@ export class AgentsAdminController {
   }
 
   @Patch('agents/:code')
-  @Roles('admin')
+  @Can('agents.settings.edit')
   @ApiOperation({ summary: 'Réglage d\'un agent : mode (auto, approval, manual), effort, modèle, activité, seuils (dont le plafond quotidien dailyBudgetMicros)' })
   @ZodBody(agentUpdateSchema)
   @ZodResponse(200, adminAgentSchema)
@@ -85,7 +84,7 @@ export class AgentsAdminController {
   }
 
   @Get('agents/runs')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('agents.read')
   @NoAudit()
   @ApiOperation({ summary: 'Journal des exécutions des agents : entrées minimisées, sorties, outils appelés, jetons, coût, durée, statut' })
   @ZodQuery(agentRunListQuerySchema)
@@ -96,7 +95,7 @@ export class AgentsAdminController {
   }
 
   @Get('agents/runs/:id')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('agents.read')
   @NoAudit()
   @ApiOperation({ summary: 'Une exécution d\'agent' })
   @ZodResponse(200, agentRunSchema)
@@ -106,7 +105,7 @@ export class AgentsAdminController {
   }
 
   @Get('agents/reports')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('agents.read')
   @NoAudit()
   @ApiOperation({ summary: 'Rapports quotidiens et hebdomadaires de l\'agent d\'analyse (les plus récents d\'abord)' })
   @ZodQuery(adminListQuerySchema)
@@ -117,7 +116,7 @@ export class AgentsAdminController {
   }
 
   @Get('approvals')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('agents.read')
   @NoAudit()
   @ApiOperation({ summary: 'File d\'approbation des actions proposées par les agents (en attente par défaut ; status=approved ou rejected)' })
   @ZodQuery(adminListQuerySchema)
@@ -128,7 +127,7 @@ export class AgentsAdminController {
   }
 
   @Post('approvals/:id/decide')
-  @Roles('admin', 'operator')
+  @Can('approvals.decide')
   @HttpCode(200)
   @ApiOperation({ summary: 'Approuve (exécute l\'action proposée, une seule fois) ou refuse avec motif une action proposée par un agent' })
   @ZodBody(approvalDecisionSchema)
@@ -139,7 +138,7 @@ export class AgentsAdminController {
   }
 
   @Get('conversations')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('agents.read')
   @NoAudit()
   @ApiOperation({ summary: 'Conversations de l\'assistance (escaladées d\'abord) ; status=open, escalated ou closed' })
   @ZodQuery(adminListQuerySchema)
@@ -152,7 +151,7 @@ export class AgentsAdminController {
   }
 
   @Get('conversations/:id')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('agents.read')
   @NoAudit()
   @ApiOperation({ summary: 'Une conversation et ses messages' })
   @ZodResponse(200, conversationSchema)
@@ -162,7 +161,7 @@ export class AgentsAdminController {
   }
 
   @Post('conversations/:id/messages')
-  @Roles('admin', 'operator')
+  @Can('conversations.reply')
   @HttpCode(200)
   @ApiOperation({ summary: 'Réponse de l\'équipe dans une conversation de l\'assistance (push, WhatsApp ou texto selon le canal) ; close la termine' })
   @ZodBody(conversationReplySchema)
@@ -183,7 +182,7 @@ export class InternalAgentsController {
   ) {}
 
   @Post('agents/:code/run')
-  @Roles('admin', 'operator', 'agent')
+  @Can('agents.run')
   @Scopes('agents:run')
   @HttpCode(200)
   @ApiOperation({ summary: 'Exécute un agent à la demande (entrée propre à l\'agent : message, document, relevé, période du rapport)' })
@@ -195,7 +194,7 @@ export class InternalAgentsController {
   }
 
   @Get('agents/runs')
-  @Roles(...STAFF_READ_ROLES, 'agent')
+  @Can('agents.runs.read')
   @Scopes('agents:read')
   @NoAudit()
   @ApiOperation({ summary: 'Journal des exécutions des agents' })
@@ -211,59 +210,59 @@ export class InternalAgentsController {
     return this.agents.callTool(name, body, actor);
   }
 
-  @Post('tools/lookupRide') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/lookupRide') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : courses du client concerné (subjectUserId)' }) @ZodBody(withContext(lookupRideToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   lookupRide(@Body(zodPipe(withContext(lookupRideToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('lookupRide', body, actor); }
 
-  @Post('tools/lookupClient') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/lookupClient') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : résumé du compte du client concerné' }) @ZodBody(withContext(lookupClientToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   lookupClient(@Body(zodPipe(withContext(lookupClientToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('lookupClient', body, actor); }
 
-  @Post('tools/lookupDriver') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/lookupDriver') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : fiche minimale d\'un chauffeur' }) @ZodBody(withContext(lookupDriverToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   lookupDriver(@Body(zodPipe(withContext(lookupDriverToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('lookupDriver', body, actor); }
 
-  @Post('tools/issueCredit') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/issueCredit') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : crédit au client concerné (5 000 cents au plus ; approbation selon le mode de l\'agent)' }) @ZodBody(withContext(issueCreditToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   issueCredit(@Body(zodPipe(withContext(issueCreditToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('issueCredit', body, actor); }
 
-  @Post('tools/refund') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/refund') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : remboursement d\'une course du client concerné (5 000 cents au plus, idempotent ; approbation selon le mode)' }) @ZodBody(withContext(refundToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   refund(@Body(zodPipe(withContext(refundToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('refund', body, actor); }
 
-  @Post('tools/openIncident') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/openIncident') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : consigne un incident' }) @ZodBody(withContext(openIncidentToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   openIncident(@Body(zodPipe(withContext(openIncidentToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('openIncident', body, actor); }
 
-  @Post('tools/escalateToHuman') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/escalateToHuman') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : transmet à l\'équipe (conversation escaladée, alerte au personnel)' }) @ZodBody(withContext(escalateToHumanToolSchema).extend({ conversationId: uuid.optional() })) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   escalateToHuman(@Body(zodPipe(withContext(escalateToHumanToolSchema).extend({ conversationId: uuid.optional() }))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('escalateToHuman', body, actor); }
 
-  @Post('tools/sendMessage') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/sendMessage') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : message au client d\'une conversation, par son canal (file des notifications)' }) @ZodBody(withContext(sendMessageRouteSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   sendMessage(@Body(zodPipe(withContext(sendMessageRouteSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('sendMessage', body, actor); }
 
-  @Post('tools/extractDocumentFields') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/extractDocumentFields') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : extraction des champs d\'un document de chauffeur (vision)' }) @ZodBody(withContext(extractDocumentFieldsToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   extractDocumentFields(@Body(zodPipe(withContext(extractDocumentFieldsToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('extractDocumentFields', body, actor); }
 
-  @Post('tools/compareIdentity') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/compareIdentity') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : cohérence des champs extraits avec le profil du chauffeur' }) @ZodBody(withContext(compareIdentityToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   compareIdentity(@Body(zodPipe(withContext(compareIdentityToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('compareIdentity', body, actor); }
 
-  @Post('tools/proposeDecision') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/proposeDecision') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : proposition sur un document (toujours soumise à la validation humaine en V1)' }) @ZodBody(withContext(proposeDecisionToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   proposeDecision(@Body(zodPipe(withContext(proposeDecisionToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('proposeDecision', body, actor); }
 
-  @Post('tools/listStatementLines') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/listStatementLines') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : lignes et courses d\'un relevé hebdomadaire' }) @ZodBody(withContext(listStatementLinesToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   listStatementLines(@Body(zodPipe(withContext(listStatementLinesToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('listStatementLines', body, actor); }
 
-  @Post('tools/flagAnomaly') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/flagAnomaly') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : anomalie d\'un relevé, soumise à la comptabilité' }) @ZodBody(withContext(flagAnomalyToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   flagAnomaly(@Body(zodPipe(withContext(flagAnomalyToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('flagAnomaly', body, actor); }
 
-  @Post('tools/queryMetrics') @Roles(...TOOL_ROLES) @Scopes('tools:*') @HttpCode(200)
+  @Post('tools/queryMetrics') @Can('agents.tools') @Scopes('tools:*') @HttpCode(200)
   @ApiOperation({ summary: 'Outil : indicateurs d\'exploitation d\'une période (lecture seule)' }) @ZodBody(withContext(queryMetricsToolSchema)) @ZodResponse(200, toolResultSchema) @ApiErrors(400, 401, 403, 404, 409, 429)
   queryMetrics(@Body(zodPipe(withContext(queryMetricsToolSchema))) body: Record<string, unknown>, @CurrentActor() actor?: Actor) { return this.tool('queryMetrics', body, actor); }
 }

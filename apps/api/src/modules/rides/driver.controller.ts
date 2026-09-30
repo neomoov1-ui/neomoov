@@ -8,7 +8,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { CurrentUser, NoAudit, Roles, type UserActor } from '../auth/actor.js';
+import { Can, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
 import { DispatchService } from './dispatch.service.js';
 import { PresenceService } from './presence.service.js';
 import { RidesService } from './rides.service.js';
@@ -19,7 +19,7 @@ const locationAckSchema = z.object({ rideId: uuid.nullable(), accepted: z.boolea
 
 @ApiTags('driver')
 @ApiBearerAuth()
-@Roles('driver')
+@Can('driver.app')
 @Controller('driver')
 export class DriverController {
   constructor(

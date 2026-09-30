@@ -13,7 +13,7 @@ import type {
   BalanceView, ConnectStatus, PaymentMethodView, PaymentView, SetupIntentResponse,
   CreditsView, FavoriteView, ReferralView,
 } from '@neomoov/domain';
-import type { ConversationView, SupportMessageInput } from '@neomoov/domain';
+import type { ConversationView, MembershipView, SupportMessageInput } from '@neomoov/domain';
 import type { DriverSanctionView, SanctionAppealInput } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
@@ -72,6 +72,8 @@ export function meResource(t: Transport) {
     /** Assistance (étape 13) : message à l'agent relation client (accusé immédiat, puis réponse) et conversation en cours. */
     sendSupportMessage: (body: SupportMessageInput) => t.post<{ accepted: true; externalId: string }>('/me/support/messages', body),
     supportConversation: () => t.get<{ conversation: ConversationView | null }>('/me/support/conversation'),
+    /** Étape 19 : accepte une invitation adressée à mon téléphone ou à mon courriel. */
+    acceptInvitation: (token: string) => t.post<MembershipView>('/invitations/accept', { token }),
   };
 }
 

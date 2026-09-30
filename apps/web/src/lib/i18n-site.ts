@@ -40,6 +40,11 @@ const fr = {
     sent: 'Merci ! Votre préinscription est reçue.', sentBody: 'Notre équipe vous contacte sous 2 jours ouvrables. Vous pourrez ensuite finir votre inscription dans l\'application Neomoov Chauffeur.',
     errors: { generic: 'Envoi impossible pour le moment. Réessayez.', antiBot: 'La vérification anti-robots a échoué. Rechargez la page.', rateLimited: 'Trop de demandes. Réessayez plus tard.' },
   },
+  join: {
+    title: 'Rejoindre une organisation', subtitle: 'Vous avez reçu une invitation. Connectez-vous avec le numéro ou le courriel invité, puis acceptez.',
+    code: 'Code d\'invitation', accept: 'Accepter l\'invitation', done: 'C\'est fait : vous êtes membre, avec le rôle « {{role}} ».',
+    errors: { notForYou: 'Cette invitation est adressée à un autre numéro ou à un autre courriel.', expired: 'Cette invitation a expiré : demandez-en une nouvelle.', used: 'Cette invitation a déjà servi.', generic: 'Invitation introuvable ou invalide.' },
+  },
   rights: {
     title: 'Vos droits sur vos données',
     subtitle: 'Loi 25 : demandez l\'accès, la rectification ou la portabilité de vos données, retirez un consentement ou supprimez votre compte, puis suivez l\'état de vos demandes. Réponse sous 30 jours.',
@@ -130,6 +135,11 @@ const en: typeof fr = {
     consent: 'I agree that Neomoov may contact me about my application.', submit: 'Send my pre-registration', sending: 'Sending…',
     sent: 'Thank you! Your pre-registration was received.', sentBody: 'Our team will contact you within 2 business days. You can then finish signing up in the Neomoov Driver app.',
     errors: { generic: 'Unable to send right now. Please try again.', antiBot: 'The anti-bot check failed. Reload the page.', rateLimited: 'Too many requests. Please try again later.' },
+  },
+  join: {
+    title: 'Join an organization', subtitle: 'You received an invitation. Sign in with the invited phone number or email, then accept.',
+    code: 'Invitation code', accept: 'Accept the invitation', done: 'Done: you are now a member, with the role "{{role}}".',
+    errors: { notForYou: 'This invitation is addressed to another phone number or email.', expired: 'This invitation has expired: ask for a new one.', used: 'This invitation has already been used.', generic: 'Invitation not found or invalid.' },
   },
   rights: {
     title: 'Your data rights',

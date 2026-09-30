@@ -16,6 +16,7 @@ import { DriversModule } from './modules/drivers/drivers.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AgentsModule } from './modules/agents/agents.module.js';
 import { FairnessModule } from './modules/fairness/fairness.module.js';
+import { OrganizationsModule } from './modules/organizations/organizations.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { PublicModule } from './modules/public/public.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -42,7 +43,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, ComplianceModule, RetentionModule, FairnessModule, AgentsModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, ComplianceModule, RetentionModule, FairnessModule, OrganizationsModule, AgentsModule],
     };
   }
 }

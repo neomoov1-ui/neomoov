@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { APP_GUARD, DiscoveryModule } from '@nestjs/core';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { AdminApiKeysController, AdminStaffController, ServiceController } from './admin.controller.js';
+import { AccessService } from './access.service.js';
 import { ApiKeysService } from './api-keys.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
@@ -29,10 +30,11 @@ import { TokensService } from './tokens.service.js';
     StaffAuthService,
     ApiKeysService,
     AuthService,
+    AccessService,
     { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: OwnershipGuard },
   ],
-  exports: [RateLimitService, TokensService, OtpService, SocialService, StaffAuthService, ApiKeysService, AuthService],
+  exports: [RateLimitService, TokensService, OtpService, SocialService, StaffAuthService, ApiKeysService, AuthService, AccessService],
 })
 export class AuthModule {}

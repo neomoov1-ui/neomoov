@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { ApiErrors, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { CurrentUser, ReqCtx, Roles, STAFF_READ_ROLES, type RequestContext, type UserActor } from '../auth/actor.js';
+import { Can, CurrentUser, ReqCtx, type RequestContext, type UserActor } from '../auth/actor.js';
 import { AuditService } from './audit.service.js';
 
 /** Curseur opaque : `<instant ISO>_<identifiant>` de la dernière entrée de la page précédente. */
@@ -71,7 +71,7 @@ export class AuditController {
   ) {}
 
   @Get()
-  @Roles(...STAFF_READ_ROLES)
+  @Can('audit.read')
   @ApiOperation({ summary: 'Journal d\'audit, du plus récent au plus ancien, par curseur (instant et identifiant)' })
   @ZodQuery(auditQuerySchema)
   @ZodResponse(200, auditPageSchema)
@@ -108,7 +108,7 @@ export class AuditController {
    * L'export lui-même est journalisé (filtres et nombre de lignes), après la lecture : il ne figure pas dans son propre fichier.
    */
   @Get('export')
-  @Roles('admin')
+  @Can('audit.export')
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export CSV du journal d\'audit filtré (période, entité, action, acteur, agent), administrateur' })
   @ZodQuery(exportQuerySchema)

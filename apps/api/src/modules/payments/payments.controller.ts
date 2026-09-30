@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { Audit, Authenticated, CurrentUser, NoAudit, Owns, Public, Roles, STAFF_READ_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, Audit, Authenticated, CurrentUser, NoAudit, Owns, Public, type UserActor } from '../auth/actor.js';
 import { DriverPaymentsService } from './driver-payments.service.js';
 import { PaymentJobsService } from './payment-jobs.service.js';
 import { PaymentsService } from './payments.service.js';
@@ -101,7 +101,7 @@ export class PaymentsController {
 
 @ApiTags('driver')
 @ApiBearerAuth()
-@Roles('driver')
+@Can('driver.app')
 @Controller('driver')
 export class DriverPaymentsController {
   constructor(private readonly drivers: DriverPaymentsService) {}
@@ -175,7 +175,7 @@ export class AdminPaymentsController {
   ) {}
 
   @Get('rides/:id/payments')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('rides.read')
   @NoAudit()
   @ApiOperation({ summary: 'Paiements d\'une course pour My Hub (états, carte masquée, remboursements)' })
   @ZodResponse(200, z.array(paymentViewSchema))
@@ -185,7 +185,7 @@ export class AdminPaymentsController {
   }
 
   @Post('rides/:id/refund')
-  @Roles('admin', 'operator', 'finance')
+  @Can('refunds.create')
   @HttpCode(201)
   @ApiOperation({ summary: 'Remboursement (carte) ou crédit sur le compte du client, motif obligatoire ; idempotent (en-tête Idempotency-Key facultatif)' })
   @ZodBody(refundInputSchema)
@@ -197,7 +197,7 @@ export class AdminPaymentsController {
   }
 
   @Post('payments/webhooks/retry')
-  @Roles('admin', 'finance')
+  @Can('payments.webhooks.retry')
   @HttpCode(200)
   @ApiOperation({ summary: 'Reprend tout de suite les webhooks de paiement en attente ou en échec (sinon repris par le worker)' })
   @ZodResponse(200, z.object({ retried: z.number().int().min(0), authorized: z.number().int().min(0) }))

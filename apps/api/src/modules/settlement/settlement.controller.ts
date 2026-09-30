@@ -16,7 +16,7 @@ import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { CurrentUser, NoAudit, Roles, STAFF_FINANCE_ROLES, STAFF_READ_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
 import { SettlementJobsService } from './settlement-jobs.service.js';
 import { SettlementPayoutsService } from './settlement-payouts.service.js';
 import { StatementsService } from './statements.service.js';
@@ -33,7 +33,7 @@ export class AdminSettlementController {
   ) {}
 
   @Post('statements/generate')
-  @Roles(...STAFF_FINANCE_ROLES)
+  @Can('statements.manage')
   @HttpCode(200)
   @ApiOperation({ summary: 'Génère les brouillons de relevés d\'une semaine (lundi donné, sinon la dernière écoulée), ou leur aperçu sans rien enregistrer' })
   @ZodBody(statementGenerateSchema)
@@ -44,7 +44,7 @@ export class AdminSettlementController {
   }
 
   @Get('statements/:id')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('statements.read')
   @NoAudit()
   @ApiOperation({ summary: 'Détail d\'un relevé : lignes, totaux, état du règlement' })
   @ZodResponse(200, adminStatementDetailSchema)
@@ -54,7 +54,7 @@ export class AdminSettlementController {
   }
 
   @Post('statements/:id/issue')
-  @Roles(...STAFF_FINANCE_ROLES)
+  @Can('statements.manage')
   @HttpCode(200)
   @ApiOperation({ summary: 'Émet le brouillon : relevé immuable, packs marqués facturés, PDF et courriel au chauffeur' })
   @ZodResponse(200, adminStatementDetailSchema)
@@ -64,7 +64,7 @@ export class AdminSettlementController {
   }
 
   @Post('statements/:id/pay')
-  @Roles(...STAFF_FINANCE_ROLES)
+  @Can('statements.manage')
   @HttpCode(200)
   @ApiOperation({ summary: 'Règle un relevé émis ou en échec : versement Connect (net positif) ou prélèvement (net négatif), idempotent' })
   @ZodResponse(200, adminStatementDetailSchema)
@@ -74,7 +74,7 @@ export class AdminSettlementController {
   }
 
   @Post('statements/:id/settle-offline')
-  @Roles(...STAFF_FINANCE_ROLES)
+  @Can('statements.manage')
   @HttpCode(200)
   @ApiOperation({ summary: 'Constate un règlement hors plateforme (Interac, virement, espèces, chèque) avec sa référence : relevé réglé, solde recalculé, réactivation automatique' })
   @ZodBody(statementSettleOfflineSchema)
@@ -85,7 +85,7 @@ export class AdminSettlementController {
   }
 
   @Post('statements/:id/adjust')
-  @Roles(...STAFF_FINANCE_ROLES)
+  @Can('statements.manage')
   @HttpCode(200)
   @ApiOperation({ summary: 'Ajustement motivé (crédit ou débit) sur un brouillon ; un relevé émis se corrige sur le suivant' })
   @ZodBody(statementAdjustSchema)
@@ -96,7 +96,7 @@ export class AdminSettlementController {
   }
 
   @Get('statements/:id/pdf')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('statements.read')
   @ApiProduces('application/pdf')
   @ApiOperation({ summary: 'PDF d\'un relevé émis (produit par la file `settlements`)' })
   @ApiErrors(401, 403, 404, 409, 429)
@@ -107,7 +107,7 @@ export class AdminSettlementController {
   }
 
   @Get('balances')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('statements.read')
   @NoAudit()
   @ApiOperation({ summary: 'Soldes des chauffeurs : relevés non réglés, impayés, suspensions pour solde' })
   @ZodResponse(200, z.array(adminBalanceSchema))
@@ -119,7 +119,7 @@ export class AdminSettlementController {
 
 @ApiTags('driver')
 @ApiBearerAuth()
-@Roles('driver')
+@Can('driver.app')
 @Controller('driver/statements')
 export class DriverStatementPdfController {
   constructor(

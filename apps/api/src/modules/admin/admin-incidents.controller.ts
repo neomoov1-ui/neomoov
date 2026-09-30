@@ -9,7 +9,7 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { CurrentUser, Roles, STAFF_WRITE_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, CurrentUser, type UserActor } from '../auth/actor.js';
 import { AdminIncidentsService } from './admin-incidents.service.js';
 
 @ApiTags('admin')
@@ -19,7 +19,7 @@ export class AdminIncidentsController {
   constructor(private readonly incidents: AdminIncidentsService) {}
 
   @Post()
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('incidents.create')
   @HttpCode(201)
   @ApiOperation({ summary: 'Ouvre un incident à la main (plainte par téléphone, objet perdu, incident de confidentialité inscrit aussitôt au registre)' })
   @ZodBody(adminIncidentCreateSchema)
@@ -30,7 +30,7 @@ export class AdminIncidentsController {
   }
 
   @Get('privacy-register.csv')
-  @Roles('admin')
+  @Can('privacy.incidents.export')
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Registre des incidents de confidentialité en CSV (copie remise à la CAI sur demande) ; téléchargement journalisé' })
   @ApiErrors(401, 403, 429)
@@ -42,7 +42,7 @@ export class AdminIncidentsController {
   }
 
   @Get(':id/privacy-breach')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('privacy.incidents.manage')
   @ApiOperation({ summary: 'Fiche du registre des incidents de confidentialité : rubriques, évaluation, avis, mesures, suites à donner' })
   @ZodResponse(200, privacyBreachSchema)
   @ApiErrors(401, 403, 404, 429)
@@ -51,7 +51,7 @@ export class AdminIncidentsController {
   }
 
   @Put(':id/privacy-breach')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('privacy.incidents.manage')
   @ApiOperation({ summary: 'Inscrit l\'incident au registre (numéro IC-AAAA-NNN) ou remplace sa fiche ; une inscription ne se retire pas' })
   @ZodBody(privacyBreachInputSchema)
   @ZodResponse(200, privacyBreachSchema)

@@ -14,7 +14,7 @@ import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.
 import { SettingsService } from '../../common/settings.service.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { Audit, Authenticated, CurrentActor, CurrentUser, Owns, ReqCtx, Roles, STAFF_READ_ROLES, STAFF_WRITE_ROLES, type Actor, type RequestContext, type UserActor } from '../auth/actor.js';
+import { Can, Audit, Authenticated, CurrentActor, CurrentUser, Owns, ReqCtx, type Actor, type RequestContext, type UserActor } from '../auth/actor.js';
 import { PricingRulesService } from './pricing-rules.service.js';
 import { PromotionsService } from './promotions.service.js';
 import { QuotesService } from './quotes.service.js';
@@ -110,7 +110,7 @@ export class AdminPricingController {
   ) {}
 
   @Post('simulate')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('pricing.read')
   @HttpCode(200)
   @ApiOperation({ summary: 'Simulation de devis pour My Hub : mêmes règles, valeurs forcées possibles, rien n\'est persisté' })
   @ZodBody(simulateQuoteSchema)
@@ -121,7 +121,7 @@ export class AdminPricingController {
   }
 
   @Get('rules')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('pricing.read')
   @ApiOperation({ summary: 'Règles de tarification en vigueur (assemblées depuis la base) et leur version' })
   @ApiErrors(401, 403, 429)
   async currentRules() {
@@ -130,7 +130,7 @@ export class AdminPricingController {
   }
 
   @Post('rules/refresh')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('pricing.edit')
   @HttpCode(204)
   @Audit('admin.pricing_rules_refreshed', 'settings')
   @ApiOperation({ summary: 'Vide les caches (règles, réglages, zones) après une modification en base' })
@@ -141,7 +141,7 @@ export class AdminPricingController {
   }
 
   @Get('zones')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('pricing.read')
   @ApiOperation({ summary: 'Zones actives (codes à utiliser pour les relevés concurrentiels)' })
   @ZodResponse(200, z.array(zoneViewSchema))
   @ApiErrors(401, 403, 429)
@@ -150,7 +150,7 @@ export class AdminPricingController {
   }
 
   @Get('benchmarks')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('pricing.read')
   @ApiOperation({ summary: 'Relevés concurrentiels (D33), du plus récent au plus ancien' })
   @ZodResponse(200, z.array(benchmarkViewSchema))
   @ApiErrors(401, 403, 429)
@@ -160,7 +160,7 @@ export class AdminPricingController {
   }
 
   @Post('benchmarks')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('pricing.benchmarks.manage')
   @HttpCode(201)
   @Audit('admin.benchmark_recorded', 'competitor_benchmarks')
   @ApiOperation({ summary: 'Saisit un relevé concurrentiel (trajet témoin, plage horaire, prix Uber et Lyft observés)' })
@@ -192,7 +192,7 @@ export class AdminPricingController {
   }
 
   @Delete('benchmarks/:id')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('pricing.benchmarks.manage')
   @HttpCode(204)
   @Audit('admin.benchmark_deleted', 'competitor_benchmarks')
   @ApiOperation({ summary: 'Retire un relevé erroné' })

@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { Audit, CurrentUser, NoAudit, Roles, STAFF_FINANCE_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, Audit, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
 import { GeolocationExportService } from './geolocation-export.service.js';
 import { LedgerExportsService } from './ledger-exports.service.js';
 import { LedgersService } from './ledgers.service.js';
@@ -25,7 +25,6 @@ const monthsQuerySchema = z.object({ period: ledgerPeriodCode.optional() });
 
 @ApiTags('admin')
 @ApiBearerAuth()
-@Roles(...STAFF_FINANCE_ROLES)
 @Controller('admin')
 export class AdminLedgersController {
   constructor(
@@ -34,6 +33,7 @@ export class AdminLedgersController {
     private readonly geolocation: GeolocationExportService,
   ) {}
 
+  @Can('ledgers.read')
   @Get('ledgers/exports')
   @NoAudit()
   @Header('content-type', 'text/csv; charset=utf-8')
@@ -48,6 +48,7 @@ export class AdminLedgersController {
     return body;
   }
 
+  @Can('ledgers.read')
   @Get('ledgers/months')
   @NoAudit()
   @ApiOperation({ summary: 'Mois des registres : redevance due, facturée et remise, taxes par nature (24 derniers mois, ou les mois d\'une période)' })
@@ -58,6 +59,7 @@ export class AdminLedgersController {
     return this.ledgers.months(query.period);
   }
 
+  @Can('ledgers.manage')
   @Post('ledgers/redevance/remit')
   @HttpCode(200)
   @ApiOperation({ summary: 'Marque la redevance d\'un mois terminé comme remise (lignes non encore remises), journalisé avec la référence' })
@@ -68,6 +70,7 @@ export class AdminLedgersController {
     return this.ledgers.remit(body);
   }
 
+  @Can('ledgers.manage')
   @Post('ledgers/summaries')
   @HttpCode(202)
   @ApiOperation({ summary: 'Demande le rapport de synthèse PDF d\'un registre sur un mois ou un trimestre (produit par le worker, file `exports`)' })
@@ -78,6 +81,7 @@ export class AdminLedgersController {
     return this.exports.requestSummary(body.type, body.period, user);
   }
 
+  @Can('ledgers.read')
   @Get('ledgers/summaries/:type/:period')
   @NoAudit()
   @ApiOperation({ summary: 'État d\'un rapport de synthèse (en attente, prêt, en échec) et son chemin de téléchargement' })
@@ -89,6 +93,7 @@ export class AdminLedgersController {
     return view;
   }
 
+  @Can('ledgers.read')
   @Get('ledgers/summaries/:type/:period/pdf')
   @NoAudit()
   @ApiProduces('application/pdf')
@@ -102,6 +107,7 @@ export class AdminLedgersController {
     return new StreamableFile(body);
   }
 
+  @Can('ledgers.read')
   @Get('ledgers/drivers/:driverId/tax-report')
   @NoAudit()
   @ApiOperation({ summary: 'Rapport trimestriel d\'un chauffeur : TPS et TVQ sur ses tarifs, par mois (trimestre AAAA-Tn, en cours par défaut)' })
@@ -112,6 +118,7 @@ export class AdminLedgersController {
     return this.ledgers.driverTaxReport(driverId, query.quarter);
   }
 
+  @Can('ledgers.read')
   @Get('geolocation-exports')
   @NoAudit()
   @ApiOperation({ summary: 'Exports mensuels de géolocalisation (36 derniers), fichier archivé et état de transmission' })
@@ -121,6 +128,7 @@ export class AdminLedgersController {
     return this.geolocation.list();
   }
 
+  @Can('ledgers.manage')
   @Post('geolocation-exports')
   @HttpCode(202)
   @Audit('geolocation.export_requested', 'geolocation_exports')
@@ -132,6 +140,7 @@ export class AdminLedgersController {
     return this.geolocation.requestRun(body.month, user);
   }
 
+  @Can('ledgers.read')
   @Get('geolocation-exports/:id/file')
   @NoAudit()
   @ApiProduces('text/csv')
@@ -148,7 +157,7 @@ export class AdminLedgersController {
 
 @ApiTags('driver')
 @ApiBearerAuth()
-@Roles('driver')
+@Can('driver.app')
 @Controller('driver')
 export class DriverLedgersController {
   constructor(private readonly ledgers: LedgersService) {}

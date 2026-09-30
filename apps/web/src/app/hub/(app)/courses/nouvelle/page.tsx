@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { AddressField } from '@/components/address-field';
 import { useCanWrite, useDebounced, useErrorText, useLang } from '@/components/hub/common';
 import { QuoteList } from '@/components/quote-list';
-import { Action, Card, Field, Input, Notice, PageTitle, Select, Textarea } from '@/components/ui/kit';
+import { Action, Card, Checkbox, Field, Input, Notice, PageTitle, Select, Textarea } from '@/components/ui/kit';
 import { montrealToIso } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
 import { toE164 } from '@/lib/site-api';
@@ -47,6 +47,8 @@ export default function NewRidePage() {
   const [method, setMethod] = useState<'cash' | 'terminal'>('cash');
   const [special, setSpecial] = useState('');
   const [flight, setFlight] = useState('');
+  // Animal de compagnie en cage (D8) : seules Neo XL et Neo Prestige sont alors tarifées.
+  const [pet, setPet] = useState(false);
 
   const search = useCallback((input: string, sessionToken: string) => hubApi.places.autocomplete(input, { sessionToken }), []);
   const details = useCallback((placeId: string, sessionToken: string) => hubApi.places.details(placeId, sessionToken), []);
@@ -54,7 +56,7 @@ export default function NewRidePage() {
   const clients = useQuery({ queryKey: ['hub', 'clients-pick', clientSearch], queryFn: () => hubApi.admin.clients({ pageSize: 20, ...(clientSearch ? { q: clientSearch } : {}) }), enabled: mode === 'existing' });
 
   const quoting = useMutation({
-    mutationFn: () => hubApi.quotes.create({ origin: origin!, destination: destination!, stops: [], requestedAt: montrealToIso(date, time), options: OPTIONS }),
+    mutationFn: () => hubApi.quotes.create({ origin: origin!, destination: destination!, stops: [], requestedAt: montrealToIso(date, time), options: { ...OPTIONS, pet } }),
     onSuccess: (res) => {
       setQuotes(res);
       setQuote(res.quotes[0] ?? null);
@@ -90,6 +92,8 @@ export default function NewRidePage() {
             <Field label={t('book.date')}>{(p) => <Input {...p} type="date" required value={date} onChange={(e) => { setDate(e.target.value); setQuotes(null); }} />}</Field>
             <Field label={t('book.time')}>{(p) => <Input {...p} type="time" required step={300} value={time} onChange={(e) => { setTime(e.target.value); setQuotes(null); }} />}</Field>
           </div>
+          <Checkbox label={t('book.pet')} checked={pet} onChange={(e) => { setPet(e.target.checked); setQuotes(null); }} />
+          {pet ? <p className="text-xs text-slate-600">{t('book.petHint')}</p> : null}
           {quoting.isError ? <Notice tone="danger">{errorText(quoting.error)}</Notice> : null}
           <div><Action type="submit" busy={quoting.isPending} disabled={!origin || !destination || quoting.isPending}>{quoting.isPending ? t('hub.newRide.quoting') : t('hub.newRide.quote')}</Action></div>
         </form>

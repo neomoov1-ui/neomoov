@@ -1,7 +1,7 @@
 /** Section 4.8 : partenaires, comptes entreprises, investisseurs (structures V1, écrans V2 et V3). */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, integer, jsonb, pgTable, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, index, integer, jsonb, pgTable, text, uniqueIndex, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { cents, createdAt, id, tz, updatedAt } from './_helpers.js';
 import { vehicles } from './drivers.js';
 import { partnerTypeEnum } from './enums.js';
@@ -68,14 +68,30 @@ export const vehicleFinancings = pgTable('vehicle_financings', {
   createdAt: createdAt(),
 }, (t) => [index('vehicle_financings_investor_idx').on(t.investorId), check('vehicle_financings_positive', sql`${t.principalCents} > 0 AND ${t.rateBps} >= 0 AND ${t.termMonths} > 0`)]);
 
-/** Organisations (D42) : Neomoov seule en V1 ; plus tard flottes, compagnies de taxi et marque blanche. */
+/**
+ * Organisations (D42, amendement v1.2) : arbre dont Neomoov (la plateforme) est la racine. `path` est le chemin
+ * matérialisé des identifiants (`/<racine>/<enfant>/`) : une portée « sous-arbre » est un préfixe.
+ */
 export const organizations = pgTable('organizations', {
   id: id(),
   code: varchar('code', { length: 40 }).notNull(),
   name: varchar('name', { length: 120 }).notNull(),
   type: varchar('type', { length: 20 }).notNull().default('platform'),
+  parentId: uuid('parent_id').references((): AnyPgColumn => organizations.id),
+  path: text('path').notNull(),
+  status: varchar('status', { length: 12 }).notNull().default('active'),
+  planCode: varchar('plan_code', { length: 40 }),
+  legalName: varchar('legal_name', { length: 200 }),
+  gstNumber: varchar('gst_number', { length: 30 }),
+  qstNumber: varchar('qst_number', { length: 30 }),
   settings: jsonb('settings').notNull().default(sql`'{}'::jsonb`),
   active: boolean('active').notNull().default(true),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-}, (t) => [uniqueIndex('organizations_code_unique').on(t.code), check('organizations_type', sql`${t.type} IN ('platform', 'fleet', 'taxi_company', 'white_label')`)]);
+}, (t) => [
+  uniqueIndex('organizations_code_unique').on(t.code),
+  uniqueIndex('organizations_path_unique').on(t.path),
+  index('organizations_parent_idx').on(t.parentId),
+  check('organizations_type', sql`${t.type} IN ('platform', 'fleet', 'taxi_company', 'vtc_company', 'business', 'establishment', 'solo', 'sub_org', 'white_label')`),
+  check('organizations_status', sql`${t.status} IN ('trial', 'active', 'read_only', 'suspended', 'closed')`),
+]);

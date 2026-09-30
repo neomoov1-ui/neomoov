@@ -1,0 +1,1380 @@
+{
+ "DELETE /v1/admin/api-keys/:id": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "api_keys.manage"
+ },
+ "DELETE /v1/admin/pricing/benchmarks/:id": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "pricing.benchmarks.manage"
+ },
+ "GET /v1/admin/agents": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "agents.read"
+ },
+ "GET /v1/admin/agents/reports": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "agents.read"
+ },
+ "GET /v1/admin/agents/runs": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "agents.read"
+ },
+ "GET /v1/admin/agents/runs/:id": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "agents.read"
+ },
+ "GET /v1/admin/api-keys": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "api_keys.manage"
+ },
+ "GET /v1/admin/approvals": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "agents.read"
+ },
+ "GET /v1/admin/audit": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "audit.read"
+ },
+ "GET /v1/admin/audit/export": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "audit.export"
+ },
+ "GET /v1/admin/balances": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "statements.read"
+ },
+ "GET /v1/admin/clients": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "clients.read"
+ },
+ "GET /v1/admin/compliance": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "compliance.read"
+ },
+ "GET /v1/admin/conversations": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "agents.read"
+ },
+ "GET /v1/admin/conversations/:id": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "agents.read"
+ },
+ "GET /v1/admin/dashboard": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "dashboard.read"
+ },
+ "GET /v1/admin/data-requests": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "privacy.requests.read"
+ },
+ "GET /v1/admin/documents": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "documents.read"
+ },
+ "GET /v1/admin/documents/:id/content": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "documents.content.read"
+ },
+ "GET /v1/admin/drivers": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "drivers.read"
+ },
+ "GET /v1/admin/drivers/:id": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "drivers.read"
+ },
+ "GET /v1/admin/fairness/appeals": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "fairness.appeals.decide"
+ },
+ "GET /v1/admin/geolocation-exports": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.read"
+ },
+ "GET /v1/admin/geolocation-exports/:id/file": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.read"
+ },
+ "GET /v1/admin/incidents": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "incidents.read"
+ },
+ "GET /v1/admin/incidents/:id/privacy-breach": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "privacy.incidents.manage"
+ },
+ "GET /v1/admin/incidents/privacy-register.csv": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "privacy.incidents.export"
+ },
+ "GET /v1/admin/invoices": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "invoices.read"
+ },
+ "GET /v1/admin/invoices/:id/pdf": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "invoices.read"
+ },
+ "GET /v1/admin/leads": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "leads.read"
+ },
+ "GET /v1/admin/ledgers/drivers/:driverId/tax-report": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.read"
+ },
+ "GET /v1/admin/ledgers/exports": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.read"
+ },
+ "GET /v1/admin/ledgers/months": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.read"
+ },
+ "GET /v1/admin/ledgers/summaries/:type/:period": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.read"
+ },
+ "GET /v1/admin/ledgers/summaries/:type/:period/pdf": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.read"
+ },
+ "GET /v1/admin/metrics": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "metrics.read"
+ },
+ "GET /v1/admin/packs": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "offers.read"
+ },
+ "GET /v1/admin/pricing/benchmarks": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "pricing.read"
+ },
+ "GET /v1/admin/pricing/rules": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "pricing.read"
+ },
+ "GET /v1/admin/pricing/zones": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "pricing.read"
+ },
+ "GET /v1/admin/promotions": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "offers.read"
+ },
+ "GET /v1/admin/quality": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "quality.read"
+ },
+ "GET /v1/admin/queues": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "queues.read"
+ },
+ "GET /v1/admin/queues/:name/failed": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "queues.read"
+ },
+ "GET /v1/admin/reports": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "reports.read"
+ },
+ "GET /v1/admin/reports.csv": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "reports.read"
+ },
+ "GET /v1/admin/retention/jobs": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "retention.read"
+ },
+ "GET /v1/admin/rides": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "rides.read"
+ },
+ "GET /v1/admin/rides/:id": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "rides.read"
+ },
+ "GET /v1/admin/rides/:id/dispatch": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "rides.read"
+ },
+ "GET /v1/admin/rides/:id/events": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "rides.read"
+ },
+ "GET /v1/admin/rides/:id/messages": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "rides.read"
+ },
+ "GET /v1/admin/rides/:id/payments": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "rides.read"
+ },
+ "GET /v1/admin/rides/:id/summary": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "rides.read"
+ },
+ "GET /v1/admin/rides/stuck": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "rides.read"
+ },
+ "GET /v1/admin/settings": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "settings.read"
+ },
+ "GET /v1/admin/sev/status": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "invoices.read"
+ },
+ "GET /v1/admin/staff": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "staff.manage"
+ },
+ "GET /v1/admin/statements": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "statements.read"
+ },
+ "GET /v1/admin/statements/:id": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "statements.read"
+ },
+ "GET /v1/admin/statements/:id/pdf": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "statements.read"
+ },
+ "GET /v1/admin/tariffs": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "pricing.read"
+ },
+ "GET /v1/admin/vehicles": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "vehicles.read"
+ },
+ "GET /v1/admin/zones": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "pricing.read"
+ },
+ "GET /v1/driver/compliance": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/connect/status": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/documents": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/earnings": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/home": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/loyal-clients": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/offers": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/onboarding": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/packs": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/payout": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/profile": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/rides": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/rides/:id": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/sanctions": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/scheduled": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/score": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/statements": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/statements/:id": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/statements/:id/pdf": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/status": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/tax-report": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/training": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/vehicle-models": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/driver/vehicles": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "GET /v1/internal/agents/runs": {
+  "roles": [
+   "admin",
+   "agent",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "agents.runs.read"
+ },
+ "PATCH /v1/admin/agents/:code": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "agents.settings.edit"
+ },
+ "PATCH /v1/admin/leads/:id": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "leads.manage"
+ },
+ "PATCH /v1/admin/settings/:key": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "settings.edit"
+ },
+ "PATCH /v1/driver/packs/:id": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "PATCH /v1/driver/profile": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/admin/api-keys": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "api_keys.manage"
+ },
+ "POST /v1/admin/approvals/:id/decide": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "approvals.decide"
+ },
+ "POST /v1/admin/clients/:id/notes": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "clients.notes.write"
+ },
+ "POST /v1/admin/compliance/run": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "compliance.run"
+ },
+ "POST /v1/admin/compliance/vehicles/:id/inspections": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "vehicles.inspections.record"
+ },
+ "POST /v1/admin/conversations/:id/messages": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "conversations.reply"
+ },
+ "POST /v1/admin/documents/:id/review": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "documents.review"
+ },
+ "POST /v1/admin/drivers/:id/activate": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "drivers.activate"
+ },
+ "POST /v1/admin/drivers/:id/notes": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "drivers.notes.write"
+ },
+ "POST /v1/admin/drivers/:id/programs": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "drivers.programs.manage"
+ },
+ "POST /v1/admin/drivers/:id/reactivate": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "drivers.activate"
+ },
+ "POST /v1/admin/drivers/:id/sanctions": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "drivers.sanctions.apply"
+ },
+ "POST /v1/admin/drivers/:id/suspend": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "drivers.suspend"
+ },
+ "POST /v1/admin/fairness/appeals/:id/decide": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "fairness.appeals.decide"
+ },
+ "POST /v1/admin/geolocation-exports": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.manage"
+ },
+ "POST /v1/admin/incidents": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "incidents.create"
+ },
+ "POST /v1/admin/incidents/:id/decide": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "incidents.decide"
+ },
+ "POST /v1/admin/incidents/:id/guarantee": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "incidents.decide"
+ },
+ "POST /v1/admin/ledgers/redevance/remit": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.manage"
+ },
+ "POST /v1/admin/ledgers/summaries": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "ledgers.manage"
+ },
+ "POST /v1/admin/payments/webhooks/retry": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "payments.webhooks.retry"
+ },
+ "POST /v1/admin/pricing/benchmarks": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "pricing.benchmarks.manage"
+ },
+ "POST /v1/admin/pricing/rules/refresh": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "pricing.edit"
+ },
+ "POST /v1/admin/pricing/simulate": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator",
+   "readonly"
+  ],
+  "permission": "pricing.read"
+ },
+ "POST /v1/admin/quality/run": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "quality.run"
+ },
+ "POST /v1/admin/queues/:name/retry": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "queues.retry"
+ },
+ "POST /v1/admin/ratings/:id/exclude": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "fairness.appeals.decide"
+ },
+ "POST /v1/admin/retention/backup-verified": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "retention.run"
+ },
+ "POST /v1/admin/retention/run": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "retention.run"
+ },
+ "POST /v1/admin/rides": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "rides.create"
+ },
+ "POST /v1/admin/rides/:id/assign": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "rides.assign"
+ },
+ "POST /v1/admin/rides/:id/cancel": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "rides.cancel"
+ },
+ "POST /v1/admin/rides/:id/hold": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "rides.hold"
+ },
+ "POST /v1/admin/rides/:id/interrupt": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "rides.interrupt"
+ },
+ "POST /v1/admin/rides/:id/messages": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "rides.messages.write"
+ },
+ "POST /v1/admin/rides/:id/reassign": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "rides.reassign"
+ },
+ "POST /v1/admin/rides/:id/refund": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator"
+  ],
+  "permission": "refunds.create"
+ },
+ "POST /v1/admin/rides/:id/release": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "rides.reassign"
+ },
+ "POST /v1/admin/rides/dispatch/tick": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "dispatch.run"
+ },
+ "POST /v1/admin/rides/scheduled/tick": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "dispatch.run"
+ },
+ "POST /v1/admin/sev/retry/:invoiceId": {
+  "roles": [
+   "admin",
+   "finance",
+   "operator"
+  ],
+  "permission": "invoices.sev.retry"
+ },
+ "POST /v1/admin/staff": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "staff.manage"
+ },
+ "POST /v1/admin/staff/:id/mfa/reset": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "staff.manage"
+ },
+ "POST /v1/admin/staff/:id/password": {
+  "roles": [
+   "admin"
+  ],
+  "permission": "staff.manage"
+ },
+ "POST /v1/admin/statements/:id/adjust": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "statements.manage"
+ },
+ "POST /v1/admin/statements/:id/issue": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "statements.manage"
+ },
+ "POST /v1/admin/statements/:id/pay": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "statements.manage"
+ },
+ "POST /v1/admin/statements/:id/settle-offline": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "statements.manage"
+ },
+ "POST /v1/admin/statements/generate": {
+  "roles": [
+   "admin",
+   "finance"
+  ],
+  "permission": "statements.manage"
+ },
+ "POST /v1/admin/tariffs": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "pricing.edit"
+ },
+ "POST /v1/admin/vehicles/:id/review": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "vehicles.review"
+ },
+ "POST /v1/driver/connect/onboarding-link": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/documents": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/location": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/locations": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/offers/:id/accept": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/offers/:id/counter": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/offers/:id/decline": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/packs/activate": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/payment-method": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/payment-method/confirm": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/arrive": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/cancel": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/complete": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/contact": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/depart": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/incident": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/no-show": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/payment-received": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/rate": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/rides/:id/start": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/sanctions/:id/appeals": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/scheduled/:id/claim": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/scheduled/:id/confirm": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/scheduled/:id/decline": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/shifts/start": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/status": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/training/:code/submit": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/driver/vehicles": {
+  "roles": [
+   "driver"
+  ],
+  "permission": "driver.app"
+ },
+ "POST /v1/internal/agents/:code/run": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.run"
+ },
+ "POST /v1/internal/tools/compareIdentity": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/escalateToHuman": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/extractDocumentFields": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/flagAnomaly": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/issueCredit": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/listStatementLines": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/lookupClient": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/lookupDriver": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/lookupRide": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/openIncident": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/proposeDecision": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/queryMetrics": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/refund": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "POST /v1/internal/tools/sendMessage": {
+  "roles": [
+   "admin",
+   "agent",
+   "operator"
+  ],
+  "permission": "agents.tools"
+ },
+ "PUT /v1/admin/incidents/:id/privacy-breach": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "privacy.incidents.manage"
+ },
+ "PUT /v1/admin/zones/:code": {
+  "roles": [
+   "admin",
+   "operator"
+  ],
+  "permission": "zones.edit"
+ }
+}

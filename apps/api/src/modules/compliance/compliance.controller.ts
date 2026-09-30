@@ -12,7 +12,7 @@ import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { CurrentUser, NoAudit, Roles, STAFF_READ_ROLES, STAFF_WRITE_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
 import { ComplianceService } from './compliance.service.js';
 
 const localDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -43,7 +43,7 @@ export class AdminComplianceController {
   constructor(private readonly compliance: ComplianceService) {}
 
   @Get()
-  @Roles(...STAFF_READ_ROLES)
+  @Can('compliance.read')
   @NoAudit()
   @ApiOperation({ summary: 'Échéances de conformité des chauffeurs et des véhicules, dépassées d\'abord' })
   @ZodQuery(listQuerySchema)
@@ -54,7 +54,7 @@ export class AdminComplianceController {
   }
 
   @Post('run')
-  @Roles('admin')
+  @Can('compliance.run')
   @HttpCode(200)
   @ApiOperation({ summary: 'Passe de conformité immédiate (rappels, suspensions, levées), normalement quotidienne' })
   @ZodResponse(200, runReportSchema)
@@ -64,7 +64,7 @@ export class AdminComplianceController {
   }
 
   @Post('vehicles/:id/inspections')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('vehicles.inspections.record')
   @HttpCode(200)
   @ApiOperation({ summary: 'Inspection trimestrielle de Neomoov : réussie (prochaine dans 3 mois) ou échouée (véhicule non conforme)' })
   @ZodBody(inspectionInputSchema)
@@ -77,7 +77,7 @@ export class AdminComplianceController {
 
 @ApiTags('driver')
 @ApiBearerAuth()
-@Roles('driver')
+@Can('driver.app')
 @Controller('driver/compliance')
 export class DriverComplianceController {
   constructor(

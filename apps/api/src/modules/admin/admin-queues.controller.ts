@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { QUEUE_NAMES, QueueService, type QueueName } from '../../infra/queue.module.js';
-import { NoAudit, Roles, STAFF_READ_ROLES, STAFF_WRITE_ROLES } from '../auth/actor.js';
+import { Can, NoAudit } from '../auth/actor.js';
 
 const queueName = z.enum(QUEUE_NAMES);
 const statsSchema = z.object({ mode: z.enum(['redis', 'memory']), queues: z.array(z.object({ name: z.string(), waiting: z.number().int(), active: z.number().int(), failed: z.number().int(), dropped: z.number().int().optional() })) });
@@ -22,7 +22,7 @@ export class AdminQueuesController {
   constructor(private readonly queues: QueueService) {}
 
   @Get()
-  @Roles(...STAFF_READ_ROLES)
+  @Can('queues.read')
   @NoAudit()
   @ApiOperation({ summary: 'État des files de tâches (en attente, en cours, en échec ; perdues en mode mémoire)' })
   @ZodResponse(200, statsSchema)
@@ -32,7 +32,7 @@ export class AdminQueuesController {
   }
 
   @Get(':name/failed')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('queues.read')
   @NoAudit()
   @ApiOperation({ summary: 'Tâches en échec d\'une file, avec leur motif (les 50 plus récentes)' })
   @ZodResponse(200, failedSchema)
@@ -42,7 +42,7 @@ export class AdminQueuesController {
   }
 
   @Post(':name/retry')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('queues.retry')
   @HttpCode(200)
   @ApiOperation({ summary: 'Relance une tâche en échec, ou toutes celles de la file' })
   @ZodBody(retrySchema)

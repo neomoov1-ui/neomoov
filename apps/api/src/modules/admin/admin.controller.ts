@@ -19,7 +19,7 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { CurrentUser, NoAudit, Roles, STAFF_READ_ROLES, STAFF_WRITE_ROLES, type UserActor } from '../auth/actor.js';
+import { Can, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
 import { RidesService } from '../rides/rides.service.js';
 import { AdminDirectoryService } from './admin-directory.service.js';
 import { AdminDriversService } from './admin-drivers.service.js';
@@ -40,7 +40,7 @@ export class AdminOverviewController {
   ) {}
 
   @Get('dashboard')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('dashboard.read')
   @NoAudit()
   @ApiOperation({ summary: 'Tableau de bord : compteurs, flotte en ligne, alertes, planifiées non confirmées, revenus du jour' })
   @ZodResponse(200, adminDashboardSchema)
@@ -50,7 +50,7 @@ export class AdminOverviewController {
   }
 
   @Get('rides')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('rides.read')
   @NoAudit()
   @ApiOperation({ summary: 'Courses : ouvertes par urgence (répartition), planifiées à venir ou récentes ; recherche par numéro, adresse, nom, téléphone' })
   @ZodQuery(adminRideListQuerySchema)
@@ -61,7 +61,7 @@ export class AdminOverviewController {
   }
 
   @Get('rides/:id/summary')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('rides.read')
   @NoAudit()
   @ApiOperation({ summary: 'En-tête d\'une course pour My Hub : numéro public, client (téléphone masqué), chauffeur, prix' })
   @ZodResponse(200, adminRideListItemSchema)
@@ -71,7 +71,7 @@ export class AdminOverviewController {
   }
 
   @Post('rides/:id/cancel')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('rides.cancel')
   @HttpCode(200)
   @ApiOperation({ summary: 'Annulation par l\'opérateur (au nom du client) ; frais d\'annulation seulement si demandé' })
   @ZodBody(adminCancelRideSchema)
@@ -82,7 +82,7 @@ export class AdminOverviewController {
   }
 
   @Post('rides/:id/interrupt')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('rides.interrupt')
   @HttpCode(200)
   @ApiOperation({ summary: 'Interruption d\'une course en cours (accident, chauffeur injoignable) : incident ouvert, autorisation levée, aucune facture automatique' })
   @ZodBody(adminInterruptRideSchema)
@@ -93,7 +93,7 @@ export class AdminOverviewController {
   }
 
   @Get('reports')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('reports.read')
   @NoAudit()
   @ApiOperation({ summary: 'Rapport d\'une période (jours de Montréal) : volumes, revenus, taux d\'annulation et d\'absence de chauffeur, note' })
   @ZodQuery(reportQuerySchema)
@@ -104,7 +104,7 @@ export class AdminOverviewController {
   }
 
   @Get('reports.csv')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('reports.read')
   @Header('content-type', 'text/csv; charset=utf-8')
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export CSV du rapport quotidien' })
@@ -123,7 +123,7 @@ export class AdminDriversController {
   constructor(private readonly drivers: AdminDriversService) {}
 
   @Get('drivers')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('drivers.read')
   @NoAudit()
   @ApiOperation({ summary: 'Chauffeurs : dossiers à traiter d\'abord ; filtre par statut, recherche par nom, téléphone, numéro' })
   @ZodQuery(adminListQuerySchema)
@@ -134,7 +134,7 @@ export class AdminDriversController {
   }
 
   @Get('drivers/:id')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('drivers.read')
   @ApiOperation({ summary: 'Fiche complète : identité (masquée), véhicules, documents, notes, sanctions, statistiques' })
   @ZodResponse(200, adminDriverDetailSchema)
   @ApiErrors(401, 403, 404, 429)
@@ -143,7 +143,7 @@ export class AdminDriversController {
   }
 
   @Post('drivers/:id/activate')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('drivers.activate')
   @HttpCode(200)
   @ApiOperation({ summary: 'Valide le dossier : le chauffeur est actif' })
   @ZodResponse(200, adminDriverDetailSchema)
@@ -153,7 +153,7 @@ export class AdminDriversController {
   }
 
   @Post('drivers/:id/suspend')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('drivers.suspend')
   @HttpCode(200)
   @ApiOperation({ summary: 'Suspend le chauffeur (motif obligatoire) : hors ligne immédiatement' })
   @ZodBody(driverSuspendSchema)
@@ -164,7 +164,7 @@ export class AdminDriversController {
   }
 
   @Post('drivers/:id/reactivate')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('drivers.activate')
   @HttpCode(200)
   @ApiOperation({ summary: 'Réactive le chauffeur : fin des suspensions en cours (décision humaine)' })
   @ZodResponse(200, adminDriverDetailSchema)
@@ -174,7 +174,7 @@ export class AdminDriversController {
   }
 
   @Post('drivers/:id/programs')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('drivers.programs.manage')
   @HttpCode(200)
   @ApiOperation({ summary: 'Programmes du chauffeur : locataire R-LuxeEV (pack Découverte offert)' })
   @ZodBody(driverProgramsSchema)
@@ -185,7 +185,7 @@ export class AdminDriversController {
   }
 
   @Post('drivers/:id/sanctions')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('drivers.sanctions.apply')
   @HttpCode(200)
   @ApiOperation({ summary: 'Sanction graduée (avertissement, restriction, suspension), motivée' })
   @ZodBody(sanctionInputSchema)
@@ -196,7 +196,7 @@ export class AdminDriversController {
   }
 
   @Post('drivers/:id/notes')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('drivers.notes.write')
   @HttpCode(201)
   @ApiOperation({ summary: 'Note interne sur le chauffeur (jamais visible de lui)' })
   @ZodBody(staffNoteInputSchema)
@@ -207,7 +207,7 @@ export class AdminDriversController {
   }
 
   @Get('documents')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('documents.read')
   @NoAudit()
   @ApiOperation({ summary: 'File de revue des documents (en attente par défaut, les plus anciens d\'abord)' })
   @ZodQuery(adminListQuerySchema)
@@ -218,7 +218,7 @@ export class AdminDriversController {
   }
 
   @Get('documents/:id/content')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('documents.content.read')
   @ApiProduces('image/jpeg', 'image/png', 'image/webp', 'application/pdf')
   @ApiOperation({ summary: 'Fichier du document pour la visionneuse (stockage privé, consultation journalisée)' })
   @ApiErrors(401, 403, 404, 429)
@@ -230,7 +230,7 @@ export class AdminDriversController {
   }
 
   @Post('documents/:id/review')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('documents.review')
   @HttpCode(200)
   @ApiOperation({ summary: 'Revue humaine : approbation (échéance lue sur le document) ou refus motivé' })
   @ZodBody(documentReviewSchema)
@@ -241,7 +241,7 @@ export class AdminDriversController {
   }
 
   @Get('vehicles')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('vehicles.read')
   @NoAudit()
   @ApiOperation({ summary: 'Véhicules : à inspecter d\'abord ; recherche par plaque, modèle, numéro de chauffeur' })
   @ZodQuery(adminListQuerySchema)
@@ -252,7 +252,7 @@ export class AdminDriversController {
   }
 
   @Post('vehicles/:id/review')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('vehicles.review')
   @HttpCode(200)
   @ApiOperation({ summary: 'Inspection du véhicule : actif (prochaine échéance), non conforme ou retiré' })
   @ZodBody(vehicleReviewSchema)
@@ -273,7 +273,7 @@ export class AdminDirectoryController {
   ) {}
 
   @Get('clients')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('clients.read')
   @NoAudit()
   @ApiOperation({ summary: 'Clients (coordonnées masquées), recherche par nom, téléphone, courriel' })
   @ZodQuery(adminListQuerySchema)
@@ -284,7 +284,7 @@ export class AdminDirectoryController {
   }
 
   @Post('clients/:id/notes')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('clients.notes.write')
   @HttpCode(201)
   @ApiOperation({ summary: 'Note interne sur le client' })
   @ZodBody(staffNoteInputSchema)
@@ -295,7 +295,7 @@ export class AdminDirectoryController {
   }
 
   @Get('incidents')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('incidents.read')
   @NoAudit()
   @ApiOperation({ summary: 'Incidents (ouverts d\'abord, par gravité) ; `status=privacy` : registre des incidents de confidentialité' })
   @ZodQuery(adminListQuerySchema)
@@ -306,7 +306,7 @@ export class AdminDirectoryController {
   }
 
   @Post('incidents/:id/decide')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('incidents.decide')
   @HttpCode(200)
   @ApiOperation({ summary: 'Décision sur un incident : instruction, décision motivée, clôture' })
   @ZodBody(incidentDecisionSchema)
@@ -317,7 +317,7 @@ export class AdminDirectoryController {
   }
 
   @Get('settings')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('settings.read')
   @NoAudit()
   @ApiOperation({ summary: 'Réglages d\'exploitation (valeurs, descriptions)' })
   @ZodResponse(200, z.array(adminSettingSchema))
@@ -327,7 +327,7 @@ export class AdminDirectoryController {
   }
 
   @Patch('settings/:key')
-  @Roles('admin')
+  @Can('settings.edit')
   @ApiOperation({ summary: 'Modifie un réglage (même type de valeur) ; effectif au plus une minute plus tard' })
   @ZodBody(settingUpdateSchema)
   @ZodResponse(200, adminSettingSchema)
@@ -337,7 +337,7 @@ export class AdminDirectoryController {
   }
 
   @Get('staff')
-  @Roles('admin')
+  @Can('staff.manage')
   @ApiOperation({ summary: 'Personnel : rôles, second facteur inscrit' })
   @ZodResponse(200, z.array(adminStaffSchema))
   @ApiErrors(401, 403, 429)
@@ -346,7 +346,7 @@ export class AdminDirectoryController {
   }
 
   @Get('data-requests')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('privacy.requests.read')
   @NoAudit()
   @ApiOperation({ summary: 'Demandes de droits (Loi 25) : échéance à 30 jours, en retard signalées' })
   @ZodQuery(adminListQuerySchema)
@@ -357,7 +357,7 @@ export class AdminDirectoryController {
   }
 
   @Get('leads')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('leads.read')
   @NoAudit()
   @ApiOperation({ summary: 'Prospects reçus du web et de WordPress (préinscriptions de chauffeurs, entreprises, partenaires)' })
   @ZodQuery(adminListQuerySchema)
@@ -368,7 +368,7 @@ export class AdminDirectoryController {
   }
 
   @Patch('leads/:id')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('leads.manage')
   @ApiOperation({ summary: 'Suivi d\'un prospect : contacté, converti, écarté' })
   @ZodBody(leadStatusSchema)
   @ApiErrors(400, 401, 403, 404, 429)
@@ -377,7 +377,7 @@ export class AdminDirectoryController {
   }
 
   @Get('packs')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('offers.read')
   @NoAudit()
   @ApiOperation({ summary: 'Catalogue des packs' })
   @ZodResponse(200, z.array(packSchema))
@@ -387,7 +387,7 @@ export class AdminDirectoryController {
   }
 
   @Get('promotions')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('offers.read')
   @NoAudit()
   @ApiOperation({ summary: 'Promotions (budget consommé, validité)' })
   @ZodResponse(200, z.array(adminPromotionSchema))
@@ -397,7 +397,7 @@ export class AdminDirectoryController {
   }
 
   @Get('invoices')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('invoices.read')
   @NoAudit()
   @ApiOperation({ summary: 'Factures et état de transmission au SEV' })
   @ZodQuery(adminListQuerySchema)
@@ -408,7 +408,7 @@ export class AdminDirectoryController {
   }
 
   @Get('statements')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('statements.read')
   @NoAudit()
   @ApiOperation({ summary: 'Relevés hebdomadaires de tous les chauffeurs (génération : étape 9)' })
   @ZodQuery(adminListQuerySchema)
@@ -419,7 +419,7 @@ export class AdminDirectoryController {
   }
 
   @Get('tariffs')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('pricing.read')
   @NoAudit()
   @ApiOperation({ summary: 'Grilles tarifaires par catégorie, avec leurs dates d\'entrée en vigueur (historique compris)' })
   @ZodResponse(200, z.array(pricingRuleSchema))
@@ -429,7 +429,7 @@ export class AdminDirectoryController {
   }
 
   @Post('tariffs')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('pricing.edit')
   @HttpCode(201)
   @ApiOperation({ summary: 'Nouvelle grille d\'une catégorie avec sa date d\'entrée en vigueur (jamais passée)' })
   @ZodBody(pricingRuleInputSchema)
@@ -440,7 +440,7 @@ export class AdminDirectoryController {
   }
 
   @Get('zones')
-  @Roles(...STAFF_READ_ROLES)
+  @Can('pricing.read')
   @NoAudit()
   @ApiOperation({ summary: 'Zones avec leur polygone (éditeur sur carte)' })
   @ZodResponse(200, z.array(geometrySchema))
@@ -450,7 +450,7 @@ export class AdminDirectoryController {
   }
 
   @Put('zones/:code')
-  @Roles(...STAFF_WRITE_ROLES)
+  @Can('zones.edit')
   @ApiOperation({ summary: 'Modifie le polygone d\'une zone : fermé, sans auto-intersection, dans les bornes (validé avant enregistrement)' })
   @ZodBody(zoneUpdateSchema)
   @ZodResponse(200, geometrySchema)
