@@ -100,3 +100,38 @@ export type InvitationCreate = z.infer<typeof invitationCreateSchema>;
 export const invitationCreatedSchema = z.object({ id: uuid, token: z.string(), expiresAt: isoDate });
 
 export const invitationAcceptSchema = z.object({ token: z.string().trim().min(20).max(200) });
+
+// --- Étape 20 : routes d'organisation (`/v1/org/:organizationId`) et sélecteur d'organisation de l'application unique ---
+
+/** Une adhésion active de l'utilisateur connecté, avec l'organisation et le rôle (sélecteur d'organisation). */
+export const myOrganizationSchema = z.object({
+  membershipId: uuid,
+  organizationId: uuid,
+  code: z.string(),
+  name: z.string(),
+  type: z.enum(ORGANIZATION_TYPES),
+  path: z.string(),
+  organizationStatus: z.enum(ORGANIZATION_STATUSES),
+  roleId: uuid,
+  roleCode: z.string(),
+  roleName: z.string(),
+  scope: z.enum(MEMBERSHIP_SCOPES),
+  status: z.enum(MEMBERSHIP_STATUSES),
+  expiresAt: isoDate.nullable(),
+});
+export type MyOrganization = z.infer<typeof myOrganizationSchema>;
+
+/** Fiche d'une organisation vue par un membre : permissions effectives de l'appelant, modules actifs. */
+export const organizationHomeSchema = z.object({
+  organization: organizationSchema,
+  /** Permissions de l'appelant dans cette organisation (rôles de ses adhésions, modules de la formule, double authentification). */
+  permissions: z.array(z.string()),
+  /** Modules actifs ; sans restriction (`modulesRestricted` faux), tous les modules du catalogue. */
+  modules: z.array(z.string()),
+  modulesRestricted: z.boolean(),
+});
+export type OrganizationHome = z.infer<typeof organizationHomeSchema>;
+
+/** Rôle personnalisé créé par une route d'organisation : l'organisation est celle de la route, jamais celle du corps. */
+export const orgRoleCreateSchema = roleCreateSchema.omit({ organizationId: true });
+export type OrgRoleCreate = z.infer<typeof orgRoleCreateSchema>;

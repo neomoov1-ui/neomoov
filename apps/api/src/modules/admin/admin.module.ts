@@ -17,6 +17,7 @@ import { AdminOverviewService } from './admin-overview.service.js';
   imports: [RidesModule, PricingModule, ComplianceModule],
   controllers: [AdminOverviewController, AdminDriversController, AdminDirectoryController, AdminIncidentsController, AdminQueuesController, AdminMetricsController, InternalMetricsController],
   providers: [AdminOverviewService, AdminDriversService, AdminDirectoryService, AdminIncidentsService, AdminMetricsService],
-  exports: [AdminOverviewService],
+  // Étape 20 : les routes d'organisation réutilisent les services de My Hub sous une transaction restreinte.
+  exports: [AdminOverviewService, AdminDriversService, AdminDirectoryService],
 })
 export class AdminModule {}

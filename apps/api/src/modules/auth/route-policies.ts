@@ -8,7 +8,7 @@ import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants.js';
 import { RequestMethod } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { LEGACY_ROLE_PERMISSIONS, type UserRole } from '@neomoov/domain';
-import { AUTHENTICATED_KEY, CAN_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, type OwnsOptions } from './actor.js';
+import { AUTHENTICATED_KEY, CAN_KEY, ORG_SCOPED_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, type OrgScopedOptions, type OwnsOptions } from './actor.js';
 
 /** Anciens rôles, dans l'ordre d'affichage : ceux dont la correspondance contient une des permissions de la route. */
 const LEGACY_ORDER: UserRole[] = ['admin', 'operator', 'finance', 'readonly', 'agent', 'driver'];
@@ -26,10 +26,12 @@ export interface RoutePolicy {
   authenticated: boolean;
   /** Permissions exigées (`@Can`), une seule suffit. */
   permissions: string[];
-  /** Rôles admis : ceux de `@Roles`, ou les anciens rôles qui portent une des permissions de `@Can`. */
+  /** Rôles admis : ceux de `@Roles`, ou les anciens rôles qui portent une des permissions de `@Can` ; aucun sur une route d'organisation. */
   roles: UserRole[];
   scopes: string[];
   owns: OwnsOptions | null;
+  /** Route d'organisation (étape 20, `@OrgScoped`) : permissions évaluées dans l'organisation visée, jamais par les anciens rôles. */
+  orgScoped: boolean;
 }
 
 function joinPath(...parts: Array<string | undefined>): string {
@@ -63,6 +65,7 @@ export function listRoutePolicies(app: INestApplication, globalPrefix = 'v1'): R
       for (const base of basePaths) {
         for (const p of paths) {
           const permissions = reflector.getAllAndOverride<string[]>(CAN_KEY, targets) ?? [];
+          const orgScoped = reflector.getAllAndOverride<OrgScopedOptions | undefined>(ORG_SCOPED_KEY, targets) !== undefined;
           policies.push({
             method: RequestMethod[method] ?? String(method),
             path: joinPath(globalPrefix, base, p),
@@ -71,9 +74,10 @@ export function listRoutePolicies(app: INestApplication, globalPrefix = 'v1'): R
             public: reflector.getAllAndOverride<boolean>(PUBLIC_KEY, targets) === true,
             authenticated: reflector.getAllAndOverride<boolean>(AUTHENTICATED_KEY, targets) === true,
             permissions,
-            roles: permissions.length ? legacyRolesFor(permissions) : (reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, targets) ?? []),
+            roles: orgScoped ? [] : permissions.length ? legacyRolesFor(permissions) : (reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, targets) ?? []),
             scopes: reflector.getAllAndOverride<string[]>(SCOPES_KEY, targets) ?? [],
             owns: reflector.getAllAndOverride<OwnsOptions | undefined>(OWNS_KEY, targets) ?? null,
+            orgScoped,
           });
         }
       }
@@ -82,13 +86,18 @@ export function listRoutePolicies(app: INestApplication, globalPrefix = 'v1'): R
   return policies.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
 }
 
-/** Refus par défaut : une route sans `@Public`, `@Authenticated`, `@Can`, `@Roles` ni `@Scopes` empêche le démarrage. */
-export function assertRoutePolicies(app: INestApplication): RoutePolicy[] {
-  const policies = listRoutePolicies(app);
+const describe = (routes: RoutePolicy[]) => routes.map((p) => `${p.method} ${p.path} (${p.controller}.${p.handler})`).join(', ');
+
+/**
+ * Refus par défaut : une route sans `@Public`, `@Authenticated`, `@Can`, `@Roles` ni `@Scopes` empêche le démarrage ; de
+ * même une route d'organisation (`@OrgScoped`, ou tout chemin sous `/v1/org/`) sans `@Can` (étape 20).
+ */
+export function assertRoutePolicies(app: INestApplication, globalPrefix = 'v1'): RoutePolicy[] {
+  const policies = listRoutePolicies(app, globalPrefix);
   const missing = policies.filter((p) => !p.public && !p.authenticated && !p.permissions.length && !p.roles.length && !p.scopes.length);
-  if (missing.length) {
-    const list = missing.map((p) => `${p.method} ${p.path} (${p.controller}.${p.handler})`).join(', ');
-    throw new Error(`Routes sans politique d'accès (refus par défaut) : ${list}`);
-  }
+  if (missing.length) throw new Error(`Routes sans politique d'accès (refus par défaut) : ${describe(missing)}`);
+  const orgPrefix = `/${globalPrefix}/org/`;
+  const unscoped = policies.filter((p) => (p.orgScoped && !p.permissions.length) || (p.path.startsWith(orgPrefix) && !p.orgScoped));
+  if (unscoped.length) throw new Error(`Routes d'organisation sans @OrgScoped ou sans @Can (refus par défaut) : ${describe(unscoped)}`);
   return policies;
 }
