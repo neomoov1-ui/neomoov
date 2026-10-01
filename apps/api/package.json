@@ -23,7 +23,8 @@
     "create-staff": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/create-staff.js",
     "fields:encrypt": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/encrypt-fields.js",
     "seed:e2e": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/seed-e2e.js",
-    "load:fixtures": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/load-fixtures.js"
+    "load:fixtures": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/load-fixtures.js",
+    "crm:setup": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/crm-setup.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.128.0",

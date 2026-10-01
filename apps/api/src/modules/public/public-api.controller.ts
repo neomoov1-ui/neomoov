@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { MAPS_PROVIDER, type MapsProvider } from '../../adapters/types.js';
 import { AntiBotService } from '../../common/anti-bot.service.js';
 import { AppError } from '../../common/app-error.js';
+import { DomainEventsService } from '../../common/domain-events.js';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
@@ -33,6 +34,7 @@ export class PublicApiController {
     private readonly rateLimit: RateLimitService,
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
+    private readonly events: DomainEventsService,
     @Inject(MAPS_PROVIDER) private readonly maps: MapsProvider,
   ) {}
 
@@ -62,6 +64,8 @@ export class PublicApiController {
       })
       .returning({ id: schema.leads.id });
     this.audit.record({ action: 'public.lead_received', entity: 'leads', entityId: row!.id, after: { kind: body.kind, source } });
+    // CRM (étape 25) : synchronisation asynchrone, avec le consentement donné par le formulaire.
+    this.events.emit('lead.created', { leadId: row!.id, kind: body.kind, consent: true });
     return { id: row!.id, status: 'received' as const };
   }
 

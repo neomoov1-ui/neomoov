@@ -60,6 +60,11 @@ export const envSchema = z.object({
   VIRUS_SCANNER_PROVIDER: providerMode,
   CLAMAV_HOST: optionalString,
   CLAMAV_PORT: z.coerce.number().int().min(1).max(65_535).default(3310),
+  /** CRM (étape 25) : simulé, ou HubSpot réel par jeton d'application privée (`HUBSPOT_ACCESS_TOKEN`). */
+  CRM_PROVIDER: providerMode,
+  HUBSPOT_ACCESS_TOKEN: optionalString,
+  /** Numéro de compte HubSpot (Hub ID), facultatif et non secret : liens affichés par `crm:setup`. */
+  HUBSPOT_PORTAL_ID: optionalString,
   // Vérification des jetons Apple et Google : simulée (jetons « mock-apple:<sujet>:<courriel> ») ou réelle (JWKS des fournisseurs).
   SOCIAL_LOGIN_PROVIDER: providerMode,
   /**
@@ -153,11 +158,11 @@ export const envSchema = z.object({
 
 export type AppEnv = z.infer<typeof envSchema>;
 
-type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER';
+type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER' | 'CRM_PROVIDER';
 /** Nom court de chaque fournisseur dans `ALLOW_MOCK_PROVIDERS`. */
 const PROVIDER_ALIASES: Record<ProviderKey, string> = {
   PAYMENT_PROVIDER: 'payment', MAPS_PROVIDER: 'maps', SMS_PROVIDER: 'sms', EMAIL_PROVIDER: 'email', PUSH_PROVIDER: 'push', WHATSAPP_PROVIDER: 'whatsapp',
-  VOICE_PROVIDER: 'voice', LLM_PROVIDER: 'llm', SEV_PROVIDER: 'sev', STORAGE_PROVIDER: 'storage', VIRUS_SCANNER_PROVIDER: 'antivirus',
+  VOICE_PROVIDER: 'voice', LLM_PROVIDER: 'llm', SEV_PROVIDER: 'sev', STORAGE_PROVIDER: 'storage', VIRUS_SCANNER_PROVIDER: 'antivirus', CRM_PROVIDER: 'crm',
 };
 const MOCKABLE_PROVIDERS = (Object.keys(PROVIDER_ALIASES) as ProviderKey[]).map((key) => [PROVIDER_ALIASES[key], key] as const);
 

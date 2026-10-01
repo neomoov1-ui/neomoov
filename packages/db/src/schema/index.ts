@@ -13,3 +13,4 @@ export * from './partners.js';
 export * from './agents.js';
 export * from './backoffice.js';
 export * from './access.js';
+export * from './crm.js';

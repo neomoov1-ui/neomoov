@@ -10,11 +10,12 @@
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { AppEnv } from '../../config/env.js';
-import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
+import type { CrmProvider, EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
 import { AnthropicLlmProvider } from './anthropic.js';
 import { ClamAvScanner } from './clamav.js';
 import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
+import { HubSpotCrmProvider } from './hubspot.real.js';
 import { ResendEmailProvider } from './resend.js';
 import { S3StorageProvider } from './s3.js';
 import { StripePaymentProvider } from './stripe.js';
@@ -127,4 +128,9 @@ export const realStorage = (env: AppEnv): StorageProvider => {
   }
   for (const variable of ['R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_ACCOUNT_ID', 'R2_BUCKET'] as const) requireKey('stockage objet (S3 compatible ou R2)', variable, env);
   return new S3StorageProvider({ endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`, region: 'auto', bucket: env.R2_BUCKET!, accessKeyId: env.R2_ACCESS_KEY_ID!, secretAccessKey: env.R2_SECRET_ACCESS_KEY! });
+};
+/** CRM (étape 25) : HubSpot par jeton d'application privée ; le numéro de compte ne sert qu'aux liens de `crm:setup`. */
+export const realCrm = (env: AppEnv): CrmProvider => {
+  requireKey('CRM (HubSpot)', 'HUBSPOT_ACCESS_TOKEN', env);
+  return new HubSpotCrmProvider(env.HUBSPOT_ACCESS_TOKEN!, { portalId: env.HUBSPOT_PORTAL_ID ?? null });
 };

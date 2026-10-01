@@ -54,3 +54,8 @@ export { InvoicingModule } from './modules/invoicing/invoicing.module.js';
 export { InvoicingService } from './modules/invoicing/invoicing.service.js';
 export { SevService } from './modules/invoicing/sev.service.js';
 export { InvoiceJobsService } from './modules/invoicing/invoice-jobs.service.js';
+export { CrmModule } from './modules/crm/crm.module.js';
+export { CrmSyncService, type CrmEntityType, type CrmSyncOutcome } from './modules/crm/crm-sync.service.js';
+export { CrmJobsService } from './modules/crm/crm-jobs.service.js';
+export { HubSpotCrmProvider, type HubSpotSetupReport } from './adapters/real/hubspot.real.js';
+export * from './adapters/real/hubspot-model.js';
