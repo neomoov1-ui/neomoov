@@ -32063,6 +32063,165 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "logoUrl": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "colors": {
+                          "type": "object",
+                          "properties": {
+                            "primary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "secondary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "background": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "text": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "accent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            }
+                          },
+                          "required": [
+                            "primary",
+                            "secondary",
+                            "background",
+                            "text",
+                            "accent"
+                          ]
+                        },
+                        "tagline": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "texts": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        },
+                        "support": {
+                          "type": "object",
+                          "properties": {
+                            "phone": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "email": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "phone",
+                            "email"
+                          ]
+                        },
+                        "emailSender": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "address": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "address"
+                          ]
+                        },
+                        "smsSender": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "termsUrl": {
+                          "type": "string"
+                        },
+                        "privacyUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "displayName",
+                        "logoUrl",
+                        "colors",
+                        "tagline",
+                        "texts",
+                        "support",
+                        "emailSender",
+                        "smsSender",
+                        "termsUrl",
+                        "privacyUrl"
+                      ]
+                    },
+                    "organizations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "joinCode": {
+                            "type": "string"
+                          },
+                          "current": {
+                            "type": "boolean"
+                          },
+                          "brand": {
+                            "type": "object",
+                            "properties": {
+                              "displayName": {
+                                "type": "string"
+                              },
+                              "logoUrl": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "primary": {
+                                "type": "string",
+                                "pattern": "^#[0-9A-Fa-f]{6}$"
+                              }
+                            },
+                            "required": [
+                              "displayName",
+                              "logoUrl",
+                              "primary"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "joinCode",
+                          "current",
+                          "brand"
+                        ]
+                      }
+                    },
                     "features": {
                       "type": "object",
                       "properties": {
@@ -32256,6 +32415,8 @@
                     }
                   },
                   "required": [
+                    "brand",
+                    "organizations",
                     "features",
                     "booking",
                     "negotiation",
@@ -32296,7 +32457,7 @@
             }
           }
         },
-        "summary": "Configuration publique des applications : drapeaux distants (négociation…), préavis, annulation, catégories, assistance",
+        "summary": "Configuration publique des applications : drapeaux distants (négociation…), préavis, annulation, catégories, assistance ; avec un jeton, la marque de l'organisation de l'appelant et ses organisations (étape 22)",
         "tags": [
           "config"
         ]
@@ -82735,6 +82896,2285 @@
           }
         ],
         "summary": "Conversation en cours avec l'assistance (messages, état : ouverte ou reprise par l'équipe), ou null",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/public/brand": {
+      "get": {
+        "operationId": "PublicBrandController_get",
+        "parameters": [
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            }
+          },
+          {
+            "name": "domain",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 300
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organizationId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "organizationName": {
+                      "type": "string"
+                    },
+                    "joinCode": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "logoUrl": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "colors": {
+                          "type": "object",
+                          "properties": {
+                            "primary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "secondary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "background": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "text": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "accent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            }
+                          },
+                          "required": [
+                            "primary",
+                            "secondary",
+                            "background",
+                            "text",
+                            "accent"
+                          ]
+                        },
+                        "tagline": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "texts": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        },
+                        "support": {
+                          "type": "object",
+                          "properties": {
+                            "phone": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "email": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "phone",
+                            "email"
+                          ]
+                        },
+                        "emailSender": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "address": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "address"
+                          ]
+                        },
+                        "smsSender": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "termsUrl": {
+                          "type": "string"
+                        },
+                        "privacyUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "displayName",
+                        "logoUrl",
+                        "colors",
+                        "tagline",
+                        "texts",
+                        "support",
+                        "emailSender",
+                        "smsSender",
+                        "termsUrl",
+                        "privacyUrl"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "organizationId",
+                    "organizationName",
+                    "joinCode",
+                    "brand"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Marque d'une organisation par code de rattachement ou par domaine vérifié : thème des applications et du web, sans donnée personnelle (limité par adresse sauf pour une clé de service, cache 60 s)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/v1/admin/organizations/{id}/brand": {
+      "get": {
+        "operationId": "AdminBrandController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organizationId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "joinCode": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "logoUrl": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "colors": {
+                          "type": "object",
+                          "properties": {
+                            "primary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "secondary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "background": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "text": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "accent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            }
+                          },
+                          "required": [
+                            "primary",
+                            "secondary",
+                            "background",
+                            "text",
+                            "accent"
+                          ]
+                        },
+                        "tagline": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "texts": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        },
+                        "support": {
+                          "type": "object",
+                          "properties": {
+                            "phone": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "email": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "phone",
+                            "email"
+                          ]
+                        },
+                        "emailSender": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "address": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "address"
+                          ]
+                        },
+                        "smsSender": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "termsUrl": {
+                          "type": "string"
+                        },
+                        "privacyUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "displayName",
+                        "logoUrl",
+                        "colors",
+                        "tagline",
+                        "texts",
+                        "support",
+                        "emailSender",
+                        "smsSender",
+                        "termsUrl",
+                        "privacyUrl"
+                      ]
+                    },
+                    "stored": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {
+                          "nullable": true,
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 120
+                        },
+                        "logoUrl": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 500,
+                          "format": "uri"
+                        },
+                        "colors": {
+                          "type": "object",
+                          "properties": {
+                            "primary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "secondary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "background": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "text": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "accent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            }
+                          }
+                        },
+                        "tagline": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "texts": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        },
+                        "supportPhone": {
+                          "nullable": true,
+                          "type": "string",
+                          "pattern": "^\\+[1-9]\\d{6,14}$"
+                        },
+                        "supportEmail": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 254,
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        "emailSenderName": {
+                          "nullable": true,
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 120
+                        },
+                        "emailSenderAddress": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 254,
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        "smsSender": {
+                          "nullable": true,
+                          "type": "string",
+                          "pattern": "^(?:[A-Za-z0-9 ]{3,11}|\\+[1-9]\\d{6,14})$"
+                        },
+                        "termsUrl": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 500,
+                          "format": "uri"
+                        },
+                        "privacyUrl": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 500,
+                          "format": "uri"
+                        }
+                      }
+                    },
+                    "updatedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "organizationId",
+                    "joinCode",
+                    "brand",
+                    "stored",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marque d'une organisation : ce qui est enregistré, le résultat résolu (héritage du parent puis Neomoov) et son code de rattachement",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "operationId": "AdminBrandController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "nullable": true,
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 120
+                  },
+                  "logoUrl": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 500,
+                    "format": "uri"
+                  },
+                  "colors": {
+                    "type": "object",
+                    "properties": {
+                      "primary": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "secondary": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "background": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "accent": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      }
+                    }
+                  },
+                  "tagline": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "texts": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 500
+                    }
+                  },
+                  "supportPhone": {
+                    "nullable": true,
+                    "type": "string",
+                    "pattern": "^\\+[1-9]\\d{6,14}$"
+                  },
+                  "supportEmail": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "emailSenderName": {
+                    "nullable": true,
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 120
+                  },
+                  "emailSenderAddress": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "smsSender": {
+                    "nullable": true,
+                    "type": "string",
+                    "pattern": "^(?:[A-Za-z0-9 ]{3,11}|\\+[1-9]\\d{6,14})$"
+                  },
+                  "termsUrl": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 500,
+                    "format": "uri"
+                  },
+                  "privacyUrl": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 500,
+                    "format": "uri"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organizationId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "joinCode": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "logoUrl": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "colors": {
+                          "type": "object",
+                          "properties": {
+                            "primary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "secondary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "background": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "text": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "accent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            }
+                          },
+                          "required": [
+                            "primary",
+                            "secondary",
+                            "background",
+                            "text",
+                            "accent"
+                          ]
+                        },
+                        "tagline": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "texts": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        },
+                        "support": {
+                          "type": "object",
+                          "properties": {
+                            "phone": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "email": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "phone",
+                            "email"
+                          ]
+                        },
+                        "emailSender": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "address": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "address"
+                          ]
+                        },
+                        "smsSender": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "termsUrl": {
+                          "type": "string"
+                        },
+                        "privacyUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "displayName",
+                        "logoUrl",
+                        "colors",
+                        "tagline",
+                        "texts",
+                        "support",
+                        "emailSender",
+                        "smsSender",
+                        "termsUrl",
+                        "privacyUrl"
+                      ]
+                    },
+                    "stored": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {
+                          "nullable": true,
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 120
+                        },
+                        "logoUrl": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 500,
+                          "format": "uri"
+                        },
+                        "colors": {
+                          "type": "object",
+                          "properties": {
+                            "primary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "secondary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "background": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "text": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "accent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            }
+                          }
+                        },
+                        "tagline": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "texts": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        },
+                        "supportPhone": {
+                          "nullable": true,
+                          "type": "string",
+                          "pattern": "^\\+[1-9]\\d{6,14}$"
+                        },
+                        "supportEmail": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 254,
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        "emailSenderName": {
+                          "nullable": true,
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 120
+                        },
+                        "emailSenderAddress": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 254,
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        "smsSender": {
+                          "nullable": true,
+                          "type": "string",
+                          "pattern": "^(?:[A-Za-z0-9 ]{3,11}|\\+[1-9]\\d{6,14})$"
+                        },
+                        "termsUrl": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 500,
+                          "format": "uri"
+                        },
+                        "privacyUrl": {
+                          "nullable": true,
+                          "type": "string",
+                          "maxLength": 500,
+                          "format": "uri"
+                        }
+                      }
+                    },
+                    "updatedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "organizationId",
+                    "joinCode",
+                    "brand",
+                    "stored",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifie la marque (champs donnés seulement, null efface) ; refuse un contraste sous WCAG AA (BRAND_CONTRAST)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/organizations/{id}/domains": {
+      "get": {
+        "operationId": "AdminBrandController_domains",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "organizationId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "domain": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "booking",
+                          "hub"
+                        ]
+                      },
+                      "verifiedAt": {
+                        "nullable": true,
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "organizationId",
+                      "domain",
+                      "kind",
+                      "verifiedAt",
+                      "createdAt"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Domaines web déclarés par l'organisation (réservation, My Hub) et leur vérification",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "AdminBrandController_addDomain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  },
+                  "kind": {
+                    "default": "booking",
+                    "type": "string",
+                    "enum": [
+                      "booking",
+                      "hub"
+                    ]
+                  }
+                },
+                "required": [
+                  "domain"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "organizationId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "domain": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "booking",
+                        "hub"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "verificationToken": {
+                      "type": "string"
+                    },
+                    "dnsRecord": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "TXT"
+                          ]
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "name",
+                        "value"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "domain",
+                    "kind",
+                    "verifiedAt",
+                    "createdAt",
+                    "verificationToken",
+                    "dnsRecord"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Déclare un domaine ; le jeton et l'enregistrement TXT à poser ne sont rendus qu'une fois",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/organizations/{id}/domains/{domainId}": {
+      "delete": {
+        "operationId": "AdminBrandController_removeDomain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retire un domaine",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/organizations/{id}/domains/{domainId}/verify": {
+      "post": {
+        "operationId": "AdminBrandController_verifyDomain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "organizationId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "domain": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "booking",
+                        "hub"
+                      ]
+                    },
+                    "verifiedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "domain",
+                    "kind",
+                    "verifiedAt",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marque un domaine vérifié après contrôle manuel de l'enregistrement DNS (plateforme seulement, V1)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/me/organizations/attach": {
+      "post": {
+        "operationId": "MeOrganizationsController_attach",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "joinCode": {
+                          "type": "string"
+                        },
+                        "current": {
+                          "type": "boolean"
+                        },
+                        "brand": {
+                          "type": "object",
+                          "properties": {
+                            "displayName": {
+                              "type": "string"
+                            },
+                            "logoUrl": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "primary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            }
+                          },
+                          "required": [
+                            "displayName",
+                            "logoUrl",
+                            "primary"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "joinCode",
+                        "current",
+                        "brand"
+                      ]
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "logoUrl": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "colors": {
+                          "type": "object",
+                          "properties": {
+                            "primary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "secondary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "background": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "text": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "accent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            }
+                          },
+                          "required": [
+                            "primary",
+                            "secondary",
+                            "background",
+                            "text",
+                            "accent"
+                          ]
+                        },
+                        "tagline": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "texts": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        },
+                        "support": {
+                          "type": "object",
+                          "properties": {
+                            "phone": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "email": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "phone",
+                            "email"
+                          ]
+                        },
+                        "emailSender": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "address": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "address"
+                          ]
+                        },
+                        "smsSender": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "termsUrl": {
+                          "type": "string"
+                        },
+                        "privacyUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "displayName",
+                        "logoUrl",
+                        "colors",
+                        "tagline",
+                        "texts",
+                        "support",
+                        "emailSender",
+                        "smsSender",
+                        "termsUrl",
+                        "privacyUrl"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "organization",
+                    "brand"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rattache mon profil client à l'organisation du code (lien neomoov.net/c/<code>, code QR ou saisie) ; renvoie sa marque",
         "tags": [
           "me"
         ]
