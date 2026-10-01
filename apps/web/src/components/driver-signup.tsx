@@ -45,6 +45,11 @@ export function DriverSignup() {
         <p className="mt-3 text-lg">{t('driversPage.subtitle')}</p>
         <ul className="mt-5 flex list-disc flex-col gap-2 pl-5">{benefits.map((b) => <li key={b}>{b}</li>)}</ul>
         <p className="mt-5 text-sm text-slate-700">{t('driversPage.requirements')}</p>
+        <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <p className="font-semibold text-brand-night">{t('driversPage.academyTitle')}</p>
+          <p className="mt-1 text-sm text-slate-700">{t('driversPage.academyBody')}</p>
+          <a className="mt-2 inline-block text-sm font-semibold underline underline-offset-4" href="https://neomoov.net/academy/" target="_blank" rel="noopener">{t('driversPage.academyCta')}</a>
+        </div>
       </section>
       <Card title={t('driversPage.form')}>
         {sent ? (
