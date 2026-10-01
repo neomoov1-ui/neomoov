@@ -14,6 +14,9 @@
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
         "CFBundleDevelopmentRegion": "fr-CA"
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {

@@ -48,6 +48,10 @@
       "android": {
         "serviceAccountKeyPath": "../../../../cles-neomoov/google-play-service-account.json",
         "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "6818233490",
+        "appleTeamId": "DNB64CQYH6"
       }
     }
   }
