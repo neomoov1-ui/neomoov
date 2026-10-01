@@ -3,11 +3,15 @@ import { colors, spacing, typography } from '@neomoov/mobile-core/theme';
 import { ErrorState, Loading, Notice, Screen } from '@neomoov/mobile-core/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { errorMessage } from '@/lib/api';
 import { formatDateTime, type UiLanguage } from '@/lib/format';
 import { useTraining } from '@/lib/queries';
+
+/** Formation complémentaire de Neomoov Academy (site WordPress de neomoov.net), ouverte dans le navigateur intégré. */
+const ACADEMY_URL = 'https://neomoov.net/academy/';
 
 /** Formation (6.2) : modules et réussite de chacun ; attestation quand tous sont réussis (condition du passage en ligne). */
 export default function TrainingScreen() {
@@ -34,6 +38,17 @@ export default function TrainingScreen() {
           </Card>
         </Pressable>
       ))}
+      <Pressable accessibilityRole="link" onPress={() => void WebBrowser.openBrowserAsync(ACADEMY_URL)} testID="academy-link">
+        <Card style={styles.card}>
+          <Ionicons name="school-outline" size={28} color={colors.blue} />
+          <View style={styles.text}>
+            <Text style={styles.title}>{t('training.academyTitle')}</Text>
+            <Text style={styles.meta}>{t('training.academyBody')}</Text>
+            <Text style={styles.link}>{t('training.academyCta')}</Text>
+          </View>
+          <Ionicons name="open-outline" size={18} color={colors.muted} />
+        </Card>
+      </Pressable>
     </Screen>
   );
 }
@@ -43,4 +58,5 @@ const styles = StyleSheet.create({
   text: { flex: 1, gap: 2 },
   title: { fontSize: typography.sizes.md, fontWeight: '700', color: colors.night },
   meta: { fontSize: typography.sizes.sm, color: colors.muted },
+  link: { fontSize: typography.sizes.sm, fontWeight: '700', color: colors.blue },
 });

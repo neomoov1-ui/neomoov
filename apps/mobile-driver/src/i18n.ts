@@ -159,6 +159,9 @@ const fr = {
     certified: 'Formation réussie le {{date}} : attestation délivrée.',
     best: 'Meilleur score : {{score}} %',
     answerAll: 'Répondez à toutes les questions.',
+    academyTitle: 'Aller plus loin : CAP CHAUFFEUR',
+    academyBody: 'La formation de Neomoov Academy : 7 modules sur les règles du Québec, le service, la sécurité et la rentabilité, avec quiz et attestation de suivi.',
+    academyCta: 'Ouvrir Neomoov Academy',
   },
   payout: {
     title: 'Compte de versement',
@@ -832,6 +835,9 @@ const en: typeof fr = {
     certified: 'Training passed on {{date}}: certificate issued.',
     best: 'Best score: {{score}}%',
     answerAll: 'Answer every question.',
+    academyTitle: 'Go further: CAP CHAUFFEUR',
+    academyBody: 'The Neomoov Academy training (in French): 7 modules on Québec rules, service, safety and profitability, with quizzes and a certificate of completion.',
+    academyCta: 'Open Neomoov Academy',
   },
   payout: {
     title: 'Payout account',
