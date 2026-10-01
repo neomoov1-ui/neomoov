@@ -124,7 +124,7 @@ export class FleetDispatchService {
     const before = await this.settings(organizationId);
     await this.db
       .update(schema.organizations)
-      .set({ ...(input.networkMode ? { networkMode: input.networkMode } : {}), ...(input.networkAfterMinutes ? { networkAfterMinutes: input.networkAfterMinutes } : {}), updatedAt: new Date() })
+      .set({ ...(input.networkMode !== undefined ? { networkMode: input.networkMode } : {}), ...(input.networkAfterMinutes !== undefined ? { networkAfterMinutes: input.networkAfterMinutes } : {}), updatedAt: new Date() })
       .where(eq(schema.organizations.id, organizationId));
     this.audit.record({ action: 'fleet.settings_updated', entity: 'organizations', entityId: organizationId, before, after: input });
     return this.settings(organizationId);
