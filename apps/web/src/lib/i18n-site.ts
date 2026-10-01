@@ -42,7 +42,7 @@ const fr = {
   },
   join: {
     title: 'Rejoindre une organisation', subtitle: 'Vous avez reçu une invitation. Connectez-vous avec le numéro ou le courriel invité, puis acceptez.',
-    code: 'Code d\'invitation', accept: 'Accepter l\'invitation', done: 'C\'est fait : vous êtes membre, avec le rôle « {{role}} ».',
+    code: 'Code d\'invitation', accept: 'Accepter l\'invitation', done: 'C\'est fait : vous êtes membre, avec le rôle « {{role}} ».', openHub: 'Ouvrir l\'espace de votre organisation dans My Hub',
     errors: { notForYou: 'Cette invitation est adressée à un autre numéro ou à un autre courriel.', expired: 'Cette invitation a expiré : demandez-en une nouvelle.', used: 'Cette invitation a déjà servi.', generic: 'Invitation introuvable ou invalide.' },
   },
   rights: {
@@ -138,7 +138,7 @@ const en: typeof fr = {
   },
   join: {
     title: 'Join an organization', subtitle: 'You received an invitation. Sign in with the invited phone number or email, then accept.',
-    code: 'Invitation code', accept: 'Accept the invitation', done: 'Done: you are now a member, with the role "{{role}}".',
+    code: 'Invitation code', accept: 'Accept the invitation', done: 'Done: you are now a member, with the role "{{role}}".', openHub: 'Open your organization space in My Hub',
     errors: { notForYou: 'This invitation is addressed to another phone number or email.', expired: 'This invitation has expired: ask for a new one.', used: 'This invitation has already been used.', generic: 'Invitation not found or invalid.' },
   },
   rights: {

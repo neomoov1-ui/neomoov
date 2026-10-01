@@ -50,4 +50,16 @@ export const canWrite = (roles: readonly string[] | undefined) => Boolean(roles?
 /** Relevés, versements et prélèvements (étape 9) : administration et finances. */
 export const FINANCE_ROLES = ['admin', 'finance'];
 
+/** Étape 21 : personnel de la plateforme (session ouverte par mot de passe et second facteur), sinon membre d'organisation. */
+export const STAFF_ROLE_CODES = ['admin', 'operator', 'finance', 'readonly'];
+export const isStaffUser = (roles: readonly string[] | undefined) => Boolean(roles?.some((r) => STAFF_ROLE_CODES.includes(r)));
+
+/** Étape 21 : connexion d'un membre d'organisation (code SMS) et son second facteur, relayés ; les jetons restent côté serveur. */
+export async function orgStep<T>(step: 'request' | 'verify' | 'mfa-start' | 'mfa-enroll' | 'mfa-confirm' | 'mfa-verify' | 'mfa-backup', body: unknown = {}): Promise<T> {
+  const res = await fetch(`/api/org-auth/${step}`, { method: 'POST', headers: { 'content-type': 'application/json', 'accept-language': currentLanguage(), 'x-neomoov-hub': '1' }, body: JSON.stringify(body) });
+  const payload = (await res.json().catch(() => ({}))) as { code?: string; message?: string; details?: unknown };
+  if (!res.ok) throw new ApiError(res.status, payload.code ?? 'ERROR', payload.message ?? res.statusText, payload.details);
+  return payload as T;
+}
+
 export { ApiError };

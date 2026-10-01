@@ -1,15 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitch } from '@/components/language-switch';
 import { Action, cx, focus } from '@/components/ui/kit';
-import { canWrite, logout } from '@/lib/hub-api';
+import { canWrite, isStaffUser, logout } from '@/lib/hub-api';
 import type { Language } from '@/lib/i18n-resources';
 import type { HubUser } from '@/lib/server/gateway';
 import { HubUserContext } from './common';
+import { OrgBar, OrgNav, OrgProvider } from './org-context';
 
 /** `adminOnly` : écran dont toutes les routes sont réservées à l'administrateur (masqué pour les autres rôles, l'API refuse de toute façon). */
 const NAV: Array<{ group: string; items: Array<{ key: string; href: string; adminOnly?: boolean }> }> = [
@@ -20,31 +21,45 @@ const NAV: Array<{ group: string; items: Array<{ key: string; href: string; admi
   { group: 'finance', items: [{ key: 'statements', href: '/hub/releves' }, { key: 'invoices', href: '/hub/factures' }, { key: 'ledgers', href: '/hub/registres' }] },
   { group: 'safety', items: [{ key: 'incidents', href: '/hub/incidents' }, { key: 'quality', href: '/hub/qualite' }, { key: 'fairness', href: '/hub/equite' }, { key: 'compliance', href: '/hub/conformite' }, { key: 'dataRequests', href: '/hub/demandes' }] },
   { group: 'intelligence', items: [{ key: 'agents', href: '/hub/agents' }, { key: 'reports', href: '/hub/rapports' }, { key: 'metrics', href: '/hub/metriques' }] },
-  { group: 'admin', items: [{ key: 'settings', href: '/hub/parametres' }, { key: 'staff', href: '/hub/equipe', adminOnly: true }, { key: 'organizations', href: '/hub/organisations', adminOnly: true }, { key: 'apiKeys', href: '/hub/cles', adminOnly: true }, { key: 'queues', href: '/hub/files' }, { key: 'audit', href: '/hub/journal' }] },
+  { group: 'admin', items: [{ key: 'settings', href: '/hub/parametres' }, { key: 'staff', href: '/hub/equipe', adminOnly: true }, { key: 'organizations', href: '/hub/organisations', adminOnly: true }, { key: 'apiKeys', href: '/hub/cles', adminOnly: true }, { key: 'queues', href: '/hub/files' }, { key: 'audit', href: '/hub/journal' }, { key: 'supportAccess', href: '/hub/support', adminOnly: true }] },
 ];
 
-/** Cadre de My Hub : navigation par modules (barre latérale, repliable sur mobile), utilisateur, langue, déconnexion. */
+const ORG_SPACE = '/hub/organisation';
+
+/**
+ * Cadre de My Hub : navigation par modules (barre latérale, repliable sur mobile), utilisateur, langue, déconnexion.
+ * Étape 21 : espace organisation (`/hub/organisation`) pour les membres des organisations clientes (toujours) et pour
+ * le personnel en accès du support : sélecteur d'organisation, menu selon les permissions effectives, bandeaux.
+ */
 export function HubShell({ user, language, children }: { user: HubUser; language: Language; children: React.ReactNode }) {
   const { t } = useTranslation();
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || '';
   const admin = user.roles.includes('admin');
+  const staff = isStaffUser(user.roles);
+  const orgMode = !staff || pathname === ORG_SPACE || pathname.startsWith(`${ORG_SPACE}/`);
   const active = (href: string) => (href === '/hub' ? pathname === '/hub' : pathname === href || (pathname.startsWith(`${href}/`) && href !== '/hub/courses') || (href === '/hub/courses' && /^\/hub\/courses\/(?!nouvelle)/.test(pathname)));
 
-  return (
-    <HubUserContext.Provider value={user}>
-      <div className="min-h-screen lg:flex">
-        <a href="#contenu" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:p-2">{t('hub.shell.skip')}</a>
-        <div className="flex items-center justify-between bg-brand-night px-4 py-3 text-white lg:hidden">
-          <span className="font-heading text-lg font-bold">neomoov · My Hub</span>
-          <button type="button" aria-expanded={open} aria-controls="hub-nav" onClick={() => setOpen((v) => !v)} className={cx('rounded-md border border-white/40 px-3 py-1 text-sm', focus)}>{t('hub.shell.menu')}</button>
+  // Un membre d'organisation n'a pas d'écran de la plateforme : il est conduit vers l'espace de son organisation.
+  useEffect(() => {
+    if (!staff && pathname !== ORG_SPACE && !pathname.startsWith(`${ORG_SPACE}/`)) router.replace(ORG_SPACE);
+  }, [staff, pathname, router]);
+
+  const shell = (
+    <div className="min-h-screen lg:flex">
+      <a href="#contenu" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:p-2">{t('hub.shell.skip')}</a>
+      <div className="flex items-center justify-between bg-brand-night px-4 py-3 text-white lg:hidden">
+        <span className="font-heading text-lg font-bold">neomoov · My Hub</span>
+        <button type="button" aria-expanded={open} aria-controls="hub-nav" onClick={() => setOpen((v) => !v)} className={cx('rounded-md border border-white/40 px-3 py-1 text-sm', focus)}>{t('hub.shell.menu')}</button>
+      </div>
+      <aside id="hub-nav" className={cx('bg-brand-night text-white lg:sticky lg:top-0 lg:block lg:h-screen lg:w-60 lg:shrink-0 lg:overflow-y-auto', open ? 'block' : 'hidden')}>
+        <div className="hidden px-4 py-5 lg:block">
+          <Link href={orgMode ? ORG_SPACE : '/hub'} className={cx('font-heading text-xl font-bold', focus)}>neomoov</Link>
+          <p className="text-xs text-slate-300">{orgMode ? `My Hub · ${t('org.shell.space')}` : 'My Hub'}</p>
         </div>
-        <aside id="hub-nav" className={cx('bg-brand-night text-white lg:sticky lg:top-0 lg:block lg:h-screen lg:w-60 lg:shrink-0 lg:overflow-y-auto', open ? 'block' : 'hidden')}>
-          <div className="hidden px-4 py-5 lg:block">
-            <Link href="/hub" className={cx('font-heading text-xl font-bold', focus)}>neomoov</Link>
-            <p className="text-xs text-slate-300">My Hub</p>
-          </div>
+        {orgMode ? <OrgNav onNavigate={() => setOpen(false)} /> : (
           <nav aria-label={t('hub.shell.menu')} className="px-2 pb-6">
             {NAV.map((section) => (
               <div key={section.group} className="mt-3">
@@ -66,17 +81,26 @@ export function HubShell({ user, language, children }: { user: HubUser; language
               </div>
             ))}
           </nav>
-        </aside>
-        <div className="min-w-0 flex-1">
-          <header className="flex flex-wrap items-center justify-end gap-3 border-b border-slate-200 bg-white px-4 py-2 sm:px-6">
-            {!canWrite(user.roles) ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">{t('hub.shell.readOnly')}</span> : null}
-            <span className="text-sm text-slate-700">{t('hub.shell.signedInAs', { name })}</span>
-            <LanguageSwitch current={language} />
-            <Action tone="secondary" onClick={() => void logout()}>{t('hub.shell.logout')}</Action>
-          </header>
-          <main id="contenu" className="px-4 py-6 sm:px-6">{children}</main>
-        </div>
+        )}
+      </aside>
+      <div className="min-w-0 flex-1">
+        <header className="flex flex-wrap items-center justify-end gap-3 border-b border-slate-200 bg-white px-4 py-2 sm:px-6">
+          {!orgMode && !canWrite(user.roles) ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">{t('hub.shell.readOnly')}</span> : null}
+          <span className="text-sm text-slate-700">{t('hub.shell.signedInAs', { name })}</span>
+          <LanguageSwitch current={language} />
+          <Action tone="secondary" onClick={() => void logout()}>{t('hub.shell.logout')}</Action>
+        </header>
+        <main id="contenu" className="px-4 py-6 sm:px-6">
+          {orgMode ? <OrgBar /> : null}
+          {children}
+        </main>
       </div>
+    </div>
+  );
+
+  return (
+    <HubUserContext.Provider value={user}>
+      {orgMode ? <OrgProvider>{shell}</OrgProvider> : shell}
     </HubUserContext.Provider>
   );
 }

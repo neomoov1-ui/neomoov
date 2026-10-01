@@ -219,7 +219,7 @@ describe('My Hub côté organisation et accès du support (étape 21, intégrati
     await db(app).insert(schema.organizationFeatures).values([{ organizationId: A.id, module: 'organization', enabled: true }, { organizationId: A.id, module: 'rides', enabled: true }, { organizationId: A.id, module: 'drivers', enabled: false }]);
     app.get(AccessService).invalidate();
     try {
-      const limited = await post(`/v1/org/${A.id}/organizations`, owner.tokens, { code: `sud-${tag()}`, name: 'Succursale Sud', type: 'sub_org', parentId: created.body.id }).expect(201);
+      const limited = await post(`/v1/org/${A.id}/organizations`, owner.tokens, { code: `sud-${tag()}`, name: 'Succursale Sud', type: 'sub_org' }).expect(201);
       orgPaths.set(limited.body.id, limited.body.path);
       const features = await db(app).select({ module: schema.organizationFeatures.module, enabled: schema.organizationFeatures.enabled }).from(schema.organizationFeatures).where(eq(schema.organizationFeatures.organizationId, limited.body.id));
       expect(features.sort((a, b) => a.module.localeCompare(b.module))).toEqual([{ module: 'drivers', enabled: false }, { module: 'organization', enabled: true }, { module: 'rides', enabled: true }]);

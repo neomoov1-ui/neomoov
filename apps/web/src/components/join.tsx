@@ -43,7 +43,11 @@ export function Join({ initialCode }: { initialCode: string }) {
       </div>
       {error ? <Notice tone="danger">{error}</Notice> : null}
       {joined ? (
-        <Notice tone="success">{t('join.done', { role: joined.roleName })}</Notice>
+        <div className="flex flex-col gap-3">
+          <Notice tone="success">{t('join.done', { role: joined.roleName })}</Notice>
+          {/* Étape 21 : l'espace de l'organisation dans My Hub, par la connexion « Organisation » (code SMS). */}
+          <a href="/hub/connexion?espace=organisation" className="font-semibold text-brand-blue-dark underline">{t('join.openHub')}</a>
+        </div>
       ) : (
         <Card>
           {signedIn ? (

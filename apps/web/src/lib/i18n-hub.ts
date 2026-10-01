@@ -11,7 +11,7 @@ const fr = {
     clients: 'Clients', leads: 'Prospects', tariffs: 'Tarifs', zones: 'Zones', offers: 'Packs et promotions', statements: 'Relevés', invoices: 'Factures',
     incidents: 'Incidents', dataRequests: 'Demandes de droits', agents: 'Agents IA', reports: 'Rapports', settings: 'Paramètres', staff: 'Équipe', audit: 'Journal d\'audit',
     quality: 'Qualité des chauffeurs', fairness: 'Équité (demandes des chauffeurs)', compliance: 'Conformité et conservation', queues: 'Files de tâches',
-    ledgers: 'Registres et exports', metrics: 'Métriques', apiKeys: 'Clés de service', organizations: 'Organisations et accès',
+    ledgers: 'Registres et exports', metrics: 'Métriques', apiKeys: 'Clés de service', organizations: 'Organisations et accès', supportAccess: 'Accès du support',
   },
   shell: { signedInAs: 'Connecté : {{name}}', logout: 'Se déconnecter', menu: 'Menu', skip: 'Aller au contenu', live: 'Temps réel actif', polling: 'Actualisation périodique', readOnly: 'Lecture seule' },
   login: {
@@ -288,7 +288,7 @@ const en: typeof fr = {
     clients: 'Customers', leads: 'Leads', tariffs: 'Rates', zones: 'Zones', offers: 'Packs and promotions', statements: 'Statements', invoices: 'Invoices',
     incidents: 'Incidents', dataRequests: 'Privacy requests', agents: 'AI agents', reports: 'Reports', settings: 'Settings', staff: 'Team', audit: 'Audit log',
     quality: 'Driver quality', fairness: 'Fairness (driver requests)', compliance: 'Compliance and retention', queues: 'Job queues',
-    ledgers: 'Ledgers and exports', metrics: 'Metrics', apiKeys: 'Service keys', organizations: 'Organizations and access',
+    ledgers: 'Ledgers and exports', metrics: 'Metrics', apiKeys: 'Service keys', organizations: 'Organizations and access', supportAccess: 'Support access',
   },
   shell: { signedInAs: 'Signed in: {{name}}', logout: 'Sign out', menu: 'Menu', skip: 'Skip to content', live: 'Live updates on', polling: 'Periodic refresh', readOnly: 'Read only' },
   login: {
