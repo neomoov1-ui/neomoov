@@ -11,6 +11,7 @@ import * as s from '../schema/index.js';
 import { AGENTS, CITY, DEMO_USERS, FEATURE_FLAGS, FLAT_RATES, PACKS, PRICING_RULES, PROMOTIONS, SETTINGS, SURCHARGES, VEHICLE_CATEGORIES, ZONES } from './data.js';
 import { readAgentPrompts } from './prompts.js';
 import { seedAccess } from './access.js';
+import { seedPlans } from './plans.js';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -76,6 +77,8 @@ export async function seed(db: Database, options: { demo?: boolean } = {}): Prom
     const r = await db.insert(s.settings).values({ key: st.key, scope: 'global', value: st.value as object, description: st.description }).onConflictDoNothing().returning({ key: s.settings.key });
     if (r.length) count('settings');
   }
+
+  created['plans'] = await seedPlans(db);
 
   for (const f of FEATURE_FLAGS) {
     const r = await db.insert(s.featureFlags).values({ code: f.code, active: f.active, targeting: { description: f.description } }).onConflictDoNothing().returning({ code: s.featureFlags.code });
