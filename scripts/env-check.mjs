@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Bilan du fichier .env, sans jamais afficher une valeur : pour chaque variable de .env.example, dit si .env la
- * renseigne. Signale aussi les variables présentes dans .env mais inconnues du code. Usage : `pnpm env:check`.
+ * renseigne. Signale aussi les variables présentes dans .env mais inconnues du code, et la forme des clés Square
+ * (préfixes attendus, jamais la valeur). Usage : `pnpm env:check`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -39,7 +40,8 @@ function parseEnv(text) {
     }
     let value = line.slice(eq + 1).trim();
     if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
-    entries.push({ section, key, filled: value.length > 0 });
+    // La valeur reste en mémoire pour les contrôles de forme ; elle n'est jamais affichée.
+    entries.push({ section, key, filled: value.length > 0, value });
   });
   return { entries, issues };
 }
@@ -78,4 +80,33 @@ if (unknown.length) {
   console.log('\nVariables présentes dans .env mais inconnues du code (ignorées) :');
   for (const key of unknown) console.log(`  ?  ${key}`);
 }
+/**
+ * Forme des clés Square (étape 26) : préfixe attendu de chaque valeur, pour repérer une clé collée dans la mauvaise
+ * variable (par exemple l'identifiant d'application du bac à sable à la place de son jeton d'accès). Seul le diagnostic
+ * est affiché.
+ */
+const SQUARE_SHAPES = [
+  { key: 'SQUARE_ACCESS_TOKEN', test: (v) => /^EAAA[A-Za-z0-9_-]{20,}$/.test(v), expected: 'jeton d\'accès de production (commence par EAAA)' },
+  { key: 'SQUARE_SANDBOX_ACCESS_TOKEN', test: (v) => /^EAAA[A-Za-z0-9_-]{20,}$/.test(v), expected: 'jeton d\'accès du bac à sable (commence par EAAA)' },
+  { key: 'SQUARE_APPLICATION_ID', test: (v) => /^sq0idp-[A-Za-z0-9_-]+$/.test(v), expected: 'identifiant d\'application de production (sq0idp-…)' },
+  { key: 'SQUARE_SANDBOX_APPLICATION_ID', test: (v) => /^sandbox-sq0idb-[A-Za-z0-9_-]+$/.test(v), expected: 'identifiant d\'application du bac à sable (sandbox-sq0idb-…)' },
+  { key: 'SQUARE_LOCATION_ID', test: (v) => /^[A-Z0-9]{6,40}$/.test(v), expected: 'identifiant d\'emplacement (majuscules et chiffres, souvent L…)' },
+  { key: 'SQUARE_SANDBOX_LOCATION_ID', test: (v) => /^[A-Z0-9]{6,40}$/.test(v), expected: 'identifiant d\'emplacement du bac à sable (majuscules et chiffres)' },
+  { key: 'SQUARE_WEBHOOK_URL', test: (v) => /^https:\/\/[^\s]+\/v1\/webhooks\/square$/.test(v), expected: 'adresse publique en https se terminant par /v1/webhooks/square' },
+  { key: 'SQUARE_ENVIRONMENT', test: (v) => v === 'sandbox' || v === 'production', expected: 'sandbox ou production' },
+];
+/** Ce que la valeur semble être quand elle n'a pas la forme attendue (sans la montrer). */
+function squareLooksLike(value) {
+  if (/^sandbox-sq0idb-/.test(value)) return 'elle ressemble à un identifiant d\'application du bac à sable';
+  if (/^sq0idp-/.test(value)) return 'elle ressemble à un identifiant d\'application de production';
+  if (/^EAAA/.test(value)) return 'elle ressemble à un jeton d\'accès';
+  if (/^sq0csp-|^sandbox-sq0csb-/.test(value)) return 'elle ressemble à un secret OAuth d\'application, pas à un jeton d\'accès';
+  return 'forme inconnue';
+}
+const squareProblems = SQUARE_SHAPES.filter(({ key, test }) => actual.get(key)?.filled && !test(actual.get(key).value));
+if (squareProblems.length) {
+  console.log('\nForme des clés Square à vérifier (valeurs non affichées) :');
+  for (const { key, expected: shape } of squareProblems) console.log(`  !! ${key} : attendu ${shape} ; ${squareLooksLike(actual.get(key).value)}`);
+}
+
 console.log(`\n${filled} variable(s) renseignée(s) sur ${expected.length}. Aucune valeur n'est affichée.`);

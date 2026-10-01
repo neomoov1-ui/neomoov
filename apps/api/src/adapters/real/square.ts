@@ -95,6 +95,11 @@ export interface SquareEvent {
 
 type Json = Record<string, unknown>;
 
+/** Segment de chemin : encodé, sauf « : » (permis dans un chemin) que Square montre tel quel dans ses identifiants (`ccof:…`). */
+function segment(id: string): string {
+  return encodeURIComponent(id).replace(/%3A/gi, ':');
+}
+
 /** Clé d'idempotence acceptée par Square (45 caractères au plus) : condensé déterministe de la nôtre, courte ou longue. */
 export function squareIdempotencyKey(key: string): string {
   if (key.length <= MAX_IDEMPOTENCY_LENGTH && /^[A-Za-z0-9:_-]+$/.test(key)) return key;
@@ -256,7 +261,7 @@ export class SquarePaymentProvider implements PaymentProvider {
   }
 
   private async getPayment(paymentId: string): Promise<SquarePayment> {
-    const { payment } = await this.call<{ payment: SquarePayment }>('GET', `/v2/payments/${encodeURIComponent(paymentId)}`);
+    const { payment } = await this.call<{ payment: SquarePayment }>('GET', `/v2/payments/${segment(paymentId)}`);
     return payment;
   }
 
@@ -296,7 +301,7 @@ export class SquarePaymentProvider implements PaymentProvider {
   }
 
   async detachPaymentMethod(paymentMethodRef: string) {
-    await this.call('POST', `/v2/cards/${encodeURIComponent(paymentMethodRef)}/disable`);
+    await this.call('POST', `/v2/cards/${segment(paymentMethodRef)}/disable`);
   }
 
   // --- Paiements ---
@@ -320,7 +325,7 @@ export class SquarePaymentProvider implements PaymentProvider {
     const approved = money(payment.amount_money) ?? 0;
     if (amountCents <= 0 || amountCents >= approved || !payment.capabilities?.includes('EDIT_AMOUNT_DOWN')) return payment;
     try {
-      const { payment: updated } = await this.call<{ payment: SquarePayment }>('PUT', `/v2/payments/${encodeURIComponent(payment.id)}`, {
+      const { payment: updated } = await this.call<{ payment: SquarePayment }>('PUT', `/v2/payments/${segment(payment.id)}`, {
         idempotency_key: squareIdempotencyKey(`reduce:${payment.id}:${amountCents}`), payment: { amount_money: { amount: amountCents, currency: CURRENCY } },
       });
       return updated;
@@ -342,7 +347,7 @@ export class SquarePaymentProvider implements PaymentProvider {
       payment = await this.getPayment(intentId);
       if (payment.status === 'APPROVED') {
         payment = await this.reduce(payment, amountCents);
-        payment = (await this.call<{ payment: SquarePayment }>('POST', `/v2/payments/${encodeURIComponent(intentId)}/complete`, {})).payment;
+        payment = (await this.call<{ payment: SquarePayment }>('POST', `/v2/payments/${segment(intentId)}/complete`, {})).payment;
       }
     } catch (error) {
       if (error instanceof AppError) return { intentId, status: 'failed', failureCode: (error.details as { code?: string | null } | undefined)?.code ?? error.code.toLowerCase() };
@@ -365,7 +370,7 @@ export class SquarePaymentProvider implements PaymentProvider {
     const payment = await this.getPayment(intentId);
     if (payment.status === 'CANCELED') return;
     if (payment.status === 'COMPLETED') throw new AppError('PAYMENT_ALREADY_CAPTURED', 'Ce paiement est déjà encaissé : passer par un remboursement', 409);
-    await this.call('POST', `/v2/payments/${encodeURIComponent(intentId)}/cancel`, {});
+    await this.call('POST', `/v2/payments/${segment(intentId)}/cancel`, {});
   }
 
   async refund(input: { intentId: string; amountCents: number; idempotencyKey: string; reason?: string }) {
