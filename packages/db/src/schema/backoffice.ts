@@ -27,7 +27,7 @@ export const leads = pgTable('leads', {
   language: varchar('language', { length: 2 }).notNull().default('fr'),
   source: varchar('source', { length: 30 }).notNull(),
   /** Organisation destinataire du prospect (étape 20) ; nulle pour la plateforme. */
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   status: varchar('status', { length: 20 }).notNull().default('new'),
   consentAt: tz('consent_at').notNull(),
   createdAt: createdAt(),

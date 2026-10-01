@@ -15,6 +15,7 @@ import { desc, eq, isNotNull, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { AppError } from '../../common/app-error.js';
 import { APP_LOGGER, currentCorrelationId } from '../../common/logger.js';
+import { organizationIdFor } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -68,16 +69,19 @@ export class AdminIncidentsService {
    * celle que reçoit l'agent relation client (5.11) : la décision reste humaine.
    */
   async create(input: ManualIncidentInput, actor: UserActor): Promise<AdminIncident> {
+    let rideOrganizationId: string | null = null;
     if (input.rideId) {
-      const [ride] = await this.db.select({ id: schema.rides.id }).from(schema.rides).where(eq(schema.rides.id, input.rideId)).limit(1);
+      const [ride] = await this.db.select({ id: schema.rides.id, organizationId: schema.rides.organizationId }).from(schema.rides).where(eq(schema.rides.id, input.rideId)).limit(1);
       if (!ride) throw AppError.notFound('RIDE_NOT_FOUND', 'Course introuvable');
+      rideOrganizationId = ride.organizationId;
     }
     const now = new Date();
     const { id, reference } = await this.db.transaction(async (tx) => {
       const entry = input.privacyBreach ? await this.newEntry(tx, input.privacyBreach, actor, now) : null;
       const [row] = await tx
         .insert(schema.incidents)
-        .values({ rideId: input.rideId ?? null, type: input.type, severity: input.severity, reportedByUserId: actor.userId, reportedByKind: 'operator', description: input.description, privacyBreach: entry })
+        // Étape 20 : l'incident appartient à l'organisation du contexte, sinon à celle de la course ; sans course, à la plateforme.
+        .values({ rideId: input.rideId ?? null, organizationId: organizationIdFor(rideOrganizationId), type: input.type, severity: input.severity, reportedByUserId: actor.userId, reportedByKind: 'operator', description: input.description, privacyBreach: entry })
         .returning({ id: schema.incidents.id });
       return { id: row!.id, reference: entry?.reference ?? null };
     });

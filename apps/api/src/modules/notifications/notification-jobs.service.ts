@@ -2,7 +2,9 @@
  * File `notifications` (prompt 13, tâche 2) : chaque notification mise en file (événement `notification.queued`) donne
  * une tâche d'envoi d'identifiant stable ; une passe toutes les 30 secondes reprend ce qui attend encore (événement
  * perdu, PDF attendu) et, tous les quarts d'heure, consulte les reçus push. Avec Redis, le worker porte la file ; sans
- * Redis, l'API. En test, rien n'est automatique : les tests appellent l'envoi directement.
+ * Redis, l'API. En test, rien n'est automatique : les tests appellent l'envoi directement. Étape 20 : chaque avis d'une
+ * organisation cliente est envoyé dans le contexte de cette organisation (une transaction courte par avis), ceux de la
+ * plateforme sans contexte ; les reçus push et les statuts de livraison restent à la plateforme.
  */
 import { notificationRule } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
@@ -11,6 +13,7 @@ import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { QueueService } from '../../infra/queue.module.js';
+import { OrgScopeService } from '../organizations/org-scope.service.js';
 import { NotificationDeliveryService } from './notification-delivery.service.js';
 
 type NotificationJob = { kind: 'deliver'; id: string } | { kind: 'sweep' } | { kind: 'receipts' };
@@ -24,6 +27,7 @@ export class NotificationJobsService implements OnModuleInit {
     private readonly delivery: NotificationDeliveryService,
     private readonly queues: QueueService,
     private readonly events: DomainEventsService,
+    private readonly scope: OrgScopeService,
     @Inject(APP_ENV) private readonly env: AppEnv,
     @Inject(APP_LOGGER) private readonly logger: Logger,
   ) {}
@@ -49,17 +53,34 @@ export class NotificationJobsService implements OnModuleInit {
 
   async run(job: NotificationJob | { at?: string }): Promise<void> {
     if ('kind' in job && job.kind === 'deliver') {
-      await this.delivery.deliver(job.id);
+      const id = job.id;
+      await this.scope.runForOrganization(await this.delivery.organizationOf(id), () => this.delivery.deliver(id));
       return;
     }
     if ('kind' in job && job.kind === 'receipts') {
       await this.delivery.pollReceipts();
       return;
     }
-    const sent = await this.delivery.sweep();
+    const sent = await this.sweep();
     if (sent) this.logger.info({ sent }, 'notifications reprises');
     // Tous les quarts d'heure (30 passes de 30 secondes) : reçus de livraison des push.
     this.sweeps += 1;
     if (this.sweeps % 30 === 0) await this.delivery.pollReceipts().catch((error: unknown) => this.logger.warn({ err: error }, 'Reçus push indisponibles'));
+  }
+
+  /**
+   * Reprise : avis en attente listés par la plateforme, puis envoyés un par un, chacun dans le contexte de son organisation
+   * (une transaction courte par avis : un texto envoyé n'est jamais annulé par l'échec d'un autre envoi du même lot).
+   */
+  async sweep(now = new Date(), options: { ids?: string[] } = {}): Promise<number> {
+    let sent = 0;
+    for (const n of await this.delivery.claimable(now, options)) {
+      const outcome = await this.scope.runForOrganization(n.organizationId, () => this.delivery.deliver(n.id, now)).catch((error: unknown) => {
+        this.logger.error({ err: error, notificationId: n.id }, 'Envoi de notification impossible');
+        return 'failed' as const;
+      });
+      if (outcome === 'sent') sent += 1;
+    }
+    return sent;
   }
 }

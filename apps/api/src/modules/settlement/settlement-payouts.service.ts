@@ -176,14 +176,14 @@ export class SettlementPayoutsService {
       .insert(schema.driverBalances)
       .values({ driverId, balanceCents, unpaidSince, suspendedForBalanceAt: suspendedAt })
       .onConflictDoUpdate({ target: schema.driverBalances.driverId, set: { balanceCents, unpaidSince, suspendedForBalanceAt: suspendedAt } });
-    const [driver] = await this.db.select({ userId: schema.drivers.userId }).from(schema.drivers).where(eq(schema.drivers.id, driverId)).limit(1);
+    const [driver] = await this.db.select({ userId: schema.drivers.userId, organizationId: schema.drivers.organizationId }).from(schema.drivers).where(eq(schema.drivers.id, driverId)).limit(1);
     if (!driver) return;
     if (suspendedAt && !wasSuspended) {
       await this.presence.setStatus(driver.userId, { status: 'offline' }).catch(() => undefined);
-      await this.outbox.queue({ recipientUserId: driver.userId, template: 'balance.suspended', data: { balanceCents, reason: verdict.reason } });
+      await this.outbox.queue({ recipientUserId: driver.userId, organizationId: driver.organizationId, template: 'balance.suspended', data: { balanceCents, reason: verdict.reason } });
       this.audit.record({ action: 'driver.suspended_for_balance', entity: 'drivers', entityId: driverId, after: { balanceCents, reason: verdict.reason } });
     } else if (!suspendedAt && wasSuspended) {
-      await this.outbox.queue({ recipientUserId: driver.userId, template: 'balance.reactivated', data: { balanceCents } });
+      await this.outbox.queue({ recipientUserId: driver.userId, organizationId: driver.organizationId, template: 'balance.reactivated', data: { balanceCents } });
       this.audit.record({ action: 'driver.reactivated_after_balance', entity: 'drivers', entityId: driverId, after: { balanceCents } });
     }
   }

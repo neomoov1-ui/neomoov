@@ -1,6 +1,6 @@
 import { createDatabase } from '@neomoov/db';
 import { Global, Inject, Module, type OnModuleDestroy } from '@nestjs/common';
-import { currentOrgScope } from '../common/org-scope.context.js';
+import { activeOrgScope } from '../common/org-scope.context.js';
 import { APP_ENV, type AppEnv } from '../config/env.js';
 
 export const DB = Symbol('DB');
@@ -16,7 +16,9 @@ export type Database = ReturnType<typeof createDatabase>;
 export function scopedDatabase(real: Database): Database {
   return {
     get db() {
-      return (currentOrgScope()?.tx as Database['db'] | undefined) ?? real.db;
+      // Contexte terminé (transaction validée ou annulée) : le travail asynchrone qui lui survit passe par le contexte
+      // englobant encore ouvert, sinon par le pool.
+      return (activeOrgScope()?.tx as Database['db'] | undefined) ?? real.db;
     },
     client: real.client,
     close: real.close,

@@ -12,6 +12,7 @@ import type { Logger } from 'pino';
 import type { LlmMessage } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { organizationIdFor } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 
@@ -73,7 +74,8 @@ export class ConversationsService {
     if (!conversation) {
       [conversation] = await this.db
         .insert(schema.conversations)
-        .values({ channel: message.channel, userId, phone: message.phone, language: language ?? 'fr', rideId: message.rideId })
+        // Étape 20 : l'organisation du contexte ; hors contexte, la base la dérive de la course ou du profil client (0022).
+        .values({ channel: message.channel, userId, phone: message.phone, language: language ?? 'fr', rideId: message.rideId, organizationId: organizationIdFor() })
         .returning();
     }
     const [inserted] = await this.db
@@ -136,7 +138,7 @@ export class ConversationsService {
     await this.db.update(schema.conversations).set({ lastMessageAt: new Date() }).where(eq(schema.conversations.id, conversation.id));
     const target = this.replyChannel(conversation, author);
     if (target) {
-      await this.outbox.queue({ ...target, template: 'agent.reply', language: conversation.language === 'en' ? 'en' : 'fr', data: { text, conversationId: conversation.id } });
+      await this.outbox.queue({ ...target, organizationId: conversation.organizationId, template: 'agent.reply', language: conversation.language === 'en' ? 'en' : 'fr', data: { text, conversationId: conversation.id } });
     } else {
       this.logger.warn({ conversationId: conversation.id }, 'Conversation sans canal de réponse');
     }

@@ -136,7 +136,7 @@ export const packConsumptions = pgTable('pack_consumptions', {
 export const weeklyStatements = pgTable('weekly_statements', {
   id: id(),
   driverId: uuid('driver_id').notNull().references(() => drivers.id),
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   periodStart: date('period_start').notNull(),
   periodEnd: date('period_end').notNull(),
   platformFaresCents: cents('platform_fares_cents').notNull().default(0),
@@ -218,7 +218,7 @@ export const credits = pgTable('credits', {
   id: id(),
   userId: uuid('user_id').notNull().references(() => users.id),
   /** Organisation qui a accordé le crédit (étape 20) ; nulle pour la plateforme. */
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   amountCents: cents('amount_cents').notNull(),
   remainingCents: cents('remaining_cents').notNull(),
   origin: creditOriginEnum('origin').notNull(),

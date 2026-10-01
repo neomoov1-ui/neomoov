@@ -159,11 +159,15 @@ export class NotificationDeliveryService {
       .where(eq(schema.notifications.id, id));
   }
 
+  /**
+   * Coordonnées du destinataire d'un compte. Étape 20 : lues par la fonction `notification_recipient` (migration 0023), qui
+   * ne répond que pour un avis visible dans le contexte courant : sous le contexte d'une organisation, son avis part aussi
+   * vers une personne qui n'en est pas membre (alerte au personnel de la plateforme), sans ouvrir les comptes à ce contexte.
+   */
   private async recipientOf(row: NotificationRow): Promise<Recipient> {
     if (!row.recipientUserId) return { language: row.language ?? 'fr', phone: row.recipientAddress && !row.recipientAddress.includes('@') ? row.recipientAddress : null, email: row.recipientAddress?.includes('@') ? row.recipientAddress : null, pushTokens: [] };
-    const [user] = await this.db.select({ language: schema.users.language, phone: schema.users.phone, email: schema.users.email }).from(schema.users).where(eq(schema.users.id, row.recipientUserId)).limit(1);
-    const devices = await this.db.select({ token: schema.devices.pushToken }).from(schema.devices).where(and(eq(schema.devices.userId, row.recipientUserId), isNotNull(schema.devices.pushToken)));
-    return { language: user?.language ?? 'fr', phone: user?.phone ?? null, email: user?.email ?? null, pushTokens: devices.map((d) => d.token!).filter(Boolean) };
+    const [user] = await this.db.execute<{ language: string | null; phone: string | null; email: string | null; push_tokens: string[] | null }>(sql`SELECT language, phone, email, push_tokens FROM notification_recipient(${row.id}::uuid)`);
+    return { language: user?.language ?? 'fr', phone: user?.phone ?? null, email: user?.email ?? null, pushTokens: (user?.push_tokens ?? []).filter(Boolean) };
   }
 
   private async marketingConsent(userId: string): Promise<boolean> {
@@ -200,20 +204,7 @@ export class NotificationDeliveryService {
    * abandonnées. Rejouable, bornée à 200 lignes par passe ; `ids` restreint la passe à ces notifications (reprise ciblée).
    */
   async sweep(now = new Date(), options: { ids?: string[] } = {}): Promise<number> {
-    const only = options.ids?.length ? inArray(schema.notifications.id, options.ids) : undefined;
-    await this.db
-      .update(schema.notifications)
-      .set({ providerMessageId: null })
-      .where(and(only, isNull(schema.notifications.sentAt), isNull(schema.notifications.error), sql`${schema.notifications.providerMessageId} LIKE 'claim:%'`,
-        // Heure de la réservation (claim:<ms>:<id>) ; ancien format sans heure : âge de la notification.
-        sql`(CASE WHEN split_part(${schema.notifications.providerMessageId}, ':', 2) ~ '^[0-9]{10,}$' THEN split_part(${schema.notifications.providerMessageId}, ':', 2)::bigint < ${now.getTime() - STALE_CLAIM_MS}
-          ELSE ${schema.notifications.createdAt} < ${new Date(now.getTime() - STALE_CLAIM_MS).toISOString()}::timestamptz END)`));
-    const rows = await this.db
-      .select({ id: schema.notifications.id })
-      .from(schema.notifications)
-      .where(and(only, isNull(schema.notifications.sentAt), isNull(schema.notifications.error), isNull(schema.notifications.providerMessageId), sql`${schema.notifications.createdAt} > ${new Date(now.getTime() - 2 * 86_400_000).toISOString()}::timestamptz`))
-      .orderBy(schema.notifications.createdAt)
-      .limit(200);
+    const rows = await this.claimable(now, options);
     let sent = 0;
     for (const r of rows) if ((await this.deliver(r.id, now)) === 'sent') sent += 1;
     return sent;
@@ -242,6 +233,33 @@ export class NotificationDeliveryService {
       updated += 1;
     }
     return updated;
+  }
+
+  /**
+   * Première moitié de la reprise : réservations abandonnées libérées, puis avis encore à envoyer (200 au plus, les plus
+   * anciens d'abord) avec leur organisation. La tâche de fond envoie chacun dans le contexte de son organisation (étape 20).
+   */
+  async claimable(now = new Date(), options: { ids?: string[] } = {}): Promise<Array<{ id: string; organizationId: string | null }>> {
+    const only = options.ids?.length ? inArray(schema.notifications.id, options.ids) : undefined;
+    await this.db
+      .update(schema.notifications)
+      .set({ providerMessageId: null })
+      .where(and(only, isNull(schema.notifications.sentAt), isNull(schema.notifications.error), sql`${schema.notifications.providerMessageId} LIKE 'claim:%'`,
+        // Heure de la réservation (claim:<ms>:<id>) ; ancien format sans heure : âge de la notification.
+        sql`(CASE WHEN split_part(${schema.notifications.providerMessageId}, ':', 2) ~ '^[0-9]{10,}$' THEN split_part(${schema.notifications.providerMessageId}, ':', 2)::bigint < ${now.getTime() - STALE_CLAIM_MS}
+          ELSE ${schema.notifications.createdAt} < ${new Date(now.getTime() - STALE_CLAIM_MS).toISOString()}::timestamptz END)`));
+    return this.db
+      .select({ id: schema.notifications.id, organizationId: schema.notifications.organizationId })
+      .from(schema.notifications)
+      .where(and(only, isNull(schema.notifications.sentAt), isNull(schema.notifications.error), isNull(schema.notifications.providerMessageId), sql`${schema.notifications.createdAt} > ${new Date(now.getTime() - 2 * 86_400_000).toISOString()}::timestamptz`))
+      .orderBy(schema.notifications.createdAt)
+      .limit(200);
+  }
+
+  /** Organisation au nom de laquelle un avis part (contexte de son envoi, étape 20) ; `null` : plateforme ou avis inconnu. */
+  async organizationOf(id: string): Promise<string | null> {
+    const [row] = await this.db.select({ organizationId: schema.notifications.organizationId }).from(schema.notifications).where(eq(schema.notifications.id, id)).limit(1);
+    return row?.organizationId ?? null;
   }
 
   /** Statut de livraison d'un texto (webhook Twilio), y compris un texto de secours d'un push. */

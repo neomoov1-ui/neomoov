@@ -21,6 +21,7 @@ import { DomainEventsService, type RideEventPayload } from '../../common/domain-
 import { describeDuration } from '../../common/format.js';
 import { lineLengthMeters, simplifyLine } from '../../common/geo.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { organizationIdFor } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -69,6 +70,8 @@ export interface ClientRecipient {
   /** Imposé pour un tiers sans compte (texto) ; absent : canaux de la matrice 5.14. */
   channel?: NotificationChannel;
   language: Language;
+  /** Organisation de la course (étape 20) : l'avis part en son nom. */
+  organizationId: string | null;
 }
 
 function constraintOf(error: unknown): string | null {
@@ -204,8 +207,8 @@ export class RidesService {
   async recipientOf(ride: RideRow): Promise<ClientRecipient> {
     const parties = await this.partiesOf(ride);
     // Compte : canaux de la matrice 5.14 ; tiers sans compte : texto.
-    if (parties.clientUserId) return { recipientUserId: parties.clientUserId, recipientAddress: null, language: parties.clientLanguage };
-    return { recipientUserId: null, recipientAddress: ride.guestPhone ?? ride.passengerPhone ?? null, channel: 'sms', language: parties.clientLanguage };
+    if (parties.clientUserId) return { recipientUserId: parties.clientUserId, recipientAddress: null, language: parties.clientLanguage, organizationId: ride.organizationId ?? null };
+    return { recipientUserId: null, recipientAddress: ride.guestPhone ?? ride.passengerPhone ?? null, channel: 'sms', language: parties.clientLanguage, organizationId: ride.organizationId ?? null };
   }
 
   /** Rôle de l'acteur sur cette course ; 403 s'il n'en a aucun. */
@@ -421,7 +424,8 @@ export class RidesService {
         creditsAppliedCents: quote.creditsAppliedCents,
         distanceMeters: quote.distanceMeters,
         durationSeconds: quote.durationSeconds,
-        organizationId: org?.id ?? null,
+        // Étape 20 : l'organisation du contexte (réservation d'une organisation cliente), sinon la plateforme.
+        organizationId: organizationIdFor(org?.id ?? null),
         stateTimestamps: { requested: now.toISOString() },
         ...fields,
         // Animal en cage (D8) : l'option du devis devient une préférence que le chauffeur voit dans l'offre et la course.
@@ -442,7 +446,7 @@ export class RidesService {
   }
 
   private payload(ride: RideRow, parties: Parties, fromState: RideState | null, toState: RideState, event: string, actor: ActorRef, at: Date, data?: Record<string, unknown>): RideEventPayload {
-    return { rideId: ride.id, publicNumber: ride.publicNumber, clientId: ride.clientId, clientUserId: parties.clientUserId, driverId: ride.driverId, driverUserId: parties.driverUserId, fromState, toState, event, actor: { kind: actor.kind, userId: actor.userId }, data, occurredAt: at };
+    return { rideId: ride.id, publicNumber: ride.publicNumber, clientId: ride.clientId, clientUserId: parties.clientUserId, driverId: ride.driverId, driverUserId: parties.driverUserId, organizationId: ride.organizationId ?? null, fromState, toState, event, actor: { kind: actor.kind, userId: actor.userId }, data, occurredAt: at };
   }
 
   // --- Machine à états ---
