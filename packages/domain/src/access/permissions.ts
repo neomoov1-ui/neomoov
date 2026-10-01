@@ -153,7 +153,9 @@ export interface SystemRole {
   permissions: readonly Permission[];
 }
 
-const ORG_PERMISSIONS = codes((d) => !d.platformOnly && d.module !== 'self');
+/** Permissions qu'une organisation cliente peut détenir (étape 20 : la fiche d'organisation est ouverte à tout membre qui en a au moins une). */
+export const ORGANIZATION_PERMISSIONS: readonly Permission[] = codes((d) => !d.platformOnly && d.module !== 'self');
+const ORG_PERMISSIONS = ORGANIZATION_PERMISSIONS;
 const ORG_READ = READ.filter((c) => !PERMISSIONS[c].platformOnly);
 
 /** Rôles système : ceux de la plateforme reprennent les anciens rôles ; ceux des organisations ignorent les permissions N0. */

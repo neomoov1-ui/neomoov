@@ -1,6 +1,8 @@
 /**
  * Gardes globales, exécutées dans cet ordre sur chaque route : limitation de débit par adresse IP, authentification et
- * politique (rôles, portées, limite par utilisateur), propriété de la ressource. Politique par défaut : refus.
+ * politique (rôles, portées, limite par utilisateur), propriété de la ressource, puis, sur les routes d'organisation
+ * (étape 20, enregistrée par le module des organisations), adhésion et permissions dans l'organisation. Politique par
+ * défaut : refus.
  */
 import { schema } from '@neomoov/db';
 import { Injectable, type CanActivate, type ExecutionContext } from '@nestjs/common';
@@ -12,11 +14,14 @@ import { AppError } from '../../common/app-error.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { AUTHENTICATED_KEY, CAN_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, isStaffRole, hasStaffRole, requestContext, type Actor, type OwnsOptions, type UserActor } from './actor.js';
+import { OrgScopeService } from '../organizations/org-scope.service.js';
+import { AUTHENTICATED_KEY, CAN_KEY, ORG_SCOPED_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, isStaffRole, hasStaffRole, requestContext, type Actor, type OrgScopedOptions, type OwnsOptions, type UserActor } from './actor.js';
 import { AccessService } from './access.service.js';
 import { ApiKeysService, isApiKey } from './api-keys.service.js';
 import { TokensService } from './tokens.service.js';
 import { hasAnyPermission, type Permission, type UserRole } from '@neomoov/domain';
+
+const UUID = /^[0-9a-f-]{36}$/i;
 
 function bearer(req: Request): string | null {
   const header = req.header('authorization');
@@ -110,6 +115,8 @@ export class AuthGuard implements CanActivate {
       return true;
     }
     if (can.length) {
+      // Route d'organisation (étape 20) : l'utilisateur est authentifié ; OrgScopeGuard décide avec ses permissions dans l'organisation.
+      if (this.reflector.getAllAndOverride<OrgScopedOptions | undefined>(ORG_SCOPED_KEY, targets)) return true;
       // Code d'erreur inchangé pour les applications déjà publiées ; la permission manquante est donnée en détail.
       if (!hasAnyPermission(await this.access.platformPermissions(actor), can)) throw AppError.forbidden('FORBIDDEN_ROLE', 'Votre rôle ne permet pas cette action', { required: can });
       return true;
@@ -198,5 +205,50 @@ export class OwnershipGuard implements CanActivate {
         return row ? [row.clientUserId, row.createdByUserId].filter((v): v is string => Boolean(v)) : null;
       }
     }
+  }
+}
+
+/**
+ * Routes d'organisation (étape 20, amendement v1.2 section 4) : compte utilisateur seulement ; l'organisation vient du
+ * paramètre de route (ou de l'en-tête `X-Organization-Id`) ; une adhésion active doit la couvrir (`OrgScopeService.scopeFor`) ;
+ * `@Can` est vérifié avec les permissions de l'appelant dans cette organisation (jamais ses anciens rôles) ; puis
+ * `req.orgScope` est posé pour l'intercepteur (transaction restreinte) et les contrôleurs.
+ */
+@Injectable()
+export class OrgScopeGuard implements CanActivate {
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly orgScope: OrgScopeService,
+    private readonly access: AccessService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (context.getType() !== 'http') return true;
+    const targets = [context.getHandler(), context.getClass()];
+    const options = this.reflector.getAllAndOverride<OrgScopedOptions | undefined>(ORG_SCOPED_KEY, targets);
+    if (!options) return true;
+    const req = context.switchToHttp().getRequest<Request>();
+    const actor = req.actor;
+    if (!actor) throw AppError.unauthorized('UNAUTHENTICATED', 'Jeton d\'accès requis');
+    if (actor.kind !== 'user') throw AppError.forbidden('SERVICE_ACCOUNT_NOT_ALLOWED', 'Les routes d\'organisation sont réservées aux utilisateurs');
+    const organizationId = OrgScopeGuard.organizationIdOf(req, options);
+    if (!organizationId) throw new AppError('ORGANIZATION_REQUIRED', 'Organisation requise (paramètre de route ou en-tête X-Organization-Id)', 400);
+    if (!UUID.test(organizationId)) throw AppError.notFound('ORGANIZATION_NOT_FOUND', 'Organisation introuvable');
+    const scope = await this.orgScope.scopeFor(actor.userId, organizationId);
+    const can = this.reflector.getAllAndOverride<Permission[]>(CAN_KEY, targets) ?? [];
+    if (!can.length) throw AppError.forbidden('NO_POLICY', 'Route d\'organisation sans permission (refus par défaut)');
+    const permissions = await this.access.permissionsIn(actor, scope.path);
+    // Même code d'erreur que la plateforme ; la permission manquante est donnée en détail.
+    if (!hasAnyPermission(permissions, can)) throw AppError.forbidden('FORBIDDEN_ROLE', 'Votre rôle ne permet pas cette action', { required: can });
+    req.orgScope = { organizationId: scope.organizationId, path: scope.path, permissions };
+    return true;
+  }
+
+  /** Identifiant d'organisation de la requête : le paramètre de route, sinon l'en-tête. */
+  static organizationIdOf(req: Request, options: OrgScopedOptions): string | null {
+    const fromParam = req.params[options.param];
+    if (typeof fromParam === 'string' && fromParam) return fromParam;
+    const fromHeader = req.header(options.header)?.trim();
+    return fromHeader || null;
   }
 }

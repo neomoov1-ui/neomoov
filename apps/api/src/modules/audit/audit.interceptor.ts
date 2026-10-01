@@ -22,6 +22,9 @@ export class AuditInterceptor implements NestInterceptor {
   /**
    * Les entrées sont écrites avant que la réponse parte (un lecteur du journal juste après la réponse les voit). Sur une
    * exception, les entrées déjà enregistrées par les services (changements effectifs) sont écrites aussi, puis l'erreur suit.
+   * Route d'organisation (étape 20) : l'organisation de `req.orgScope` est portée par chaque entrée, que l'écriture ait
+   * lieu dans la transaction restreinte ou après elle (ordre des intercepteurs) ; sur une exception, cette transaction est
+   * annulée, rien n'a changé, rien n'est journalisé.
    */
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== 'http') return next.handle();
@@ -44,6 +47,8 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private async flush(context: ExecutionContext, req: Request, entries: AuditEntry[], body: unknown, failed: boolean): Promise<void> {
+    const scope = req.orgScope;
+    if (failed && scope) return;
     const ctx = requestContext(req);
     const options = this.reflector.getAllAndOverride<AuditOptions | undefined>(AUDIT_KEY, [context.getHandler(), context.getClass()]);
     const generic: AuditEntry[] = [];
@@ -60,6 +65,6 @@ export class AuditInterceptor implements NestInterceptor {
         after: options && body && typeof body === 'object' ? maskSensitive(body) : undefined,
       });
     }
-    await this.audit.write([...generic, ...entries], { actor: req.actor ?? null, ip: ctx.ip, correlationId: ctx.correlationId });
+    await this.audit.write([...generic, ...entries], { actor: req.actor ?? null, ip: ctx.ip, correlationId: ctx.correlationId, organizationId: scope?.organizationId ?? null });
   }
 }
