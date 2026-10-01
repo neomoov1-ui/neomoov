@@ -24,7 +24,7 @@ export const subscriptions = pgTable('subscriptions', {
   currentPeriodEnd: tz('current_period_end').notNull(),
   trialEndsAt: tz('trial_ends_at'),
   stripeCustomerId: varchar('stripe_customer_id', { length: 100 }),
-  /** Réservé : l'abonnement est tenu par Neomoov, Stripe encaisse les factures (décision du 30 septembre 2026). */
+  /** Réservé : l'abonnement est tenu par Neomoov, Stripe encaisse les factures (décision du 1er octobre 2026). */
   stripeSubscriptionId: varchar('stripe_subscription_id', { length: 100 }),
   /** Véhicules actifs comptés à la dernière facture. */
   activeVehicles: integer('active_vehicles').notNull().default(0),

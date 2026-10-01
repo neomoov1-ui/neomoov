@@ -214,7 +214,8 @@ describe('formules, revenu récurrent, numéros, permissions', () => {
 
 describe('schémas de l\'API', () => {
   it('création ou changement de formule, résiliation, règlement hors plateforme, vue d\'ensemble', () => {
-    expect(subscriptionUpsertSchema.parse({ planCode: ' pro ' })).toEqual({ planCode: 'pro', billingPeriod: 'monthly' });
+    expect(subscriptionUpsertSchema.parse({ planCode: ' pro ' })).toEqual({ planCode: 'pro' });
+    expect(subscriptionUpsertSchema.parse({ planCode: 'pro', billingPeriod: 'annual', trialDays: 0 })).toEqual({ planCode: 'pro', billingPeriod: 'annual', trialDays: 0 });
     expect(subscriptionUpsertSchema.safeParse({ planCode: 'pro', billingPeriod: 'weekly' }).success).toBe(false);
     expect(subscriptionUpsertSchema.safeParse({ planCode: 'pro', trialDays: 91 }).success).toBe(false);
     expect(subscriptionCancelSchema.safeParse({ reason: 'ok' }).success).toBe(false);

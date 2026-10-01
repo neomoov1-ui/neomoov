@@ -86,7 +86,8 @@ export type PlatformInvoiceView = z.infer<typeof platformInvoiceViewSchema>;
 /** Création ou changement de formule : la nouvelle formule et la période s'appliquent à la prochaine facture. */
 export const subscriptionUpsertSchema = z.object({
   planCode: z.string().trim().min(1).max(40),
-  billingPeriod: z.enum(BILLING_PERIODS).default('monthly'),
+  /** Mensuel à la création si absente ; inchangée lors d'un changement de formule si absente. */
+  billingPeriod: z.enum(BILLING_PERIODS).optional(),
   /** Essai gratuit, à la création seulement (ou pour prolonger un essai en cours) ; 0 : facturation immédiate. */
   trialDays: z.number().int().min(0).max(90).optional(),
 });

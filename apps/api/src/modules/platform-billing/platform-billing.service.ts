@@ -171,14 +171,15 @@ export class PlatformBillingService {
     if (existing) return this.changeSubscription(existing, org, plan, input, actor, now);
 
     const trialDays = input.trialDays ?? 0;
+    const billingPeriod: BillingPeriod = input.billingPeriod ?? 'monthly';
     const trialEndsAt = trialDays > 0 ? new Date(now.getTime() + trialDays * DAY_MS) : null;
     const status: SubscriptionStatus = trialEndsAt ? 'trialing' : 'active';
     const customerId = await this.ensureCustomer(org, null);
     let row: SubscriptionRow;
     try {
       [row] = (await this.db.insert(schema.subscriptions).values({
-        organizationId, planCode: plan.code, status, billingPeriod: input.billingPeriod, startedAt: trialEndsAt ? null : now,
-        currentPeriodStart: now, currentPeriodEnd: trialEndsAt ?? billingPeriodEnd(now, input.billingPeriod), trialEndsAt, stripeCustomerId: customerId,
+        organizationId, planCode: plan.code, status, billingPeriod, startedAt: trialEndsAt ? null : now,
+        currentPeriodStart: now, currentPeriodEnd: trialEndsAt ?? billingPeriodEnd(now, billingPeriod), trialEndsAt, stripeCustomerId: customerId,
       }).returning()) as [SubscriptionRow];
     } catch (error) {
       if (uniqueViolation(error) === 'subscriptions_org_current_unique') throw AppError.conflict('SUBSCRIPTION_EXISTS', 'Cette organisation a déjà un abonnement en cours');
@@ -186,7 +187,7 @@ export class PlatformBillingService {
     }
     await this.applyPlanToOrganization(org, plan, organizationStatusFor(status));
     await this.syncProvider(row);
-    await this.record({ action: 'platform_billing.subscribed', entity: 'subscriptions', entityId: row.id, after: { organizationId, planCode: plan.code, billingPeriod: input.billingPeriod, trialEndsAt: iso(trialEndsAt), by: actor?.userId ?? null } });
+    await this.record({ action: 'platform_billing.subscribed', entity: 'subscriptions', entityId: row.id, after: { organizationId, planCode: plan.code, billingPeriod, trialEndsAt: iso(trialEndsAt), by: actor?.userId ?? null } });
     this.events.emit('organization.subscribed', { organizationId, planCode: plan.code });
     const invoice = trialEndsAt ? null : (await this.issueInvoice(row, plan, { start: now, end: row.currentPeriodEnd }, true, now)).invoice;
     return { created: true, subscription: subscriptionView(row, plan), invoice };
@@ -194,7 +195,8 @@ export class PlatformBillingService {
 
   private async changeSubscription(existing: SubscriptionRow, org: OrganizationRow, plan: PlanRow, input: SubscriptionUpsert, actor: UserActor | null, now: Date) {
     if (input.trialDays !== undefined && input.trialDays > 0 && existing.status !== 'trialing') throw AppError.conflict('TRIAL_NOT_AVAILABLE', 'Un essai ne se donne qu\'à la création de l\'abonnement (ou pour prolonger un essai en cours)');
-    const set: Partial<typeof schema.subscriptions.$inferInsert> = { planCode: plan.code, billingPeriod: input.billingPeriod };
+    const billingPeriod = input.billingPeriod ?? (existing.billingPeriod as BillingPeriod);
+    const set: Partial<typeof schema.subscriptions.$inferInsert> = { planCode: plan.code, billingPeriod };
     let endTrialNow = false;
     if (existing.status === 'trialing' && input.trialDays !== undefined) {
       if (input.trialDays > 0) {
@@ -205,7 +207,7 @@ export class PlatformBillingService {
     const [row] = await this.db.update(schema.subscriptions).set(set).where(eq(schema.subscriptions.id, existing.id)).returning();
     await this.applyPlanToOrganization(org, plan, null);
     await this.syncProvider(row!);
-    await this.record({ action: 'platform_billing.subscription_changed', entity: 'subscriptions', entityId: existing.id, before: { planCode: existing.planCode, billingPeriod: existing.billingPeriod, trialEndsAt: iso(existing.trialEndsAt) }, after: { planCode: plan.code, billingPeriod: input.billingPeriod, trialEndsAt: iso(row!.trialEndsAt), by: actor?.userId ?? null } });
+    await this.record({ action: 'platform_billing.subscription_changed', entity: 'subscriptions', entityId: existing.id, before: { planCode: existing.planCode, billingPeriod: existing.billingPeriod, trialEndsAt: iso(existing.trialEndsAt) }, after: { planCode: plan.code, billingPeriod, trialEndsAt: iso(row!.trialEndsAt), by: actor?.userId ?? null } });
     if (existing.planCode !== plan.code) this.events.emit('organization.subscribed', { organizationId: org.id, planCode: plan.code });
     const invoice = endTrialNow ? await this.startBilling(row!, now, now) : null;
     const fresh = (await this.subscriptionById(existing.id))!;
@@ -523,7 +525,7 @@ export class PlatformBillingService {
         return true;
       }
       // `customer.subscription.updated` : l'abonnement est tenu par Neomoov, aucun objet Subscription chez Stripe
-      // (décision du 30 septembre 2026) ; l'événement est enregistré et ignoré. Idem pour les autres types.
+      // (décision du 1er octobre 2026) ; l'événement est enregistré et ignoré. Idem pour les autres types.
       default:
         return false;
     }
