@@ -35,3 +35,6 @@ export * from './schemas/index.js';
 // Facturation certifiée (étape 9) : contenu des factures et schémas propres.
 export * from './invoicing/invoice.js';
 export * from './schemas/invoicing.js';
+// Facturation de la plateforme (étape 25) : formules, factures, relances, et schémas de l'API.
+export * from './platform-billing/billing.js';
+export * from './schemas/platform-billing.js';

@@ -105,6 +105,8 @@ export const PERMISSIONS = {
   'members.manage': p('organization', 'Changer le rôle d\'un membre, le suspendre ou le retirer', { sensitive: true }),
   'roles.read': p('organization', 'Rôles et catalogue des permissions'),
   'roles.manage': p('organization', 'Créer et modifier des rôles personnalisés', { sensitive: true }),
+  'billing.view': p('organization', 'Abonnement à la plateforme et factures de la plateforme'),
+  'billing.manage': p('organization', 'Gérer l\'abonnement à la plateforme : formule, règlements, relances', { sensitive: true }),
   'driver.app': p('self', 'Espace du chauffeur (ses courses, son dossier, ses revenus)'),
 } as const satisfies Record<string, PermissionDefinition>;
 
