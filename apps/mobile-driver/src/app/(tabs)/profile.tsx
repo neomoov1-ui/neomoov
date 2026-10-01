@@ -96,6 +96,16 @@ export default function ProfileScreen() {
       await useSession.getState().setUser(await api.me.update({ language: language === 'en' ? 'en' : 'fr' }));
     });
 
+  // Étape 22 : organisations de l'utilisateur (profil rattaché, fiche chauffeur, adhésions) ; le choix rattache le profil par le code.
+  const organizations = config.data?.organizations ?? [];
+  const currentOrganization = organizations.find((o) => o.current) ?? null;
+  const switchOrganization = (code: string) =>
+    run(async () => {
+      const result = await api.branding.attach(code);
+      await queryClient.invalidateQueries({ queryKey: keys.config });
+      setNotice(t('organization.switched', { name: result.organization.name }));
+    });
+
   const granted = (purpose: string) => consents.data?.find((c) => c.purpose === purpose)?.granted ?? false;
   const setConsent = (purpose: 'geolocation' | 'marketing', value: boolean) =>
     run(async () => {
@@ -145,6 +155,14 @@ export default function ProfileScreen() {
       <Button label={t('profile.manageVehicle')} variant="ghost" onPress={() => router.push('/onboarding/vehicle')} />
 
       <Choices label={t('profile.language')} value={i18n.language === 'en' ? 'en' : 'fr-CA'} onChange={(l) => void changeLanguage(l)} options={SUPPORTED_LANGUAGES.map((l) => ({ value: l, label: l === 'en' ? 'English' : 'Français' }))} />
+
+      <SectionTitle>{t('organization.section')}</SectionTitle>
+      {organizations.length > 1 ? (
+        <Choices label={t('organization.select')} value={currentOrganization?.joinCode ?? null} onChange={(code) => void switchOrganization(code)} options={organizations.map((o) => ({ value: o.joinCode, label: o.name }))} />
+      ) : (
+        <Body muted>{currentOrganization ? t('organization.current', { name: currentOrganization.name }) : t('organization.none')}</Body>
+      )}
+      <Button label={t('organization.joinButton')} variant="ghost" onPress={() => router.push('/join')} disabled={busy} testID="join-organization-link" />
 
       <SectionTitle>{t('profile.paymentModes')}</SectionTitle>
       <Body muted>{t('profile.card')}</Body>

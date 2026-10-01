@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddressField } from '@/components/address-field';
+import { useWebBrand } from '@/components/brand-context';
 import { OtpSignIn } from '@/components/otp-sign-in';
 import { QuoteList } from '@/components/quote-list';
 import { Action, Card, Checkbox, Field, Input, Notice, Textarea, cx } from '@/components/ui/kit';
@@ -38,6 +39,8 @@ export function Booking() {
   const { t, i18n } = useTranslation();
   const lang: Language = i18n.language === 'en' ? 'en' : 'fr-CA';
   const guest = useRef(createGuestApi()).current;
+  // Conditions et politique de la marque de l'hôte (étape 22) ; la version de la politique reste celle de la configuration.
+  const brand = useWebBrand();
   const config = useQuery<AppConfig>({ queryKey: ['config'], queryFn: () => guest.api.config.get(), staleTime: 300_000 });
   const minLeadMs = (config.data?.booking.minLeadSeconds ?? 7200) * 1000;
   const earliest = useMemo(() => {
@@ -187,7 +190,7 @@ export function Booking() {
               <Field label={t('book.lastName')}>{(p) => <Input {...p} autoComplete="family-name" maxLength={80} value={lastName} onChange={(e) => setLastName(e.target.value)} />}</Field>
             </div>
             {!signedIn ? (
-              <OtpSignIn guest={guest} onSignedIn={() => setSignedIn(true)} {...(config.data ? { terms: { termsUrl: config.data.legal.termsUrl, privacyUrl: config.data.legal.privacyUrl, version: config.data.legal.privacyPolicyVersion } } : {})} />
+              <OtpSignIn guest={guest} onSignedIn={() => setSignedIn(true)} {...(config.data ? { terms: { termsUrl: brand.termsUrl, privacyUrl: brand.privacyUrl, version: config.data.legal.privacyPolicyVersion } } : {})} />
             ) : (
               <>
                 <Notice tone="success">{t('book.verified')}</Notice>

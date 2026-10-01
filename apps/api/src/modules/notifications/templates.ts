@@ -355,20 +355,36 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/** Rend un gabarit ; la langue vient du destinataire (`fr` par défaut). */
-export function renderNotification(code: string, data: Data, language: string | null | undefined): RenderedNotification {
+/** Marque d'un courriel ou d'un texto (étape 22) : nom commercial et coordonnées de l'assistance. */
+export interface NotificationBrand {
+  name: string;
+  support?: { phone: string | null; email: string | null };
+}
+
+/**
+ * Rend un gabarit ; la langue vient du destinataire (`fr` par défaut). Avec la marque d'une organisation (étape 22,
+ * courriels et textos seulement) : son nom remplace « Neomoov » dans le titre, le texte et l'objet, et le pied du
+ * courriel dit « propulsé par Neomoov » ; les coordonnées de l'assistance de la marque y sont ajoutées.
+ */
+export function renderNotification(code: string, data: Data, language: string | null | undefined, brand?: NotificationBrand): RenderedNotification {
   const l: TemplateLanguage = language === 'en' ? 'en' : 'fr';
   const template = (TEMPLATES[code] ?? GENERIC)[l];
-  const title = typeof template.title === 'function' ? template.title(data, l) : template.title;
-  const body = typeof template.body === 'function' ? template.body(data, l) : template.body;
-  const footer = l === 'en' ? 'Neomoov, an app designed by customers for drivers.' : 'Neomoov, une application conçue par le client pour les chauffeurs.';
+  const brandName = brand?.name && brand.name !== 'Neomoov' ? brand.name : null;
+  const branded = (text: string) => (brandName ? text.replaceAll('Neomoov', brandName) : text);
+  const title = branded(typeof template.title === 'function' ? template.title(data, l) : template.title);
+  const body = branded(typeof template.body === 'function' ? template.body(data, l) : template.body);
+  const footer = brandName
+    ? (l === 'en' ? `${brandName}, powered by Neomoov.` : `${brandName}, propulsé par Neomoov.`)
+    : (l === 'en' ? 'Neomoov, an app designed by customers for drivers.' : 'Neomoov, une application conçue par le client pour les chauffeurs.');
+  const contacts = [brand?.support?.phone, brand?.support?.email].filter((v): v is string => Boolean(v));
+  const support = contacts.length ? `${l === 'en' ? 'Support' : 'Assistance'} : ${contacts.join(' · ')}` : null;
   const html = `<!doctype html><html lang="${l === 'en' ? 'en' : 'fr-CA'}"><body style="font-family:Arial,Helvetica,sans-serif;color:#0B1F3A;max-width:560px;margin:auto;padding:24px">`
     + `<h1 style="font-size:20px;margin:0 0 12px">${escapeHtml(title)}</h1><p style="font-size:15px;line-height:1.5;white-space:pre-line">${escapeHtml(body)}</p>`
-    + `<p style="font-size:12px;color:#555;margin-top:32px">${escapeHtml(footer)}</p></body></html>`;
+    + `<p style="font-size:12px;color:#555;margin-top:32px">${escapeHtml(footer)}${support ? `<br>${escapeHtml(support)}` : ''}</p></body></html>`;
   const deepLink: Record<string, string> = { template: code };
   for (const key of ['rideId', 'offerId', 'statementId', 'invoiceId']) if (typeof data[key] === 'string') deepLink[key] = data[key] as string;
   // Écran nommé de l'application chauffeur quand la notification ne porte pas d'identifiant (packs, documents, planifiées).
   const screen = code.startsWith('pack.') ? 'packs' : code.startsWith('document.') || code.startsWith('compliance.') || code.startsWith('vehicle.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled' : null;
   if (screen) deepLink['screen'] = screen;
-  return { title, body, subject: `${title} · Neomoov`, html, deepLink };
+  return { title, body, subject: `${title} · ${brandName ?? 'Neomoov'}`, html, deepLink };
 }

@@ -47,7 +47,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ? { ...config.updates, enabled: true, url: `https://u.expo.dev/${projectId}`, checkAutomatically: 'ON_LOAD', fallbackToCacheTimeout: 0 }
       : { ...config.updates, enabled: false },
     extra: { ...config.extra, ...(projectId ? { eas: { ...config.extra?.['eas'], projectId } } : {}) },
-    ios: { ...config.ios, config: { ...config.ios?.config, ...(iosKey ? { googleMapsApiKey: iosKey } : {}) } },
-    android: { ...config.android, config: { ...config.android?.config, ...(androidKey ? { googleMaps: { apiKey: androidKey } } : {}) } },
+    // Lien de rattachement `https://neomoov.net/c/<code>` (étape 22) : lien universel iOS et lien d'application Android
+    // (fichiers apple-app-site-association et assetlinks.json à publier sur neomoov.net) ; l'écran `c/[code]` reçoit le code.
+    ios: { ...config.ios, associatedDomains: [...(config.ios?.associatedDomains ?? []), 'applinks:neomoov.net'], config: { ...config.ios?.config, ...(iosKey ? { googleMapsApiKey: iosKey } : {}) } },
+    android: {
+      ...config.android,
+      intentFilters: [...(config.android?.intentFilters ?? []), { action: 'VIEW', autoVerify: true, data: [{ scheme: 'https', host: 'neomoov.net', pathPrefix: '/c/' }], category: ['BROWSABLE', 'DEFAULT'] }],
+      config: { ...config.android?.config, ...(androidKey ? { googleMaps: { apiKey: androidKey } } : {}) },
+    },
   });
 };

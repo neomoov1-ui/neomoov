@@ -10,6 +10,7 @@ import { AppError } from '../../common/app-error.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { BrandingService } from '../branding/branding.service.js';
 
 @Injectable()
 export class ClientProfileService {
@@ -17,14 +18,19 @@ export class ClientProfileService {
     @Inject(DB) private readonly database: Database,
     @Inject(APP_ENV) private readonly env: AppEnv,
     private readonly settings: SettingsService,
+    private readonly branding: BrandingService,
   ) {}
 
   private get db() {
     return this.database.db;
   }
 
-  /** `GET /v1/config` : ce que l'application affiche ou masque, lu à chaque démarrage (les drapeaux changent sans nouvelle version). */
-  async config(): Promise<AppConfig> {
+  /**
+   * `GET /v1/config` : ce que l'application affiche ou masque, lu à chaque démarrage (les drapeaux changent sans nouvelle
+   * version). Avec un jeton : la marque de l'organisation du profil client (sinon Neomoov) et les organisations de
+   * l'utilisateur pour le sélecteur (étape 22).
+   */
+  async config(userId: string | null = null): Promise<AppConfig> {
     const s = this.settings;
     const [minLeadSeconds, maxLeadDays, freeCancellationSeconds, cancellationFeeCents, floorPpm, windowSeconds, phone, email, privacyPolicyVersion, termsUrl, privacyUrl] = await Promise.all([
       s.number('rides.min_lead_seconds', 7200), s.number('rides.max_lead_days', 90), s.number('rides.free_cancellation_seconds', 120), s.number('rides.cancellation_fee_cents', 500),
@@ -37,7 +43,10 @@ export class ClientProfileService {
       .from(schema.vehicleCategories)
       .where(eq(schema.vehicleCategories.active, true))
       .orderBy(asc(schema.vehicleCategories.rank));
+    const { brand, organizations } = await this.branding.configFor(userId);
     return {
+      brand,
+      organizations,
       features: { cardPayments: cardPaymentsEnabled(this.env), negotiation: this.env.FEATURE_NEGOTIATION, negotiationAboveMax: this.env.FEATURE_NEGOTIATION_ABOVE_MAX, immediateRides: this.env.FEATURE_IMMEDIATE_RIDES, installments: this.env.FEATURE_INSTALLMENTS, faceCheck: this.env.FEATURE_FACE_CHECK },
       booking: { minLeadSeconds, maxLeadDays, freeCancellationSeconds, cancellationFeeCents, airportFreeCancellationBeforeSeconds },
       negotiation: { floorPpm, windowSeconds },

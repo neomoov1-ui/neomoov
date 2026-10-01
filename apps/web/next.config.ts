@@ -33,7 +33,8 @@ function csp(frameAncestors: string): string {
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' ${TURNSTILE}${production ? '' : " 'unsafe-eval'"}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: ${TILES}`,
+    // `https:` : logo d'une organisation hébergé chez elle (marque par organisation, étape 22), images seulement.
+    `img-src 'self' data: blob: https: ${TILES}`,
     "font-src 'self' data:",
     `connect-src 'self' ${apiOrigin} ${socketOrigin} ${TURNSTILE}${sentryOrigin()}`,
     `frame-src 'self' blob: ${TURNSTILE}`,

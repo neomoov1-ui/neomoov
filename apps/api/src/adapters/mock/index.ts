@@ -279,10 +279,10 @@ export class MockSmsProvider implements SmsProvider {
 
 export class MockEmailProvider implements EmailProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ to: string; subject: string; html: string; attachments: string[]; messageId: string }> = [];
-  async send(input: { to: string; subject: string; html: string; attachments?: Array<{ filename: string }> }) {
+  readonly sent: Array<{ to: string; from: string | null; subject: string; html: string; attachments: string[]; messageId: string }> = [];
+  async send(input: { to: string; from?: string; subject: string; html: string; attachments?: Array<{ filename: string }> }) {
     const messageId = nextId('email_mock');
-    this.sent.push({ to: input.to, subject: input.subject, html: input.html, attachments: (input.attachments ?? []).map((a) => a.filename), messageId });
+    this.sent.push({ to: input.to, from: input.from ?? null, subject: input.subject, html: input.html, attachments: (input.attachments ?? []).map((a) => a.filename), messageId });
     return { messageId };
   }
 }

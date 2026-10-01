@@ -35,3 +35,7 @@ export * from './schemas/index.js';
 // Facturation certifiée (étape 9) : contenu des factures et schémas propres.
 export * from './invoicing/invoice.js';
 export * from './schemas/invoicing.js';
+// Marque par organisation (étape 22) : marque résolue, contraste, code de rattachement, domaines.
+export * from './branding/brand.js';
+export * from './branding/join-code.js';
+export * from './branding/domains.js';

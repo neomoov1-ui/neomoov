@@ -16,7 +16,9 @@ import {
   type EmailProvider, type PushProvider, type SmsDeliveryStatus, type SmsProvider, type StorageProvider, type WhatsAppProvider,
 } from '../../adapters/types.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { currentOrgScope } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { BrandingService } from '../branding/branding.service.js';
 import { renderNotification } from './templates.js';
 
 type NotificationRow = typeof schema.notifications.$inferSelect;
@@ -46,10 +48,30 @@ export class NotificationDeliveryService {
     @Inject(WHATSAPP_PROVIDER) private readonly whatsapp: WhatsAppProvider,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
     @Inject(APP_LOGGER) private readonly logger: Logger,
+    private readonly branding: BrandingService,
   ) {}
 
   private get db() {
     return this.database.db;
+  }
+
+  /**
+   * Marque au nom de laquelle l'avis part (étape 22) : l'organisation de la ligne, sinon celle du contexte courant, sinon
+   * celle du profil client (ou de la fiche chauffeur) du destinataire ; sans organisation, Neomoov.
+   */
+  private async brandOf(row: NotificationRow) {
+    let organizationId = row.organizationId ?? currentOrgScope()?.organizationId ?? null;
+    if (!organizationId && row.recipientUserId) {
+      const [profile] = await this.db
+        .select({ client: schema.clients.organizationId, driver: schema.drivers.organizationId })
+        .from(schema.users)
+        .leftJoin(schema.clients, eq(schema.clients.userId, schema.users.id))
+        .leftJoin(schema.drivers, eq(schema.drivers.userId, schema.users.id))
+        .where(eq(schema.users.id, row.recipientUserId))
+        .limit(1);
+      organizationId = profile?.client ?? profile?.driver ?? null;
+    }
+    return this.branding.brandFor(organizationId);
   }
 
   /** Envoie une notification en attente ; sans effet si elle est déjà envoyée, en erreur ou en cours d'envoi ailleurs. */
@@ -87,7 +109,12 @@ export class NotificationDeliveryService {
       await this.finish(row.id, { error: 'no_marketing_consent' });
       return 'failed';
     }
-    const rendered = renderNotification(row.template, data, row.language ?? recipient.language);
+    const language = row.language ?? recipient.language;
+    // Étape 22 : courriels et textos au nom de la marque de l'organisation ; push, WhatsApp (numéro de Neomoov) et avis
+    // dans l'application restent « Neomoov » (nom dans les notifications : règles 4.2.6 et 4.3 d'Apple).
+    const brand = row.channel === 'email' || row.channel === 'sms' || row.channel === 'push' ? await this.brandOf(row) : null;
+    const branded = brand ? renderNotification(row.template, data, language, { name: brand.displayName, support: brand.support }) : null;
+    const rendered = row.channel === 'email' || row.channel === 'sms' ? branded! : renderNotification(row.template, data, language);
     switch (row.channel) {
       case 'push': {
         let detail = 'no_device';
@@ -103,7 +130,8 @@ export class NotificationDeliveryService {
           detail = tickets[0]?.detail ?? 'push_refused';
         }
         if (needsSmsFallback(row.template, 'push', false) && recipient.phone) {
-          const { messageId } = await this.sms.send({ to: recipient.phone, body: `Neomoov : ${rendered.body}` });
+          // Texto de secours : au nom de la marque, comme tout texto.
+          const { messageId } = await this.sms.send({ to: recipient.phone, body: `${brand!.displayName} : ${branded!.body}` });
           await this.finish(row.id, { sentAt: now, providerMessageId: messageId, data: { ...data, fallback: { channel: 'sms', reason: detail } } });
           return 'sent';
         }
@@ -113,7 +141,7 @@ export class NotificationDeliveryService {
       case 'sms': {
         const to = row.recipientAddress ?? recipient.phone;
         if (!to) return this.fail(row.id, 'no_phone');
-        const { messageId } = await this.sms.send({ to, body: `Neomoov : ${rendered.body}` });
+        const { messageId } = await this.sms.send({ to, body: `${brand!.displayName} : ${rendered.body}` });
         await this.finish(row.id, { sentAt: now, providerMessageId: messageId });
         return 'sent';
       }
@@ -134,7 +162,7 @@ export class NotificationDeliveryService {
           return 'deferred';
         }
         const { messageId } = await this.email.send({
-          to, subject: rendered.subject, html: rendered.html, text: rendered.body, idempotencyKey: `notification:${row.id}`,
+          to, from: await this.branding.emailFrom(brand!), subject: rendered.subject, html: rendered.html, text: rendered.body, idempotencyKey: `notification:${row.id}`,
           ...(attachment && attachment !== 'pending' ? { attachments: [attachment] } : {}),
         });
         await this.finish(row.id, { sentAt: now, providerMessageId: messageId });

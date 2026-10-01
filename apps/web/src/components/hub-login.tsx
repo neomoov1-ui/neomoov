@@ -4,6 +4,7 @@ import type { MfaEnrollment, StaffLoginResponse } from '@neomoov/domain';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BrandMark } from '@/components/brand-context';
 import { LanguageSwitch } from '@/components/language-switch';
 import { Action, Card, Field, Input, Notice } from '@/components/ui/kit';
 import { ApiError, staffStep } from '@/lib/hub-api';
@@ -118,7 +119,7 @@ export function HubLogin({ language }: { language: Language }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-brand-mist px-4 py-10">
       <div className="flex w-full max-w-md items-center justify-between">
-        <span className="font-heading text-2xl font-bold text-brand-blue-dark">neomoov</span>
+        <BrandMark className="font-heading text-2xl font-bold text-brand-blue-dark" />
         <LanguageSwitch current={language} />
       </div>
       <main id="contenu" className="w-full max-w-md">

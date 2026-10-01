@@ -31,4 +31,5 @@ export const shadows = {
   card: { shadowColor: '#10171F', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
 } as const;
 
-export type ThemeColors = typeof colors;
+/** Jetons de couleur : ceux de la charte, ou ceux dérivés de la marque d'une organisation (`brand-theme.ts`, étape 22). */
+export type ThemeColors = { readonly [K in keyof typeof colors]: string };

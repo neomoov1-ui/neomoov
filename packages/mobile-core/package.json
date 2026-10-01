@@ -39,6 +39,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./theme": "./src/theme.ts",
+    "./brand": "./src/brand.tsx",
+    "./brand-theme": "./src/brand-theme.ts",
     "./i18n": "./src/i18n.ts",
     "./components": "./src/components.tsx",
     "./ui": "./src/ui.tsx",
