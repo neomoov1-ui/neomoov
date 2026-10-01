@@ -37,6 +37,8 @@ export interface BillingInvoiceInput {
   taxes: Array<{ label: string; amountCents: number }>;
   totalCents: number;
   currency: 'CAD';
+  /** Émission et échéance de la facture PF : le délai de paiement en découle (mêmes paramètres à chaque essai). */
+  issuedAt: Date;
   dueAt: Date;
   /** Numéros de taxes de Neomoov, affichés sur la facture du fournisseur (vides tant qu'ils ne sont pas fournis). */
   taxNumbers: { gst: string | null; qst: string | null };

@@ -33,9 +33,23 @@ Revue de fin d'étape, 1er octobre 2026. Branche `etape-25b-facturation-platefor
 - **Production** : `BILLING_PROVIDER=mock` en production exige `billing` dans `ALLOW_MOCK_PROVIDERS` ; le simulateur y refuse tout webhook (test `mock-webhooks-production`).
 - **Secrets** : clé Stripe et secret de webhook en champs privés, jamais journalisés ni sérialisés (`toJSON`).
 
-## Tests
+## Tests (1er octobre 2026)
 
-(Résultats exacts dans le rapport de fin de mission et le message du dernier commit.)
+| Commande | Résultat |
+|---|---|
+| `pnpm --filter @neomoov/domain test` | 33 fichiers, 439 tests verts ; couverture 100 % (instructions 1843/1843, branches 1256/1256, fonctions 335/335, lignes 1459/1459) |
+| `packages/db` : `vitest run test/plans-data.test.ts test/seed-data.test.ts` | 2 fichiers, 17 tests verts (grille, modules, réglages des relances, migrations et leurs inverses) |
+| `apps/api` : `vitest run test/stripe-billing-adapter.test.ts test/platform-billing-units.test.ts` | 2 fichiers, 16 tests verts (adaptateur réel par faux `fetch`, simulateur, gabarits, PDF, passe quotidienne) |
+| `apps/api` : `vitest run test/env.test.ts test/mock-webhooks-production.test.ts` | verts (simulateur de la facturation refusé en production, `billing` dans `ALLOW_MOCK_PROVIDERS`) |
+| Sous le verrou `agent-e3` : `vitest run --no-file-parallelism test/platform-billing.e2e.test.ts` | 1 fichier, 9 tests verts (environ 100 s) |
+| Sous le verrou `agent-e3` : `vitest run --no-file-parallelism test/authorization.e2e.test.ts` | 1 fichier, 7 tests verts (78 s) : les 9 nouvelles routes ont leur politique, 401 sans jeton, 403 pour un client et un compte de service |
+| Types | `domain`, `db`, `api`, `worker`, `api-client` verts |
+
+Migration `0023_platform-billing` appliquée sur la base de développement (entrée 38 du journal de Drizzle) ; formules et réglages `billing.*` insérés. Après les tests, aucun abonnement, facture, organisation, formule ni événement de test ne reste en base.
+
+## Revue de code
+
+`/code-review` (effort bas) sur le module, les adaptateurs et le domaine : trois constats. Corrigés : la clé d'idempotence de la création d'une facture Stripe accompagnait des paramètres variables (délai recalculé à chaque essai, mode d'encaissement) : délai tiré des dates de la facture PF, mode d'encaissement dans la clé ; les lignes négatives (crédit) étaient omises : seules les lignes nulles le sont. Gardé et documenté : au rejeu, le simulateur rend la réponse d'origine d'une facture (comme une requête idempotente chez Stripe).
 
 ## Reste à faire
 
@@ -43,7 +57,7 @@ Revue de fin d'étape, 1er octobre 2026. Branche `etape-25b-facturation-platefor
 - Écrans My Hub (agent F) : formules, abonnement, factures, vue d'ensemble, règlement hors plateforme.
 - Portail client Stripe (carte par défaut pour le prélèvement automatique) : lien à ajouter dans la route d'organisation.
 - Fusion avec la branche CRM : les deux branches partent de `26b5abd` ; `organization.subscribed` (déjà déclaré dans `domain-events.ts`) est émis à l'abonnement et au changement de formule, la file `crm` le prend. Conflits attendus, simples, dans `app.module.ts`, `worker.module.ts`, `queue.module.ts` (noms de files), `adapters.module.ts`, `config/env.ts`, `.env.example`, `docs/decisions.md`.
-- Migration `0023_platform-billing` : appliquée sur la base de développement (voir le rapport) ; à renuméroter à la fusion si besoin.
+- Migration `0023_platform-billing` : appliquée sur la base de développement (entrée 38, `when` 1790853294607, après la `0022_crm` déjà appliquée par l'agent du CRM) ; à renuméroter à la fusion si besoin, sans changer son `when`.
 - Décisions du fondateur (section 9 de `docs/platform-billing.md`).
 
 ## Pièges

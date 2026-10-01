@@ -67,6 +67,7 @@ export class MockBillingProvider implements BillingProvider {
   async createInvoice(input: BillingInvoiceInput): Promise<BillingInvoiceResult> {
     this.calls.push({ method: 'createInvoice', args: [input] });
     this.available();
+    // Rejeu : comme une requête idempotente chez Stripe, la réponse d'origine (une facture annulée depuis reste « ouverte » ici).
     const existing = [...this.invoices.values()].find((i) => i.platformInvoiceId === input.platformInvoiceId);
     if (existing) return { invoiceId: existing.id, status: existing.status === 'paid' ? 'paid' : 'open', hostedInvoiceUrl: existing.hostedInvoiceUrl };
     const id = nextId('in_mock');

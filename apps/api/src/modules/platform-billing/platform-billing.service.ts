@@ -348,7 +348,7 @@ export class PlatformBillingService {
     const [rates, gst, qst] = await Promise.all([this.taxRates(), this.settings.get<unknown>('company.gst_number', ''), this.settings.get<unknown>('company.qst_number', '')]);
     const taxId = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
     const result = await this.billing.createInvoice({
-      platformInvoiceId: row.id, number: row.number, organizationId: row.organizationId, customerId, currency: 'CAD', dueAt: row.dueAt, totalCents: row.totalCents,
+      platformInvoiceId: row.id, number: row.number, organizationId: row.organizationId, customerId, currency: 'CAD', issuedAt: row.issuedAt, dueAt: row.dueAt, totalCents: row.totalCents,
       lines: (row.lines as PlatformInvoiceLine[]).map((l) => ({ label: l.label, amountCents: l.amountCents })),
       taxes: [{ label: `TPS (${rateLabel(rates.gstRatePpm)})`, amountCents: row.gstCents }, { label: `TVQ (${rateLabel(rates.qstRatePpm)})`, amountCents: row.qstCents }],
       taxNumbers: { gst: taxId(gst), qst: taxId(qst) },

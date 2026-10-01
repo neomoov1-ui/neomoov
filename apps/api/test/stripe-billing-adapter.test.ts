@@ -37,7 +37,7 @@ const invoiceInput = (over: Partial<BillingInvoiceInput> = {}): BillingInvoiceIn
   platformInvoiceId: '11111111-1111-4111-8111-111111111111', number: 'PF-2026-000001', organizationId: '22222222-2222-4222-8222-222222222222', customerId: 'cus_123',
   lines: [{ label: 'Frais d\'installation, formule Pro', amountCents: 150_000 }, { label: 'Abonnement mensuel, formule Pro', amountCents: 19_900 }],
   taxes: [{ label: 'TPS (5 %)', amountCents: 8_495 }, { label: 'TVQ (9,975 %)', amountCents: 16_948 }],
-  totalCents: 195_343, currency: 'CAD', dueAt: new Date(NOW), taxNumbers: { gst: '123456789 RT0001', qst: null }, ...over,
+  totalCents: 195_343, currency: 'CAD', issuedAt: new Date(NOW), dueAt: new Date(NOW), taxNumbers: { gst: '123456789 RT0001', qst: null }, ...over,
 });
 
 describe('adaptateur Stripe Billing réel (faux fetch)', () => {
@@ -74,17 +74,18 @@ describe('adaptateur Stripe Billing réel (faux fetch)', () => {
       'metadata[neomoov_platform_invoice_id]': '11111111-1111-4111-8111-111111111111', 'metadata[neomoov_invoice_number]': 'PF-2026-000001',
     });
     expect(create['custom_fields[2][name]']).toBeUndefined();
-    expect(calls[1]!.headers['idempotency-key']).toBe('platform-invoice:11111111-1111-4111-8111-111111111111:create');
+    expect(calls[1]!.headers['idempotency-key']).toBe('platform-invoice:11111111-1111-4111-8111-111111111111:send:create');
     const items = calls.filter((c) => c.url.endsWith('/v1/invoiceitems'));
     expect(items.map((c) => [c.body.get('amount'), c.body.get('description'), c.body.get('invoice'), c.headers['idempotency-key']])).toEqual([
-      ['150000', 'Frais d\'installation, formule Pro', 'in_1', 'platform-invoice:11111111-1111-4111-8111-111111111111:item:0'],
-      ['19900', 'Abonnement mensuel, formule Pro', 'in_1', 'platform-invoice:11111111-1111-4111-8111-111111111111:item:1'],
-      ['8495', 'TPS (5 %)', 'in_1', 'platform-invoice:11111111-1111-4111-8111-111111111111:item:2'],
-      ['16948', 'TVQ (9,975 %)', 'in_1', 'platform-invoice:11111111-1111-4111-8111-111111111111:item:3'],
+      ['150000', 'Frais d\'installation, formule Pro', 'in_1', 'platform-invoice:11111111-1111-4111-8111-111111111111:send:item:0'],
+      ['19900', 'Abonnement mensuel, formule Pro', 'in_1', 'platform-invoice:11111111-1111-4111-8111-111111111111:send:item:1'],
+      ['8495', 'TPS (5 %)', 'in_1', 'platform-invoice:11111111-1111-4111-8111-111111111111:send:item:2'],
+      ['16948', 'TVQ (9,975 %)', 'in_1', 'platform-invoice:11111111-1111-4111-8111-111111111111:send:item:3'],
     ]);
     // Le total chez Stripe est exactement celui de la facture PF.
     expect(items.reduce((sum, c) => sum + Number(c.body.get('amount')), 0)).toBe(195_343);
     expect(Object.fromEntries(calls.at(-1)!.body)).toEqual({ auto_advance: 'true' });
+    expect(calls.at(-1)!.headers['idempotency-key']).toBe('platform-invoice:11111111-1111-4111-8111-111111111111:send:finalize');
   });
 
   it('facture avec carte par défaut : prélèvement automatique, sans délai de paiement ; lignes à zéro omises ; facture déjà payée', async () => {
@@ -101,6 +102,26 @@ describe('adaptateur Stripe Billing réel (faux fetch)', () => {
     expect(create['days_until_due']).toBeUndefined();
     expect(create['custom_fields[1][name]']).toBe('TVQ');
     expect(calls.filter((c) => c.url.endsWith('/v1/invoiceitems'))).toHaveLength(1);
+    // Le mode d'encaissement fait partie de la clé : un nouvel essai après l'ajout d'une carte ne réutilise pas la clé du brouillon envoyé.
+    expect(calls[1]!.headers['idempotency-key']).toBe('platform-invoice:11111111-1111-4111-8111-111111111111:auto:create');
+  });
+
+  it('délai de paiement tiré des dates de la facture (mêmes paramètres à chaque essai) ; un crédit négatif est transmis', async () => {
+    const route = () => [
+      { method: 'GET', path: '/v1/customers/cus_123', body: { invoice_settings: {} } },
+      { method: 'POST', path: '/v1/invoices', body: { id: 'in_5', status: 'draft' } },
+      ...[0, 1, 2].map(() => ({ method: 'POST', path: '/v1/invoiceitems', body: { id: 'ii' } })),
+      { method: 'POST', path: '/v1/invoices/in_5/finalize', body: { id: 'in_5', status: 'open' } },
+    ];
+    const input = invoiceInput({ dueAt: new Date(NOW + 14 * 86_400_000), lines: [{ label: 'Abonnement', amountCents: 19_900 }, { label: 'Crédit commercial', amountCents: -1_000 }], taxes: [{ label: 'TPS', amountCents: 945 }, { label: 'TVQ', amountCents: 0 }], totalCents: 19_845 });
+    for (const offset of [0, 3 * 3_600_000]) {
+      const { calls, fetchImpl } = fakeStripe(route());
+      await new StripeBillingProvider('sk', 'whsec', fetchImpl, () => NOW + offset).createInvoice(input);
+      expect(calls[1]!.body.get('days_until_due')).toBe('14');
+      const amounts = calls.filter((c) => c.url.endsWith('/v1/invoiceitems')).map((c) => Number(c.body.get('amount')));
+      expect(amounts).toEqual([19_900, -1_000, 945]);
+      expect(amounts.reduce((a, b) => a + b, 0)).toBe(19_845);
+    }
   });
 
   it('règlement hors plateforme et annulation : relus d\'abord, rejouables', async () => {

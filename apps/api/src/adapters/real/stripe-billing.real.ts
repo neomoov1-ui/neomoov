@@ -78,11 +78,16 @@ export class StripeBillingProvider implements BillingProvider {
     });
   }
 
+  /**
+   * Une clé d'idempotence n'est valable chez Stripe qu'avec les mêmes paramètres : le délai de paiement découle des dates
+   * de la facture PF (jamais de l'heure de l'essai) et le mode d'encaissement fait partie de la clé. Si le client ajoute
+   * une carte entre deux essais, un nouveau brouillon est créé ; l'ancien, jamais finalisé, n'est jamais prélevé.
+   */
   async createInvoice(input: BillingInvoiceInput): Promise<BillingInvoiceResult> {
-    const key = `platform-invoice:${input.platformInvoiceId}`;
     // Prélèvement automatique si le client a une carte par défaut (portail client de Stripe) ; sinon facture envoyée.
     const customer = await this.call<{ invoice_settings?: { default_payment_method?: string | null } }>('GET', `/v1/customers/${encodeURIComponent(input.customerId)}`);
     const automatic = Boolean(customer.invoice_settings?.default_payment_method);
+    const key = `platform-invoice:${input.platformInvoiceId}:${automatic ? 'auto' : 'send'}`;
     const customFields = [
       { name: 'Facture Neomoov', value: input.number },
       ...(input.taxNumbers.gst ? [{ name: 'TPS', value: input.taxNumbers.gst }] : []),
@@ -96,12 +101,13 @@ export class StripeBillingProvider implements BillingProvider {
       pending_invoice_items_behavior: 'exclude',
       automatic_tax: { enabled: false },
       collection_method: automatic ? 'charge_automatically' : 'send_invoice',
-      ...(automatic ? {} : { days_until_due: Math.max(1, Math.ceil((input.dueAt.getTime() - this.#now()) / DAY_MS)) }),
+      ...(automatic ? {} : { days_until_due: Math.max(1, Math.ceil((input.dueAt.getTime() - input.issuedAt.getTime()) / DAY_MS)) }),
       description: `Facture ${input.number} de la plateforme Neomoov`,
       custom_fields: customFields,
       metadata,
     }, `${key}:create`);
-    const items = [...input.lines, ...input.taxes].filter((item) => item.amountCents > 0);
+    // Seules les lignes nulles sont omises : un crédit (montant négatif) passe, le total reste celui de la facture PF.
+    const items = [...input.lines, ...input.taxes].filter((item) => item.amountCents !== 0);
     for (const [index, item] of items.entries()) {
       await this.call('POST', '/v1/invoiceitems', {
         customer: input.customerId, invoice: draft.id, currency: input.currency.toLowerCase(), amount: item.amountCents, description: item.label, metadata: { neomoov_platform_invoice_id: input.platformInvoiceId },
