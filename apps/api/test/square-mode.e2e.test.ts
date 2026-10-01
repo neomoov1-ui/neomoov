@@ -111,9 +111,10 @@ describe('paiements par jeton de carte et versements hors plateforme (étape 26,
 
   it('mode Square : Connect refusé (409), versement par virement, prélèvement par la page de saisie, relevé positif à verser hors plateforme', async () => {
     if (!app) return;
-    provider.capabilities = { ...SQUARE_LIKE };
+    // Comptes créés avant le passage en mode Square : la carte de test des aides passe par un SetupIntent.
     const driver = await createDriver(app);
     const staff = await createStaffAndLogin(app, ['admin']);
+    provider.capabilities = { ...SQUARE_LIKE };
 
     const link = await request(server()).post('/v1/driver/connect/onboarding-link').set(bearer(driver.tokens));
     expect(link.status).toBe(409);
