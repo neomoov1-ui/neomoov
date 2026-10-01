@@ -39,13 +39,14 @@ export function HubShell({ user, language, children }: { user: HubUser; language
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || '';
   const admin = user.roles.includes('admin');
   const staff = isStaffUser(user.roles);
-  const orgMode = !staff || pathname === ORG_SPACE || pathname.startsWith(`${ORG_SPACE}/`);
+  const inOrgSpace = pathname === ORG_SPACE || pathname.startsWith(`${ORG_SPACE}/`);
+  const orgMode = !staff || inOrgSpace;
   const active = (href: string) => (href === '/hub' ? pathname === '/hub' : pathname === href || (pathname.startsWith(`${href}/`) && href !== '/hub/courses') || (href === '/hub/courses' && /^\/hub\/courses\/(?!nouvelle)/.test(pathname)));
 
   // Un membre d'organisation n'a pas d'écran de la plateforme : il est conduit vers l'espace de son organisation.
   useEffect(() => {
-    if (!staff && pathname !== ORG_SPACE && !pathname.startsWith(`${ORG_SPACE}/`)) router.replace(ORG_SPACE);
-  }, [staff, pathname, router]);
+    if (!staff && !inOrgSpace) router.replace(ORG_SPACE);
+  }, [staff, inOrgSpace, router]);
 
   const shell = (
     <div className="min-h-screen lg:flex">
@@ -92,7 +93,8 @@ export function HubShell({ user, language, children }: { user: HubUser; language
         </header>
         <main id="contenu" className="px-4 py-6 sm:px-6">
           {orgMode ? <OrgBar /> : null}
-          {children}
+          {/* Une page de la plateforme ne s'affiche jamais à un membre d'organisation (redirection en cours). */}
+          {staff || inOrgSpace ? children : null}
         </main>
       </div>
     </div>
