@@ -45,12 +45,8 @@
   },
   "submit": {
     "production": {
-      "ios": {
-        "appleTeamId": "",
-        "ascAppId": ""
-      },
       "android": {
-        "serviceAccountKeyPath": "../../../cles-neomoov/google-play-service-account.json",
+        "serviceAccountKeyPath": "../../../../cles-neomoov/google-play-service-account.json",
         "track": "internal"
       }
     }
