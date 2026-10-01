@@ -16,6 +16,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel se li
 | L'API refuse de démarrer après un changement de `.env` (« Configuration invalide ») | `redemarrer-un-service.md`, section 7 ; `../operations/acces-a-fournir.md`, « Démarrage de l'API en production » |
 | Désactiver un drapeau `FEATURE_*`, changer un réglage, couper un agent ou un canal | `drapeaux-et-reglages.md` |
 | Faire tourner un secret (dont `ENCRYPTION_KEY`) | `secrets-et-cles.md` |
+| Encaisser avec Square, déclarer son webhook, verser les relevés des chauffeurs par virement, revenir à Stripe | `square.md` |
 | Incident de confidentialité (Loi 25) | `incident-confidentialite.md` |
 | Publier une version des applications mobiles | `publication-mobile.md` |
 | Inviter les testeurs, collecter et trier les retours de la bêta | `../beta/procedure.md` |
@@ -40,6 +41,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel se li
 | `incident-confidentialite.md` | Définition, délais, confinement, registre, évaluation du préjudice sérieux, avis à la CAI et aux personnes, modèle d'entrée de registre | Écrit le 26 septembre 2026 (étape 16) ; à faire relire par l'avocat |
 | `publication-mobile.md` | État de la configuration EAS, build ou mise à jour à la volée, numéros de version et de build, construire et soumettre, distribution, retour arrière, liste de chaque version | Écrit le 26 septembre 2026 (étape 16) |
 | `observabilite.md` | Identifiant de corrélation (du mobile aux files), suivi des erreurs Sentry (projets, variables, lecture), métriques de My Hub et format Prometheus, sondes et alertes Better Stack à créer, réaction à une alerte | Écrit le 26 septembre 2026 ; comptes Sentry et Better Stack à ouvrir |
+| `square.md` | Square en attendant Stripe (étape 26) : clés à fournir, webhook, activation, versements hors plateforme, retour à Stripe, dépannage, rotation, essais en bac à sable | Écrit le 1er octobre 2026 |
 
 Documents liés : `docs/operations/daily.md` (journée type), `docs/operations/acces-a-fournir.md` (accès à ouvrir pour la mise en ligne), `docs/operations/migration-canada.md` (plan de migration), `docs/beta/` (bêta fermée), `docs/store/` (fiches des magasins).
 
