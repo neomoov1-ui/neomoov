@@ -34,6 +34,8 @@ function PayoutAccount() {
   const fleet = useFleetOrg();
   const account = useQuery({ queryKey: ['fleet', fleet.organizationId, 'payout-account'], queryFn: () => fleetApi.payoutAccount(fleet.organizationId), enabled: fleet.can('statements.read', 'payouts.manage') });
   const onboarding = useMutation({ mutationFn: () => fleetApi.payoutOnboarding(fleet.organizationId), onSuccess: (link) => { if (!link.simulated) window.location.assign(link.url); else void account.refetch(); } });
+  // Requête désactivée sans permission : rien à afficher (une requête désactivée reste « en attente »).
+  if (!fleet.can('statements.read', 'payouts.manage')) return null;
   if (!account.data && !account.isPending) return account.isError ? <ErrorBlock error={account.error} /> : null;
   return (
     <Card title={t('fleet.statements.account')} actions={fleet.can('payouts.manage') && account.data?.mode !== 'connect' ? <Action busy={onboarding.isPending} onClick={() => onboarding.mutate()}>{t('fleet.statements.openAccount')}</Action> : null}>
