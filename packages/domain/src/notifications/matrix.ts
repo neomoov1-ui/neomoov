@@ -106,6 +106,9 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('alert.appeal_received', 'staff', ['email']),
   rule('alert.appeal_overdue', 'staff', ['email']),
   rule('alert.precautionary_review_overdue', 'staff', ['sms', 'email'], true),
+  // Neomoov Pilote (étape 24) : course acceptée pour le chauffeur (annulable sans frais), exclusion d'une zone surveillée.
+  rule('pilot.auto_accepted', 'driver', ['push'], true),
+  rule('alert.pilot_zone_exclusion', 'staff', ['email']),
 ];
 
 const BY_TEMPLATE = new Map(NOTIFICATION_MATRIX.map((r) => [r.template, r]));

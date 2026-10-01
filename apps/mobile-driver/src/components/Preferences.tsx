@@ -15,6 +15,7 @@ export function PreferenceChips({ preferences }: { preferences: RidePreferences 
   if (preferences.luggageCount) chips.push(t('prefs.luggage', { count: preferences.luggageCount }));
   if (preferences.childSeat) chips.push(t('prefs.childSeat'));
   if (preferences.pet) chips.push(t('prefs.pet'));
+  if (preferences.assistanceAnimal) chips.push(t('prefs.assistanceAnimal'));
   if (preferences.accessibility) chips.push(t('prefs.accessibility'));
   if (preferences.driverLanguage) chips.push(t('prefs.language', { language: preferences.driverLanguage.toUpperCase() }));
   if (!chips.length) return null;

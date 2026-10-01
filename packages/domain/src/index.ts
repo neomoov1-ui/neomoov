@@ -39,3 +39,8 @@ export * from './schemas/invoicing.js';
 export * from './branding/brand.js';
 export * from './branding/join-code.js';
 export * from './branding/domains.js';
+// Neomoov Pilote (étape 24) : critères et score des offres, rentabilité nette, agenda, information sur la décision automatisée.
+export * from './pilot/pilot.js';
+export * from './pilot/profitability.js';
+export * from './pilot/agenda.js';
+export * from './pilot/information.js';

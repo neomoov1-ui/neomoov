@@ -176,6 +176,13 @@
       "when": 1790813680280,
       "tag": "0024_isolation-recipients",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790814266133,
+      "tag": "0025_pilot",
+      "breakpoints": true
     }
   ]
 }

@@ -54,3 +54,6 @@ export { InvoicingModule } from './modules/invoicing/invoicing.module.js';
 export { InvoicingService } from './modules/invoicing/invoicing.service.js';
 export { SevService } from './modules/invoicing/sev.service.js';
 export { InvoiceJobsService } from './modules/invoicing/invoice-jobs.service.js';
+// Neomoov Pilote (étape 24) : chargé aussi par le worker, qui porte la répartition avec Redis.
+export { PilotModule } from './modules/pilot/pilot.module.js';
+export { PilotService } from './modules/pilot/pilot.service.js';

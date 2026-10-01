@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AdminModule } from '../admin/admin.module.js';
 import { OrgScopeGuard } from '../auth/guards.js';
@@ -16,7 +16,7 @@ import { OrganizationsService } from './organizations.service.js';
  * gestionnaire dans une transaction restreinte au sous-arbre de l'organisation.
  */
 @Module({
-  imports: [AdminModule, RidesModule],
+  imports: [forwardRef(() => AdminModule), forwardRef(() => RidesModule)],
   controllers: [AdminOrganizationsController, InvitationsController, OrgController, MeOrganizationsController],
   providers: [OrganizationsService, OrgScopeService, { provide: APP_GUARD, useClass: OrgScopeGuard }, { provide: APP_INTERCEPTOR, useClass: OrgScopeInterceptor }],
   exports: [OrganizationsService, OrgScopeService],

@@ -730,12 +730,12 @@ export class RidesService {
    * (sanction si déjà en route), retrait par l'opérateur ou par la surveillance du départ (sans sanction). La
    * réattribution est consommée par la répartition (`ride.reassign_requested`, `data.source`).
    */
-  async releaseDriver(rideId: string, actor: ActorRef, reason: string, options: { sanction: boolean; source: 'driver' | 'operator' | 'system'; safety?: boolean }): Promise<{ ride: RideRow; previousDriverId: string; replayed: boolean }> {
+  async releaseDriver(rideId: string, actor: ActorRef, reason: string, options: { sanction: boolean; source: 'driver' | 'operator' | 'system'; safety?: boolean; pilotGrace?: boolean }): Promise<{ ride: RideRow; previousDriverId: string; replayed: boolean }> {
     const current = await this.getRide(rideId);
     const previousDriverId = current.driverId;
     if (!previousDriverId) throw AppError.conflict('RIDE_NOT_ASSIGNED', 'La course n\'a pas de chauffeur à retirer', { state: current.state });
     const cancellationReason = options.source === 'driver' ? 'driver' : options.source === 'operator' ? 'operator_reassign' : 'no_movement';
-    const cancelled = await this.applyTransition(rideId, 'driver_cancels', actor, { data: { reason, driverId: previousDriverId, source: options.source, ...(options.safety ? { safety: true } : {}) }, set: { cancellationReason, cancellationComment: reason } });
+    const cancelled = await this.applyTransition(rideId, 'driver_cancels', actor, { data: { reason, driverId: previousDriverId, source: options.source, ...(options.safety ? { safety: true } : {}), ...(options.pilotGrace ? { pilotGrace: true } : {}) }, set: { cancellationReason, cancellationComment: reason } });
     const payload = await this.publish(cancelled, 'driver_cancels', actor, { reason, source: options.source });
     if (cancelled.replayed) return { ride: cancelled.ride, previousDriverId, replayed: true };
     if (options.source === 'driver') this.events.emit('ride.cancelled_by_driver', { ...payload, reason });

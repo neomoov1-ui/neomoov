@@ -292,6 +292,14 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Suspension de précaution à réexaminer', body: (d) => `Le chauffeur ${str(d['driverPublicNumber'])} est suspendu à titre préventif depuis ${str(d['hours'])} heures sans décision humaine. La Charte d'équité prévoit un réexamen sous 24 heures : levez ou maintenez le blocage dans My Hub.` },
     en: { title: 'Precautionary suspension to review', body: (d) => `Driver ${str(d['driverPublicNumber'])} has been suspended as a precaution for ${str(d['hours'])} hours without a human decision. The Fairness charter requires a review within 24 hours: lift or keep the hold in My Hub.` },
   },
+  'pilot.auto_accepted': {
+    fr: { title: 'Course acceptée pour vous par Pilote', body: (d, l) => `Course${ride(d)}${d['requestedAt'] ? ` du ${when(d['requestedAt'], l)}` : ''} acceptée par Neomoov Pilote selon vos critères, annulable sans frais pendant ${str(d['graceSeconds'])} secondes.` },
+    en: { title: 'Ride accepted for you by Pilot', body: (d, l) => `Ride${ride(d)}${d['requestedAt'] ? ` on ${when(d['requestedAt'], l)}` : ''} accepted by Neomoov Pilot based on your criteria; you can cancel at no cost for ${str(d['graceSeconds'])} seconds.` },
+  },
+  'alert.pilot_zone_exclusion': {
+    fr: { title: 'Pilote : zone surveillée exclue', body: (d) => `Le chauffeur ${str(d['driverPublicNumber'])} exclut la zone surveillée « ${str(d['zone'])} » de ses critères Neomoov Pilote (${d['origin'] && d['destination'] ? 'départ et arrivée' : d['origin'] ? 'départ' : 'arrivée'}). Surveillance de la discrimination indirecte : voir le rapport des exclusions dans My Hub.` },
+    en: { title: 'Pilot: watched zone excluded', body: (d) => `Driver ${str(d['driverPublicNumber'])} excludes the watched zone "${str(d['zone'])}" from their Neomoov Pilot criteria (${d['origin'] && d['destination'] ? 'pickup and drop-off' : d['origin'] ? 'pickup' : 'drop-off'}). Indirect discrimination monitoring: see the exclusions report in My Hub.` },
+  },
   'alert.stuck_ride': {
     fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
     en: { title: 'Alert: stuck ride', body: (d) => `Ride${ride(d)} has been "${str(d['state'])}" for ${str(d['minutes'])} minutes. Check it in My Hub.` },

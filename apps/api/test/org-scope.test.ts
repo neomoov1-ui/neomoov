@@ -57,7 +57,7 @@ describe('droits dans une organisation : cache revidé après la validation d\'u
     const state = { rows: [active] as unknown[], features: [] as unknown[] };
     const access = new AccessService(fakeDatabase(state));
     expect([...(await access.permissionsIn(actor, '/r/a/'))]).toEqual(['rides.read']);
-    const scope: OrgScopeContext = { organizationId: 'a', path: '/r/a/', tx: null };
+    const scope: OrgScopeContext = { organizationId: 'a', path: '/r/a/', tx: null, ended: false, parent: null };
     // Suspension par une route d'organisation : cache vidé dans la transaction, encore non validée.
     orgScopeStorage.run(scope, () => access.invalidate('u1'));
     // Une requête concurrente lit l'état d'avant (transaction non validée) et le remet en cache.

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ComplianceModule } from '../compliance/compliance.module.js';
 import { PricingModule } from '../pricing/pricing.module.js';
 import { RidesModule } from '../rides/rides.module.js';
@@ -14,7 +14,7 @@ import { AdminOverviewService } from './admin-overview.service.js';
 
 /** My Hub (prompt 12) : endpoints d'administration qui manquaient aux étapes précédentes. */
 @Module({
-  imports: [RidesModule, PricingModule, ComplianceModule],
+  imports: [forwardRef(() => RidesModule), PricingModule, forwardRef(() => ComplianceModule)],
   controllers: [AdminOverviewController, AdminDriversController, AdminDirectoryController, AdminIncidentsController, AdminQueuesController, AdminMetricsController, InternalMetricsController],
   providers: [AdminOverviewService, AdminDriversService, AdminDirectoryService, AdminIncidentsService, AdminMetricsService],
   // Étape 20 : les routes d'organisation réutilisent les services de My Hub sous une transaction restreinte.

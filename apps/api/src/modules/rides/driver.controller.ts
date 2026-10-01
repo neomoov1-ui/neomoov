@@ -10,6 +10,7 @@ import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { Can, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
 import { DispatchService } from './dispatch.service.js';
+import { PilotHook } from './pilot-hook.js';
 import { PresenceService } from './presence.service.js';
 import { RidesService } from './rides.service.js';
 import { ScheduledService } from './scheduled.service.js';
@@ -27,15 +28,16 @@ export class DriverController {
     private readonly presence: PresenceService,
     private readonly scheduled: ScheduledService,
     private readonly dispatch: DispatchService,
+    private readonly pilot: PilotHook,
   ) {}
 
   @Get('offers')
   @NoAudit()
-  @ApiOperation({ summary: 'Offres de course en attente de réponse (la plus ancienne d\'abord) ; aussi poussées par le socket `offer.new`' })
+  @ApiOperation({ summary: 'Offres de course en attente de réponse (la plus ancienne d\'abord), avec le score Neomoov Pilote ; aussi poussées par le socket `offer.new`' })
   @ZodResponse(200, z.array(driverOfferSchema))
   @ApiErrors(401, 403, 429)
-  offers(@CurrentUser() user: UserActor) {
-    return this.dispatch.listForDriver(user);
+  async offers(@CurrentUser() user: UserActor) {
+    return this.pilot.scoreOffers(user.userId, await this.dispatch.listForDriver(user));
   }
 
   @Post('offers/:id/accept')
