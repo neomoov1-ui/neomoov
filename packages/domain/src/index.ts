@@ -35,3 +35,8 @@ export * from './schemas/index.js';
 // Facturation certifiée (étape 9) : contenu des factures et schémas propres.
 export * from './invoicing/invoice.js';
 export * from './schemas/invoicing.js';
+// Neomoov Pilote (étape 24) : critères et score des offres, rentabilité nette, agenda, information sur la décision automatisée.
+export * from './pilot/pilot.js';
+export * from './pilot/profitability.js';
+export * from './pilot/agenda.js';
+export * from './pilot/information.js';

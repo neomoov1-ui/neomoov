@@ -35,6 +35,8 @@ export const ridePreferencesSchema = z.object({
   accessibility: z.boolean().optional(),
   /** Animal de compagnie en cage (D8), repris de l'option du devis pour le chauffeur. */
   pet: z.boolean().optional(),
+  /** Animal d'assistance (chien guide ou d'assistance) : jamais un motif de refus, ni par un chauffeur ni par Neomoov Pilote. */
+  assistanceAnimal: z.boolean().optional(),
 });
 export type RidePreferences = z.infer<typeof ridePreferencesSchema>;
 

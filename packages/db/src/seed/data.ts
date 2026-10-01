@@ -251,6 +251,15 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'legal.privacy_policy_version', value: '2026-09-01', description: 'Version de la politique de confidentialité en vigueur (5.15 : nouvelle version = nouvelle acceptation)' },
   { key: 'privacy.data_request_due_days', value: 30, description: 'Délai de réponse aux demandes de droits (Loi 25 : 30 jours)' },
   { key: 'privacy.export_link_ttl_days', value: 7, description: 'Validité du lien signé vers un export de données' },
+  // Neomoov Pilote (étape 24) : acceptation automatique des courses Neomoov selon les critères du chauffeur (montants et facteurs proposés, à valider par le fondateur).
+  { key: 'pilot.enabled', value: true, description: 'Neomoov Pilote offert aux chauffeurs (interrupteur général) : acceptation automatique des courses Neomoov selon leurs critères, jamais sur une autre plateforme (D1)' },
+  { key: 'pilot.grace_seconds', value: 60, description: 'Pilote : délai pendant lequel le chauffeur annule sans frais, sans pénalité ni effet sur son dossier une course acceptée pour lui (proposé : 60 secondes)' },
+  { key: 'pilot.multi_app_factor', value: 1.25, description: 'Pilote, mode multi-applications déclaré : seuils minimaux (montant, gain net au kilomètre et à l\'heure) multipliés par ce facteur (proposé : 1,25)' },
+  { key: 'pilot.multi_app_response_seconds', value: 30, description: 'Pilote, mode multi-applications : fenêtre de réponse d\'une offre à ce chauffeur, au lieu de dispatch.offer_seconds (proposé : 30 secondes)' },
+  { key: 'pilot.watched_zones', value: [], description: 'Pilote : codes des zones dont l\'exclusion par un chauffeur alerte le personnel (surveillance de la discrimination indirecte) ; vide tant que l\'équipe ne les a pas choisies' },
+  { key: 'pilot.near_miss_percent', value: 10, description: 'Pilote : un seuil chiffré manqué de moins de 10 % donne un score jaune (le chauffeur décide) plutôt que rouge' },
+  { key: 'pilot.departure_buffer_minutes', value: 5, description: 'Agenda du chauffeur : marge ajoutée au trajet pour l\'heure de départ conseillée' },
+  { key: 'pilot.departure_alert_minutes', value: 15, description: 'Agenda du chauffeur : alerte de départ 15 minutes avant l\'heure de départ conseillée' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.
