@@ -9,6 +9,7 @@ import { DispatchService } from './dispatch.service.js';
 import { DriverController } from './driver.controller.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PackLifecycleService } from './pack-lifecycle.service.js';
+import { PilotHook } from './pilot-hook.js';
 import { PresenceService } from './presence.service.js';
 import { AdminGateway, ClientGateway, DriverGateway } from './realtime.gateways.js';
 import { RealtimeService } from './realtime.service.js';
@@ -23,7 +24,7 @@ import { SocketAuthService } from './socket-auth.service.js';
 @Module({
   imports: [PricingModule, PaymentsModule],
   controllers: [RidesController, QuoteVehiclesController, PublicRidesController, DriverController, AdminRidesController],
-  providers: [NotificationsOutbox, RideContextService, CancellationWatchService, SafetyHoldService, PackLifecycleService, ApproachNotifierService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, SocketAuthService, RealtimeService, ClientGateway, DriverGateway, AdminGateway],
-  exports: [NotificationsOutbox, SafetyHoldService, PackLifecycleService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, RealtimeService],
+  providers: [PilotHook, NotificationsOutbox, RideContextService, CancellationWatchService, SafetyHoldService, PackLifecycleService, ApproachNotifierService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, SocketAuthService, RealtimeService, ClientGateway, DriverGateway, AdminGateway],
+  exports: [PilotHook, NotificationsOutbox, SafetyHoldService, PackLifecycleService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, RealtimeService],
 })
 export class RidesModule {}

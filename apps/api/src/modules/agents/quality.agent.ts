@@ -95,6 +95,7 @@ export class QualityAgent {
         FROM ride_events e JOIN rides r ON r.id = e.ride_id JOIN d ON d.user_id = e.actor_user_id
         WHERE e.type = 'driver_cancels' AND e.occurred_at >= ${at}::timestamptz - interval '7 days' AND e.occurred_at <= ${at}::timestamptz
           AND coalesce((e.data->>'safety')::boolean, false) = false
+          AND coalesce((e.data->>'pilotGrace')::boolean, false) = false
           AND (e.from_state IN ('en_route', 'arrived') OR r.type = 'immediate'
             OR (r.requested_at IS NOT NULL AND r.requested_at - e.occurred_at < make_interval(mins => ${lateMinutes})))
         GROUP BY d.id

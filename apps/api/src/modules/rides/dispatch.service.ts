@@ -43,6 +43,7 @@ import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { ZonesService } from '../pricing/zones.service.js';
 import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
+import { PilotHook } from './pilot-hook.js';
 import { PresenceService } from './presence.service.js';
 import { RideContextService } from './ride-context.service.js';
 import { dispatchSummaryOf, parseGeoPoint, preferencesOf, type RideRow } from './ride-view.js';
@@ -187,6 +188,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     private readonly outbox: NotificationsOutbox,
     private readonly audit: AuditService,
     private readonly context: RideContextService,
+    private readonly pilot: PilotHook,
   ) {}
 
   private get db() {
@@ -869,11 +871,14 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       await this.rides.mark(current.id, 'offer_skipped', SYSTEM_ACTOR, { driverId: candidate.driverId, reason: 'pending_offer_elsewhere' });
       return null;
     }
+    // Neomoov Pilote (étape 24), seul crochet de la répartition : évaluation de l'offre selon les critères du chauffeur,
+    // fenêtre de réponse du mode multi-applications ; une acceptation automatique passe ensuite par `accept`.
+    const piloted = await this.pilot.onOfferCreated(offer, current, candidate.userId);
     this.stats.offers += 1;
-    this.events.emit('offer.sent', { offerId: offer.id, rideId: current.id, driverId: candidate.driverId, driverUserId: candidate.userId, wave: options.wave, type: options.type, expiresAt: options.expiresAt, proposedTotalCents: proposed });
-    await this.rides.mark(current.id, 'offer_sent', SYSTEM_ACTOR, { offerId: offer.id, driverId: candidate.driverId, wave: options.wave, type: options.type, expiresAt: options.expiresAt.toISOString(), pickupSeconds: candidate.etaSeconds, proposedTotalCents: proposed });
-    await this.outbox.queue({ recipientUserId: candidate.userId, template: 'offer.new', data: { offerId: offer.id, rideId: current.id, expiresAt: options.expiresAt.toISOString() } });
-    return offer;
+    this.events.emit('offer.sent', { offerId: offer.id, rideId: current.id, driverId: candidate.driverId, driverUserId: candidate.userId, wave: options.wave, type: options.type, expiresAt: piloted.expiresAt, proposedTotalCents: proposed });
+    await this.rides.mark(current.id, 'offer_sent', SYSTEM_ACTOR, { offerId: offer.id, driverId: candidate.driverId, wave: options.wave, type: options.type, expiresAt: piloted.expiresAt.toISOString(), pickupSeconds: candidate.etaSeconds, proposedTotalCents: proposed });
+    if (piloted.notify) await this.outbox.queue({ recipientUserId: candidate.userId, template: 'offer.new', data: { offerId: offer.id, rideId: current.id, expiresAt: piloted.expiresAt.toISOString() } });
+    return { ...offer, expiresAt: piloted.expiresAt };
   }
 
   /**

@@ -3,6 +3,7 @@ import {
   QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, StuckRidesService, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { InvoiceJobsService, InvoicingModule } from '@neomoov/api';
+import { PilotModule } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, Optional, type OnModuleInit } from '@nestjs/common';
 import { writeFile } from 'node:fs/promises';
 import type { Logger } from 'pino';
@@ -254,7 +255,7 @@ export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule, PilotModule],
       providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker, NotificationsWorker, ComplianceWorker, RetentionWorker, AgentsWorker],
     };
   }

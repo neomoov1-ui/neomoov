@@ -387,7 +387,7 @@ export class DriverActivityService {
         WHERE driver_id = ${driver.id} AND state IN ('completed', 'rated', 'disputed')
           AND (state_timestamps->>'completed')::timestamptz >= ${start} AND (state_timestamps->>'completed')::timestamptz < ${end}`),
       this.db.execute<{ n: number }>(sql`
-        SELECT count(*)::int AS n FROM ride_events WHERE actor_user_id = ${driver.userId} AND type = 'driver_cancels' AND occurred_at >= ${start} AND occurred_at < ${end}`),
+        SELECT count(*)::int AS n FROM ride_events WHERE actor_user_id = ${driver.userId} AND type = 'driver_cancels' AND coalesce((data->>'pilotGrace')::boolean, false) = false AND occurred_at >= ${start} AND occurred_at < ${end}`),
     ]);
     const analysis = analyseDriving(
       [...points].map((p) => ({ at: new Date(p.at).getTime(), lat: Number(p.lat), lng: Number(p.lng), speedMps: p.speed === null ? null : Number(p.speed) })),
