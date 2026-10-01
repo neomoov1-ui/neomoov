@@ -83,33 +83,44 @@ export class SettlementJobsService implements OnModuleInit {
 
   /** Passe du quart d'heure, par lots d'organisation. `now` permet aux tests de simuler l'horloge (vendredi 6 h, lundi, délai de 7 jours). */
   async tick(now: Date): Promise<SettlementTickReport> {
-    const reports = await this.scope.runGrouped(await this.scope.clientOrganizationsOfDrivers(), () => this.pass(now), 'règlement hebdomadaire');
+    const timing = await this.timing(now);
+    // Chauffeurs dont le relevé couvre des courses qu'un contexte d'organisation ne voit pas : réglés par la plateforme seulement.
+    const platformOnly = timing.generation ? await this.statements.driversWithForeignRides(timing.period) : new Set<string>();
+    const reports = await this.scope.runGrouped(await this.scope.clientOrganizationsOfDrivers(), () => this.pass(now, timing, platformOnly), 'règlement hebdomadaire');
     return reports.reduce<SettlementTickReport>(
       (sum, r) => ({ generated: sum.generated + r.generated, issued: sum.issued + r.issued, settled: sum.settled + r.settled, retried: sum.retried + r.retried, reviewed: sum.reviewed + r.reviewed }),
       { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 },
     );
   }
 
-  /** Une passe complète (génération, émission, règlement, reprise, revue des soldes) sur ce que le contexte courant voit. */
-  private async pass(now: Date): Promise<SettlementTickReport> {
-    const report: SettlementTickReport = { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 };
+  /** Moments de la passe (réglages) : génération du vendredi, reprise du lundi, période de la semaine écoulée. */
+  private async timing(now: Date) {
     const timeZone = await this.statements.timeZone();
     const [generationDay, generationHour, retryWeekday] = await Promise.all([
       this.settings.number('settlement.generation_day', 5), this.settings.number('settlement.generation_hour', 6), this.settings.number('settlement.retry_weekday', 1),
     ]);
     const { weekday } = localDate(now, timeZone);
     const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(now));
-    if (hour >= generationHour && weekday === generationDay) {
-      const period = periodForGeneration(now, timeZone);
-      const generation = await this.statements.generate({ periodStart: period.startDate }, now);
+    return { generation: hour >= generationHour && weekday === generationDay, retry: hour >= generationHour && weekday === retryWeekday, period: periodForGeneration(now, timeZone) };
+  }
+
+  /**
+   * Une passe complète (génération, émission, règlement, reprise, revue des soldes) sur ce que le contexte courant voit.
+   * Dans un lot d'organisation, les chauffeurs `platformOnly` ne sont ni générés ni émis : la passe de la plateforme le fait.
+   */
+  private async pass(now: Date, timing: Awaited<ReturnType<SettlementJobsService['timing']>>, platformOnly: ReadonlySet<string>): Promise<SettlementTickReport> {
+    const report: SettlementTickReport = { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 };
+    const excluded = currentOrgScope() ? platformOnly : undefined;
+    if (timing.generation) {
+      const generation = await this.statements.generate({ periodStart: timing.period.startDate, excludeDriverIds: excluded }, now);
       report.generated = generation.generated;
-      for (const id of await this.statements.draftsOf(period.startDate)) {
+      for (const id of await this.statements.draftsOf(timing.period.startDate, excluded)) {
         await this.statements.issue(id, now);
         report.issued += 1;
       }
-      report.settled = await this.payouts.settleIssued(period.startDate, now);
+      report.settled = await this.payouts.settleIssued(timing.period.startDate, now);
     }
-    if (hour >= generationHour && weekday === retryWeekday) report.retried = await this.payouts.retryFailed(now);
+    if (timing.retry) report.retried = await this.payouts.retryFailed(now);
     report.reviewed = await this.payouts.reviewBalances(now);
     return report;
   }

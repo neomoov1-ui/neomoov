@@ -150,8 +150,8 @@ export class InvoiceJobsService implements OnModuleInit {
    * traité à part : une facture en échec est journalisée et n'arrête pas les autres.
    */
   async sweep(now = new Date()): Promise<InvoicingSweepReport> {
-    // Étape 20 : un lot par organisation cliente qui a des chauffeurs, sous son contexte, puis la plateforme.
-    const reports = await this.scope.runGrouped(await this.scope.clientOrganizationsOfDrivers(), () => this.sweepHere(now), 'facturation');
+    // Étape 20 : un lot par organisation cliente en service, sous son contexte, puis la plateforme (qui reprend tout ce qui reste).
+    const reports = await this.scope.runGrouped(await this.scope.activeClientOrganizations(), () => this.sweepHere(now), 'facturation');
     return reports.reduce<InvoicingSweepReport>(
       (sum, r) => ({ transmitted: sum.transmitted + r.transmitted, issued: sum.issued + r.issued, credited: sum.credited + r.credited, rendered: sum.rendered + r.rendered }),
       { transmitted: 0, issued: 0, credited: 0, rendered: 0 },

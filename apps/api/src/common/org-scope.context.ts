@@ -11,21 +11,30 @@ export interface OrgScopeContext {
   organizationId: string;
   /** Chemin matérialisé `/<racine>/.../<organisation>/` : la portée autorisée est ce sous-arbre. */
   path: string;
-  /** Exécuteur Drizzle de la transaction restreinte (typé par le fournisseur de base). */
+  /** Exécuteur Drizzle de la transaction restreinte, ou de son point de sauvegarde (typé par le fournisseur de base). */
   tx: unknown;
   /**
-   * Vrai une fois la transaction restreinte terminée : le travail asynchrone qui lui survit (abonnés aux événements de
-   * domaine, files en mémoire) retombe alors sur le pool de la plateforme au lieu d'un exécuteur mort, mais garde
-   * l'organisation du contexte pour étiqueter ce qu'il écrit.
+   * Vrai une fois la transaction (ou le point de sauvegarde) terminée : le travail asynchrone qui lui survit (abonnés aux
+   * événements de domaine, files en mémoire) retombe sur le contexte englobant encore ouvert, sinon sur le pool de la
+   * plateforme, au lieu d'un exécuteur mort ; il garde l'organisation du contexte pour étiqueter ce qu'il écrit.
    */
   ended: boolean;
+  /** Contexte englobant de la même organisation (point de sauvegarde), ou `null` pour une transaction de premier niveau. */
+  parent: OrgScopeContext | null;
 }
 
 export const orgScopeStorage = new AsyncLocalStorage<OrgScopeContext>();
 
-/** Contexte d'organisation de la requête ou de la tâche en cours, ou `null` pour la plateforme. */
+/** Contexte d'organisation de la requête ou de la tâche en cours (même terminé), ou `null` pour la plateforme. */
 export function currentOrgScope(): OrgScopeContext | null {
   return orgScopeStorage.getStore() ?? null;
+}
+
+/** Contexte dont la transaction est encore ouverte (le plus proche), ou `null` : c'est lui qui désigne l'exécuteur des requêtes. */
+export function activeOrgScope(): OrgScopeContext | null {
+  let scope = orgScopeStorage.getStore() ?? null;
+  while (scope?.ended) scope = scope.parent;
+  return scope;
 }
 
 /**
@@ -38,9 +47,9 @@ export function organizationIdFor(fallback?: string | null): string | null {
 }
 
 /**
- * Exécute `fn` hors de tout contexte d'organisation : pour les données réservées à la plateforme (personnel de l'exploitation,
- * comptes Stripe des personnes) qu'une transaction restreinte ne voit pas ou ne peut pas modifier. Les requêtes lancées dans
- * `fn` passent par le pool de la plateforme, hors de la transaction en cours.
+ * Exécute `fn` hors de tout contexte d'organisation : pour les données réservées à la plateforme qu'une transaction
+ * restreinte ne voit pas ou ne peut pas modifier. Les requêtes lancées dans `fn` passent par le pool de la plateforme, hors
+ * de la transaction en cours : à réserver aux cas rares (chaque appel sous contexte prend une seconde connexion du pool).
  */
 export function withoutOrgScope<T>(fn: () => T): T {
   return orgScopeStorage.exit(fn);

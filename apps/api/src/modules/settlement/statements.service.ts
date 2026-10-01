@@ -15,7 +15,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
-import { organizationIdFor } from '../../common/org-scope.context.js';
+import { organizationIdFor, withoutOrgScope } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -118,10 +118,11 @@ export class StatementsService {
    * Génération (ou aperçu) des relevés d'une période : un brouillon par chauffeur qui a au moins une ligne ; un brouillon
    * existant est recalculé (ses ajustements manuels gardés), un relevé déjà émis n'est jamais modifié.
    */
-  async generate(input: { periodStart?: string | undefined; driverId?: string | undefined; preview?: boolean | undefined; allowEmpty?: boolean | undefined }, now = new Date()): Promise<StatementGeneration> {
+  async generate(input: { periodStart?: string | undefined; driverId?: string | undefined; preview?: boolean | undefined; allowEmpty?: boolean | undefined; excludeDriverIds?: ReadonlySet<string> | undefined }, now = new Date()): Promise<StatementGeneration> {
     const period = await this.periodOf(input.periodStart, now);
     const rates = await this.rates();
-    const driverIds = input.driverId ? [input.driverId] : await this.candidateDrivers(period);
+    // Étape 20 : `excludeDriverIds` écarte d'un lot d'organisation les chauffeurs que la plateforme règle elle-même.
+    const driverIds = input.driverId ? [input.driverId] : (await this.candidateDrivers(period)).filter((id) => !input.excludeDriverIds?.has(id));
     const result: StatementGeneration = { periodStart: period.startDate, periodEnd: period.endDate, preview: Boolean(input.preview), generated: 0, skipped: 0, statements: [] };
     for (const driverId of driverIds) {
       const driver = await this.driverInfo(driverId);
@@ -417,9 +418,28 @@ export class StatementsService {
     };
   }
 
-  /** Brouillons d'une période (émission automatique du vendredi). */
-  async draftsOf(periodStart: string): Promise<string[]> {
-    const rows = await this.db.select({ id: schema.weeklyStatements.id }).from(schema.weeklyStatements).where(and(eq(schema.weeklyStatements.periodStart, periodStart), eq(schema.weeklyStatements.status, 'draft')));
-    return rows.map((r) => r.id);
+  /** Brouillons d'une période (émission automatique du vendredi), sans ceux des chauffeurs écartés du lot. */
+  async draftsOf(periodStart: string, excludeDriverIds?: ReadonlySet<string>): Promise<string[]> {
+    const rows = await this.db.select({ id: schema.weeklyStatements.id, driverId: schema.weeklyStatements.driverId }).from(schema.weeklyStatements).where(and(eq(schema.weeklyStatements.periodStart, periodStart), eq(schema.weeklyStatements.status, 'draft')));
+    return rows.filter((r) => !excludeDriverIds?.has(r.driverId)).map((r) => r.id);
+  }
+
+  /**
+   * Étape 20 : chauffeurs d'une organisation cliente qui ont, depuis le début de la fenêtre de reprise d'une période, une
+   * course réglable d'une autre organisation (la plateforme, une organisation sœur). Le contexte de leur organisation ne voit
+   * pas ces courses : leur relevé reste fait par la plateforme, complet, comme avant. Lu par la plateforme, hors contexte.
+   */
+  async driversWithForeignRides(period: StatementPeriod): Promise<Set<string>> {
+    const from = shift(period.startDate, -LOOKBACK_DAYS);
+    const rows = await withoutOrgScope(() => this.db.execute<{ driver_id: string }>(sql`
+      SELECT DISTINCT r.driver_id FROM rides r
+      JOIN drivers d ON d.id = r.driver_id
+      JOIN organizations od ON od.id = d.organization_id
+      LEFT JOIN organizations ro ON ro.id = r.organization_id
+      WHERE od.parent_id IS NOT NULL
+        AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('no_show', 'cancelled_by_client') AND r.cancellation_fee_cents > 0))
+        AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
+        AND (ro.path IS NULL OR ro.path NOT LIKE od.path || '%')`));
+    return new Set([...rows].map((r) => r.driver_id));
   }
 }

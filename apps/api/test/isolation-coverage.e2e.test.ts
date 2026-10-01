@@ -11,12 +11,12 @@ import { db, startTestApp } from './helpers.js';
  * et une politique pour ce rôle OU une entrée dans `PLATFORM_ONLY_TABLES` (avec sa raison). Une table nouvelle sans
  * politique ni entrée fait échouer ce test : c'est voulu (marche à suivre dans `docs/isolation.md`).
  */
-interface TableRow {
+type TableRow = {
   table: string;
   rls: boolean;
   policies: number;
   grants: string[] | null;
-}
+};
 
 const REQUIRED_GRANTS = ['DELETE', 'INSERT', 'SELECT', 'UPDATE'];
 

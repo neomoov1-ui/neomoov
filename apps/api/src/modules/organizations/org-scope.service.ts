@@ -9,11 +9,11 @@
 import { schema } from '@neomoov/db';
 import { inScope, type MembershipScope } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { AppError } from '../../common/app-error.js';
 import { APP_LOGGER } from '../../common/logger.js';
-import { currentOrgScope, organizationIdOfPath, orgScopeStorage, withoutOrgScope, type OrgScopeContext } from '../../common/org-scope.context.js';
+import { activeOrgScope, organizationIdOfPath, orgScopeStorage, withoutOrgScope, type OrgScopeContext } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
 
 export type ScopedExecutor = Parameters<Parameters<Database['db']['transaction']>[0]>[0];
@@ -33,27 +33,40 @@ export class OrgScopeService {
   /**
    * Exécute `fn` dans une transaction restreinte au sous-arbre `orgPath`. Pendant `fn`, `database.db` de tous les services
    * désigne cette transaction (contexte propagé par AsyncLocalStorage) : les politiques d'isolation s'appliquent à chaque
-   * lecture et écriture, et le journal d'audit porte l'organisation. Réentrant : un appel imbriqué ouvre un point de sauvegarde
-   * (même organisation seulement : `SET LOCAL` survit à la libération d'un point de sauvegarde). Une fois la transaction
-   * terminée, le contexte est marqué fini : ce qui lui survit repasse par le pool de la plateforme.
+   * lecture et écriture, et le journal d'audit porte l'organisation. Réentrant : sous la même portée, un appel imbriqué ouvre
+   * un point de sauvegarde ; sous une autre portée, il ouvre une transaction à part (jamais un point de sauvegarde, dont le
+   * `SET LOCAL` survivrait et changerait la portée de la transaction englobante). Une fois la transaction terminée, le
+   * contexte est marqué fini : ce qui lui survit repasse par le contexte englobant encore ouvert, sinon par le pool.
    */
   async run<T>(orgPath: string, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
     if (!PATH.test(orgPath)) throw new AppError('INVALID_ORGANIZATION_SCOPE', 'Portée d\'organisation invalide', 500);
-    return this.database.db.transaction(async (tx) => {
-      await tx.execute(sql`SET LOCAL ROLE neomoov_scoped`);
-      await tx.execute(sql`SELECT set_config('app.scope_path', ${orgPath}, true)`);
-      const store: OrgScopeContext = { organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, ended: false };
-      try {
-        return await orgScopeStorage.run(store, () => fn(tx));
-      } finally {
-        store.ended = true;
-      }
-    });
+    const active = activeOrgScope();
+    if (active && active.path === orgPath) {
+      return (active.tx as ScopedExecutor).transaction((sp) => this.within({ organizationId: active.organizationId, path: orgPath, tx: sp, ended: false, parent: active }, fn));
+    }
+    return withoutOrgScope(() =>
+      this.database.db.transaction(async (tx) => {
+        await tx.execute(sql`SET LOCAL ROLE neomoov_scoped`);
+        await tx.execute(sql`SELECT set_config('app.scope_path', ${orgPath}, true)`);
+        return this.within({ organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, ended: false, parent: null }, fn);
+      }),
+    );
   }
 
-  /** Comme `run`, pour une organisation désignée par son identifiant (404 si elle n'existe pas). */
+  private async within<T>(store: OrgScopeContext, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
+    try {
+      return await orgScopeStorage.run(store, () => fn(store.tx as ScopedExecutor));
+    } finally {
+      store.ended = true;
+    }
+  }
+
+  /** Comme `run`, pour une organisation désignée par son identifiant (404 si elle n'existe pas). Le chemin est lu par la plateforme. */
   async runFor<T>(organizationId: string, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
-    const [org] = await this.database.db.select({ path: schema.organizations.path }).from(schema.organizations).where(eq(schema.organizations.id, organizationId)).limit(1);
+    const active = activeOrgScope();
+    const [org] = active?.organizationId === organizationId
+      ? [{ path: active.path }]
+      : await withoutOrgScope(() => this.database.db.select({ path: schema.organizations.path }).from(schema.organizations).where(eq(schema.organizations.id, organizationId)).limit(1));
     if (!org) throw AppError.notFound('ORGANIZATION_NOT_FOUND', 'Organisation introuvable');
     return this.run(org.path, fn);
   }
@@ -76,28 +89,33 @@ export class OrgScopeService {
     return [...new Set([...ids].filter((id): id is string => Boolean(id) && id !== root))].sort();
   }
 
-  /** Organisations clientes qui ont au moins un chauffeur (relevés, facturation, conformité). */
+  /** Organisations clientes qui ont au moins un chauffeur (relevés, conformité), vues par la plateforme. */
   async clientOrganizationsOfDrivers(): Promise<string[]> {
-    const rows = await this.database.db.selectDistinct({ id: schema.drivers.organizationId }).from(schema.drivers).where(isNotNull(schema.drivers.organizationId));
+    const rows = await withoutOrgScope(() => this.database.db.selectDistinct({ id: schema.drivers.organizationId }).from(schema.drivers).where(isNotNull(schema.drivers.organizationId)));
+    return this.clientOrganizations(rows.map((r) => r.id));
+  }
+
+  /** Organisations clientes en service (ni la racine, ni fermées), vues par la plateforme (facturation : une course peut appartenir à une organisation sans chauffeur). */
+  async activeClientOrganizations(): Promise<string[]> {
+    const rows = await withoutOrgScope(() => this.database.db.select({ id: schema.organizations.id }).from(schema.organizations).where(and(isNotNull(schema.organizations.parentId), ne(schema.organizations.status, 'closed'))));
     return this.clientOrganizations(rows.map((r) => r.id));
   }
 
   /**
-   * `fn` sous le contexte de l'organisation si c'est une organisation cliente, sinon sans contexte (plateforme). Déjà dans
-   * ce contexte (tâche lancée depuis le lot de la même organisation) : `fn` s'exécute tel quel, sans point de sauvegarde
-   * qui engloberait les requêtes concurrentes de la transaction en cours.
+   * `fn` sous le contexte de l'organisation si c'est une organisation cliente, sinon hors de tout contexte (plateforme).
+   * Déjà dans le contexte de cette organisation (tâche lancée depuis son lot) : `fn` s'exécute dans la transaction en cours.
    */
   async runForOrganization<T>(organizationId: string | null | undefined, fn: () => Promise<T>): Promise<T> {
-    if (!organizationId || organizationId === (await this.rootOrganizationId())) return fn();
-    const current = currentOrgScope();
-    if (current && !current.ended && current.organizationId === organizationId) return fn();
+    if (!organizationId || organizationId === (await this.rootOrganizationId())) return withoutOrgScope(fn);
+    if (activeOrgScope()?.organizationId === organizationId) return fn();
     return this.runFor(organizationId, () => fn());
   }
 
   /**
    * Lots d'une tâche de fond : `fn` une fois par organisation cliente, sous son contexte (elle ne voit et n'écrit que ses
    * lignes, créées à son nom), puis une fois sans contexte pour la plateforme, qui traite tout ce qui reste comme avant.
-   * L'échec d'un lot est journalisé et n'arrête pas les autres ; celui de la plateforme se propage. Renvoie les résultats.
+   * L'échec d'un lot est journalisé et n'arrête pas les autres (la passe de la plateforme reprend son travail) ; celui de la
+   * plateforme se propage. Renvoie les résultats, celui de la plateforme en dernier.
    */
   async runGrouped<T>(organizationIds: Iterable<string | null | undefined>, fn: () => Promise<T>, label = 'tâche de fond'): Promise<T[]> {
     const results: T[] = [];
@@ -108,7 +126,7 @@ export class OrgScopeService {
         this.logger.error({ err: error, organizationId, label }, 'Lot d\'organisation en échec');
       }
     }
-    results.push(await fn());
+    results.push(await withoutOrgScope(fn));
     return results;
   }
 

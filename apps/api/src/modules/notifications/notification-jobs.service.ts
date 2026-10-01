@@ -2,9 +2,9 @@
  * File `notifications` (prompt 13, tâche 2) : chaque notification mise en file (événement `notification.queued`) donne
  * une tâche d'envoi d'identifiant stable ; une passe toutes les 30 secondes reprend ce qui attend encore (événement
  * perdu, PDF attendu) et, tous les quarts d'heure, consulte les reçus push. Avec Redis, le worker porte la file ; sans
- * Redis, l'API. En test, rien n'est automatique : les tests appellent l'envoi directement. Étape 20 : l'envoi d'un avis
- * d'une organisation cliente se fait sous son contexte (son avis et les appareils de ses personnes seulement) ; la reprise
- * fait un lot par organisation qui a des avis en attente, puis la plateforme ; les reçus push restent à la plateforme.
+ * Redis, l'API. En test, rien n'est automatique : les tests appellent l'envoi directement. Étape 20 : chaque avis d'une
+ * organisation cliente est envoyé dans le contexte de cette organisation (une transaction courte par avis), ceux de la
+ * plateforme sans contexte ; les reçus push et les statuts de livraison restent à la plateforme.
  */
 import { notificationRule } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
@@ -68,9 +68,19 @@ export class NotificationJobsService implements OnModuleInit {
     if (this.sweeps % 30 === 0) await this.delivery.pollReceipts().catch((error: unknown) => this.logger.warn({ err: error }, 'Reçus push indisponibles'));
   }
 
-  /** Reprise par lots : un par organisation cliente qui a des avis en attente, puis la plateforme ; renvoie le nombre d'envois. */
-  async sweep(now = new Date()): Promise<number> {
-    const sent = await this.scope.runGrouped(await this.delivery.pendingOrganizations(now), () => this.delivery.sweep(now), 'notifications');
-    return sent.reduce((sum, n) => sum + n, 0);
+  /**
+   * Reprise : avis en attente listés par la plateforme, puis envoyés un par un, chacun dans le contexte de son organisation
+   * (une transaction courte par avis : un texto envoyé n'est jamais annulé par l'échec d'un autre envoi du même lot).
+   */
+  async sweep(now = new Date(), options: { ids?: string[] } = {}): Promise<number> {
+    let sent = 0;
+    for (const n of await this.delivery.claimable(now, options)) {
+      const outcome = await this.scope.runForOrganization(n.organizationId, () => this.delivery.deliver(n.id, now)).catch((error: unknown) => {
+        this.logger.error({ err: error, notificationId: n.id }, 'Envoi de notification impossible');
+        return 'failed' as const;
+      });
+      if (outcome === 'sent') sent += 1;
+    }
+    return sent;
   }
 }
