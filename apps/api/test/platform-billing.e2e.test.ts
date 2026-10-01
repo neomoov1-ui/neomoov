@@ -7,7 +7,11 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { BILLING_PROVIDER } from '../src/adapters/billing.types.js';
 import type { MockBillingProvider } from '../src/adapters/mock/billing.mock.js';
+import type { MockEmailProvider } from '../src/adapters/mock/index.js';
+import { EMAIL_PROVIDER } from '../src/adapters/types.js';
+import { NotificationDeliveryService } from '../src/modules/notifications/notification-delivery.service.js';
 import { SettingsService } from '../src/common/settings.service.js';
+import { OrgScopeService } from '../src/modules/organizations/org-scope.service.js';
 import { BillingJobsService } from '../src/modules/platform-billing/billing-jobs.service.js';
 import { PlatformBillingService } from '../src/modules/platform-billing/platform-billing.service.js';
 import { bearer, cleanupTestData, createDriver, createStaffAndLogin, db, loginByOtp, resetHttpLimits, startTestApp, testEmail, type StaffSession, type TestDriver } from './helpers.js';
@@ -139,6 +143,11 @@ describe('facturation de la plateforme (intégration)', () => {
     const [issued] = await notices('billing.invoice_issued');
     expect(issued).toMatchObject({ channel: 'email', language: 'fr' });
     expect(issued!.data).toMatchObject({ platformInvoiceId: first.id, number: first.number, totalCents: 195_343, planName: 'Pro (test)' });
+    // Envoi réel du courriel (en test, l'envoi n'est jamais automatique) : objet de la facture, PDF joint.
+    expect(await app.get(NotificationDeliveryService).deliver(issued!.id)).toBe('sent');
+    const mail = app.get<MockEmailProvider>(EMAIL_PROVIDER).sent.at(-1)!;
+    expect(mail).toMatchObject({ subject: `Facture ${first.number} de la plateforme Neomoov · Neomoov`, attachments: [`facture-${first.number}.pdf`] });
+    expect(mail.to.startsWith('proprio-') && mail.to.endsWith('@test.neomoov.local')).toBe(true);
     // Lectures de My Hub : abonnement, factures, PDF.
     expect((await request(server()).get(`/v1/admin/organizations/${orgs.a}/subscription`).set(bearer(admin.tokens)).expect(200)).body.id).toBe(state.subscriptionId);
     const list = (await request(server()).get(`/v1/admin/organizations/${orgs.a}/platform-invoices`).set(bearer(admin.tokens)).expect(200)).body as Array<{ id: string }>;
@@ -343,5 +352,26 @@ describe('facturation de la plateforme (intégration)', () => {
     expect(own.invoices).toHaveLength(2);
     expect(own.invoices[0]).not.toHaveProperty('stripeInvoiceId');
     expect(await billing.billingForOrganization(orgs.b)).toMatchObject({ subscription: null });
+  });
+
+  it('isolation : dans le contexte d\'une organisation, son abonnement et ses factures en lecture seule, rien des autres', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const scope = app.get(OrgScopeService);
+    const pathA = (await organization(orgs.a)).path;
+    const invoices = await scope.run(pathA, async (tx) => tx.select({ organizationId: schema.platformInvoices.organizationId }).from(schema.platformInvoices).where(inArray(schema.platformInvoices.organizationId, [orgs.a, orgs.b, orgs.c])));
+    expect(invoices.length).toBe(2);
+    expect(new Set(invoices.map((i) => i.organizationId))).toEqual(new Set([orgs.a]));
+    const subs = await scope.run(pathA, async (tx) => tx.select({ id: schema.subscriptions.id }).from(schema.subscriptions).where(inArray(schema.subscriptions.organizationId, [orgs.a, orgs.b, orgs.c])));
+    expect(subs.map((s) => s.id)).toEqual([state.subscriptionId]);
+    // Aucune écriture : la mise à jour ne voit aucune ligne, l'insertion est refusée par la politique.
+    const updated = await scope.run(pathA, async (tx) => tx.update(schema.platformInvoices).set({ status: 'void' }).where(eq(schema.platformInvoices.organizationId, orgs.a)).returning({ id: schema.platformInvoices.id }));
+    expect(updated).toHaveLength(0);
+    await expect(scope.run(pathA, async (tx) => tx.update(schema.subscriptions).set({ status: 'active' }).where(eq(schema.subscriptions.id, state.subscriptionId)).returning({ id: schema.subscriptions.id }))).resolves.toHaveLength(0);
+    await expect(scope.run(pathA, async (tx) => tx.insert(schema.subscriptions).values({ organizationId: orgs.a, planCode: SOLO, currentPeriodStart: new Date(), currentPeriodEnd: new Date(Date.now() + DAY), status: 'cancelled' }))).rejects.toThrow();
+    // La vue de l'organisation fonctionne dans son contexte restreint (route /v1/org à la fusion).
+    const own = await scope.run(pathA, () => billing.billingForOrganization(orgs.a));
+    expect(own.subscription).toMatchObject({ planCode: PRO });
+    expect(own.invoices).toHaveLength(2);
+    expect((await scope.run(pathA, () => billing.billingForOrganization(orgs.c))).invoices).toHaveLength(0);
   });
 });
