@@ -4,18 +4,23 @@
  * par relevé (et par tentative de prélèvement). Échec : relevé `failed`, nouvelle tentative le lundi, puis suspension
  * automatique (solde négatif au-delà du seuil après la reprise, ou impayé depuis plus de 7 jours) ; réactivation
  * automatique dès que le solde est régularisé. `driver_balances` reflète les relevés non réglés.
+ * Étape 26 : avec un fournisseur sans versements par la plateforme (Square, aucun équivalent de Connect), un relevé
+ * positif reste « émis », à verser hors plateforme : il figure dans l'export des virements à faire
+ * (`GET /v1/admin/payouts/offline`, CSV), puis les finances le clôturent par `settle-offline` avec la référence du virement.
  */
 import { schema } from '@neomoov/db';
-import { evaluateSuspension, type AdminBalance, type AdminStatementDetail, type StatementSettleOffline } from '@neomoov/domain';
+import { evaluateSuspension, type AdminBalance, type AdminStatementDetail, type OfflinePayout, type StatementSettleOffline } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, inArray, isNotNull, lt, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNotNull, lt, ne, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { PAYMENT_PROVIDER, type PaymentProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
-import { APP_LOGGER } from '../../common/logger.js';
+import { APP_LOGGER, currentCorrelationId } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
+import type { UserActor } from '../auth/actor.js';
+import { csvDocument, csvLine } from '../ledgers/csv.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { PresenceService } from '../rides/presence.service.js';
@@ -23,6 +28,13 @@ import { StatementsService } from './statements.service.js';
 
 /** Délai minimal entre deux tentatives automatiques d'un même relevé (la reprise du lundi ne s'emballe pas). */
 const RETRY_SPACING_MS = 20 * 3_600_000;
+/** Séparateur des exports CSV (même convention que les registres : point-virgule, montants en cents). */
+const CSV_SEPARATOR = ';';
+
+/** Référence d'un versement hors plateforme, à reprendre comme libellé du virement puis dans `settle-offline`. */
+export function offlinePayoutReference(periodStart: string, driverPublicNumber: string): string {
+  return `NM-${periodStart.replace(/-/g, '')}-${driverPublicNumber}`;
+}
 
 @Injectable()
 export class SettlementPayoutsService {
@@ -53,6 +65,12 @@ export class SettlementPayoutsService {
     if (row.status === 'paid' || row.status === 'charged') return this.statements.detail(id);
     const [driver] = await this.db.select().from(schema.drivers).where(eq(schema.drivers.id, row.driverId)).limit(1);
     if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Chauffeur introuvable');
+    if (row.netCents > 0 && !this.provider.capabilities.connect) {
+      // Étape 26 (Square) : aucun versement par la plateforme. Le relevé reste à régler, sans tentative ni alerte d'échec :
+      // il est listé dans l'export des virements à faire et clôturé par `settle-offline`.
+      this.audit.record({ action: 'statement.offline_payout_due', entity: 'weekly_statements', entityId: id, after: { netCents: row.netCents, provider: this.provider.name } });
+      return this.statements.detail(id);
+    }
     const attempts = row.attempts + 1;
     let outcome: { status: 'paid' | 'charged' | 'failed'; transferRef?: string; chargeRef?: string; failureCode?: string };
     if (row.netCents === 0) outcome = { status: 'paid' };
@@ -196,6 +214,41 @@ export class SettlementPayoutsService {
       .where(or(eq(schema.weeklyStatements.status, 'failed'), sql`${schema.weeklyStatements.driverId} IN (SELECT driver_id FROM driver_balances WHERE suspended_for_balance_at IS NOT NULL)`));
     for (const r of rows) await this.refreshBalance(r.driverId, now);
     return rows.length;
+  }
+
+  /**
+   * Versements à faire hors plateforme (étape 26) : relevés émis ou en échec au net positif, pas encore réglés, les plus
+   * anciens d'abord. Avec Stripe Connect, la liste ne contient que les versements en échec (compte manquant, refus).
+   */
+  async offlinePayouts(): Promise<OfflinePayout[]> {
+    const rows = await this.db
+      .select({ s: schema.weeklyStatements, publicNumber: schema.drivers.publicNumber, interacEmail: schema.drivers.interacEmail, first: schema.users.firstName, last: schema.users.lastName })
+      .from(schema.weeklyStatements)
+      .innerJoin(schema.drivers, eq(schema.drivers.id, schema.weeklyStatements.driverId))
+      .innerJoin(schema.users, eq(schema.users.id, schema.drivers.userId))
+      .where(and(inArray(schema.weeklyStatements.status, ['issued', 'failed']), gt(schema.weeklyStatements.netCents, 0)))
+      .orderBy(asc(schema.weeklyStatements.periodStart), asc(schema.drivers.publicNumber))
+      .limit(2_000);
+    return rows.map(({ s, publicNumber, interacEmail, first, last }) => ({
+      statementId: s.id, driverId: s.driverId, driverPublicNumber: publicNumber, driverName: [first, last].filter(Boolean).join(' ') || null, interacEmail: interacEmail ?? null,
+      periodStart: s.periodStart, periodEnd: s.periodEnd, amountCents: s.netCents, reference: offlinePayoutReference(s.periodStart, publicNumber),
+      status: s.status as OfflinePayout['status'], issuedAt: s.issuedAt?.toISOString() ?? null,
+    }));
+  }
+
+  /** Nom du fichier CSV des versements à faire. */
+  offlinePayoutsFileName(now = new Date()): string {
+    return `neomoov-versements-a-faire-${now.toISOString().slice(0, 10)}.csv`;
+  }
+
+  /** Export CSV des virements à faire (une ligne par relevé, puis le total) ; le téléchargement est journalisé. */
+  async offlinePayoutsCsv(actor: UserActor): Promise<string> {
+    const payouts = await this.offlinePayouts();
+    const lines = [csvLine(['chauffeur', 'nom', 'courriel_interac', 'periode_debut', 'periode_fin', 'montant_cents', 'reference', 'releve', 'etat'], CSV_SEPARATOR)];
+    for (const p of payouts) lines.push(csvLine([p.driverPublicNumber, p.driverName, p.interacEmail, p.periodStart, p.periodEnd, p.amountCents, p.reference, p.statementId, p.status], CSV_SEPARATOR));
+    lines.push(csvLine(['TOTAL', payouts.length, null, null, null, payouts.reduce((sum, p) => sum + p.amountCents, 0), null, null, null], CSV_SEPARATOR));
+    await this.audit.write([{ action: 'statement.offline_payouts_exported', entity: 'weekly_statements', entityId: null, after: { count: payouts.length, format: 'csv' } }], { actor, ip: null, correlationId: currentCorrelationId() ?? null });
+    return csvDocument(lines);
   }
 
   /** `GET /v1/admin/balances` : soldes non nuls ou chauffeurs suspendus, les plus endettés d'abord. */

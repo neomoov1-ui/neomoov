@@ -202,9 +202,10 @@ export function squareEnvironment(env: Pick<AppEnv, 'SQUARE_ENVIRONMENT' | 'NODE
 type SquareEnvKeys = 'SQUARE_ENVIRONMENT' | 'NODE_ENV' | 'SQUARE_ACCESS_TOKEN' | 'SQUARE_SANDBOX_ACCESS_TOKEN' | 'SQUARE_APPLICATION_ID' | 'SQUARE_SANDBOX_APPLICATION_ID' | 'SQUARE_LOCATION_ID' | 'SQUARE_SANDBOX_LOCATION_ID' | 'SQUARE_WEBHOOK_SIGNATURE_KEY' | 'SQUARE_WEBHOOK_URL';
 
 /**
- * Valeurs Square de l'environnement effectif (étape 26) : en bac à sable, le jeton et l'identifiant d'application du
- * bac à sable (`SQUARE_SANDBOX_*`), et son emplacement s'il est donné ; en production, les valeurs de production.
- * `missing` liste les variables qui manquent pour cet environnement (l'API refuse de démarrer en production avec Square).
+ * Valeurs Square de l'environnement effectif (étape 26) : en bac à sable, le jeton, l'identifiant d'application et
+ * l'emplacement du bac à sable (`SQUARE_SANDBOX_*` : les identifiants de production n'y existent pas) ; en production,
+ * les valeurs de production. `missing` liste les variables qui manquent pour cet environnement (l'API refuse de démarrer
+ * en production avec Square).
  */
 export function squareConfig(env: Pick<AppEnv, SquareEnvKeys>) {
   const environment = squareEnvironment(env);
@@ -213,14 +214,14 @@ export function squareConfig(env: Pick<AppEnv, SquareEnvKeys>) {
     environment,
     accessToken: sandbox ? env.SQUARE_SANDBOX_ACCESS_TOKEN : env.SQUARE_ACCESS_TOKEN,
     applicationId: sandbox ? env.SQUARE_SANDBOX_APPLICATION_ID : env.SQUARE_APPLICATION_ID,
-    locationId: sandbox ? (env.SQUARE_SANDBOX_LOCATION_ID ?? env.SQUARE_LOCATION_ID) : env.SQUARE_LOCATION_ID,
+    locationId: sandbox ? env.SQUARE_SANDBOX_LOCATION_ID : env.SQUARE_LOCATION_ID,
     webhookSignatureKey: env.SQUARE_WEBHOOK_SIGNATURE_KEY,
     webhookUrl: env.SQUARE_WEBHOOK_URL,
   };
   const missing = [
     ...(values.accessToken ? [] : [sandbox ? 'SQUARE_SANDBOX_ACCESS_TOKEN' : 'SQUARE_ACCESS_TOKEN']),
     ...(values.applicationId ? [] : [sandbox ? 'SQUARE_SANDBOX_APPLICATION_ID' : 'SQUARE_APPLICATION_ID']),
-    ...(values.locationId ? [] : ['SQUARE_LOCATION_ID']),
+    ...(values.locationId ? [] : [sandbox ? 'SQUARE_SANDBOX_LOCATION_ID' : 'SQUARE_LOCATION_ID']),
     ...(values.webhookSignatureKey ? [] : ['SQUARE_WEBHOOK_SIGNATURE_KEY']),
     ...(values.webhookUrl ? [] : ['SQUARE_WEBHOOK_URL']),
   ];

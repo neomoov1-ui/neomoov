@@ -194,7 +194,7 @@ export class SeedE2e {
     await mapLimit(needCard, this.concurrency, async (c) => {
       const userId = users.get(c.phone)!;
       const intent = await payments.setupIntent(userId);
-      await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId, makeDefault: true });
+      await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId!, makeDefault: true });
       this.count('client_payment_methods');
     });
     this.log(`Clients : ${existing.size} (${missing.length} créés, ${needCard.length} cartes simulées)`);

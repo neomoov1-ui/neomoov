@@ -8,7 +8,8 @@
  * Ce que Square n'a pas, et comment c'est rendu :
  * - pas de SetupIntent : la carte vient d'un jeton de carte produit par le Web Payments SDK dans la page `/carte` du web,
  *   enregistré par `saveCard` (`POST /v2/cards`) ;
- * - pas de capture partielle : `capture` complète le paiement puis rembourse aussitôt la différence (rejouable) ;
+ * - pas de capture partielle à la complétion : `capture` baisse d'abord le montant de l'empreinte (`UpdatePayment`) quand
+ *   Square le permet (`EDIT_AMOUNT_DOWN`), sinon complète le paiement puis rembourse aussitôt la différence (rejouable) ;
  * - pas d'équivalent de Stripe Connect : les versements aux chauffeurs se font hors plateforme (`capabilities.connect`
  *   à faux, routes Connect refusées en 409 `CONNECT_UNAVAILABLE`).
  * Les événements de webhook sont traduits dans le vocabulaire interne (celui de Stripe) ; l'original est gardé dans `raw`.
@@ -21,8 +22,11 @@ export const SQUARE_API_VERSION = '2025-01-23';
 const HOSTS = { production: 'https://connect.squareup.com', sandbox: 'https://connect.squareupsandbox.com' } as const;
 /** Adresses du Web Payments SDK, par environnement (chargées par la page `/carte`). */
 export const SQUARE_SDK_URLS = { production: 'https://web.squarecdn.com/v1/square.js', sandbox: 'https://sandbox.web.squarecdn.com/v1/square.js' } as const;
-/** Empreinte à capture différée : Square annule de lui-même après ce délai (7 jours, maximum permis pour une carte absente). */
-const AUTHORIZATION_DELAY = 'P7D';
+/**
+ * Empreinte à capture différée : `delay_duration` est omis, Square applique alors le maximum permis pour une carte
+ * absente (7 jours ; une valeur explicite doit être inférieure), puis annule l'empreinte (`delay_action: CANCEL`).
+ */
+const AUTHORIZATION_DELAY_ACTION = 'CANCEL';
 const CURRENCY = 'CAD';
 const MAX_IDEMPOTENCY_LENGTH = 45;
 
@@ -59,6 +63,8 @@ export interface SquarePayment {
   total_money?: SquareMoney;
   refunded_money?: SquareMoney;
   card_details?: { status?: string; errors?: SquareError[] };
+  /** Modifications permises sur un paiement approuvé (`EDIT_AMOUNT_DOWN`, `EDIT_AMOUNT_UP`…). */
+  capabilities?: string[];
 }
 
 interface SquareRefund {
@@ -219,15 +225,18 @@ export class SquarePaymentProvider implements PaymentProvider {
     return { name: this.name, configured: true, environment: this.environment };
   }
 
-  private async call<T>(method: 'GET' | 'POST', path: string, body?: Json): Promise<T> {
+  private async call<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: Json): Promise<T> {
     const headers: Record<string, string> = { authorization: `Bearer ${this.#accessToken}`, 'square-version': this.#apiVersion, accept: 'application/json' };
     if (body) headers['content-type'] = 'application/json';
     const res = await this.#fetch(`${HOSTS[this.environment]}${path}`, { method, headers, ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(20_000) });
-    const json = (await res.json().catch(() => ({}))) as T & { errors?: SquareError[] };
+    const json = (await res.json().catch(() => ({}))) as T & { errors?: SquareError[]; payment?: { id?: string } };
     if (!res.ok || json.errors?.length) {
       const first = json.errors?.[0] ?? {};
       const declined = first.category === 'PAYMENT_METHOD_ERROR';
-      throw new AppError(declined ? 'PAYMENT_DECLINED' : 'PAYMENT_PROVIDER_ERROR', first.detail ?? `Square ${res.status}`, declined ? 402 : 502, { code: first.code?.toLowerCase() ?? null, category: first.category ?? null, field: first.field ?? null });
+      // Un refus de carte garde l'identifiant du paiement en échec que Square a créé (rapprochement avec son tableau de bord).
+      throw new AppError(declined ? 'PAYMENT_DECLINED' : 'PAYMENT_PROVIDER_ERROR', first.detail ?? `Square ${res.status}`, declined ? 402 : 502, {
+        code: first.code?.toLowerCase() ?? null, category: first.category ?? null, field: first.field ?? null, paymentId: json.payment?.id ?? null,
+      });
     }
     return json;
   }
@@ -239,8 +248,8 @@ export class SquarePaymentProvider implements PaymentProvider {
       return authorizationOf(payment);
     } catch (error) {
       if (error instanceof AppError && error.code === 'PAYMENT_DECLINED') {
-        const details = error.details as { code: string | null };
-        return { intentId: '', status: 'failed', failureCode: details.code ?? 'card_declined' };
+        const details = error.details as { code: string | null; paymentId: string | null };
+        return { intentId: details.paymentId ?? '', status: 'failed', failureCode: details.code ?? 'card_declined' };
       }
       throw error;
     }
@@ -296,22 +305,45 @@ export class SquarePaymentProvider implements PaymentProvider {
   authorize(input: Parameters<PaymentProvider['authorize']>[0]) {
     return this.payment({
       idempotency_key: squareIdempotencyKey(input.idempotencyKey), source_id: input.paymentMethodRef, customer_id: input.customerRef, location_id: this.locationId,
-      amount_money: { amount: input.amountCents, currency: input.currency }, autocomplete: false, delay_duration: AUTHORIZATION_DELAY, delay_action: 'CANCEL',
+      amount_money: { amount: input.amountCents, currency: input.currency }, autocomplete: false, delay_action: AUTHORIZATION_DELAY_ACTION,
       ...(input.metadata?.['ride_id'] ? { reference_id: input.metadata['ride_id'].slice(0, 40) } : input.metadata?.['quote_id'] ? { reference_id: input.metadata['quote_id'].slice(0, 40) } : {}),
       note: `Neomoov${input.metadata?.['public_number'] ? ` ${input.metadata['public_number']}` : ''}`,
     });
   }
 
   /**
-   * Capture plafonnée au montant final : Square ne capture pas partiellement. Le paiement est complété pour le montant
-   * autorisé, puis la différence est remboursée aussitôt. Rejouable : un paiement déjà complété n'est pas recomplété, la
-   * différence déjà remboursée n'est pas remboursée deux fois (montant relu, clé d'idempotence fixe).
+   * Montant d'une empreinte baissé avant sa complétion (`UpdatePayment`), quand Square le permet : le client n'est débité
+   * que du montant final, sans remboursement. Un refus de Square n'est pas bloquant : la capture se replie sur la
+   * complétion du montant autorisé suivie du remboursement de la différence.
    */
-  async capture(intentId: string, amountCents: number, idempotencyKey: string): Promise<PaymentAuthorization> {
+  private async reduce(payment: SquarePayment, amountCents: number): Promise<SquarePayment> {
+    const approved = money(payment.amount_money) ?? 0;
+    if (amountCents <= 0 || amountCents >= approved || !payment.capabilities?.includes('EDIT_AMOUNT_DOWN')) return payment;
+    try {
+      const { payment: updated } = await this.call<{ payment: SquarePayment }>('PUT', `/v2/payments/${encodeURIComponent(payment.id)}`, {
+        idempotency_key: squareIdempotencyKey(`reduce:${payment.id}:${amountCents}`), payment: { amount_money: { amount: amountCents, currency: CURRENCY } },
+      });
+      return updated;
+    } catch (error) {
+      if (error instanceof AppError) return payment;
+      throw error;
+    }
+  }
+
+  /**
+   * Capture plafonnée au montant final. Square ne complète pas un montant inférieur à l'empreinte : le montant est baissé
+   * d'abord quand Square le permet, sinon le paiement est complété pour le montant autorisé puis la différence est
+   * remboursée aussitôt. Rejouable : un paiement déjà complété n'est pas recomplété, la différence déjà remboursée ne
+   * l'est pas deux fois (montant net relu ; clé d'idempotence fixée par le paiement et le montant final, pas par la tentative).
+   */
+  async capture(intentId: string, amountCents: number, _idempotencyKey: string): Promise<PaymentAuthorization> {
     let payment: SquarePayment;
     try {
       payment = await this.getPayment(intentId);
-      if (payment.status === 'APPROVED') payment = (await this.call<{ payment: SquarePayment }>('POST', `/v2/payments/${encodeURIComponent(intentId)}/complete`, {})).payment;
+      if (payment.status === 'APPROVED') {
+        payment = await this.reduce(payment, amountCents);
+        payment = (await this.call<{ payment: SquarePayment }>('POST', `/v2/payments/${encodeURIComponent(intentId)}/complete`, {})).payment;
+      }
     } catch (error) {
       if (error instanceof AppError) return { intentId, status: 'failed', failureCode: (error.details as { code?: string | null } | undefined)?.code ?? error.code.toLowerCase() };
       throw error;
@@ -322,7 +354,7 @@ export class SquarePaymentProvider implements PaymentProvider {
       // Sans remboursement de la différence, le client serait débité du montant autorisé : l'erreur est rendue (la tâche est
       // reprise ; une nouvelle tentative relit le montant déjà rendu).
       await this.call('POST', '/v2/refunds', {
-        idempotency_key: squareIdempotencyKey(`${idempotencyKey}:adjust`), payment_id: intentId, amount_money: { amount: excess, currency: CURRENCY }, reason: 'Ajustement au montant final de la course (Neomoov)',
+        idempotency_key: squareIdempotencyKey(`adjust:${intentId}:${amountCents}`), payment_id: intentId, amount_money: { amount: excess, currency: CURRENCY }, reason: 'Ajustement au montant final de la course (Neomoov)',
       });
     }
     return { intentId, status: 'captured' };
@@ -358,8 +390,13 @@ export class SquarePaymentProvider implements PaymentProvider {
     if (!this.#signatureKey || !this.#webhookUrl) throw new AppError('PROVIDER_NOT_CONFIGURED', 'SQUARE_WEBHOOK_SIGNATURE_KEY ou SQUARE_WEBHOOK_URL absente', 501);
     const payload = rawBody.toString();
     if (!verifySquareSignature(this.#signatureKey, this.#webhookUrl, payload, signature)) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);
-    const event = JSON.parse(payload) as SquareEvent;
-    if (!event.event_id || !event.type) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Notification Square incomplète', 400);
+    let event: SquareEvent;
+    try {
+      event = JSON.parse(payload) as SquareEvent;
+    } catch {
+      throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Notification Square illisible', 400);
+    }
+    if (!event?.event_id || !event.type) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Notification Square incomplète', 400);
     return normalizeSquareEvent(event);
   }
 
