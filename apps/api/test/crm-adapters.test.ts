@@ -178,12 +178,13 @@ describe('adaptateur HubSpot (faux serveur)', () => {
     ]);
     const provider = new HubSpotCrmProvider('pat-test-secret', { fetchImpl: server.fetchImpl });
     const report = await provider.setup();
-    const of = (kind: string, name: string) => report.find((l) => l.kind === kind && l.name === name)!;
+    const of = (kind: string, name: string, objectType?: string) => report.find((l) => l.kind === kind && l.name === name && (!objectType || l.objectType === objectType))!;
     expect(of('group', 'neomoov').action).toBe('unchanged');
     expect(report.filter((l) => l.kind === 'group' && l.action === 'created')).toHaveLength(2);
     expect(of('property', 'neomoov_entity')).toMatchObject({ action: 'updated', detail: expect.stringContaining('groupe_nsk') });
     expect(of('property', 'neomoov_plan').action).toBe('unchanged');
-    expect(of('property', 'neomoov_source').action).toBe('updated');
+    expect(of('property', 'neomoov_source', 'deals').action).toBe('updated');
+    expect(of('property', 'neomoov_source', 'contacts').action).toBe('created');
     expect(of('property', 'neomoov_language').action).toBe('skipped');
     const patched = server.requests.find((r) => r.method === 'PATCH' && r.path.endsWith('/contacts/neomoov_entity'))!;
     expect((patched.body as { options: Array<{ value: string }> }).options.map((o) => o.value)).toEqual(['neomoov', 'groupe_nsk']);
