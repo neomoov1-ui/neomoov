@@ -75,23 +75,44 @@ export interface SetupIntentResult {
   card: CardDetails | null;
 }
 
-/** Événement de webhook vérifié : `data.object` est l'objet Stripe concerné (PaymentIntent, compte, transfert, litige…). */
+/**
+ * Événement de webhook vérifié, dans le vocabulaire interne des paiements (celui de Stripe : `payment_intent.succeeded`,
+ * `refund.updated`, `payment_method.detached`…) : `data.object` est l'objet concerné (PaymentIntent, compte, transfert,
+ * litige…). Un autre fournisseur (Square) traduit ses événements dans ce vocabulaire et garde l'original dans `raw`.
+ */
 export interface WebhookEvent {
   id: string;
   type: string;
   data: { object: Record<string, unknown> };
+  /** Événement d'origine quand il a été traduit (Square), gardé dans `webhook_events.payload` pour le support. */
+  raw?: unknown;
+}
+
+/** Ce qu'un fournisseur de paiement sait faire (étape 26) : le service des paiements s'y adapte, jamais au nom du fournisseur. */
+export interface PaymentCapabilities {
+  /** Carte enregistrée par un SetupIntent confirmé dans l'application (feuille de paiement Stripe). */
+  setupIntent: boolean;
+  /** Carte enregistrée à partir d'un jeton de carte produit dans une page web (Web Payments SDK de Square). */
+  cardToken: boolean;
+  /** Versements aux chauffeurs par la plateforme (Stripe Connect) ; sinon, relevés réglés hors plateforme. */
+  connect: boolean;
 }
 
 /**
- * Paiements (Stripe en production, simulé ailleurs ; section 5.6, prompt 07). Aucune donnée de carte ne transite par
- * l'API : seulement des identifiants Stripe. Toute opération financière porte une clé d'idempotence.
+ * Paiements (Stripe ou Square en production, simulé ailleurs ; section 5.6, prompt 07, étape 26). Aucune donnée de carte
+ * ne transite par l'API : seulement des identifiants du fournisseur. Toute opération financière porte une clé d'idempotence.
  */
 export interface PaymentProvider {
   readonly name: string;
+  readonly capabilities: PaymentCapabilities;
   createCustomer(input: { externalId: string; email?: string; phone?: string }): Promise<{ customerRef: string }>;
+  /** Vrai si cette référence de client a été émise par ce fournisseur (un autre fournisseur en crée une nouvelle). */
+  ownsCustomerRef(customerRef: string): boolean;
   createSetupIntent(customerRef: string): Promise<{ setupIntentId: string; clientSecret: string }>;
   /** Relit un SetupIntent confirmé par l'application : la carte vient de Stripe, jamais de l'application. */
   retrieveSetupIntent(setupIntentId: string): Promise<SetupIntentResult>;
+  /** Carte enregistrée à partir d'un jeton de carte (Square : `source_id` du Web Payments SDK, jeton de vérification 3-D Secure). */
+  saveCard(input: { customerRef: string; sourceId: string; verificationToken?: string; idempotencyKey: string; externalId: string }): Promise<CardDetails>;
   detachPaymentMethod(paymentMethodRef: string): Promise<void>;
   /** Autorisation à capture différée (`capture_method: manual`) sur une carte enregistrée. */
   authorize(input: { amountCents: number; currency: 'CAD'; customerRef: string; paymentMethodRef: string; idempotencyKey: string; metadata?: Record<string, string> }): Promise<PaymentAuthorization>;
