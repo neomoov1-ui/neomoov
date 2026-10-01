@@ -272,6 +272,27 @@ describe('Neomoov Pilote (intégration)', () => {
     await retire(m);
   });
 
+  it('pas de course double : une acceptation encore en cours (offre réclamée, course pas encore attribuée) compte comme réservation prévue', { timeout: 120_000 }, async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const d = await driver();
+    await enable(d);
+    const client = await loginByOtp(app);
+    const at = new Date(Date.now() + 14 * HOUR);
+    // Course A : offre déjà réclamée pour ce chauffeur, course pas encore attribuée (l'acceptation attend le verrou de la course).
+    const first = await ride(client, { at });
+    await db(app).insert(schema.rideOffers).values({ rideId: first, driverId: d.driverId, state: 'accepted', driverFareCents: 2000, respondedAt: new Date(), expiresAt: new Date(Date.now() + 60_000) });
+    // Course B, d'un autre client, dix minutes plus tard : Pilote ne l'accepte pas pour lui.
+    const second = await ride(await loginByOtp(app), { at: new Date(at.getTime() + 10 * 60_000) });
+    await dispatch(second);
+    const decision = await until(() => decisionOf(second, d.driverId), (dec) => Boolean(dec), 'décision sur la seconde course');
+    expect(decision).toMatchObject({ decision: 'reject', score: 'red', autoAcceptedAt: null });
+    expect((decision!.reasons as Array<{ code: string }>).map((r) => r.code)).toEqual(['schedule_conflict']);
+    await pause(300);
+    expect((await rideRow(second)).driverId).toBeNull();
+    expect((await offerOf(second, d.driverId))!.state).toBe('sent');
+    await retire(d);
+  });
+
   it('coûts et rentabilité nette : revenus des autres plateformes saisis à la main, sans logo', { timeout: 120_000 }, async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const d = await driver();
