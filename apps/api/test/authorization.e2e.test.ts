@@ -10,7 +10,10 @@ import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, resetHttp
 
 const SAMPLE_ID = '00000000-0000-4000-8000-000000000001';
 const concrete = (p: RoutePolicy) => p.path.replace(/:[A-Za-z]+/g, SAMPLE_ID);
-const send = (app: NestExpressApplication, p: RoutePolicy, headers: Record<string, string> = {}) => {
+// Plus de 300 routes : la limite par adresse (300 requêtes par minute) est remise à zéro toutes les 200 requêtes du test.
+let sent = 0;
+const send = async (app: NestExpressApplication, p: RoutePolicy, headers: Record<string, string> = {}) => {
+  if (++sent % 200 === 0) await resetHttpLimits(app);
   const method = p.method.toLowerCase() as 'get' | 'post' | 'patch' | 'put' | 'delete';
   return request(app.getHttpServer())[method](concrete(p)).set(headers).send({});
 };

@@ -81,7 +81,7 @@ describe('configuration', () => {
 
     const ready = {
       ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a', JWT_REFRESH_SECRET: 'b', ENCRYPTION_KEY: 'c', REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real',
-      ALLOW_MOCK_PROVIDERS: 'maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus', PAYMENT_PROVIDER: 'square',
+      ALLOW_MOCK_PROVIDERS: 'maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing', PAYMENT_PROVIDER: 'square',
     };
     expect(() => loadEnv(ready, { dotenv: false })).toThrow(/PAYMENT_PROVIDER=square.*SQUARE_ACCESS_TOKEN, SQUARE_APPLICATION_ID, SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY, SQUARE_WEBHOOK_URL/);
     expect(() => loadEnv({ ...ready, ...square }, { dotenv: false })).toThrow(/SQUARE_WEBHOOK_SIGNATURE_KEY, SQUARE_WEBHOOK_URL/);

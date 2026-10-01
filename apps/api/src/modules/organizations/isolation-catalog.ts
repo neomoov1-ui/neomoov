@@ -17,6 +17,7 @@ export const PLATFORM_ONLY_TABLES: Readonly<Record<string, string>> = {
   business_members: 'Membres des comptes entreprises de la V1 (voir business_accounts).',
   competitor_benchmarks: 'Relevés concurrentiels saisis par le fondateur et les opérateurs (D33) : tarification de la plateforme.',
   counters: 'Compteurs de numérotation (courses, factures, chauffeurs), hors schéma Drizzle ; atteints par les fonctions next_* en SECURITY DEFINER.',
+  crm_records: 'Correspondance avec le CRM de la plateforme (HubSpot, étape 25) : identifiants externes, état, erreurs de synchronisation.',
   data_requests: 'Demandes d\'accès, de rectification et de suppression (Loi 25), traitées par le responsable de la plateforme ; par organisation avec la permission privacy.requests.handle, plus tard.',
   geolocation_exports: 'Exports réglementaires de géolocalisation de la plateforme (registre de l\'exploitant).',
   investors: 'Investisseurs du programme de financement de véhicules (V2), relation de la plateforme.',

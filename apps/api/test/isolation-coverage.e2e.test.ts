@@ -55,7 +55,7 @@ describe('isolation par organisation : couverture des tables (intégration)', ()
     const defaults = await db(app).execute<{ table_name: string }>(sql`
       SELECT table_name FROM information_schema.columns
       WHERE table_schema = 'public' AND column_name = 'organization_id' AND column_default LIKE 'app_scope_organization_id()%' ORDER BY table_name`);
-    expect([...defaults].map((d) => d.table_name)).toEqual(['clients', 'conversations', 'credits', 'drivers', 'incidents', 'leads', 'notifications', 'quotes', 'rides', 'vehicles', 'weekly_statements']);
+    expect([...defaults].map((d) => d.table_name)).toEqual(['clients', 'conversations', 'credits', 'drivers', 'incidents', 'leads', 'notifications', 'organization_statements', 'quotes', 'revenue_share_rules', 'rides', 'vehicle_maintenance', 'vehicles', 'weekly_statements']);
   });
 
   it('toute table de l\'API a la sécurité au niveau des lignes activée et les droits du rôle restreint', async ({ skip }) => {

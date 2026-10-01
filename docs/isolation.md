@@ -63,6 +63,7 @@ Aucune ligne visible sous contexte (sécurité activée, aucune politique pour l
 | `referrals` | Programme de parrainage de la plateforme (les crédits accordés portent l'organisation) |
 | `staff_notes` | Notes internes du personnel de la plateforme |
 | `user_roles` | Anciens rôles et personnel de la plateforme (lu sous contexte par `platform_staff_user_ids`) |
+| `crm_records` | Correspondance avec le CRM de la plateforme (HubSpot, étape 25) |
 | `webhook_events` | File technique des événements des fournisseurs |
 
 ## Organisation des lignes créées
