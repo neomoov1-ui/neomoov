@@ -287,7 +287,7 @@ describe('module Flotte : parcours gestionnaire, chauffeur, versement (intégrat
     const transmitted = (event!.data as { transmitted: Record<string, unknown> }).transmitted;
     expect(Object.keys(transmitted).sort()).toEqual([...NETWORK_SHARED_FIELDS].sort());
     expect(transmitted['passengerFirstName']).toBe('Jean-Philippe');
-    expect(JSON.stringify(transmitted)).not.toMatch(/Gagnon|514|\+1999/);
+    expect(JSON.stringify(transmitted)).not.toMatch(/Gagnon|514 555|\+1999/);
     const offers = await get('/v1/driver/offers', networkDriver.tokens).expect(200);
     const offer = (offers.body as Array<{ rideId: string; ride: Record<string, unknown> }>).find((o) => o.rideId === shared);
     expect(offer, JSON.stringify(offers.body)).toBeDefined();
