@@ -51,7 +51,10 @@
       },
       "ios": {
         "ascAppId": "6818233490",
-        "appleTeamId": "DNB64CQYH6"
+        "appleTeamId": "DNB64CQYH6",
+        "ascApiKeyPath": "../../../../cles-neomoov/AuthKey_4Q5Y64UC9P.p8",
+        "ascApiKeyIssuerId": "cf6fb73d-076c-4bb1-819e-b8179ebb5461",
+        "ascApiKeyId": "4Q5Y64UC9P"
       }
     }
   }
