@@ -29,13 +29,14 @@ export const leads = pgTable('leads', {
   /** Organisation destinataire du prospect (étape 20) ; nulle pour la plateforme. */
   organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   status: varchar('status', { length: 20 }).notNull().default('new'),
-  consentAt: tz('consent_at').notNull(),
+  /** Consentement à être recontacté (Loi 25) ; nul (import, relais sans case cochée) : rien ne part au CRM (étape 25). */
+  consentAt: tz('consent_at'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [
   index('leads_kind_status_idx').on(t.kind, t.status, t.createdAt),
   index('leads_phone_idx').on(t.phone),
   index('leads_org_idx').on(t.organizationId),
-  check('leads_kind', sql`${t.kind} IN ('driver', 'business', 'partner')`),
+  check('leads_kind', sql`${t.kind} IN ('driver', 'business', 'partner', 'training')`),
   check('leads_status', sql`${t.status} IN ('new', 'contacted', 'converted', 'discarded')`),
 ]);

@@ -57,3 +57,8 @@ export { InvoiceJobsService } from './modules/invoicing/invoice-jobs.service.js'
 // Neomoov Pilote (étape 24) : chargé aussi par le worker, qui porte la répartition avec Redis.
 export { PilotModule } from './modules/pilot/pilot.module.js';
 export { PilotService } from './modules/pilot/pilot.service.js';
+export { CrmModule } from './modules/crm/crm.module.js';
+export { CrmSyncService, type CrmEntityType, type CrmSyncOutcome } from './modules/crm/crm-sync.service.js';
+export { CrmJobsService } from './modules/crm/crm-jobs.service.js';
+export { HubSpotCrmProvider, type HubSpotSetupReport } from './adapters/real/hubspot.real.js';
+export * from './adapters/real/hubspot-model.js';

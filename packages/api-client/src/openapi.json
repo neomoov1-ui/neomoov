@@ -52810,7 +52810,8 @@
                             "enum": [
                               "driver",
                               "business",
-                              "partner"
+                              "partner",
+                              "training"
                             ]
                           },
                           "firstName": {
@@ -57168,7 +57169,8 @@
                     "enum": [
                       "driver",
                       "business",
-                      "partner"
+                      "partner",
+                      "training"
                     ]
                   },
                   "firstName": {

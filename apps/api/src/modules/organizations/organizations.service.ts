@@ -16,6 +16,7 @@ import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { AppError } from '../../common/app-error.js';
 import { randomToken, sha256Hex } from '../../common/crypto.js';
+import { DomainEventsService } from '../../common/domain-events.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AccessService } from '../auth/access.service.js';
 import type { OrgScope, UserActor } from '../auth/actor.js';
@@ -39,6 +40,7 @@ export class OrganizationsService {
     @Inject(DB) private readonly database: Database,
     private readonly access: AccessService,
     private readonly audit: AuditService,
+    private readonly events: DomainEventsService,
   ) {}
 
   private get db() {
@@ -107,6 +109,8 @@ export class OrganizationsService {
     try {
       const [row] = await this.db.insert(schema.organizations).values({ id, code: input.code, name: input.name, type: input.type, parentId: parent.id, path: childPath(parent.path, id) }).returning();
       this.audit.record({ action: 'organization.created', entity: 'organizations', entityId: id, after: { code: input.code, type: input.type, parentId: parent.id, by: actor.userId } });
+      // CRM (étape 25) : entreprise et transaction « Ventes B2B », de façon asynchrone.
+      this.events.emit('organization.created', { organizationId: id, parentId: parent.id, type: input.type });
       return orgView(row!);
     } catch (error) {
       if (uniqueViolation(error) === 'organizations_code_unique') throw AppError.conflict('ORGANIZATION_CODE_TAKEN', 'Ce code d\'organisation est déjà pris');

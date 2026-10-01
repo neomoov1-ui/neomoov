@@ -15,3 +15,4 @@ export * from './backoffice.js';
 export * from './access.js';
 export * from './branding.js';
 export * from './pilot.js';
+export * from './crm.js';

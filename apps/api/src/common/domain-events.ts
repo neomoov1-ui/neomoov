@@ -69,6 +69,11 @@ export interface DomainEvents {
   'payment.refunded': { refundId: string; rideId: string; paymentId: string; amountCents: number; mode: 'refund' | 'credit'; occurredAt: Date };
   /** Document de chauffeur téléversé, en attente de vérification (agent recrutement, puis humain). */
   'driver.document_uploaded': { documentId: string; driverId: string; type: string };
+  /** CRM (étape 25) : entités à synchroniser chez le fournisseur, avec consentement seulement (file `crm`). */
+  'lead.created': { leadId: string; kind: string; consent: boolean };
+  'organization.created': { organizationId: string; parentId: string | null; type: string };
+  'organization.subscribed': { organizationId: string; planCode: string };
+  'business_account.created': { businessAccountId: string };
 }
 
 type Handler<K extends keyof DomainEvents> = (payload: DomainEvents[K]) => void | Promise<void>;

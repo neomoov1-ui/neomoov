@@ -523,3 +523,5 @@ export class MockStorageProvider implements StorageProvider {
     this.objects.delete(key);
   }
 }
+
+export * from './crm.mock.js';
