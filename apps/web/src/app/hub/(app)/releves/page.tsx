@@ -1,6 +1,6 @@
 'use client';
 
-import type { AdminBalance, AdminStatement, StatementGeneration } from '@neomoov/domain';
+import type { AdminBalance, AdminStatement, OfflinePayout, StatementGeneration } from '@neomoov/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -10,7 +10,10 @@ import { Action, Card, DataTable, Field, Input, Notice, PageTitle, Pagination, f
 import { formatDate, formatMoney } from '@/lib/format';
 import { FINANCE_ROLES, hubApi } from '@/lib/hub-api';
 
-/** Relevés hebdomadaires : génération ou aperçu d'une semaine, liste, soldes des chauffeurs (étape 9). */
+/**
+ * Relevés hebdomadaires : génération ou aperçu d'une semaine, liste, soldes des chauffeurs (étape 9), versements à faire
+ * hors plateforme avec leur export CSV (étape 26 : Square, sans Stripe Connect).
+ */
 export default function StatementsPage() {
   const { t } = useTranslation();
   const lang = useLang();
@@ -21,6 +24,7 @@ export default function StatementsPage() {
   const [result, setResult] = useState<StatementGeneration | null>(null);
   const list = usePagedList<AdminStatement>('statements', (q) => hubApi.admin.statements(q));
   const balances = useQuery({ queryKey: ['hub', 'balances'], queryFn: () => hubApi.admin.balances() });
+  const offline = useQuery({ queryKey: ['hub', 'offline-payouts'], queryFn: () => hubApi.admin.offlinePayouts() });
   const generate = useMutation({
     mutationFn: (preview: boolean) => hubApi.admin.generateStatements({ ...(week ? { periodStart: week } : {}), preview }),
     onSuccess: (data) => {
@@ -28,6 +32,14 @@ export default function StatementsPage() {
       if (!data.preview) void queryClient.invalidateQueries({ queryKey: ['hub', 'statements'] });
     },
   });
+
+  const offlineColumns: Column<OfflinePayout>[] = [
+    { key: 'period', header: t('hub.statements.period'), cell: (p) => <Link className={`text-brand-blue-dark underline ${focus}`} href={`/hub/releves/${p.statementId}`}>{`${formatDate(p.periodStart, lang)} → ${formatDate(p.periodEnd, lang)}`}</Link> },
+    { key: 'driver', header: t('hub.statements.driver'), cell: (p) => <Link className={`text-brand-blue-dark underline ${focus}`} href={`/hub/chauffeurs/${p.driverId}`}>{p.driverName ?? p.driverPublicNumber}</Link> },
+    { key: 'interac', header: t('hub.statements.payoutInterac'), cell: (p) => p.interacEmail ?? '—' },
+    { key: 'amount', header: t('hub.statements.payoutAmount'), cell: (p) => formatMoney(p.amountCents, lang) },
+    { key: 'reference', header: t('hub.statements.payoutReference'), cell: (p) => <code>{p.reference}</code> },
+  ];
 
   const columns: Column<AdminStatement>[] = [
     { key: 'period', header: t('hub.statements.period'), cell: (s) => <Link className={`text-brand-blue-dark underline ${focus}`} href={`/hub/releves/${s.id}`}>{`${formatDate(s.periodStart, lang)} → ${formatDate(s.periodEnd, lang)}`}</Link> },
@@ -93,6 +105,16 @@ export default function StatementsPage() {
             <DataTable caption={t('hub.statements.title')} columns={columns} rows={list.query.data.items} rowKey={(s) => s.id} empty={t('hub.common.empty')} />
             <Pagination page={list.filters.page} pageSize={list.pageSize} total={list.query.data.total} onPage={list.setPage} labels={pageLabels(t, list.filters.page, list.pageSize, list.query.data.total)} />
           </>
+        )}
+      </Card>
+
+      <Card
+        title={t('hub.statements.offlinePayoutsTitle')}
+        actions={<a href={`/api/v1${hubApi.admin.offlinePayoutsCsvPath()}`} download className={`rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-brand-ink hover:bg-brand-tint ${focus}`}>{t('hub.statements.offlinePayoutsCsv')}</a>}
+      >
+        <p className="mb-3 text-sm text-slate-600">{t('hub.statements.offlinePayoutsHint')}</p>
+        {offline.isPending ? <Loading /> : offline.isError ? <ErrorBlock error={offline.error} onRetry={() => void offline.refetch()} /> : (
+          <DataTable caption={t('hub.statements.offlinePayoutsTitle')} columns={offlineColumns} rows={offline.data} rowKey={(p) => p.statementId} empty={t('hub.statements.noOfflinePayout')} />
         )}
       </Card>
 

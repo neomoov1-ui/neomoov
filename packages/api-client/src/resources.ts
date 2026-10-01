@@ -131,6 +131,8 @@ export function paymentsResource(t: Transport) {
     setupIntent: () => t.post<SetupIntentResponse>('/payment-methods/setup-intent'),
     /** Après confirmation par la feuille de paiement Stripe : l'API relit la carte chez Stripe. */
     confirm: (setupIntentId: string, makeDefault = true) => t.post<PaymentMethodView>('/payment-methods/confirm', { setupIntentId, makeDefault }),
+    /** Étape 26 (Square) : carte à partir d'un jeton de carte du Web Payments SDK (la page /carte du web passe par sa session). */
+    confirmCardToken: (sourceId: string, verificationToken?: string, makeDefault = true) => t.post<PaymentMethodView>('/payment-methods/confirm', { sourceId, ...(verificationToken ? { verificationToken } : {}), makeDefault }),
     methods: () => t.get<PaymentMethodView[]>('/payment-methods'),
     remove: (methodId: string) => t.delete(`/payment-methods/${id(methodId)}`),
     tip: (rideId: string, amountCents: number) => t.post<PaymentView>(`/rides/${id(rideId)}/tip`, { amountCents }),

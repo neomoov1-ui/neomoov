@@ -80,6 +80,9 @@ const fr = {
     refusal: { too_few_points: 'Placez au moins 3 sommets.', not_closed: 'Le tracé n\'est pas fermé.', out_of_range: 'Un sommet est hors des coordonnées valides.', duplicate_points: 'Deux sommets sont identiques.', self_intersecting: 'Le tracé se croise : déplacez ou retirez un sommet.' } },
   offers: { packs: 'Packs de courses', promotions: 'Promotions', code: 'Code', name: 'Nom', type: 'Type', value: 'Valeur', active: 'Actif', spent: 'Dépensé', budget: 'Budget', validity: 'Validité', price: 'Prix', rides: 'Courses incluses' },
   statements: {
+    offlinePayoutsTitle: 'Versements à faire hors plateforme', offlinePayoutsCsv: 'Exporter les virements (CSV)', noOfflinePayout: 'Aucun versement à faire.',
+    offlinePayoutsHint: 'Relevés positifs non réglés : avec Square, aucun versement automatique (pas de Stripe Connect) ; avec Stripe, versements en échec. Faites le virement ou l\'Interac avec la référence indiquée, puis ouvrez le relevé et marquez-le « Réglé hors plateforme » avec cette référence.',
+    payoutInterac: 'Courriel Interac', payoutAmount: 'Montant à verser', payoutReference: 'Référence du virement',
     settleOffline: 'Réglé hors plateforme', offlineSettled: 'Réglé hors plateforme', offlineNote: 'Note', offlineReference: 'Référence du paiement', offlineMethodLabel: 'Moyen',
     offlineMethod: { interac: 'Virement Interac', bank_transfer: 'Virement bancaire', cash: 'Espèces', cheque: 'Chèque', other: 'Autre' },
     offlineHintOwed: 'Le chauffeur a payé {{amount}} hors plateforme : le relevé est marqué prélevé, le solde recalculé et le chauffeur réactivé s\'il était suspendu pour ce solde.',
@@ -357,6 +360,9 @@ const en: typeof fr = {
     refusal: { too_few_points: 'Place at least 3 vertices.', not_closed: 'The shape is not closed.', out_of_range: 'A vertex is outside valid coordinates.', duplicate_points: 'Two vertices are identical.', self_intersecting: 'The shape crosses itself: move or remove a vertex.' } },
   offers: { packs: 'Ride packs', promotions: 'Promotions', code: 'Code', name: 'Name', type: 'Type', value: 'Value', active: 'Active', spent: 'Spent', budget: 'Budget', validity: 'Validity', price: 'Price', rides: 'Rides included' },
   statements: {
+    offlinePayoutsTitle: 'Payouts to make off-platform', offlinePayoutsCsv: 'Export transfers (CSV)', noOfflinePayout: 'No payout to make.',
+    offlinePayoutsHint: 'Unsettled positive statements: with Square, no automatic payout (no Stripe Connect); with Stripe, failed payouts. Send the bank transfer or Interac e-Transfer with the reference shown, then open the statement and mark it "Settled off-platform" with that reference.',
+    payoutInterac: 'Interac email', payoutAmount: 'Amount to pay', payoutReference: 'Transfer reference',
     settleOffline: 'Settled off-platform', offlineSettled: 'Settled off-platform', offlineNote: 'Note', offlineReference: 'Payment reference', offlineMethodLabel: 'Method',
     offlineMethod: { interac: 'Interac e-Transfer', bank_transfer: 'Bank transfer', cash: 'Cash', cheque: 'Cheque', other: 'Other' },
     offlineHintOwed: 'The driver paid {{amount}} off-platform: the statement is marked charged, the balance recomputed and the driver reactivated if suspended for this balance.',

@@ -31,6 +31,7 @@ export const keys = {
   documents: ['documents'] as const,
   training: ['training'] as const,
   payout: ['payout'] as const,
+  debit: ['debit-method'] as const,
   packs: ['packs'] as const,
   earnings: (query: EarningsQuery) => ['earnings', query.period ?? 'week', query.date ?? 'today'] as const,
   statements: ['statements'] as const,
@@ -90,6 +91,11 @@ export function useTraining() {
 
 export function usePayout() {
   return useQuery({ queryKey: keys.payout, queryFn: () => api.driver.payout(), enabled: useDriverReady() });
+}
+
+/** État Connect et carte de prélèvement des relevés négatifs (étape 26 : relue au retour de la page de saisie). */
+export function useDebitStatus() {
+  return useQuery({ queryKey: keys.debit, queryFn: () => api.payments.connectStatus(), enabled: useDriverReady() });
 }
 
 export function usePacks() {

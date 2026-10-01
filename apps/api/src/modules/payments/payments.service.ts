@@ -33,7 +33,7 @@ type MethodRow = typeof schema.clientPaymentMethods.$inferSelect;
 type Executor = Pick<Database['db'], 'insert' | 'update' | 'select' | 'execute'>;
 
 /** Lien profond qui ramène à l'application à la fin de la page de saisie de carte. */
-const RETURN_URLS: Record<CardSessionPurpose, string> = { client_card: 'neomoov://carte-enregistree', driver_debit: 'neomoov-driver://carte-enregistree' };
+const RETURN_URLS: Record<CardSessionPurpose, string> = { client_card: 'neomoov://carte-enregistree', driver_debit: 'neomoov-driver://payout' };
 
 export interface RideAuthorization {
   intentId: string;

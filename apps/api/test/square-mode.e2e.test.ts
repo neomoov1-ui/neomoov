@@ -126,7 +126,7 @@ describe('paiements par jeton de carte et versements hors plateforme (étape 26,
     const setup = (await request(server()).post('/v1/driver/payment-method').set(bearer(driver.tokens)).expect(201)).body;
     expect(setup).toMatchObject({ setupIntentId: null, clientSecret: null });
     const session = sessionOf(setup.cardFormUrl);
-    expect((await request(server()).get('/v1/payment-methods/card-session').query({ session }).expect(200)).body).toMatchObject({ purpose: 'driver_debit', returnUrl: 'neomoov-driver://carte-enregistree' });
+    expect((await request(server()).get('/v1/payment-methods/card-session').query({ session }).expect(200)).body).toMatchObject({ purpose: 'driver_debit', returnUrl: 'neomoov-driver://payout' });
     const debit = (await request(server()).post('/v1/payment-methods/card-session/confirm').send({ session, sourceId: 'cnon:card-nonce-ok' }).expect(201)).body;
     expect(debit).toMatchObject({ purpose: 'driver_debit', card: null, debitMethod: { brand: 'visa', last4: '4242' } });
     expect((await request(server()).get('/v1/driver/connect/status').set(bearer(driver.tokens)).expect(200)).body.debitMethod).toEqual({ brand: 'visa', last4: '4242' });
