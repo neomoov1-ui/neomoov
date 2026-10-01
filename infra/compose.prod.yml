@@ -71,6 +71,9 @@ services:
       NODE_ENV: production
       REDIS_URL: redis://redis:6379
       APP_VERSION: ${APP_VERSION:-}
+      # Antivirus : le worker analyse aussi des fichiers (même démon que l'API, profil « antivirus »).
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: "3310"
     deploy:
       resources:
         limits:
