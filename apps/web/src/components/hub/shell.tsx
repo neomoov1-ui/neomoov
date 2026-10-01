@@ -22,6 +22,8 @@ const NAV: Array<{ group: string; items: Array<{ key: string; href: string; admi
   { group: 'finance', items: [{ key: 'statements', href: '/hub/releves' }, { key: 'invoices', href: '/hub/factures' }, { key: 'ledgers', href: '/hub/registres' }] },
   { group: 'safety', items: [{ key: 'incidents', href: '/hub/incidents' }, { key: 'quality', href: '/hub/qualite' }, { key: 'fairness', href: '/hub/equite' }, { key: 'compliance', href: '/hub/conformite' }, { key: 'dataRequests', href: '/hub/demandes' }] },
   { group: 'intelligence', items: [{ key: 'agents', href: '/hub/agents' }, { key: 'reports', href: '/hub/rapports' }, { key: 'metrics', href: '/hub/metriques' }] },
+  // Étape 23 : module Flotte (côté organisation), libellés dans l'espace `fleet` des traductions.
+  { group: 'fleet', items: [{ key: 'drivers', href: '/hub/flotte' }, { key: 'vehicles', href: '/hub/flotte/vehicules' }, { key: 'live', href: '/hub/flotte/carte' }, { key: 'dispatch', href: '/hub/flotte/repartition' }, { key: 'statements', href: '/hub/flotte/releves' }, { key: 'reports', href: '/hub/flotte/rapports' }] },
   { group: 'admin', items: [{ key: 'settings', href: '/hub/parametres' }, { key: 'staff', href: '/hub/equipe', adminOnly: true }, { key: 'organizations', href: '/hub/organisations', adminOnly: true }, { key: 'apiKeys', href: '/hub/cles', adminOnly: true }, { key: 'queues', href: '/hub/files' }, { key: 'audit', href: '/hub/journal' }, { key: 'supportAccess', href: '/hub/support', adminOnly: true }] },
 ];
 
@@ -45,7 +47,7 @@ export function HubShell({ user, language, children }: { user: HubUser; language
   // Nom de la marque de l'hôte (étape 22) : My Hub sous le domaine vérifié d'une organisation porte son nom.
   const brand = useWebBrand();
   const brandName = brand.displayName === 'Neomoov' ? 'neomoov' : brand.displayName;
-  const active = (href: string) => (href === '/hub' ? pathname === '/hub' : pathname === href || (pathname.startsWith(`${href}/`) && href !== '/hub/courses') || (href === '/hub/courses' && /^\/hub\/courses\/(?!nouvelle)/.test(pathname)));
+  const active = (href: string) => (href === '/hub' ? pathname === '/hub' : pathname === href || (pathname.startsWith(`${href}/`) && href !== '/hub/courses' && href !== '/hub/flotte') || (href === '/hub/courses' && /^\/hub\/courses\/(?!nouvelle)/.test(pathname)));
 
   // Un membre d'organisation n'a pas d'écran de la plateforme : il est conduit vers l'espace de son organisation.
   useEffect(() => {
@@ -68,7 +70,7 @@ export function HubShell({ user, language, children }: { user: HubUser; language
           <nav aria-label={t('hub.shell.menu')} className="px-2 pb-6">
             {NAV.map((section) => (
               <div key={section.group} className="mt-3">
-                <p className="px-2 text-[11px] font-bold uppercase tracking-widest text-slate-300">{t(`hub.nav.groups.${section.group}`)}</p>
+                <p className="px-2 text-[11px] font-bold uppercase tracking-widest text-slate-300">{t(section.group === 'fleet' ? 'fleet.nav.group' : `hub.nav.groups.${section.group}`)}</p>
                 <ul className="mt-1">
                   {section.items.filter((item) => admin || !item.adminOnly).map((item) => (
                     <li key={item.href}>
@@ -78,7 +80,7 @@ export function HubShell({ user, language, children }: { user: HubUser; language
                         aria-current={active(item.href) ? 'page' : undefined}
                         className={cx('block rounded-md px-2 py-1.5 text-sm', focus, active(item.href) ? 'bg-white font-semibold text-brand-night' : 'text-slate-100 hover:bg-white/10')}
                       >
-                        {t(`hub.nav.${item.key}`)}
+                        {t(section.group === 'fleet' ? `fleet.nav.${item.key}` : `hub.nav.${item.key}`)}
                       </Link>
                     </li>
                   ))}

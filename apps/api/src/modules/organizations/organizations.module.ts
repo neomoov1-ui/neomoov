@@ -8,7 +8,7 @@ import { OrgHubService } from './org-hub.service.js';
 import { MeOrganizationsController, OrgController } from './org.controller.js';
 import { OrgScopeInterceptor } from './org-scope.interceptor.js';
 import { AdminOrganizationsController, InvitationsController } from './organizations.controller.js';
-import { OrgScopeService } from './org-scope.service.js';
+import { OrgScopeModule } from './org-scope.module.js';
 import { OrganizationsService } from './organizations.service.js';
 import { SupportAccessService } from './support-access.service.js';
 
@@ -20,9 +20,9 @@ import { SupportAccessService } from './support-access.service.js';
  * (tableau de bord, sous-organisations, catalogue, invitations, propriété) et accès temporaire du support.
  */
 @Module({
-  imports: [forwardRef(() => AdminModule), forwardRef(() => RidesModule)],
+  imports: [forwardRef(() => AdminModule), forwardRef(() => RidesModule), OrgScopeModule],
   controllers: [AdminOrganizationsController, InvitationsController, OrgController, MeOrganizationsController, OrgHubController, AdminSupportAccessController],
-  providers: [OrganizationsService, OrgScopeService, OrgHubService, SupportAccessService, { provide: APP_GUARD, useClass: OrgScopeGuard }, { provide: APP_INTERCEPTOR, useClass: OrgScopeInterceptor }],
-  exports: [OrganizationsService, OrgScopeService, SupportAccessService],
+  providers: [OrganizationsService, OrgHubService, SupportAccessService, { provide: APP_GUARD, useClass: OrgScopeGuard }, { provide: APP_INTERCEPTOR, useClass: OrgScopeInterceptor }],
+  exports: [OrganizationsService, OrgScopeModule, SupportAccessService],
 })
 export class OrganizationsModule {}

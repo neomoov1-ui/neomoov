@@ -5,6 +5,7 @@
  */
 import { enumTexts, hubTexts } from './i18n-hub';
 import { orgTexts } from './i18n-org';
+import { fleetTexts } from './i18n-fleet';
 import { siteTexts } from './i18n-site';
 
 export const SUPPORTED_LANGUAGES = ['fr-CA', 'en'] as const;
@@ -24,6 +25,7 @@ export const resources = {
       },
       hub: hubTexts['fr-CA'],
       org: orgTexts['fr-CA'],
+      fleet: fleetTexts['fr-CA'],
       enum: enumTexts['fr-CA'],
       ...siteTexts['fr-CA'],
       status: { api: 'API', database: 'base de données', redis: 'Redis', queues: 'files', ok: 'en service', degraded: 'dégradée', error: 'en panne', not_configured: 'non configuré', memory: 'en mémoire' },
@@ -44,6 +46,7 @@ export const resources = {
       },
       hub: hubTexts.en,
       org: orgTexts.en,
+      fleet: fleetTexts.en,
       enum: enumTexts.en,
       ...siteTexts.en,
       status: { api: 'API', database: 'database', redis: 'Redis', queues: 'queues', ok: 'up', degraded: 'degraded', error: 'down', not_configured: 'not configured', memory: 'in memory' },

@@ -37,34 +37,53 @@ export class OrgScopeService {
    * un point de sauvegarde ; sous une autre portée, il ouvre une transaction à part (jamais un point de sauvegarde, dont le
    * `SET LOCAL` survivrait et changerait la portée de la transaction englobante). Une fois la transaction terminée, le
    * contexte est marqué fini : ce qui lui survit repasse par le contexte englobant encore ouvert, sinon par le pool.
-   * Étape 21 : les traitements confiés à `afterScopeCommit` pendant `fn` partent après la validation de la transaction de
-   * premier niveau (ses points de sauvegarde partagent sa liste), hors du contexte (pool de la plateforme) ; une annulation
-   * les abandonne.
+   * Étapes 21 et 23 : les suites confiées à `afterScopeCommit` ou `afterOrgScopeCommit` pendant `fn` partent après la
+   * validation de la transaction de premier niveau (celles d'un point de sauvegarde ne lui reviennent que s'il réussit),
+   * avant la réponse ; une annulation les abandonne.
    */
   async run<T>(orgPath: string, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
     if (!PATH.test(orgPath)) throw new AppError('INVALID_ORGANIZATION_SCOPE', 'Portée d\'organisation invalide', 500);
     const active = activeOrgScope();
     if (active && active.path === orgPath) {
-      return (active.tx as ScopedExecutor).transaction((sp) => this.within({ organizationId: active.organizationId, path: orgPath, tx: sp, ended: false, parent: active, ...(active.afterCommit ? { afterCommit: active.afterCommit } : {}) }, fn));
+      return (active.tx as ScopedExecutor).transaction((sp) => this.within({ organizationId: active.organizationId, path: orgPath, tx: sp, ended: false, parent: active, afterCommit: [] }, fn));
     }
-    const afterCommit: Array<() => unknown> = [];
+    const opened: { store: OrgScopeContext | null } = { store: null };
     const result = await withoutOrgScope(() =>
       this.database.db.transaction(async (tx) => {
         await tx.execute(sql`SET LOCAL ROLE neomoov_scoped`);
         await tx.execute(sql`SELECT set_config('app.scope_path', ${orgPath}, true)`);
-        return this.within({ organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, ended: false, parent: null, afterCommit }, fn);
+        opened.store = { organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, ended: false, parent: null, afterCommit: [] };
+        return this.within(opened.store, fn);
       }),
     );
-    // Chaque traitement gère ses propres erreurs (file des avis) ; un échec n'annule pas ce qui est déjà validé.
-    for (const hook of afterCommit.splice(0)) await withoutOrgScope(async () => hook()).catch(() => undefined);
+    // Étapes 21 et 23 : la transaction est validée ; les suites différées (avis, événements de domaine) partent maintenant.
+    await this.flushAfterCommit(opened.store);
     return result;
   }
 
   private async within<T>(store: OrgScopeContext, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
     try {
-      return await orgScopeStorage.run(store, () => fn(store.tx as ScopedExecutor));
+      const result = await orgScopeStorage.run(store, () => fn(store.tx as ScopedExecutor));
+      // Point de sauvegarde réussi : ses suites attendent la validation de la transaction englobante.
+      if (store.parent && store.afterCommit?.length) (store.parent.afterCommit ??= []).push(...store.afterCommit.splice(0));
+      return result;
     } finally {
       store.ended = true;
+    }
+  }
+
+  /**
+   * Suites différées d'une transaction validée, une à une et attendues, dans son contexte terminé (pool de la plateforme,
+   * organisation gardée pour étiqueter ce qu'elles écrivent) ; un échec est journalisé et n'annule rien de validé.
+   */
+  private async flushAfterCommit(store: OrgScopeContext | null): Promise<void> {
+    const callbacks = store?.afterCommit?.splice(0) ?? [];
+    for (const callback of callbacks) {
+      try {
+        await orgScopeStorage.run(store!, async () => callback());
+      } catch (error) {
+        this.logger.error({ err: error, organizationId: store!.organizationId }, 'Suite différée d\'une transaction d\'organisation en échec');
+      }
     }
   }
 

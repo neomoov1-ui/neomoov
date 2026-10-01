@@ -71,6 +71,11 @@ export const driverDocuments = pgTable('driver_documents', {
   rejectionReason: text('rejection_reason'),
   /** Champs extraits par l'agent de recrutement (vision), pour contrôle humain. */
   extractedFields: jsonb('extracted_fields'),
+  /** Étape 23 : revue de l'organisation du chauffeur (recommandation ; l'approbation finale reste à la plateforme). */
+  orgReviewDecision: varchar('org_review_decision', { length: 10 }),
+  orgReviewNote: text('org_review_note'),
+  orgReviewedByUserId: uuid('org_reviewed_by_user_id'),
+  orgReviewedAt: tz('org_reviewed_at'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [index('driver_documents_driver_type_idx').on(t.driverId, t.type), index('driver_documents_expiry_idx').on(t.expiresOn).where(sql`${t.status} = 'approved'`)]);
@@ -105,6 +110,8 @@ export const vehicles = pgTable('vehicles', {
   status: vehicleStatusEnum('status').notNull().default('pending'),
   lastInspectionOn: date('last_inspection_on'),
   nextInspectionDueOn: date('next_inspection_due_on'),
+  /** Étape 23 : propriétaire du véhicule (rôle « propriétaire de véhicule »), s'il n'est ni le chauffeur ni l'organisation. */
+  ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [

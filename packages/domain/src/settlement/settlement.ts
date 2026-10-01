@@ -11,7 +11,9 @@ export type CreditKind =
   | 'bonus' | 'referral_credit' | 'cancellation_fee_platform' | 'toll_reimbursement' | 'adjustment_positive';
 export type DebitKind =
   | 'pack_billed' | 'pack_taxes' | 'service_fee_direct' | 'regulatory_fee_direct' | 'fee_taxes_direct'
-  | 'cancellation_fee_due' | 'adjustment_negative';
+  | 'cancellation_fee_due' | 'adjustment_negative'
+  /** Étape 23 : part de l'organisation du chauffeur (loyer ou pourcentage du tarif), selon ses règles de partage. */
+  | 'fleet_share';
 export type StatementLineKind = CreditKind | DebitKind;
 
 const CREDIT_KINDS: ReadonlySet<string> = new Set<CreditKind>([

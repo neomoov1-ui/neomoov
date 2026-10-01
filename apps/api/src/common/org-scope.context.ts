@@ -22,8 +22,9 @@ export interface OrgScopeContext {
   /** Contexte englobant de la même organisation (point de sauvegarde), ou `null` pour une transaction de premier niveau. */
   parent: OrgScopeContext | null;
   /**
-   * Étape 21 : traitements à lancer après la validation de la transaction restreinte la plus externe (avis, événements),
-   * partagés par les transactions imbriquées. Absent d'un contexte posé à la main (tests).
+   * Étapes 21 et 23 : suites à lancer après la validation de la transaction (avis, événements de domaine, envois),
+   * abandonnées sur annulation. Un point de sauvegarde a sa propre liste, reprise par la transaction englobante s'il
+   * réussit. Créée au premier ajout dans un contexte posé à la main (tests).
    */
   afterCommit?: Array<() => unknown>;
 }
@@ -40,6 +41,22 @@ export function activeOrgScope(): OrgScopeContext | null {
   let scope = orgScopeStorage.getStore() ?? null;
   while (scope?.ended) scope = scope.parent;
   return scope;
+}
+
+/**
+ * Étape 23 : remet `fn` après la validation de la transaction restreinte en cours (événements de domaine, envois de
+ * textos) ; abandonnée si la transaction (ou son point de sauvegarde) est annulée. Hors contexte, ou contexte terminé,
+ * `fn` s'exécute tout de suite. Les suites s'exécutent dans le contexte terminé : pool de la plateforme pour les requêtes,
+ * organisation gardée pour l'étiquetage. Renvoie vrai si `fn` est différée.
+ */
+export function afterOrgScopeCommit(fn: () => void): boolean {
+  const scope = activeOrgScope();
+  if (!scope) {
+    fn();
+    return false;
+  }
+  (scope.afterCommit ??= []).push(fn);
+  return true;
 }
 
 /**
@@ -73,8 +90,8 @@ export function storageKeyPrefix(organizationId?: string | null): string {
  */
 export async function afterScopeCommit(fn: () => unknown): Promise<void> {
   const scope = activeOrgScope();
-  if (scope?.afterCommit) {
-    scope.afterCommit.push(fn);
+  if (scope) {
+    (scope.afterCommit ??= []).push(fn);
     return;
   }
   await fn();

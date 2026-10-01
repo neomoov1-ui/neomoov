@@ -8,7 +8,7 @@
 import { schema } from '@neomoov/db';
 import {
   buildStatement, classifyRideForStatement, isCredit, localDate, packBillingLines, periodForGeneration, splitTaxes,
-  type AdminStatementDetail, type SettlementRide, type Statement, type StatementComputed, type StatementGeneration, type StatementLine, type StatementLineKind,
+  type AdminStatementDetail, type SettlementRide, type ShareRide, type Statement, type StatementComputed, type StatementGeneration, type StatementLine, type StatementLineKind,
   type StatementLineView, type StatementPeriod, type TaxRates,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -20,6 +20,7 @@ import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
+import { FleetShareService } from './fleet-share.service.js';
 
 type Executor = Pick<Database['db'], 'insert' | 'update' | 'select' | 'execute' | 'delete'>;
 type StatementRow = typeof schema.weeklyStatements.$inferSelect;
@@ -91,6 +92,7 @@ export class StatementsService {
     private readonly events: DomainEventsService,
     private readonly outbox: NotificationsOutbox,
     private readonly audit: AuditService,
+    private readonly fleetShare: FleetShareService,
   ) {}
 
   private get db() {
@@ -220,6 +222,8 @@ export class StatementsService {
       for (const row of rows) recorded.set(`${row.ride_id}:${row.kind}`, Number(row.total));
     }
     const lines: StatementLine[] = [];
+    // Étape 23 : courses terminées de ce relevé dont le tarif revient au chauffeur (base du partage des revenus).
+    const shareRides: ShareRide[] = [];
     for (const r of rides) {
       const ride = this.settlementRide(r);
       const rideLines: StatementLine[] = classifyRideForStatement(ride, rates).map((line) => ({ ...line, label: `${line.label ?? line.kind} · ${r.public_number}` }));
@@ -230,6 +234,9 @@ export class StatementsService {
       }
       if (!r.on_issued) {
         lines.push(...rideLines);
+        if (ride.status === 'completed' && !(r.guarantee_outcome === 'validated' && !r.driver_fare_protected)) {
+          shareRides.push({ rideId: r.id, date: localDate(ride.completedAt, period.timeZone).date, fareCents: ride.fareCents });
+        }
         continue;
       }
       for (const kind of LATE_KINDS) {
@@ -237,6 +244,9 @@ export class StatementsService {
         if (due > 0) lines.push({ kind, amountCents: due, rideId: r.id, occurredAt: ride.completedAt, label: `${LATE_LABELS[kind]} · ${r.public_number}` });
       }
     }
+
+    // Étape 23 : part de l'organisation du chauffeur (loyer ou pourcentage), selon ses règles de partage.
+    lines.push(...(await this.fleetShare.lines(tx, driver, period, shareRides)));
 
     const packs = await tx.execute<{ id: string; price_paid_cents: number; activated_at: string; name: string | null }>(sql`
       SELECT p.id, p.price_paid_cents, p.activated_at, k.name FROM pack_purchases p LEFT JOIN packs k ON k.code = p.pack_code

@@ -29,6 +29,7 @@ Migrations : `0021_organization-isolation` (socle : rôle, fonction, politiques)
 - Autre organisation : transaction à part (une seconde connexion du pool), jamais un point de sauvegarde : son `SET LOCAL` survivrait à la libération du point de sauvegarde et changerait la portée de la transaction englobante.
 - Le travail asynchrone lancé pendant un contexte et qui lui survit (abonnés aux événements de domaine, file en mémoire, écriture différée du journal d'audit) ne réutilise jamais une transaction terminée : il retombe sur le contexte englobant encore ouvert, sinon sur le pool de la plateforme, en gardant l'organisation pour étiqueter ce qu'il écrit (`currentOrgScope()`).
 - `withoutOrgScope(fn)` sort du contexte (pool de la plateforme) : réservé aux cas rares, car chaque appel sous contexte prend une seconde connexion.
+- Étape 23 : un événement de domaine émis sous une transaction restreinte encore ouverte part après sa validation (`afterOrgScopeCommit`, suites gardées sur le contexte, remontées au parent à la libération d'un point de sauvegarde, abandonnées sur annulation) ; ses abonnés travaillent par le pool, l'organisation gardée. Le même mécanisme sert à un envoi (texto) qui ne doit partir que si la transaction est validée.
 
 ## Familles de politiques
 
@@ -44,6 +45,7 @@ Migrations : `0021_organization-isolation` (socle : rôle, fonction, politiques)
 | Organisations | `organizations` | Lecture et modification dans le sous-arbre ; création d'une sous-organisation sous le sous-arbre seulement, jamais d'une racine (0022) |
 | Rôles et réglages | `roles`, `role_permissions`, `settings` | Rôles système et réglages de la plateforme en lecture ; rôles et réglages de l'organisation en écriture |
 | Catalogue partagé (lecture seule) | `cities`, `zones`, `vehicle_categories`, `pricing_rules`, `surcharges`, `flat_rates`, `packs`, `promotions`, `permissions`, `plans`, `feature_flags` | Lisible par toute organisation, jamais modifiable sous contexte |
+| Module Flotte (0024, étape 23) | `revenue_share_rules`, `organization_statements` (colonne directe) ; `vehicle_maintenance` (par véhicule, organisation dérivée du véhicule hors contexte) | Mêmes règles que les familles ci-dessus ; voir `docs/fleet.md` |
 
 ## Tables réservées à la plateforme
 

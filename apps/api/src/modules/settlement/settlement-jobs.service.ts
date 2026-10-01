@@ -24,6 +24,7 @@ import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { QueueService } from '../../infra/queue.module.js';
 import { OrgScopeService } from '../organizations/org-scope.service.js';
+import { OrganizationStatementsService } from './organization-statements.service.js';
 import { SettlementPayoutsService } from './settlement-payouts.service.js';
 import { renderStatementPdf } from './statement-pdf.js';
 import { StatementsService } from './statements.service.js';
@@ -53,6 +54,7 @@ export class SettlementJobsService implements OnModuleInit {
     private readonly queues: QueueService,
     private readonly events: DomainEventsService,
     private readonly scope: OrgScopeService,
+    private readonly organizationStatements: OrganizationStatementsService,
   ) {}
 
   onModuleInit() {
@@ -87,10 +89,17 @@ export class SettlementJobsService implements OnModuleInit {
     // Chauffeurs dont le relevé couvre des courses qu'un contexte d'organisation ne voit pas : réglés par la plateforme seulement.
     const platformOnly = timing.generation ? await this.statements.driversWithForeignRides(timing.period) : new Set<string>();
     const reports = await this.scope.runGrouped(await this.scope.clientOrganizationsOfDrivers(), () => this.pass(now, timing, platformOnly), 'règlement hebdomadaire');
+    // Étape 23 : relevés des organisations (somme des parts `fleet_share` des relevés émis), versés par Stripe Connect.
+    if (timing.generation) this.logOrganizations(await this.organizationStatements.issueAndPay(timing.period, now));
+    if (timing.retry) this.logOrganizations(await this.organizationStatements.retryFailed(now));
     return reports.reduce<SettlementTickReport>(
       (sum, r) => ({ generated: sum.generated + r.generated, issued: sum.issued + r.issued, settled: sum.settled + r.settled, retried: sum.retried + r.retried, reviewed: sum.reviewed + r.reviewed }),
       { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 },
     );
+  }
+
+  private logOrganizations(report: { issued: number; paid: number; failed: number; offline: number }): void {
+    if (report.issued || report.paid || report.failed) this.logger.info(report, 'règlement hebdomadaire des organisations');
   }
 
   /** Moments de la passe (réglages) : génération du vendredi, reprise du lundi, période de la semaine écoulée. */

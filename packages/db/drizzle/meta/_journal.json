@@ -211,6 +211,13 @@
       "when": 1790852809213,
       "tag": "0029_payment-provider",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790853142614,
+      "tag": "0030_fleet",
+      "breakpoints": true
     }
   ]
 }

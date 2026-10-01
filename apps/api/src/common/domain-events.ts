@@ -13,6 +13,7 @@ import type { Logger } from 'pino';
 import { REDIS } from '../infra/redis.module.js';
 import { reportError } from './error-reporting.js';
 import { APP_LOGGER, currentCorrelationId, runWithCorrelation } from './logger.js';
+import { afterOrgScopeCommit } from './org-scope.context.js';
 
 export interface RideEventPayload {
   rideId: string;
@@ -141,8 +142,16 @@ export class DomainEventsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  /** Publie aux abonnés locaux sans les attendre, et aux autres processus par Redis quand il existe. */
+  /**
+   * Publie aux abonnés locaux sans les attendre, et aux autres processus par Redis quand il existe. Étape 23 : émis pendant
+   * une transaction restreinte (route ou tâche d'une organisation), l'événement ne part qu'après sa validation (jamais sur
+   * annulation) ; ses abonnés travaillent alors par le pool de la plateforme, l'organisation gardée pour l'étiquetage.
+   */
   emit<K extends keyof DomainEvents>(name: K, payload: DomainEvents[K]): void {
+    afterOrgScopeCommit(() => this.emitNow(name, payload));
+  }
+
+  private emitNow<K extends keyof DomainEvents>(name: K, payload: DomainEvents[K]): void {
     this.stats.emitted += 1;
     this.dispatch(name, payload);
     if (this.redis && this.subscriber) {
