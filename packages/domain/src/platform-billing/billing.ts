@@ -215,7 +215,8 @@ const unpaid = (status: PlatformInvoiceStatus) => status === 'open' || status ==
 export function dunningStep(invoice: DunningInvoice, now: Date, settings: DunningSettings = DEFAULT_DUNNING_SETTINGS): DunningStep {
   if (!unpaid(invoice.status)) return { action: 'none', daysOverdue: 0, pastDue: false, reminder: null };
   const daysOverdue = Math.floor((now.getTime() - invoice.dueAt.getTime()) / DAY_MS);
-  const pastDue = now.getTime() > invoice.dueAt.getTime();
+  // Un prélèvement refusé met la facture en retard tout de suite (statut `past_due`), même avant son échéance.
+  const pastDue = invoice.status === 'past_due' || now.getTime() > invoice.dueAt.getTime();
   if (daysOverdue >= settings.suspendedDays) return { action: 'suspend', daysOverdue, pastDue, reminder: null };
   if (daysOverdue >= settings.readOnlyDays) return { action: 'read_only', daysOverdue, pastDue, reminder: null };
   const next = settings.reminderDays[invoice.remindersSent];

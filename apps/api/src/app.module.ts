@@ -37,6 +37,7 @@ import { VoiceModule } from './modules/voice/voice.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { SettlementModule } from './modules/settlement/settlement.module.js';
 import { CrmModule } from './modules/crm/crm.module.js';
+import { PlatformBillingModule } from './modules/platform-billing/platform-billing.module.js';
 
 /** Module racine de l'API. Les modules métier s'ajoutent ici étape par étape (section 11.1). */
 @Module({})
@@ -44,7 +45,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, ComplianceModule, RetentionModule, FairnessModule, OrganizationsModule, AgentsModule, CrmModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, ComplianceModule, RetentionModule, FairnessModule, OrganizationsModule, AgentsModule, CrmModule, PlatformBillingModule],
     };
   }
 }

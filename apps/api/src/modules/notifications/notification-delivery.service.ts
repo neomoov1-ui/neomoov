@@ -189,6 +189,12 @@ export class NotificationDeliveryService {
       if (!statement) return null;
       key = statement.pdfKey;
       filename = `releve-${statement.start}.pdf`;
+    } else if (template === 'billing.invoice_issued' && typeof data['platformInvoiceId'] === 'string') {
+      // Facture de la plateforme (étape 25), produite à son émission.
+      const [invoice] = await this.db.select({ pdfKey: schema.platformInvoices.pdfKey, number: schema.platformInvoices.number }).from(schema.platformInvoices).where(eq(schema.platformInvoices.id, data['platformInvoiceId'])).limit(1);
+      if (!invoice) return null;
+      key = invoice.pdfKey;
+      filename = `facture-${invoice.number}.pdf`;
     } else return null;
     if (!key) return 'pending';
     const file = await this.storage.getObject(key);

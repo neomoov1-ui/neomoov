@@ -59,3 +59,9 @@ export { CrmSyncService, type CrmEntityType, type CrmSyncOutcome } from './modul
 export { CrmJobsService } from './modules/crm/crm-jobs.service.js';
 export { HubSpotCrmProvider, type HubSpotSetupReport } from './adapters/real/hubspot.real.js';
 export * from './adapters/real/hubspot-model.js';
+// Facturation de la plateforme (étape 25) : module, service (vue de l'organisation pour la route /v1/org à la fusion), tâche quotidienne, adaptateur.
+export { PlatformBillingModule } from './modules/platform-billing/platform-billing.module.js';
+export { PlatformBillingService } from './modules/platform-billing/platform-billing.service.js';
+export { BillingJobsService } from './modules/platform-billing/billing-jobs.service.js';
+export * from './adapters/billing.types.js';
+export { StripeBillingProvider } from './adapters/real/stripe-billing.real.js';

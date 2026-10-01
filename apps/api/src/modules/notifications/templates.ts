@@ -3,6 +3,8 @@
  * WhatsApp), objet et corps HTML (courriel). Fonctions pures, testées ; un gabarit inconnu donne un texte générique
  * plutôt qu'une erreur (une notification n'est jamais perdue pour un libellé manquant).
  */
+import { BILLING_TEMPLATES } from '../platform-billing/billing-templates.js';
+
 export type TemplateLanguage = 'fr' | 'en';
 type Data = Record<string, unknown>;
 
@@ -338,6 +340,8 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Agent IA en mode manuel', body: (d) => `Plafond quotidien de dépense atteint : l'agent ${str(d['agentCode'])} passe en mode manuel.` },
     en: { title: 'AI agent switched to manual', body: (d) => `Daily spending cap reached: agent ${str(d['agentCode'])} is now in manual mode.` },
   },
+  // Facturation de la plateforme (étape 25) : avis au propriétaire du compte de l'organisation.
+  ...BILLING_TEMPLATES,
 };
 
 const GENERIC: Template = {

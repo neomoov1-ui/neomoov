@@ -148,6 +148,9 @@ describe('statut de l\'abonnement', () => {
     expect(targetSubscriptionStatus('active', [], at(100))).toBe('active');
     expect(targetSubscriptionStatus('active', [invoice()], at(-2))).toBe('active');
     expect(targetSubscriptionStatus('active', [invoice()], at(1))).toBe('past_due');
+    // Prélèvement refusé avant l'échéance : en retard tout de suite, sans rappel avant l'échéance.
+    expect(targetSubscriptionStatus('active', [invoice('past_due')], at(-2))).toBe('past_due');
+    expect(dunningStep(invoice('past_due'), at(-2))).toEqual({ action: 'none', daysOverdue: -2, pastDue: true, reminder: null });
     expect(targetSubscriptionStatus('past_due', [invoice('past_due')], at(31))).toBe('read_only');
     expect(targetSubscriptionStatus('read_only', [invoice('paid'), invoice()], at(46))).toBe('suspended');
     expect(targetSubscriptionStatus('suspended', [invoice('paid')], at(46))).toBe('active');
