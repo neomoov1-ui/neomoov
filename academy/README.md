@@ -39,6 +39,8 @@ Aucun secret ici : les clés Square et Brevo sont dans les réglages privés de 
    `node outils/academy-deployer.cjs livraison/wordpress/neomoov-academy-ready.php <sauvegarde.php>` (contrôle des quatorze
    adresses ; restauration si une page n'est pas saine).
 5. Ne jamais garder deux extraits actifs du routeur.
+6. Le déploiement vide ensuite le cache du serveur LWS pour les pages publiques (route , administrateurs
+   seulement) ; en cas de modification hors de l’outil, l’appeler à la main.
 
 ## Exploitation
 

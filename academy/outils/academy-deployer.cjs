@@ -23,6 +23,22 @@ async function controler() {
 async function poser(code) {
   await wp.api('POST', '/code-snippets/v1/snippets/6', { code, active: true });
 }
+// Le cache du serveur LWS garde les pages publiques longtemps : on le vide (route réservée aux administrateurs),
+// puis on vérifie que chaque page publique, demandée sans paramètre, est bien recalculée.
+async function viderCache() {
+  const r = await wp.api('POST', '/neomoov-academy/v1/cache/purge', {});
+  const purge = r.json && r.json.purge;
+  if (!purge) { console.log('vidage du cache : route indisponible (ancienne version ?)'); return; }
+  const refus = Object.entries(purge).filter(([, code]) => code !== 200);
+  console.log(`vidage du cache : ${Object.keys(purge).length} pages${refus.length ? `, réponses inattendues : ${refus.map(([p, c]) => `${p} ${c}`).join(', ')}` : ', toutes acceptées'}`);
+  const fraiches = [];
+  for (const p of Object.keys(purge)) {
+    const res = await fetch(`https://neomoov.net${p}`);
+    await res.text();
+    fraiches.push(`${p} ${res.headers.get('x-cache-status') || '?'}`);
+  }
+  console.log(`après vidage : ${fraiches.join(' ; ')}`);
+}
 (async () => {
   const nouveau = sansOuverture(fs.readFileSync(fichier, 'utf8'));
   const ancien = sansOuverture(fs.readFileSync(sauvegarde, 'utf8'));
@@ -38,4 +54,5 @@ async function poser(code) {
     process.exit(1);
   }
   console.log('routes saines (HTTP 200, aucune erreur PHP, pages complètes)');
+  await viderCache();
 })().catch((e) => { console.log('erreur :', e.message.slice(0, 300)); process.exit(1); });
