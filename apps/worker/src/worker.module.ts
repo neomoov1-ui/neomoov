@@ -1,5 +1,5 @@
 import {
-  AdaptersModule, AgentJobsService, AgentsModule, APP_ENV, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, ComplianceJobsService, ComplianceModule, RetentionJobsService, RetentionModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
+  AdaptersModule, AgentJobsService, AgentsModule, APP_ENV, APP_LOGGER, AuditModule, AuthModule, CoreModule, DbModule, HttpMetricsModule, DispatchService, DomainEventsModule, LedgerJobsService, LedgersModule, PackLifecycleService, PaymentJobsService, PaymentsModule, SettlementJobsService, SettlementModule, NotificationJobsService, NotificationsModule, ComplianceJobsService, ComplianceModule, RetentionJobsService, RetentionModule, PricingModule, PrivacyJobsService, PrivacyModule, QueueModule,
   QueueService, RedisModule, RidesModule, ScheduledService, SettingsModule, StuckRidesService, UsersModule, type AppEnv,
 } from '@neomoov/api';
 import { InvoiceJobsService, InvoicingModule } from '@neomoov/api';
@@ -297,7 +297,7 @@ export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule, PilotModule, CrmModule, PlatformBillingModule, FleetModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule, PilotModule, CrmModule, PlatformBillingModule, FleetModule],
       providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker, NotificationsWorker, ComplianceWorker, RetentionWorker, AgentsWorker, CrmWorker, BillingWorker, FleetWorker],
     };
   }
