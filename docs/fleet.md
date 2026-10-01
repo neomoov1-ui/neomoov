@@ -70,3 +70,5 @@ Un événement émis pendant une transaction restreinte (route ou tâche d'une o
 ## Pages My Hub
 
 `/hub/flotte` (chauffeurs rattachés, invitation, documents), `/hub/flotte/vehicules` (ajout, affectation, entretien), `/hub/flotte/carte` (carte en direct), `/hub/flotte/repartition` (attribution, réattribution, mode réseau), `/hub/flotte/releves` (règles de partage, compte de versement, relevés de l'organisation, export), `/hub/flotte/rapports` (semaine, tableau du propriétaire). Sélecteur d'organisation (`GET /v1/me/organizations`, mémorisé dans le navigateur) ; les boutons suivent les permissions renvoyées par `GET /v1/org/:id`. **Intégration à faire** avec l'étape 21 (agent F) : la connexion des membres d'organisation à My Hub (téléphone et code) et l'espace `hub/(app)/org/...` ; en attendant, ces pages servent aux comptes du personnel qui ont une adhésion à une organisation cliente.
+
+Page publique `/chauffeurs/rejoindre?token=...` (lien du texto d'invitation) : connexion par code sur le même téléphone, puis acceptation (`POST /v1/driver-invitations/accept`). Un écran équivalent dans l'application chauffeur reste à faire.
