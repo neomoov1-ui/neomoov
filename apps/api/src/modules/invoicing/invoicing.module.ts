@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { OrganizationsModule } from '../organizations/organizations.module.js';
+import { OrgScopeModule } from '../organizations/org-scope.module.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { InvoiceJobsService } from './invoice-jobs.service.js';
 import { AdminSevController, PublicInvoicesController, RideInvoicesController } from './invoicing.controller.js';
@@ -11,7 +11,7 @@ import { SevService } from './sev.service.js';
  * leurs événements (`ride.completed`, `ride.cancelled_by_client`, `ride.no_show`, `payment.refunded`) par la file `invoicing`.
  */
 @Module({
-  imports: [OrganizationsModule],
+  imports: [OrgScopeModule],
   controllers: [RideInvoicesController, PublicInvoicesController, AdminSevController],
   providers: [InvoicingService, SevService, InvoiceJobsService, NotificationsOutbox],
   exports: [InvoicingService, SevService, InvoiceJobsService],

@@ -6,7 +6,7 @@ import { RidesModule } from '../rides/rides.module.js';
 import { MeOrganizationsController, OrgController } from './org.controller.js';
 import { OrgScopeInterceptor } from './org-scope.interceptor.js';
 import { AdminOrganizationsController, InvitationsController } from './organizations.controller.js';
-import { OrgScopeService } from './org-scope.service.js';
+import { OrgScopeModule } from './org-scope.module.js';
 import { OrganizationsService } from './organizations.service.js';
 
 /**
@@ -16,9 +16,9 @@ import { OrganizationsService } from './organizations.service.js';
  * gestionnaire dans une transaction restreinte au sous-arbre de l'organisation.
  */
 @Module({
-  imports: [AdminModule, RidesModule],
+  imports: [AdminModule, RidesModule, OrgScopeModule],
   controllers: [AdminOrganizationsController, InvitationsController, OrgController, MeOrganizationsController],
-  providers: [OrganizationsService, OrgScopeService, { provide: APP_GUARD, useClass: OrgScopeGuard }, { provide: APP_INTERCEPTOR, useClass: OrgScopeInterceptor }],
-  exports: [OrganizationsService, OrgScopeService],
+  providers: [OrganizationsService, { provide: APP_GUARD, useClass: OrgScopeGuard }, { provide: APP_INTERCEPTOR, useClass: OrgScopeInterceptor }],
+  exports: [OrganizationsService, OrgScopeModule],
 })
 export class OrganizationsModule {}
