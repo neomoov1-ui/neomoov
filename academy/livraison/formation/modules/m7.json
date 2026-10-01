@@ -1,0 +1,44 @@
+{
+  "id": "activite-durable-fidelisation",
+  "title": "7. Une activité durable et une clientèle fidèle",
+  "intro": "Dépendre d'une seule plateforme, c'est subir ses tarifs, ses règles et ses périodes creuses. Ce module vous aide à choisir les segments où votre service vaut le plus, à construire une clientèle directe dans les règles, à fidéliser par la fiabilité et à préparer la suite : un plan d'action sur 30 jours et, pour les meilleurs profils, le parcours pour rejoindre Neomoov.",
+  "sections": [
+    {
+      "title": "Choisir ses segments",
+      "text": "Le marché montréalais se divise en trois niveaux : le taxi au barème encadré par la Commission des transports du Québec, les plateformes au prix calculé ou dynamique, et le chauffeur privé premium au prix fixe, à l'heure ou sur devis. Une étude de marché réalisée pour Neomoov en septembre 2026 situait le trajet de l'aéroport Montréal-Trudeau au centre-ville entre environ 37 $ (UberX) et 127 $ (Uber Black SUV), et jusqu'à 175 $ chez un service de chauffeur privé. Ces prix varient : ce sont des repères, pas des tarifs garantis.\n\nCe qui fait passer d'un niveau à l'autre, ce n'est pas seulement le véhicule : c'est la ponctualité, la présentation, la discrétion, l'attente incluse, la réservation à l'avance et la facture irréprochable. Choisissez un ou deux segments compatibles avec vos autorisations (aéroport, clients d'affaires, rendez-vous médicaux, mise à disposition) et construisez votre standard pour eux."
+    },
+    {
+      "title": "Une clientèle directe, dans les règles",
+      "text": "Avant de prendre des réservations en direct, vérifiez quatre points : vos autorisations de transport pour ce type de service, votre assurance pour cet usage, votre facturation et vos taxes, et les règles de vos plateformes, qui interdisent souvent de détourner leurs clients.\n\nLes coordonnées d'un client sont des renseignements personnels : demandez son accord pour les conserver et pour lui envoyer des offres, gardez-les en sécurité et supprimez-les à sa demande, comme l'exige la Loi 25. Une carte professionnelle avec votre numéro dédié, remise à un client qui vous la demande, vaut mieux qu'une sollicitation insistante."
+    },
+    {
+      "title": "Fidéliser par la fiabilité",
+      "text": "Le client revient vers le chauffeur sur lequel il peut compter. Confirmez chaque réservation la veille, arrivez avant l'heure, prévenez au moindre imprévu et remettez une facture correcte sans qu'on la demande. Le kit du bon chauffeur (module 4) fait ensuite la différence : c'est lui qui fait dire au client « je veux ce chauffeur ».\n\nTenez un registre simple de vos clients réguliers, avec leur consentement : préférences (température, musique, siège), adresses fréquentes, horaires. Un client d'affaires satisfait peut devenir un compte entreprise avec des déplacements chaque semaine."
+    },
+    {
+      "title": "Durer dans le métier",
+      "text": "Une activité durable préserve aussi le chauffeur. Fixez-vous des plages de travail réalistes plutôt que des journées sans fin, protégez votre sommeil, bougez pendant les pauses et surveillez votre dos. Diversifiez vos sources de courses, gardez une réserve financière pour les périodes creuses et les réparations, et révisez vos chiffres chaque mois (module 3). Un chauffeur épuisé conduit moins bien et perd ses meilleurs clients."
+    },
+    {
+      "title": "Rejoindre Neomoov",
+      "text": "Neomoov est une plateforme de transport premium 100 % électrique à Montréal, conçue autour de ce que les clients et les chauffeurs reprochent au marché : prix confirmé avant la réservation, réservations à l'avance, chauffeurs et véhicules vérifiés.\n\nNeomoov sélectionne ses chauffeurs. Les profils recherchés : un dossier en règle (chauffeur qualifié, assurance, inscriptions fiscales), un véhicule 100 % électrique admissible et un niveau de service à la hauteur de ce module. L'attestation de suivi CAP CHAUFFEUR est un atout dans votre candidature : elle montre que vous connaissez les standards attendus. La préinscription se fait sur reserver.neomoov.net/chauffeurs."
+    },
+    {
+      "title": "Votre plan d'action sur 30 jours",
+      "text": "Terminez la formation par un projet concret :\n\n- semaine 1 : mesurez votre point de départ (heures, kilomètres, recettes, coûts, retards, incidents) sans rien changer ;\n- fin de semaine 1 : choisissez deux irritants prioritaires, par exemple les rencontres ratées et les kilomètres à vide ;\n- semaines 2 et 3 : testez une seule amélioration à la fois (message de repère, organisateurs de siège, plage horaire) et notez son effet ;\n- semaine 4 : comparez avec la semaine 1, gardez ce qui marche et écrivez votre standard en trois phrases ;\n- en parallèle : mettez en place votre routine de vérification du véhicule et une procédure de sécurité pour la nuit.\n\nUne coïncidence n'est pas une preuve : comparez des journées semblables avant de conclure."
+    }
+  ],
+  "exercise": "Construisez votre test de 30 jours pour réduire les rencontres ratées : indiquez l'indicateur, la modification testée, une différence de contexte à surveiller et votre critère de décision.",
+  "answer": "Indicateur : nombre de prises en charge qui demandent plusieurs échanges ou un changement de lieu, rapporté au nombre total de courses. Semaine 1 : observation sans changement. Semaines 2 à 4 : message de repère envoyé à l'arrêt (« je suis devant l'entrée X, véhicule gris, plaque 123 »). Contexte à noter : travaux, météo, changement de zone à l'aéroport. Décision : garder la procédure si les rencontres ratées baissent sur des journées comparables, sans nouvelle difficulté ; l'adapter sinon.",
+  "quiz": [
+    {"q":"Qu'est-ce qui fait surtout passer d'un service standard à un service premium ?","choices":["Uniquement la marque du véhicule","Un prix plus bas","La ponctualité, la présentation, la discrétion et une facture irréprochable"],"answer":2,"explain":"Le véhicule compte, mais le niveau de service fait la différence et la fidélité."},
+    {"q":"Avant de prendre des réservations en direct, que devez-vous vérifier ?","choices":["Rien, c'est ma clientèle","Autorisations, assurance, facturation et taxes, règles des plateformes","Seulement le prix demandé"],"answer":1,"explain":"La clientèle directe est une activité de transport à part entière, avec ses obligations."},
+    {"q":"Peut-on conserver les coordonnées d'un client pour lui envoyer des offres ?","choices":["Oui, sans condition","Oui, avec son accord, en sécurité, et en les supprimant à sa demande","Jamais"],"answer":1,"explain":"Les coordonnées sont des renseignements personnels protégés par la Loi 25."},
+    {"q":"Après un seul samedi excellent avec un nouveau chargeur, que conclure ?","choices":["Le chargeur a fait monter les revenus","Rien de définitif : il faut comparer des journées semblables","Il faut acheter un second chargeur"],"answer":1,"explain":"Une coïncidence n'est pas une preuve ; comparez plusieurs journées comparables."},
+    {"q":"Quel élément est un atout pour une candidature chez Neomoov ?","choices":["Un véhicule à essence récent","L'attestation de suivi CAP CHAUFFEUR","Un grand nombre de plateformes"],"answer":1,"explain":"Neomoov recherche des chauffeurs en règle, en véhicule 100 % électrique admissible, qui connaissent ses standards de service."}
+  ],
+  "sources": [
+    {"label": "Commission des transports du Québec — Transport rémunéré de personnes par automobile", "url": "https://www.ctq.gouv.qc.ca/"},
+    {"label": "Commission d'accès à l'information — Loi sur la protection des renseignements personnels dans le secteur privé", "url": "https://www.cai.gouv.qc.ca/"}
+  ]
+}

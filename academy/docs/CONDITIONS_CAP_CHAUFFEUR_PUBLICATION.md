@@ -1,6 +1,6 @@
 # Conditions de vente — CAP CHAUFFEUR
 
-Version du 29 septembre 2026 · Édition écrite · Paiement unique
+Version du 1er octobre 2026 · Édition écrite · Paiement unique
 
 ## 1. Vendeur et contact
 
@@ -16,17 +16,21 @@ Adresse : **204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8,
 
 ## 2. Contenu de l’achat
 
-CAP CHAUFFEUR est une formation pratique complémentaire en français. L’achat porte sur sa **première édition écrite**, comprenant sept microleçons et huit fiches pratiques, avec exercices, exemples et corrections.
+CAP CHAUFFEUR est une formation pratique complémentaire en français. L’achat porte sur sa **première édition écrite**, comprenant sept modules et huit fiches pratiques, avec exercices, exemples et corrections, un quiz par module, une attestation de suivi vérifiable et l’application Neomoov Chauffeur Pro en version web.
 
-### Les sept microleçons
+### Les sept modules
 
-- Traiter son activité comme une entreprise organisée.
-- Organiser la journée sans courir après chaque course.
-- Lire ses chiffres sans confondre recettes et résultat.
-- Un véhicule agréable, organisé et préparé.
-- Satisfaire le client avec un service simple et constant.
-- Gérer une tension et préparer une réclamation utile.
-- Progresser en 30 jours et tester un projet de transport.
+- Votre entreprise de chauffeur : cadre, conformité et vérification du véhicule.
+- Votre journée et chaque prise en charge.
+- Votre rentabilité réelle et le choix du véhicule.
+- L’expérience client et le kit du bon chauffeur.
+- Prévenir les risques et gérer les incidents.
+- Outils numériques, paiements et litiges.
+- Une activité durable et une clientèle fidèle.
+
+### Quiz et attestation de suivi
+
+Chaque module se termine par un quiz de cinq questions, corrigé en ligne, qui peut être repris autant de fois que nécessaire pendant la période d’accès. Lorsque les sept quiz sont réussis, avec au moins quatre bonnes réponses sur cinq par module, le client peut obtenir une attestation de suivi portant le nom qu’il indique et un code de vérification. Toute personne disposant de ce code peut en vérifier la validité sur le site ; seuls le prénom, l’initiale du nom et la date de réussite y sont affichés. L’attestation confirme le suivi d’une formation complémentaire : elle ne constitue ni un permis, ni une certification, ni une équivalence de la formation obligatoire. Elle cesse d’être valide en cas de remboursement de l’achat.
 
 ### Les huit fiches pratiques
 
@@ -41,7 +45,7 @@ CAP CHAUFFEUR est une formation pratique complémentaire en français. L’achat
 
 La consultation s’effectue dans l’espace membre. Les ressources proposées à l’impression ou au téléchargement peuvent être conservées pour l’usage personnel prévu ci-dessous. Certaines fiches peuvent aussi être proposées gratuitement : elles ne sont pas toutes présentées comme exclusives aux membres payants.
 
-**La série vidéo n’est pas comprise dans cet achat.** Des scripts ont été préparés, mais ils ne constituent pas des vidéos disponibles. Les applications Play Store et App Store, une licence d’équipe et un accompagnement individuel continu ne font pas partie de cette offre. Cette première édition écrite n’est pas annoncée comme un programme de 21 heures.
+**La série vidéo n’est pas comprise dans cet achat.** Des scripts ont été préparés, mais ils ne constituent pas des vidéos disponibles. L’application Neomoov Chauffeur Pro est fournie en version web ; ses versions Play Store et App Store, une licence d’équipe et un accompagnement individuel continu ne font pas partie de cette offre. Cette première édition écrite n’est pas annoncée comme un programme de 21 heures.
 
 ## 3. Prix et taxes
 
@@ -90,7 +94,7 @@ Le client doit disposer d’un appareil connecté, d’un navigateur permettant 
 
 Le client peut demander le **remboursement intégral dans les quatorze jours suivant l’activation de son accès**, sans avoir à justifier sa décision. La demande peut être adressée à contact@neomoov.net avec le nom du client, l’adresse email de la commande et sa référence. Il ne doit pas transmettre les numéros complets de sa carte bancaire.
 
-Le remboursement est effectué **sur le moyen de paiement d’origine, au plus tard quatorze jours après réception de la demande**, sans frais retenus par Neomoov. L’accès payant prend fin lors du remboursement. La consultation d’une leçon ne fait pas perdre le bénéfice de cette politique.
+Le remboursement est effectué **sur le moyen de paiement d’origine, au plus tard quatorze jours après réception de la demande**, sans frais retenus par Neomoov. L’accès payant prend fin lors du remboursement. La consultation d’un module ne fait pas perdre le bénéfice de cette politique.
 
 Cette garantie commerciale s’ajoute aux droits applicables. Elle ne restreint pas les demandes fondées sur un droit légal, notamment en cas de contrat incomplet, de non-livraison ou de prestation non conforme. Un droit reconnu par la loi peut donc rester applicable après l’expiration du délai commercial de quatorze jours.
 
@@ -107,6 +111,8 @@ En cas d’utilisation non autorisée identifiée, Neomoov explique le problème
 CAP CHAUFFEUR complète la préparation du chauffeur. Il ne remplace aucun permis, formation obligatoire, assurance, inspection ni vérification auprès d’un organisme ou d’un opérateur compétent. Aucun revenu, volume de courses, pourboire, note client ou rendement d’investissement n’est garanti.
 
 Les conseils portant sur la propreté, l’organisation et le confort ne constituent pas un diagnostic mécanique ou une certification de sécurité, y compris lorsqu’ils s’appuient sur des photos et un questionnaire.
+
+La fiche de vérification avant départ aide le chauffeur à consigner ses propres vérifications ; elle ne remplace ni une inspection mécanique ni les obligations du chauffeur et de l’exploitant du véhicule.
 
 Ces précisions décrivent l’objet acheté. Elles ne constituent pas une exclusion générale de responsabilité du vendeur ni une renonciation du client à une garantie ou à un recours applicable.
 

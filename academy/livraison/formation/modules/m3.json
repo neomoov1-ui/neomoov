@@ -1,0 +1,39 @@
+{
+  "id": "rentabilite-vehicule",
+  "title": "3. Votre rentabilité réelle et le choix du véhicule",
+  "intro": "Le grief le plus fréquent des chauffeurs est l'écart difficile à expliquer entre ce que paie le client et ce qui leur reste. Ce module vous apprend à lire vos montants sans erreur, à compter tous vos coûts et à calculer vos vrais indicateurs : revenu par heure travaillée, coût au kilomètre, course minimale rentable. Il se termine par la question qui pèse le plus sur votre résultat : le choix du véhicule.",
+  "sections": [
+    {
+      "title": "Prix client, recette, versement : trois montants différents",
+      "text": "Le prix payé par le client, le montant inscrit sur votre relevé et le versement reçu à la banque ne sont pas le même chiffre. Entre les deux se glissent la commission ou les frais de l'opérateur, les promotions, les pourboires, les taxes et parfois des ajustements après la course.\n\nAvant toute addition, identifiez ce que contient chaque montant : pourboires inclus ou non, frais déjà retenus ou non, taxes comprises ou non. L'erreur la plus courante consiste à retirer deux fois la commission : une fois dans le relevé de l'opérateur, une seconde fois dans votre tableau. Gardez chaque relevé hebdomadaire et rapprochez-le de vos versements."
+    },
+    {
+      "title": "Tous vos coûts, y compris ceux qu'on oublie",
+      "text": "Vos coûts se rangent en deux familles.\n\n- Coûts fixes, payés même sans rouler : assurance, location ou financement du véhicule, immatriculation, permis et attestations, téléphone et forfait de données, comptable.\n- Coûts variables, liés aux kilomètres : énergie (essence ou recharge), entretien, pneus, lavage, usure et perte de valeur du véhicule.\n\nLa perte de valeur est le coût le plus oublié : un véhicule qui roule 60 000 km par an se déprécie vite. Inscrivez une estimation mensuelle et faites-la valider par votre comptable, qui vous dira aussi ce qui est déductible."
+    },
+    {
+      "title": "Les indicateurs qui disent la vérité",
+      "text": "Calculez chaque semaine, sur vos propres chiffres :\n\n- la recette par heure de travail totale (approche, attente et pauses de service comprises), et non par heure de connexion ;\n- la recette par kilomètre total, kilomètres à vide compris ;\n- le coût au kilomètre : coûts de la semaine divisés par les kilomètres parcourus ;\n- le solde après coûts : recette moins tous les coûts, fixes et variables.\n\nVous en tirez votre course minimale rentable : si votre coût est de 0,45 $ par kilomètre et qu'une offre vous fait rouler 12 km au total pour 7 $ de recette, elle vous coûte presque autant qu'elle rapporte. Le chiffre n'est pas une promesse de revenu : c'est un outil de décision."
+    },
+    {
+      "title": "Électrique ou essence : la recommandation du fondateur",
+      "text": "Avec vingt ans de terrain comme chauffeur de taxi, chauffeur VTC puis propriétaire de sociétés de taxi et de VTC, le fondateur de Neomoov est catégorique : pour une activité intensive en 2026, la meilleure solution est un véhicule 100 % électrique, avec une autonomie adaptée à de longues journées.\n\nSon raisonnement repose sur l'énergie : une journée de 8 à 10 heures représente souvent 350 à 600 km. À l'essence, il l'estime autour de 110 à 140 $ par jour ; en recharge, surtout à domicile, jusqu'à environ 12 $ par jour. Refaites ce calcul avec vos chiffres : kilomètres par jour × consommation × prix de l'énergie du moment. La recharge rapide publique coûte plus cher que la recharge à domicile, et l'hiver réduit l'autonomie.\n\nComparez ensuite le coût total sur trois ans : prix ou location, assurance, entretien (souvent plus faible en électrique), énergie et valeur de revente. Neomoov est d'ailleurs une plateforme 100 % électrique."
+    },
+    {
+      "title": "Un tableau de bord pour toutes vos activités",
+      "text": "Si vous roulez pour plusieurs sources (taxi, plateformes, clientèle directe), tenez une ligne par source, puis consolidez la semaine : heures, kilomètres, recettes, coûts, solde. Vous verrez vite quelle source, quelle plage horaire et quel secteur vous rapportent vraiment.\n\nNeomoov Chauffeur Pro, l'application incluse avec la formation, calcule votre recette par heure et par kilomètre et conserve vos bilans ; elle réunira progressivement tous vos suivis. Un simple tableur fonctionne aussi, à condition de le remplir chaque jour à l'arrêt."
+    }
+  ],
+  "exercise": "Semaine type : recettes chauffeur 1 350 $ (frais d'opérateur déjà retenus, pourboires inclus), 45 h de travail total, 1 800 km. Coûts de la semaine : énergie 90 $, assurance 85 $, location 210 $, entretien et pneus 40 $, téléphone 15 $, perte de valeur estimée 0 $ (véhicule loué). Calculez la recette par heure, la recette par km, le coût au km et le solde après coûts.",
+  "answer": "Recette par heure : 1 350 ÷ 45 = 30 $. Recette par km : 1 350 ÷ 1 800 = 0,75 $. Coûts : 90 + 85 + 210 + 40 + 15 = 440 $, soit 440 ÷ 1 800 ≈ 0,24 $ par km. Solde après coûts : 1 350 − 440 = 910 $, avant impôts, taxes à remettre selon votre situation et cotisations. Ne retirez pas une seconde fois les frais déjà retenus par l'opérateur.",
+  "quiz": [
+    {"q":"Le relevé indique 270 $, frais d'opérateur déjà retenus. Que faites-vous des frais dans votre tableau ?","choices":["Je les retire encore une fois","Je ne les retire pas une seconde fois","Je les ajoute aux recettes"],"answer":1,"explain":"Retirer deux fois la commission est l'erreur la plus courante ; le relevé l'a déjà déduite."},
+    {"q":"Quel indicateur décrit le mieux votre rendement réel ?","choices":["La recette par heure de connexion","La recette par course","La recette par heure de travail totale"],"answer":2,"explain":"Le travail total comprend approche, attente et repositionnement : c'est votre vrai temps."},
+    {"q":"Quel coût est le plus souvent oublié ?","choices":["L'énergie","Le lavage","La perte de valeur du véhicule"],"answer":2,"explain":"La perte de valeur est invisible au quotidien mais pèse lourd avec 50 000 à 60 000 km par an."},
+    {"q":"Votre coût est de 0,45 $ par km. Une offre vous fait rouler 12 km au total pour 7 $. Que conclure ?","choices":["Elle couvre à peine ses coûts","Elle est très rentable","Les kilomètres d'approche ne comptent pas"],"answer":0,"explain":"12 km × 0,45 $ = 5,40 $ de coûts pour 7 $ de recette : la marge est très faible."},
+    {"q":"Selon le fondateur, quel véhicule convient le mieux à une activité intensive en 2026 ?","choices":["Un véhicule 100 % électrique avec une bonne autonomie","Un véhicule à essence","Un véhicule hybride, toujours"],"answer":0,"explain":"Sa recommandation repose surtout sur le coût de l'énergie ; vérifiez-la avec vos propres chiffres et vos possibilités de recharge."}
+  ],
+  "sources": [
+    {"label": "Revenu Québec — Exploitant d'une entreprise de taxi (dépenses, taxes)", "url": "https://www.revenuquebec.ca/fr/entreprises/mesures-particulieres/exploitant-dune-entreprise-de-taxi/"}
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "id": "outils-paiements-litiges",
+  "title": "6. Outils numériques, paiements et litiges",
+  "intro": "Ajustements après la course, support lent, reçus imprécis, double débit, désactivations peu expliquées : une bonne partie des conflits du métier se joue dans le téléphone. Ce module vous apprend à utiliser vos outils sans risquer une amende, à protéger vos coordonnées, à suivre chaque dollar entre la course et votre compte bancaire, et à contester efficacement quand une décision vous paraît injuste.",
+  "sections": [
+    {
+      "title": "Naviguer sans perdre son permis",
+      "text": "Au Québec, il est interdit d'utiliser un téléphone tenu en main en conduisant. Pour une première infraction, l'amende va de 300 $ à 600 $, avec 5 points d'inaptitude ; en récidive, l'amende minimale double et le permis est suspendu immédiatement, de 3 à 30 jours selon le nombre de récidives. Pour un chauffeur, c'est une semaine de revenus perdue, voire son permis de chauffeur.\n\nLe téléphone ou la tablette doivent être fixés sur un support prévu à cet effet ; vous pouvez y lire la navigation et toucher l'écran pour une action simple, de préférence par commande vocale. Préparez l'itinéraire, les messages et l'acceptation des courses quand vous êtes arrêté. Waze et Google Maps sont tous deux utiles : suivez l'itinéraire de l'application quand le prix en dépend, et expliquez au client tout détour demandé."
+    },
+    {
+      "title": "Communiquer sans exposer ses coordonnées",
+      "text": "Utilisez la messagerie et les appels masqués de votre opérateur pour les courses qu'il vous confie : ils protègent votre numéro et celui du client, et laissent une trace en cas de litige. Ne demandez pas le numéro personnel d'un client et ne donnez pas le vôtre.\n\nVotre numéro professionnel, celui du module 1, sert à votre clientèle directe, dans le respect des règles de vos opérateurs : ne détournez jamais un client d'une plateforme pendant une course qu'elle vous a confiée. Des messages courts, polis et datés valent mieux que de longs appels : ils servent aussi de preuves."
+    },
+    {
+      "title": "Paiements, pourboires et reçus",
+      "text": "Si vous encaissez vous-même, avec un terminal de paiement ou un lien de paiement, connaissez vos frais par transaction, le délai de versement et la façon d'émettre un reçu conforme : dans le transport rémunéré de personnes, la facturation est obligatoire et suit les règles de Revenu Québec vues au module 1.\n\nProposez au client un reçu détaillé sans attendre qu'il le demande : c'est l'antidote aux plaintes pour « montant incompréhensible ». Si un client conteste un débit, ne promettez pas de remboursement que vous ne pouvez pas décider : orientez-le vers le reçu et l'assistance du service concerné."
+    },
+    {
+      "title": "Suivre chaque dollar",
+      "text": "Une fois par semaine, rapprochez quatre documents : l'offre acceptée, le reçu de la course, les ajustements éventuels et le versement reçu. Notez chaque écart avec la référence de la course. La plupart des erreurs se voient vite : course non payée, pourboire absent, frais appliqués deux fois, ajustement sans explication.\n\nConservez vos relevés et reçus au moins aussi longtemps que vos obligations fiscales l'exigent, dans un dossier sauvegardé. Ce sont vos preuves face à un opérateur comme face à Revenu Québec."
+    },
+    {
+      "title": "Contester efficacement",
+      "text": "Une contestation qui obtient une réponse contient cinq éléments : la référence de la course, la chronologie, le montant attendu et le montant constaté, une pièce justificative et une demande précise. « Merci d'expliquer et de corriger l'ajustement de 8 $ sur la course [référence] » sera traité ; « vous me volez encore » ne le sera pas.\n\nDemandez un numéro de dossier, notez la date de chaque réponse et relancez en rappelant la question restée sans réponse, plutôt que d'ouvrir plusieurs dossiers. En cas de désactivation, demandez par écrit le motif et la procédure de révision, répondez point par point avec votre dossier factuel (module 5) et respectez les délais indiqués. Si une procédure officielle existe, utilisez-la."
+    }
+  ],
+  "exercise": "Votre relevé de la semaine affiche pour la course [référence] 24 $ alors que l'offre acceptée indiquait 32 $, sans explication. Rédigez votre demande au support et indiquez ce que vous conservez dans votre dossier.",
+  "answer": "« Objet : écart de rémunération — course [référence] du [date]. L'offre acceptée indiquait 32 $ ; le relevé affiche 24 $, soit 8 $ d'écart, sans motif. Je joins la capture de l'offre et l'extrait du relevé. Merci de m'expliquer cet ajustement et de le corriger s'il n'est pas justifié, et de m'indiquer la référence du dossier. » À conserver : la capture de l'offre, l'extrait du relevé, la date d'envoi, le numéro de dossier et chaque réponse.",
+  "quiz": [
+    {"q":"Quelle est l'amende pour une première infraction de téléphone tenu en main au volant ?","choices":["De 300 $ à 600 $ et 5 points d'inaptitude","De 100 $ à 200 $","Un simple avertissement"],"answer":0,"explain":"En récidive, l'amende minimale double et le permis est suspendu immédiatement."},
+    {"q":"Comment contacter un client d'une plateforme avant la prise en charge ?","choices":["Par la messagerie ou l'appel masqué de l'application","Par mon numéro personnel","Je ne le contacte jamais"],"answer":0,"explain":"Les canaux de l'application protègent les deux numéros et gardent une trace."},
+    {"q":"Quels documents rapprocher chaque semaine ?","choices":["L'offre, le reçu, les ajustements et le versement","Seulement le versement bancaire","Les évaluations des clients"],"answer":0,"explain":"Ce rapprochement fait apparaître les courses non payées, les pourboires absents et les ajustements."},
+    {"q":"Quelle contestation a le plus de chances d'aboutir ?","choices":["Un long message général sur l'injustice des tarifs","Plusieurs dossiers ouverts pour la même course","Une demande avec référence, chronologie, montants, pièce et action demandée"],"answer":2,"explain":"Une demande précise et documentée peut être vérifiée et corrigée."},
+    {"q":"Un client vous demande pendant une course Uber de le prendre directement la prochaine fois. Que faites-vous ?","choices":["Je respecte les règles de la plateforme pendant cette course","Je lui donne mon numéro tout de suite","Je lui propose un prix plus bas en espèces"],"answer":0,"explain":"Détourner un client pendant une course confiée par une plateforme peut violer votre contrat ; la clientèle directe se construit dans les règles."}
+  ],
+  "sources": [
+    {"label": "CAA-Québec — Cellulaire au volant : comment respecter le Code de la sécurité routière", "url": "https://www.caaquebec.com/fr/conseils/se-deplacer-sur-les-routes/cellulaire-au-volant-comment-respecter-le-code-de-la-securite-routiere"},
+    {"label": "Revenu Québec — Facturation obligatoire dans le transport rémunéré de personnes", "url": "https://www.revenuquebec.ca/fr/entreprises/mesures-particulieres/facturation-obligatoire/transport-remunere-de-personnes-facturation-obligatoire/resume-des-obligations-facturation-obligatoire-taxi/"}
+  ]
+}

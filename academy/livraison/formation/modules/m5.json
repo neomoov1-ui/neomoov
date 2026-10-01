@@ -1,0 +1,39 @@
+{
+  "id": "risques-incidents",
+  "title": "5. Prévenir les risques et gérer les incidents",
+  "intro": "Les clients craignent les faux taxis et les véhicules non conformes ; les chauffeurs redoutent les clients agressifs, les trajets de nuit et les fausses plaintes qui coûtent un compte ou une réputation. Ce module vous donne une routine de prévention, une méthode de désescalade et la façon de constituer, après un incident, un dossier factuel qui vous protège.",
+  "sections": [
+    {
+      "title": "Se reconnaître mutuellement avant de partir",
+      "text": "La sécurité commence à la portière. Plutôt que d'annoncer le nom du client, demandez-lui : « Pour qui est la course ? » Le bon client connaît son nom et sa destination ; une personne qui tente de monter dans le mauvais véhicule hésite.\n\nAidez aussi le client à vous reconnaître : véhicule, couleur et plaque conformes à l'application, documents et accessoire gouvernemental en place, et le code de départ si votre service en utilise un. Un client rassuré est un client calme. Si les informations ne correspondent pas, ne partez pas : vérifiez dans l'application ou auprès du support."
+    },
+    {
+      "title": "La nuit et les lieux isolés",
+      "text": "La nuit, gardez les portières verrouillées jusqu'à la vérification, préférez des points de prise en charge éclairés et utilisez les fonctions de sécurité réellement disponibles : partage du trajet, bouton d'urgence, contact du support. Prévenez un proche de vos horaires quand vous travaillez tard.\n\nFaites confiance à votre jugement : un comportement menaçant, une demande de détour inhabituelle vers un lieu isolé ou un passager qui refuse de s'identifier justifient de ne pas commencer la course, en suivant la procédure de votre opérateur."
+    },
+    {
+      "title": "Désamorcer une tension",
+      "text": "Quand une discussion se tend, votre objectif n'est pas de gagner, c'est que tout le monde arrive en sécurité. Ton calme, phrases courtes, une limite claire : « Je veux régler ce point, mais je dois d'abord m'arrêter en sécurité. » Évitez les provocations, les menaces et les débats personnels.\n\nArrêtez-vous dans un lieu sûr et éclairé si la situation l'exige. En cas de danger immédiat, mettez-vous en sécurité et composez le 911. Ne poursuivez jamais une course ou une discussion pour préserver une note : aucune évaluation ne vaut votre sécurité ni celle du passager."
+    },
+    {
+      "title": "Après un incident : un dossier qui vous protège",
+      "text": "Dès que la situation est stable, notez pendant que c'est précis : date, heure, lieu, référence de la course, déroulement minute par minute, témoins. Écrivez des faits observables (« le client a frappé la vitre ») et non des intentions supposées (« il voulait m'intimider »). Séparez ce que vous avez vu de ce qu'on vous a rapporté.\n\nJoignez seulement les pièces utiles et obtenues légitimement : reçu, capture du relevé, messages de l'application. Signalez par le canal officiel de votre opérateur et, s'il y a lieu, à la police. Ne publiez jamais le nom, le trajet ou l'image d'un passager sur les réseaux sociaux. Ce dossier daté est votre meilleure défense face à une fausse plainte."
+    },
+    {
+      "title": "Caméra de bord : utile, mais encadrée",
+      "text": "Une caméra de bord peut documenter un incident, mais elle filme des personnes. Au Québec, une image où une personne est identifiable est un renseignement personnel, protégé par la loi sur le secteur privé. La Commission d'accès à l'information exige de limiter la collecte au nécessaire : elle a ordonné en 2025 à une entreprise de revoir la vidéosurveillance de ses véhicules de livraison.\n\nSi vous en installez une : informez clairement les passagers par un avis visible, limitez l'usage à la sécurité et aux incidents, conservez les images peu de temps et protégez-les, ne les diffusez jamais. Vérifiez aussi les règles de votre plateforme, qui peut encadrer ou interdire l'enregistrement de l'habitacle."
+    }
+  ],
+  "exercise": "Un passager vous accuse à tort, dans l'application, d'avoir allongé le trajet. Vous aviez suivi l'itinéraire proposé et le passager vous avait demandé un arrêt au dépanneur. Rédigez votre réponse au support en cinq lignes au plus.",
+  "answer": "« Objet : contestation — course [référence] du [date]. J'ai suivi l'itinéraire proposé par l'application. À [heure], le passager m'a demandé un arrêt au dépanneur de [adresse], d'environ [durée], ce qui explique l'écart de distance et de durée. Je vous demande de vérifier le tracé GPS et la chronologie de la course, et de maintenir le montant initial. Merci de m'indiquer la référence du dossier. » Faits datés, demande précise, aucune accusation.",
+  "quiz": [
+    {"q":"Comment vérifier que la bonne personne monte dans votre véhicule ?","choices":["Je lui demande pour qui est la course","J'annonce son nom à voix haute","Je ne vérifie pas, l'application s'en charge"],"answer":0,"explain":"Demander le nom au client évite qu'une autre personne ne s'approprie la course."},
+    {"q":"Un passager devient menaçant pendant le trajet. Votre priorité ?","choices":["Terminer la course pour garder ma note","Lui répondre fermement pour le calmer","M'arrêter en lieu sûr et appeler le 911 si le danger est immédiat"],"answer":2,"explain":"La sécurité passe avant la course et l'évaluation."},
+    {"q":"Quelle phrase a sa place dans un dossier d'incident ?","choices":["Le client voulait me faire perdre mon compte","À 22 h 14, le client a frappé la vitre arrière droite","Ce client est sûrement habitué à ce genre de plainte"],"answer":1,"explain":"On consigne des faits datés et observables, pas des intentions supposées."},
+    {"q":"Les images d'une caméra de bord où l'on reconnaît un passager sont…","choices":["Libres de toute règle","Des renseignements personnels protégés","Publiables si l'incident est grave"],"answer":1,"explain":"La loi sur le secteur privé s'applique : informer, limiter, protéger et ne jamais diffuser."},
+    {"q":"Où signaler un incident avec un passager ?","choices":["Sur les réseaux sociaux, pour avertir les collègues","Nulle part, pour éviter les ennuis","Par le canal officiel de l'opérateur et, s'il y a lieu, à la police"],"answer":2,"explain":"Le canal officiel crée une trace exploitable ; la publication sur les réseaux expose aux poursuites."}
+  ],
+  "sources": [
+    {"label": "Commission d'accès à l'information du Québec", "url": "https://www.cai.gouv.qc.ca/"}
+  ]
+}

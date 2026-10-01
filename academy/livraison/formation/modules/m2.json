@@ -1,0 +1,44 @@
+{
+  "id": "journee-prise-en-charge",
+  "title": "2. Votre journée et chaque prise en charge",
+  "intro": "Les clients se plaignent surtout de trois choses : un chauffeur « arrivé » mais introuvable, un temps d'attente annoncé qui ne se vérifie pas et une course acceptée puis annulée. Les chauffeurs, eux, perdent de l'argent dans les temps morts et les kilomètres d'approche. Ce module vous apprend à mesurer votre vraie journée, à choisir vos courses avant de les accepter et à réussir chaque rencontre, y compris à l'aéroport et en hiver.",
+  "sections": [
+    {
+      "title": "Mesurer la journée réelle, pas le temps de connexion",
+      "text": "Votre journée comprend la préparation, l'approche, l'attente, la course, le repositionnement, la recharge ou le plein et l'administration. Le temps affiché par une application n'en montre qu'une partie. Notez l'heure de début et de fin, retirez vos pauses personnelles, et ne comptez jamais deux fois la même heure si deux applications sont ouvertes en même temps.\n\nFaites de même pour les kilomètres : relevez le compteur au départ et au retour. Les kilomètres sans passager usent votre véhicule autant que les autres. Le bilan de journée de Neomoov Chauffeur Pro fait ce calcul pour vous."
+    },
+    {
+      "title": "Choisir une course avant de l'accepter",
+      "text": "Avant d'accepter, regardez ce que l'offre montre réellement : distance et durée d'approche, durée de la course, destination et possibilité de retour ou de course suivante. Une course courte après une longue approche peut vous coûter plus qu'elle ne rapporte.\n\nLa règle des professionnels : décidez avant d'accepter, pas après. Accepter puis annuler parce que la course est peu intéressante est l'une des plaintes les plus fréquentes des clients ; elle dégrade aussi votre fiabilité auprès des plateformes. Si une offre ne vous convient pas, refusez-la tout de suite et proprement."
+    },
+    {
+      "title": "Réussir la rencontre",
+      "text": "Une épingle GPS est un point sur une carte, pas toujours une entrée utilisable. Dès que vous êtes arrêté en sécurité, confirmez un repère précis : numéro, entrée, côté de rue, couleur de votre véhicule. N'indiquez jamais « arrivé » avant d'être réellement sur place.\n\nPour un retard, donnez une estimation réaliste et prévenez si elle change : un client informé reste patient, un client trompé se plaint. Si le point demandé est dangereux ou interdit, proposez un repère autorisé proche et vérifiez qu'il est accessible pour la personne. En cas d'absence du client, suivez la procédure et les délais de votre opérateur, en gardant la trace de vos messages et appels."
+    },
+    {
+      "title": "L'aéroport et les gares",
+      "text": "À l'aéroport Montréal-Trudeau, c'est Aéroports de Montréal qui fixe les zones de prise en charge et les conditions d'accès, et elles changent : la zone des plateformes a déjà été déplacée vers le débarcadère Leigh-Capréol, près de l'hôtel de l'aéroport. Vérifiez la consigne en vigueur dans votre application et sur le site d'Aéroports de Montréal avant chaque prise en charge. Un taxi doit détenir le permis d'Aéroports de Montréal pour prendre des clients sur place, et des contraventions sont émises aux véhicules qui n'y ont pas droit.\n\nPréparez chaque course aéroport : terminal, numéro de vol si vous l'avez, bagages, temps de marche du client jusqu'à la zone. Un client qui sort d'un vol est fatigué et chargé : un message clair (« je suis à la zone X, véhicule gris, plaque se terminant par 123 ») évite la moitié des appels."
+    },
+    {
+      "title": "L'hiver québécois",
+      "text": "Du 1er décembre au 15 mars, tous les véhicules de promenade et les taxis immatriculés au Québec doivent être équipés de pneus d'hiver ; l'amende prévue va de 200 $ à 300 $. Les pneus à crampons sont permis du 15 octobre au 1er mai.\n\nPrévoyez plus de temps : déneiger entièrement le véhicule (vitres, phares, toit) avant de partir, rouler plus lentement, attendre des clients moins rapides sur les trottoirs glacés. Un véhicule électrique perd de l'autonomie par grand froid : rechargez avec une marge plus large et préchauffez l'habitacle pendant que le véhicule est branché."
+    },
+    {
+      "title": "La fatigue n'est pas un détail",
+      "text": "Une longue journée n'est rentable que si vous restez lucide. Les signes à ne jamais ignorer : bâillements répétés, paupières lourdes, kilomètres dont vous ne vous souvenez pas, réactions plus lentes. Dans ce cas, arrêtez-vous en lieu sûr. Planifiez vos pauses comme des rendez-vous, buvez de l'eau et gardez une marge entre deux réservations programmées. En fin de journée, notez un seul irritant (attente, rencontre ratée, kilomètres à vide) et l'action que vous testerez demain."
+    }
+  ],
+  "exercise": "Vous avez travaillé de 8 h à 16 h avec 30 minutes de pause. Deux applications affichent chacune 5 h de connexion, en partie au même moment. L'épingle d'un client à l'aéroport tombe sur une voie réservée aux autobus. Quel temps de travail retenez-vous, et quel message envoyez-vous au client ?",
+  "answer": "Temps de travail : 7 h 30 (8 heures moins la pause), sans additionner les 10 heures des applications. Message, une fois arrêté en sécurité dans la zone autorisée : « Bonjour, je vous attends à la zone [nom de la zone], véhicule [couleur et modèle], plaque se terminant par [chiffres]. Je ne peux pas m'arrêter à votre épingle. Avez-vous besoin d'aide pour les bagages ? »",
+  "quiz": [
+    {"q":"Vous avez travaillé de 8 h à 16 h avec 30 minutes de pause, et deux applications affichent chacune 5 h. Quel temps de travail retenez-vous ?","choices":["10 h","5 h","7 h 30"],"answer":2,"explain":"On compte le temps réellement consacré à l'activité, sans additionner les applications ouvertes en même temps."},
+    {"q":"Quelle est la meilleure façon de traiter une offre peu intéressante ?","choices":["La refuser tout de suite","L'accepter puis annuler en route","L'accepter et rouler lentement"],"answer":0,"explain":"Accepter puis annuler est une des plaintes les plus fréquentes des clients et nuit à votre fiabilité."},
+    {"q":"Quand pouvez-vous indiquer « arrivé » ?","choices":["Quand vous êtes réellement sur place","Quand vous êtes à moins de deux minutes","Dès que le client a confirmé son repère"],"answer":0,"explain":"Annoncer une arrivée anticipée trompe le client et provoque des plaintes et des absences contestées."},
+    {"q":"Durant quelle période les pneus d'hiver sont-ils obligatoires au Québec ?","choices":["Du 15 novembre au 15 avril","Du 1er décembre au 15 mars","Du 1er janvier au 31 mars"],"answer":1,"explain":"La période réglementaire va du 1er décembre au 15 mars, taxis compris ; l'amende va de 200 $ à 300 $."},
+    {"q":"Qui fixe les zones de prise en charge à l'aéroport Montréal-Trudeau ?","choices":["Aéroports de Montréal","Chaque plateforme","Le chauffeur, selon la circulation"],"answer":0,"explain":"Aéroports de Montréal fixe les zones et les permis ; vérifiez la consigne à jour avant chaque course."}
+  ],
+  "sources": [
+    {"label": "Québec.ca — Obligations liées aux pneus d'hiver", "url": "https://www.quebec.ca/transports/circulation-securite-routiere/periode-hivernale/pneus-hiver"},
+    {"label": "Aéroports de Montréal — Transport terrestre et accès à l'aéroport", "url": "https://www.admtl.com/fr"}
+  ]
+}

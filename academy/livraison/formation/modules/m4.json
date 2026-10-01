@@ -1,0 +1,41 @@
+{
+  "id": "experience-client-kit",
+  "title": "4. L'expérience client et le kit du bon chauffeur",
+  "intro": "Propreté, odeurs, bagages, conduite brusque, attitude : ce sont les plaintes de clients qui reviennent le plus après les questions de prix. La bonne nouvelle, c'est qu'elles dépendent entièrement de vous. Ce module transforme l'expérience à bord en standard professionnel, avec le kit du bon chauffeur tel que le fondateur l'a construit en vingt ans de métier.",
+  "sections": [
+    {
+      "title": "Avant la session : l'habitacle que le client découvre",
+      "text": "Installez-vous à l'arrière, véhicule stationné, une fois par jour : c'est là que le client passe son trajet. Vérifiez les vitres, les sièges, les ceintures, l'espace pour les pieds, les tapis et le coffre. Le coffre doit rester libre pour les bagages : un client qui ne peut pas ranger sa valise commence mal son trajet.\n\nLes odeurs se traitent à la source : aérez, nettoyez, videz la poubelle. Ensuite seulement, une senteur légère et non agressive complète l'ambiance ; tenez compte des personnes sensibles ou allergiques. Le fondateur insiste : un bon chauffeur anticipe les odeurs, car il reçoit dans la journée des passagers très différents, vitres ouvertes ou fermées."
+    },
+    {
+      "title": "Le kit du bon chauffeur",
+      "text": "Voici le kit que le fondateur recommande, construit à partir de ce que les clients demandent le plus souvent :\n\n- des organisateurs de siège fixés aux appuie-têtes, pour présenter proprement les bouteilles d'eau, les mouchoirs et les accessoires à portée des passagers, plutôt que dans les portières ;\n- de l'eau en bouteilles fermées et des mouchoirs ;\n- de petites attentions, comme des bonbons ou de la gomme emballés individuellement, proposées sans insister ;\n- des chargeurs pour les trois formats de téléphone encore répandus : Lightning (iPhone), USB-C et micro-USB, avec des câbles en bon état ;\n- des lunettes de soleil sobres pour la conduite de jour ;\n- une senteur légère pour l'habitacle ;\n- un support de téléphone fixe, une tablette de travail et un numéro professionnel ;\n- selon votre activité, un terminal de paiement et une caméra de bord, dans le respect des règles décrites au module 5.\n\nL'expérience du fondateur est claire : ces attentions font que les clients n'oublient pas le chauffeur. Ils le notent mieux, le gardent en favori ou lui demandent ses coordonnées pour une prochaine course. Elles ne remplacent jamais la ponctualité, la propreté et une conduite sûre."
+    },
+    {
+      "title": "L'accueil et la conduite",
+      "text": "Un accueil professionnel tient en quelques gestes : saluer, confirmer le nom et la destination selon le service, proposer de l'aide pour les bagages, demander si la température convient. Laissez le client choisir la conversation : certains veulent parler, d'autres veulent le calme.\n\nLe regard compte aussi. Dans un habitacle fermé, un échange de regards insistant peut être mal interprété et mettre le client mal à l'aise. Gardez les yeux sur la route ; de jour, des lunettes de soleil sobres protègent de l'éblouissement et aident à garder une attitude discrète. Ne les portez jamais la nuit ni par faible luminosité.\n\nConduisez avec souplesse : freinages anticipés, virages doux, pas de manipulation du téléphone. La conduite brusque est l'une des plaintes les plus citées."
+    },
+    {
+      "title": "Accessibilité et clientèles particulières",
+      "text": "Une personne accompagnée d'un chien guide ou d'un chien d'assistance doit être servie comme les autres clients. Le refus est discriminatoire au sens de la Charte des droits et libertés de la personne : le Tribunal des droits de la personne a déjà condamné un chauffeur de taxi à verser des dommages pour ce motif. Une allergie sérieuse se signale à l'opérateur pour qu'une solution soit trouvée, jamais par un refus sur le trottoir.\n\nPour une personne à mobilité réduite, demandez comment l'aider avant de toucher à ses affaires ou à son équipement. Pour un enfant, le Code de la sécurité routière exige un siège adapté ou un siège d'appoint jusqu'à 145 cm ou 9 ans : ne promettez jamais un siège que vous n'avez pas, et vérifiez auprès de la SAAQ les règles qui s'appliquent à votre véhicule.\n\nClients d'affaires et clientèle premium attendent en plus la ponctualité absolue, la discrétion sur leurs conversations et une facture correcte sans avoir à la demander."
+    },
+    {
+      "title": "Fin de course et objets oubliés",
+      "text": "À l'arrivée, choisissez un arrêt sûr et autorisé, rappelez au client de vérifier téléphone, portefeuille et bagages, puis faites votre propre contrôle de la banquette et du coffre avant la course suivante. Un objet trouvé se signale par le canal de votre opérateur, avec la date, l'heure et une description.\n\nUn retour client se demande sans pression et sans cadeau en échange d'une bonne note. Chaque fin de semaine, cherchez le reproche qui revient : c'est votre prochaine amélioration."
+    }
+  ],
+  "exercise": "Votre budget de départ est de 80 $. Vous hésitez entre un parfum puissant, une tablette d'occasion et un ensemble « organisateurs de siège + eau + mouchoirs + trois câbles de charge ». Que choisissez-vous en premier, et comment l'installez-vous ?",
+  "answer": "En premier : les organisateurs de siège, l'eau, les mouchoirs et les trois câbles (Lightning, USB-C, micro-USB) testés, car ils répondent aux demandes les plus fréquentes. Fixez les organisateurs aux appuie-têtes, sans gêner ceintures ni airbags, avec l'eau fermée et les câbles rangés. La tablette viendra ensuite. Le parfum puissant ne règle pas une odeur : nettoyez, aérez, puis choisissez une senteur légère.",
+  "quiz": [
+    {"q":"Où le fondateur recommande-t-il de placer l'eau et les mouchoirs ?","choices":["Dans les portières","Dans des organisateurs de siège fixés aux appuie-têtes","Dans le coffre"],"answer":1,"explain":"Les organisateurs de siège présentent proprement les accessoires, à portée des passagers."},
+    {"q":"Quels formats de câble de charge prévoir ?","choices":["USB-C seulement","Lightning, USB-C et micro-USB","Aucun, c'est au client"],"answer":1,"explain":"Trois formats couvrent encore la plupart des téléphones des passagers."},
+    {"q":"Un client arrive avec un chien guide. Que faites-vous ?","choices":["Je refuse, mon véhicule doit rester propre","Je le sers comme tout autre client","Je demande un supplément"],"answer":1,"explain":"Le refus est discriminatoire au sens de la Charte ; un chauffeur de taxi a déjà été condamné pour ce motif."},
+    {"q":"Une mauvaise odeur persiste dans l'habitacle. Première action ?","choices":["Aérer et nettoyer la source","Vaporiser un parfum puissant","Fermer les vitres"],"answer":0,"explain":"On traite d'abord la source ; une senteur légère vient seulement compléter."},
+    {"q":"Quand les lunettes de soleil sont-elles appropriées ?","choices":["De jour, pour l'éblouissement, avec un modèle sobre","Toujours, pour éviter les regards","La nuit, pour le confort"],"answer":0,"explain":"De jour, elles protègent de l'éblouissement et aident à rester discret ; jamais la nuit."}
+  ],
+  "sources": [
+    {"label": "CDPDJ — Novak, un chien d’assistance à l’origine d’une condamnation (jugement du Tribunal)", "url": "https://cdpdj.qc.ca/fr/actualites/novak-un-chien-dassistance-jugement-tribunal"},
+    {"label": "Commission des droits de la personne et des droits de la jeunesse — Chiens guides et chiens d'assistance (page en anglais)", "url": "https://cdpdj.qc.ca/en/our-positions/issues/service-dogs-and-guide-dogs"},
+    {"label": "SAAQ — Sièges d'auto pour enfants", "url": "https://saaq.gouv.qc.ca/securite-routiere/moyens-deplacement/voiture/sieges-auto-enfants"}
+  ]
+}
