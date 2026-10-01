@@ -92,7 +92,7 @@ export class AdminOrganizationsController {
   @Post('organizations/:id/invitations')
   @Can('members.invite')
   @HttpCode(201)
-  @ApiOperation({ summary: 'Invitation par courriel ou texto, à usage unique ; le jeton n\'est montré qu\'une fois' })
+  @ApiOperation({ summary: 'Invitation par courriel ou texto, à usage unique ; le lien part par le canal choisi, le jeton n\'est jamais rendu (sauf réglage de développement)' })
   @ZodBody(invitationCreateSchema)
   @ZodResponse(201, invitationCreatedSchema)
   @ApiErrors(400, 401, 403, 404, 429)

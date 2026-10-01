@@ -6,21 +6,25 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrandMark } from '@/components/brand-context';
 import { LanguageSwitch } from '@/components/language-switch';
-import { Action, Card, Field, Input, Notice } from '@/components/ui/kit';
+import { OrgLogin } from '@/components/hub/org-login';
+import { Action, Card, Field, Input, Notice, cx, focus } from '@/components/ui/kit';
 import { ApiError, staffStep } from '@/lib/hub-api';
 import type { Language } from '@/lib/i18n-resources';
 
 type Step = { kind: 'password' } | { kind: 'code'; mfaToken: string; backup: boolean } | { kind: 'enroll'; mfaToken: string; enrollment: MfaEnrollment } | { kind: 'backupCodes'; codes: string[] };
+type Tab = 'staff' | 'organization';
 
 /**
  * Connexion du personnel : courriel et mot de passe, puis second facteur obligatoire. Première connexion : inscription
  * TOTP (QR et clé), premier code, puis codes de secours affichés une seule fois. Les jetons ne quittent jamais le
- * serveur web (témoins `httpOnly` posés par la passerelle).
+ * serveur web (témoins `httpOnly` posés par la passerelle). Étape 21 : onglet « Organisation » pour les membres des
+ * organisations clientes (code SMS), vers l'espace de leur organisation.
  */
 export function HubLogin({ language }: { language: Language }) {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useSearchParams();
+  const [tab, setTab] = useState<Tab>(params.get('espace') === 'organisation' || params.get('next')?.startsWith('/hub/organisation') ? 'organization' : 'staff');
   const [step, setStep] = useState<Step>({ kind: 'password' });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -126,6 +130,18 @@ export function HubLogin({ language }: { language: Language }) {
         <Card>
           {params.get('expired') === '1' && step.kind === 'password' && !error ? <div className="mb-3"><Notice tone="warning">{t('hub.login.expired')}</Notice></div> : null}
           {step.kind === 'password' ? (
+            <div role="tablist" aria-label={t('hub.login.title')} className="mb-4 grid grid-cols-2 gap-1 rounded-md bg-slate-100 p-1">
+              {(['staff', 'organization'] as const).map((v) => (
+                <button key={v} type="button" role="tab" aria-selected={tab === v} onClick={() => { setTab(v); setError(null); }} className={cx('rounded px-3 py-1.5 text-sm font-semibold', focus, tab === v ? 'bg-white text-brand-night shadow-sm' : 'text-slate-700 hover:bg-white/60')}>
+                  {t(`org.login.tabs.${v}`)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {step.kind === 'password' && tab === 'organization' ? (
+            <OrgLogin onSignedIn={() => { router.replace(next.startsWith('/hub/organisation') ? next : '/hub/organisation'); router.refresh(); }} />
+          ) : null}
+          {step.kind === 'password' && tab === 'staff' ? (
             <form onSubmit={submitPassword} className="flex flex-col gap-4">
               {heading(t('hub.login.title'), t('hub.login.subtitle'))}
               <Field label={t('hub.login.email')}>{(p) => <Input {...p} type="email" name="email" autoComplete="username" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>

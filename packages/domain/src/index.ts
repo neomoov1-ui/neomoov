@@ -44,3 +44,5 @@ export * from './pilot/pilot.js';
 export * from './pilot/profitability.js';
 export * from './pilot/agenda.js';
 export * from './pilot/information.js';
+// Étape 21 : accès temporaire du support, règle du dernier propriétaire.
+export * from './access/support-access.js';

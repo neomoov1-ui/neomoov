@@ -21,6 +21,11 @@ export interface AuditEntry {
   entityId?: string | null;
   before?: unknown;
   after?: unknown;
+  /**
+   * Étape 21 : organisation à qui l'entrée appartient quand ce n'est pas celle de la requête (accès du support demandé
+   * par la plateforme, décision prise par un ancêtre) ; à défaut, celle du contexte.
+   */
+  organizationId?: string | null;
 }
 
 export interface AuditContext {
@@ -175,7 +180,7 @@ export class AuditService {
         entries.map((e) => ({
           actorUserId,
           actorAgentCode,
-          organizationId,
+          organizationId: e.organizationId ?? organizationId,
           action: e.action.slice(0, 80),
           entity: e.entity.slice(0, 60),
           entityId: e.entityId && /^[0-9a-f-]{36}$/i.test(e.entityId) ? e.entityId : null,

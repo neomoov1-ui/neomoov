@@ -97,3 +97,26 @@ export const organizationFeatures = pgTable('organization_features', {
   source: varchar('source', { length: 12 }).notNull().default('plan'),
   limits: jsonb('limits').notNull().default(sql`'{}'::jsonb`),
 }, (t) => [primaryKey({ columns: [t.organizationId, t.module] }), check('organization_features_source', sql`${t.source} IN ('plan', 'option', 'override')`)]);
+
+/**
+ * Étape 21 (amendement v1.2, section 3.2) : accès temporaire du support de la plateforme à une organisation cliente,
+ * demandé avec un motif et une durée, approuvé ou refusé par l'organisation, révocable ; visible de l'organisation
+ * (politique d'isolation) et journalisé.
+ */
+export const supportAccessGrants = pgTable('support_access_grants', {
+  id: id(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id),
+  requestedByUserId: uuid('requested_by_user_id').notNull().references(() => users.id),
+  reason: text('reason').notNull(),
+  durationMinutes: smallint('duration_minutes').notNull(),
+  status: varchar('status', { length: 12 }).notNull().default('requested'),
+  approvedByUserId: uuid('approved_by_user_id').references(() => users.id),
+  startsAt: tz('starts_at'),
+  endsAt: tz('ends_at'),
+  createdAt: createdAt(),
+}, (t) => [
+  index('support_access_grants_org_idx').on(t.organizationId, t.createdAt),
+  index('support_access_grants_requester_idx').on(t.requestedByUserId, t.status),
+  check('support_access_grants_status', sql`${t.status} IN ('requested', 'approved', 'denied', 'expired', 'revoked')`),
+  check('support_access_grants_duration', sql`${t.durationMinutes} BETWEEN 15 AND 1440`),
+]);

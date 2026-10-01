@@ -2,6 +2,8 @@
  * Relais authentifié de My Hub : `/api/v1/*` du web vers `/v1/*` de l'API, avec le jeton du témoin `httpOnly`.
  * Écritures : en-tête anti-CSRF exigé. Jeton expiré : renouvellement une fois, puis nouvel essai. Seules les routes
  * du personnel sont relayées (`admin/*`, `auth/logout`, `me`) : le relais n'élargit jamais ce que le jeton permet.
+ * Étape 21 : aussi les routes d'organisation (`org/<identifiant>/*`) et le sélecteur (`me/organizations`) de My Hub côté
+ * organisation ; l'API y juge l'adhésion et les permissions dans l'organisation.
  */
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -9,7 +11,7 @@ import { ACCESS_COOKIE, API_URL, CSRF_HEADER, REFRESH_COOKIE, clearSession, forw
 
 export const dynamic = 'force-dynamic';
 
-const ALLOWED = /^(admin\/.+|me|me\/consents|quotes|places\/(autocomplete|details))$/;
+const ALLOWED = /^(admin\/.+|me|me\/consents|me\/organizations|org\/[0-9a-f-]{36}(\/.+)?|quotes|places\/(autocomplete|details))$/;
 
 async function handle(req: NextRequest, context: { params: Promise<{ path: string[] }> }): Promise<NextResponse> {
   const { path } = await context.params;

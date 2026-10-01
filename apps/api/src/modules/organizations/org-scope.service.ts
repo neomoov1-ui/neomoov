@@ -37,20 +37,27 @@ export class OrgScopeService {
    * un point de sauvegarde ; sous une autre portée, il ouvre une transaction à part (jamais un point de sauvegarde, dont le
    * `SET LOCAL` survivrait et changerait la portée de la transaction englobante). Une fois la transaction terminée, le
    * contexte est marqué fini : ce qui lui survit repasse par le contexte englobant encore ouvert, sinon par le pool.
+   * Étape 21 : les traitements confiés à `afterScopeCommit` pendant `fn` partent après la validation de la transaction de
+   * premier niveau (ses points de sauvegarde partagent sa liste), hors du contexte (pool de la plateforme) ; une annulation
+   * les abandonne.
    */
   async run<T>(orgPath: string, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
     if (!PATH.test(orgPath)) throw new AppError('INVALID_ORGANIZATION_SCOPE', 'Portée d\'organisation invalide', 500);
     const active = activeOrgScope();
     if (active && active.path === orgPath) {
-      return (active.tx as ScopedExecutor).transaction((sp) => this.within({ organizationId: active.organizationId, path: orgPath, tx: sp, ended: false, parent: active }, fn));
+      return (active.tx as ScopedExecutor).transaction((sp) => this.within({ organizationId: active.organizationId, path: orgPath, tx: sp, ended: false, parent: active, ...(active.afterCommit ? { afterCommit: active.afterCommit } : {}) }, fn));
     }
-    return withoutOrgScope(() =>
+    const afterCommit: Array<() => unknown> = [];
+    const result = await withoutOrgScope(() =>
       this.database.db.transaction(async (tx) => {
         await tx.execute(sql`SET LOCAL ROLE neomoov_scoped`);
         await tx.execute(sql`SELECT set_config('app.scope_path', ${orgPath}, true)`);
-        return this.within({ organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, ended: false, parent: null }, fn);
+        return this.within({ organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, ended: false, parent: null, afterCommit }, fn);
       }),
     );
+    // Chaque traitement gère ses propres erreurs (file des avis) ; un échec n'annule pas ce qui est déjà validé.
+    for (const hook of afterCommit.splice(0)) await withoutOrgScope(async () => hook()).catch(() => undefined);
+    return result;
   }
 
   private async within<T>(store: OrgScopeContext, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {

@@ -36,6 +36,11 @@ export interface OrgScope {
   organizationId: string;
   path: string;
   permissions: ReadonlySet<Permission>;
+  /**
+   * Étape 21 : accès temporaire du support de la plateforme (membre du personnel sans adhésion, accès approuvé par
+   * l'organisation et en cours) ; absent pour un membre de l'organisation.
+   */
+  support?: { grantId: string; reason: string; endsAt: string };
 }
 
 declare module 'express' {

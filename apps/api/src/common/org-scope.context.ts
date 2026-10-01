@@ -21,6 +21,11 @@ export interface OrgScopeContext {
   ended: boolean;
   /** Contexte englobant de la même organisation (point de sauvegarde), ou `null` pour une transaction de premier niveau. */
   parent: OrgScopeContext | null;
+  /**
+   * Étape 21 : traitements à lancer après la validation de la transaction restreinte la plus externe (avis, événements),
+   * partagés par les transactions imbriquées. Absent d'un contexte posé à la main (tests).
+   */
+  afterCommit?: Array<() => unknown>;
 }
 
 export const orgScopeStorage = new AsyncLocalStorage<OrgScopeContext>();
@@ -58,6 +63,21 @@ export function withoutOrgScope<T>(fn: () => T): T {
 /** Préfixe des clés de stockage des fichiers écrits sous le contexte d'une organisation cliente (`org/<identifiant>/`) ; vide pour la plateforme. */
 export function storageKeyPrefix(organizationId?: string | null): string {
   return organizationId ? `org/${organizationId}/` : '';
+}
+
+/**
+ * Étape 21 : un traitement qui écrit hors de la transaction restreinte (avis mis en file, événement de domaine) ne doit
+ * ni hériter de cette transaction (close avant qu'il finisse) ni partir si elle est annulée. Hors contexte d'organisation,
+ * il s'exécute tout de suite ; dans une transaction restreinte, après sa validation, hors du contexte (pool de la
+ * plateforme), avant la réponse ; jamais après une annulation.
+ */
+export async function afterScopeCommit(fn: () => unknown): Promise<void> {
+  const scope = activeOrgScope();
+  if (scope?.afterCommit) {
+    scope.afterCommit.push(fn);
+    return;
+  }
+  await fn();
 }
 
 /** Identifiant d'organisation porté par un chemin matérialisé (`/a/b/` donne `b`). */

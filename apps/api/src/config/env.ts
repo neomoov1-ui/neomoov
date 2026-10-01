@@ -154,9 +154,19 @@ export const envSchema = z.object({
   API_DOCS: z.enum(['on', 'off']).optional(),
   FEATURE_INSTALLMENTS: flag,
   FEATURE_RIDE_SERIES: flag,
+  /**
+   * Étape 21, développement seulement : `on` rend aussi le jeton d'une invitation à la personne qui invite (le lien part
+   * toujours par texto ou courriel). Ignoré en production.
+   */
+  INVITATION_TOKEN_IN_RESPONSE: z.enum(['on', 'off']).optional(),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
+
+/** Jeton d'invitation rendu à la personne qui invite : jamais en production, et seulement sur demande en développement. */
+export function invitationTokenInResponse(env: Pick<AppEnv, 'INVITATION_TOKEN_IN_RESPONSE' | 'NODE_ENV'>): boolean {
+  return env.NODE_ENV !== 'production' && env.INVITATION_TOKEN_IN_RESPONSE === 'on';
+}
 
 type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER' | 'CRM_PROVIDER';
 /** Nom court de chaque fournisseur dans `ALLOW_MOCK_PROVIDERS`. */

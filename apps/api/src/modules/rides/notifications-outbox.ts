@@ -23,7 +23,10 @@ export interface OutboxMessage {
   template: string;
   language?: Language;
   data?: Record<string, unknown>;
-  /** Organisation de la course ou du chauffeur concerné, quand l'appelant la connaît ; le contexte courant a priorité. */
+  /**
+   * Organisation de la course ou du chauffeur concerné, ou au nom de laquelle l'avis part (invitation, accès du support,
+   * étape 21), quand l'appelant la connaît ; le contexte courant a priorité ; nulle pour la plateforme.
+   */
   organizationId?: string | null;
 }
 
