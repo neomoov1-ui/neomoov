@@ -95,7 +95,7 @@ export const conversations = pgTable('conversations', {
   language: varchar('language', { length: 2 }).notNull().default('fr'),
   rideId: uuid('ride_id').references(() => rides.id, { onDelete: 'set null' }),
   /** Organisation de la conversation (étape 20) : celle de la course ou de la personne ; nulle pour la plateforme. */
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   status: varchar('status', { length: 12 }).notNull().default('open'),
   escalationReason: text('escalation_reason'),
   escalatedAt: tz('escalated_at'),
@@ -134,7 +134,7 @@ export const notifications = pgTable('notifications', {
   recipientUserId: uuid('recipient_user_id'),
   recipientAddress: varchar('recipient_address', { length: 254 }),
   /** Organisation au nom de laquelle l'avis est envoyé (étape 20) ; nulle pour la plateforme. */
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   channel: notificationChannelEnum('channel').notNull(),
   template: varchar('template', { length: 80 }).notNull(),
   language: varchar('language', { length: 2 }).notNull().default('fr'),

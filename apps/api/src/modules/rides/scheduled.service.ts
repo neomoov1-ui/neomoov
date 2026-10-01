@@ -15,6 +15,7 @@ import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import type { UserActor } from '../auth/actor.js';
+import { OrgScopeService } from '../organizations/org-scope.service.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { parseGeoPoint, selectRides, type RideRow } from './ride-view.js';
 import { RidesService } from './rides.service.js';
@@ -42,22 +43,43 @@ export class ScheduledService {
     private readonly events: DomainEventsService,
     private readonly outbox: NotificationsOutbox,
     private readonly rides: RidesService,
+    private readonly scope: OrgScopeService,
   ) {}
 
   private get db() {
     return this.database.db;
   }
 
-  /** Passe sur les courses planifiées ouvertes dont l'heure approche ; chaque signal est enregistré une fois. */
+  /**
+   * Passe sur les courses planifiées ouvertes dont l'heure approche ; chaque signal est enregistré une fois. Étape 20 : un
+   * lot par organisation cliente qui a une course dans la fenêtre, sous son contexte (ses courses seulement, avis et
+   * journal à son nom), puis la plateforme sans contexte, qui traite tout ce qui reste comme avant.
+   */
   async tick(now = new Date()): Promise<TickReport> {
+    const windows = await this.windows();
+    const due = and(eq(schema.rides.type, 'scheduled'), inArray(schema.rides.state, OPEN_STATES), lte(schema.rides.requestedAt, windows.horizon(now)), gt(schema.rides.requestedAt, now));
+    const pending = await this.db.selectDistinct({ organizationId: schema.rides.organizationId }).from(schema.rides).where(due);
+    const reports = await this.scope.runGrouped(pending.map((r) => r.organizationId), () => this.pass(now, windows), 'courses planifiées');
+    const merged: TickReport = { reminders: [], driverReminders: [], dispatchDue: [], operatorAlerts: [] };
+    for (const key of Object.keys(merged) as Array<keyof TickReport>) merged[key] = [...new Set(reports.flatMap((r) => r[key]))];
+    return merged;
+  }
+
+  /** Délais des signaux (réglages) et horizon de la passe. */
+  private async windows() {
     const [reminderBefore, assignBefore, reassignBefore, driverReminderBefore] = await Promise.all([
       this.settings.number('rides.scheduled_reminder_before_seconds', 86_400),
       this.settings.number('rides.scheduled_assign_before_seconds', 3600),
       this.settings.number('rides.scheduled_reassign_before_seconds', 1800),
       this.settings.number('rides.scheduled_driver_reminder_before_seconds', 5400),
     ]);
-    const horizon = new Date(now.getTime() + Math.max(reminderBefore, assignBefore, reassignBefore, driverReminderBefore) * 1000 + 60_000);
-    const rides = await selectRides(this.db, and(eq(schema.rides.type, 'scheduled'), inArray(schema.rides.state, OPEN_STATES), lte(schema.rides.requestedAt, horizon), gt(schema.rides.requestedAt, now)), { limit: 500 });
+    const horizon = (now: Date) => new Date(now.getTime() + Math.max(reminderBefore, assignBefore, reassignBefore, driverReminderBefore) * 1000 + 60_000);
+    return { reminderBefore, assignBefore, reassignBefore, driverReminderBefore, horizon };
+  }
+
+  private async pass(now: Date, windows: Awaited<ReturnType<ScheduledService['windows']>>): Promise<TickReport> {
+    const { reminderBefore, assignBefore, reassignBefore, driverReminderBefore } = windows;
+    const rides = await selectRides(this.db, and(eq(schema.rides.type, 'scheduled'), inArray(schema.rides.state, OPEN_STATES), lte(schema.rides.requestedAt, windows.horizon(now)), gt(schema.rides.requestedAt, now)), { limit: 500 });
     const report: TickReport = { reminders: [], driverReminders: [], dispatchDue: [], operatorAlerts: [] };
     if (!rides.length) return report;
     // Signaux déjà émis, en une seule requête pour toutes les courses de la passe.

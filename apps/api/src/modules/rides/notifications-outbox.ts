@@ -1,15 +1,18 @@
 /**
  * File d'attente des notifications (section 5.14) : chaque événement à notifier est enregistré dans `notifications`
  * avec son gabarit et ses données ; l'envoi (push, texto, courriel, WhatsApp) suit par la file `notifications`
- * (événement `notification.queued`, module des notifications de l'étape 13).
+ * (événement `notification.queued`, module des notifications de l'étape 13). Chaque ligne porte l'organisation au nom
+ * de laquelle elle part (étape 20) : celle du contexte, sinon celle donnée par l'appelant, sinon celle que la base dérive
+ * de la course, du relevé ou de la facture désignés dans `data` (déclencheur de la migration 0022).
  */
 import { schema } from '@neomoov/db';
 import { channelsFor, type Language, type NotificationChannel } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { inArray } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { organizationIdFor } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
 
 export interface OutboxMessage {
@@ -20,6 +23,8 @@ export interface OutboxMessage {
   template: string;
   language?: Language;
   data?: Record<string, unknown>;
+  /** Organisation de la course ou du chauffeur concerné, quand l'appelant la connaît ; le contexte courant a priorité. */
+  organizationId?: string | null;
 }
 
 @Injectable()
@@ -41,6 +46,7 @@ export class NotificationsOutbox {
         list.map((m) => ({
           recipientUserId: m.recipientUserId ?? null,
           recipientAddress: m.recipientAddress ?? null,
+          organizationId: organizationIdFor(m.organizationId),
           channel: m.channel ?? 'push',
           template: m.template,
           language: m.language ?? 'fr',
@@ -53,12 +59,13 @@ export class NotificationsOutbox {
     }
   }
 
-  /** Une notification par membre du personnel d'exploitation (alertes opérateur, SOS). */
+  /**
+   * Une notification par membre du personnel d'exploitation (alertes opérateur, SOS). Étape 20 : le personnel est lu par la
+   * fonction `platform_staff_user_ids` (migration 0023), car `user_roles` est réservée à la plateforme et invisible d'une
+   * transaction restreinte ; les avis partent dans le contexte courant, au nom de l'organisation concernée.
+   */
   async queueForStaff(template: string, data: Record<string, unknown>, channel?: NotificationChannel): Promise<void> {
-    const staff = await this.database.db
-      .selectDistinct({ userId: schema.userRoles.userId })
-      .from(schema.userRoles)
-      .where(inArray(schema.userRoles.role, ['admin', 'operator']));
-    await this.queue(staff.map((s) => ({ recipientUserId: s.userId, template, data, ...(channel ? { channel } : {}) })));
+    const staff = await this.database.db.execute<{ user_id: string }>(sql`SELECT platform_staff_user_ids(ARRAY['admin', 'operator']) AS user_id`);
+    await this.queue([...staff].map((s) => ({ recipientUserId: s.user_id, template, data, ...(channel ? { channel } : {}) })));
   }
 }

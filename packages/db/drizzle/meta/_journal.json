@@ -162,6 +162,20 @@
       "when": 1790783164436,
       "tag": "0022_brands",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790795503467,
+      "tag": "0023_isolation-corrections",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790813680280,
+      "tag": "0024_isolation-recipients",
+      "breakpoints": true
     }
   ]
 }

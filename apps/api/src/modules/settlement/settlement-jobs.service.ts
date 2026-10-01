@@ -5,6 +5,10 @@
  * soldes impayés (suspension ou réactivation). Chaque étape est rejouable : un relevé émis n'est jamais regénéré, un
  * relevé réglé jamais réglé deux fois. Les PDF sont produits ici, jamais dans une requête HTTP. Avec Redis, c'est le
  * worker qui porte la file ; sans Redis, l'API (hors tests, qui appellent les passes directement).
+ *
+ * Étape 20 : la passe se fait par lots, un par organisation cliente qui a des chauffeurs, sous son contexte (ses relevés
+ * seulement, lignes créées à son nom), puis la plateforme sans contexte, qui traite tout ce qui reste comme avant. Le PDF
+ * d'un relevé est produit sous le contexte de son organisation (clé de stockage préfixée).
  */
 import { schema } from '@neomoov/db';
 import { localDate, periodForGeneration } from '@neomoov/domain';
@@ -14,10 +18,12 @@ import type { Logger } from 'pino';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { QueueService } from '../../infra/queue.module.js';
+import { OrgScopeService } from '../organizations/org-scope.service.js';
 import { SettlementPayoutsService } from './settlement-payouts.service.js';
 import { renderStatementPdf } from './statement-pdf.js';
 import { StatementsService } from './statements.service.js';
@@ -46,6 +52,7 @@ export class SettlementJobsService implements OnModuleInit {
     private readonly payouts: SettlementPayoutsService,
     private readonly queues: QueueService,
     private readonly events: DomainEventsService,
+    private readonly scope: OrgScopeService,
   ) {}
 
   onModuleInit() {
@@ -74,36 +81,63 @@ export class SettlementJobsService implements OnModuleInit {
     await this.queues.add('settlements', 'pdf', { kind: 'pdf', statementId } satisfies SettlementJob, { jobId: `pdf:${statementId}` });
   }
 
-  /** Passe du quart d'heure. `now` permet aux tests de simuler l'horloge (vendredi 6 h, lundi, délai de 7 jours). */
+  /** Passe du quart d'heure, par lots d'organisation. `now` permet aux tests de simuler l'horloge (vendredi 6 h, lundi, délai de 7 jours). */
   async tick(now: Date): Promise<SettlementTickReport> {
-    const report: SettlementTickReport = { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 };
+    const timing = await this.timing(now);
+    // Chauffeurs dont le relevé couvre des courses qu'un contexte d'organisation ne voit pas : réglés par la plateforme seulement.
+    const platformOnly = timing.generation ? await this.statements.driversWithForeignRides(timing.period) : new Set<string>();
+    const reports = await this.scope.runGrouped(await this.scope.clientOrganizationsOfDrivers(), () => this.pass(now, timing, platformOnly), 'règlement hebdomadaire');
+    return reports.reduce<SettlementTickReport>(
+      (sum, r) => ({ generated: sum.generated + r.generated, issued: sum.issued + r.issued, settled: sum.settled + r.settled, retried: sum.retried + r.retried, reviewed: sum.reviewed + r.reviewed }),
+      { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 },
+    );
+  }
+
+  /** Moments de la passe (réglages) : génération du vendredi, reprise du lundi, période de la semaine écoulée. */
+  private async timing(now: Date) {
     const timeZone = await this.statements.timeZone();
     const [generationDay, generationHour, retryWeekday] = await Promise.all([
       this.settings.number('settlement.generation_day', 5), this.settings.number('settlement.generation_hour', 6), this.settings.number('settlement.retry_weekday', 1),
     ]);
     const { weekday } = localDate(now, timeZone);
     const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(now));
-    if (hour >= generationHour && weekday === generationDay) {
-      const period = periodForGeneration(now, timeZone);
-      const generation = await this.statements.generate({ periodStart: period.startDate }, now);
+    return { generation: hour >= generationHour && weekday === generationDay, retry: hour >= generationHour && weekday === retryWeekday, period: periodForGeneration(now, timeZone) };
+  }
+
+  /**
+   * Une passe complète (génération, émission, règlement, reprise, revue des soldes) sur ce que le contexte courant voit.
+   * Dans un lot d'organisation, les chauffeurs `platformOnly` ne sont ni générés ni émis : la passe de la plateforme le fait.
+   */
+  private async pass(now: Date, timing: Awaited<ReturnType<SettlementJobsService['timing']>>, platformOnly: ReadonlySet<string>): Promise<SettlementTickReport> {
+    const report: SettlementTickReport = { generated: 0, issued: 0, settled: 0, retried: 0, reviewed: 0 };
+    const excluded = currentOrgScope() ? platformOnly : undefined;
+    if (timing.generation) {
+      const generation = await this.statements.generate({ periodStart: timing.period.startDate, excludeDriverIds: excluded }, now);
       report.generated = generation.generated;
-      for (const id of await this.statements.draftsOf(period.startDate)) {
+      for (const id of await this.statements.draftsOf(timing.period.startDate, excluded)) {
         await this.statements.issue(id, now);
         report.issued += 1;
       }
-      report.settled = await this.payouts.settleIssued(period.startDate, now);
+      report.settled = await this.payouts.settleIssued(timing.period.startDate, now);
     }
-    if (hour >= generationHour && weekday === retryWeekday) report.retried = await this.payouts.retryFailed(now);
+    if (timing.retry) report.retried = await this.payouts.retryFailed(now);
     report.reviewed = await this.payouts.reviewBalances(now);
     return report;
   }
 
+  /** PDF d'un relevé, produit sous le contexte de son organisation (plateforme : sans contexte). */
   private async renderPdf(statementId: string): Promise<void> {
+    const [row] = await this.database.db.select({ organizationId: schema.weeklyStatements.organizationId }).from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, statementId)).limit(1);
+    if (!row) return;
+    await this.scope.runForOrganization(row.organizationId, () => this.renderPdfHere(statementId));
+  }
+
+  private async renderPdfHere(statementId: string): Promise<void> {
     const detail = await this.statements.detail(statementId);
     if (detail.status === 'draft') return;
     const [timeZone, companyName] = await Promise.all([this.statements.timeZone(), this.settings.string('company.legal_name', 'Neomoov')]);
     const pdf = await renderStatementPdf(detail, { timeZone, companyName });
-    const key = `statements/${detail.driverId}/${detail.periodStart}-${statementId}.pdf`;
+    const key = `${storageKeyPrefix(currentOrgScope()?.organizationId)}statements/${detail.driverId}/${detail.periodStart}-${statementId}.pdf`;
     await this.storage.putObject({ key, body: pdf, contentType: 'application/pdf' });
     await this.database.db.update(schema.weeklyStatements).set({ pdfKey: key }).where(eq(schema.weeklyStatements.id, statementId));
   }

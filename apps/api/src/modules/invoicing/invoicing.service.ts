@@ -25,6 +25,7 @@ import QRCode from 'qrcode';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -397,7 +398,8 @@ export class InvoicingService {
     const qr = view.verificationUrl ? await QRCode.toBuffer(view.verificationUrl, { type: 'png', margin: 1, width: 240, errorCorrectionLevel: 'M' }) : null;
     const pdf = await renderInvoicePdf(view, qr);
     const month = row.issuedAt.toISOString().slice(0, 7).replace('-', '/');
-    const key = row.pdfKey ?? `invoices/${month}/${row.number}.pdf`;
+    // Étape 20 : sous le contexte d'une organisation cliente, ses fichiers sont rangés sous son préfixe.
+    const key = row.pdfKey ?? `${storageKeyPrefix(currentOrgScope()?.organizationId)}invoices/${month}/${row.number}.pdf`;
     await this.storage.putObject({ key, body: pdf, contentType: 'application/pdf' });
     if (row.pdfKey) return { key, firstRender: false };
     const updated = await this.db.update(schema.invoices).set({ pdfKey: key }).where(and(eq(schema.invoices.id, row.id), isNull(schema.invoices.pdfKey))).returning({ id: schema.invoices.id });
@@ -488,5 +490,22 @@ export class InvoicingService {
   async invoicesMissingPdf(limit = 50): Promise<string[]> {
     const rows = await this.db.execute<{ id: string }>(sql`SELECT id FROM invoices WHERE pdf_key IS NULL AND issued_at < now() - interval '2 minutes' ORDER BY issued_at LIMIT ${limit}`);
     return [...rows].map((r) => r.id);
+  }
+
+  /** Organisation d'une course (lot de la file `invoicing`, étape 20) ; `null` : plateforme ou course inconnue. */
+  async organizationOfRide(rideId: string): Promise<string | null> {
+    const [row] = await this.db.select({ organizationId: schema.rides.organizationId }).from(schema.rides).where(eq(schema.rides.id, rideId)).limit(1);
+    return row?.organizationId ?? null;
+  }
+
+  /** Organisation de la course d'une facture (lot de la file `invoicing`, étape 20). */
+  async organizationOfInvoice(invoiceId: string): Promise<string | null> {
+    const [row] = await this.db
+      .select({ organizationId: schema.rides.organizationId })
+      .from(schema.invoices)
+      .innerJoin(schema.rides, eq(schema.rides.id, schema.invoices.rideId))
+      .where(eq(schema.invoices.id, invoiceId))
+      .limit(1);
+    return row?.organizationId ?? null;
   }
 }

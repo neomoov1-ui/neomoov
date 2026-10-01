@@ -112,7 +112,7 @@ export const incidents = pgTable('incidents', {
   id: id(),
   rideId: uuid('ride_id').references(() => rides.id),
   /** Organisation de l'incident (étape 20) : celle de la course ; nulle pour la plateforme. */
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   type: incidentTypeEnum('type').notNull(),
   severity: incidentSeverityEnum('severity').notNull().default('medium'),
   reportedByUserId: uuid('reported_by_user_id'),

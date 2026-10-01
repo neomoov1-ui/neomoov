@@ -16,6 +16,7 @@ import { and, asc, desc, eq, gt, isNull, lte, sql } from 'drizzle-orm';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
+import { organizationIdFor } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -514,7 +515,7 @@ export class DriverActivityService {
     const mapping = INCIDENT_MAPPING[input.kind] ?? INCIDENT_MAPPING['other']!;
     const [incident] = await this.db
       .insert(schema.incidents)
-      .values({ rideId: ride.id, type: mapping.type, severity: mapping.severity, reportedByUserId: userId, reportedByKind: 'driver', description: `[${input.kind}] ${input.description}` })
+      .values({ rideId: ride.id, organizationId: organizationIdFor(ride.organizationId), type: mapping.type, severity: mapping.severity, reportedByUserId: userId, reportedByKind: 'driver', description: `[${input.kind}] ${input.description}` })
       .returning({ id: schema.incidents.id });
     await this.rides.mark(ride.id, 'incident_reported', { kind: 'driver', userId }, { incidentId: incident!.id, kind: input.kind });
     this.events.emit('ride.incident', { rideId: ride.id, incidentId: incident!.id, type: mapping.type, severity: mapping.severity, reportedByUserId: userId });

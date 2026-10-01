@@ -13,7 +13,7 @@ export const clients = pgTable('clients', {
   status: varchar('status', { length: 20 }).notNull().default('active'),
   businessAccountId: uuid('business_account_id'),
   /** Organisation du profil (étape 20) : la racine pour les clients de Neomoov. */
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   subscriptionCode: varchar('subscription_code', { length: 40 }),
   rideCount: cents('ride_count').notNull().default(0),
   /** Solde dû après un échec de capture (5.6) : nouvelles courses refusées tant qu'il n'est pas réglé. */
