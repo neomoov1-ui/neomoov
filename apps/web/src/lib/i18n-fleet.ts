@@ -6,6 +6,14 @@ const fr = {
   nav: { group: 'Flotte', drivers: 'Chauffeurs rattachés', vehicles: 'Véhicules et entretien', live: 'Carte en direct', dispatch: 'Répartition interne', statements: 'Partage et versements', reports: 'Rapports' },
   selector: { label: 'Organisation', none: 'Aucune organisation : demandez une invitation à son administrateur.', loading: 'Chargement des organisations…' },
   scope: 'Courses Neomoov seulement : aucune donnée ni action sur une autre plateforme.',
+  join: {
+    title: 'Rejoindre une flotte',
+    subtitle: 'Vous avez reçu une invitation par texto. Connectez-vous avec le même numéro de téléphone, puis acceptez : votre profil de chauffeur Neomoov est rattaché à l\'organisation qui vous invite.',
+    token: 'Code d\'invitation', accept: 'Accepter l\'invitation',
+    done: 'C\'est fait : vous conduisez maintenant pour {{organization}}. Ouvrez l\'application chauffeur Neomoov pour la suite.',
+    doneNew: 'C\'est fait : votre dossier de chauffeur est ouvert chez {{organization}}. Ouvrez l\'application chauffeur Neomoov pour déposer vos documents.',
+    errors: { notForYou: 'Cette invitation est adressée à un autre numéro de téléphone.', expired: 'Cette invitation a expiré : demandez-en une nouvelle.', used: 'Cette invitation a déjà servi.', generic: 'Invitation introuvable ou impossible à accepter pour le moment.' },
+  },
   drivers: {
     title: 'Chauffeurs rattachés', invite: 'Inviter un chauffeur', phone: 'Téléphone (format +15145550101)', firstName: 'Prénom (facultatif)', language: 'Langue du texto',
     send: 'Envoyer l\'invitation', sent: 'Invitation envoyée par texto au {{phone}}.', documents: 'Documents', vehicle: 'Véhicule courant', nextExpiry: 'Prochaine échéance',
@@ -45,6 +53,14 @@ const en: typeof fr = {
   nav: { group: 'Fleet', drivers: 'Attached drivers', vehicles: 'Vehicles and maintenance', live: 'Live map', dispatch: 'Internal dispatch', statements: 'Revenue share and payouts', reports: 'Reports' },
   selector: { label: 'Organization', none: 'No organization: ask its administrator for an invitation.', loading: 'Loading organizations…' },
   scope: 'Neomoov rides only: no data from or action on any other platform.',
+  join: {
+    title: 'Join a fleet',
+    subtitle: 'You received an invitation by text message. Sign in with the same phone number, then accept: your Neomoov driver profile is attached to the organization inviting you.',
+    token: 'Invitation code', accept: 'Accept the invitation',
+    done: 'Done: you now drive for {{organization}}. Open the Neomoov driver app to continue.',
+    doneNew: 'Done: your driver file is open with {{organization}}. Open the Neomoov driver app to upload your documents.',
+    errors: { notForYou: 'This invitation is for another phone number.', expired: 'This invitation has expired: ask for a new one.', used: 'This invitation has already been used.', generic: 'Invitation not found or cannot be accepted right now.' },
+  },
   drivers: {
     title: 'Attached drivers', invite: 'Invite a driver', phone: 'Phone (format +15145550101)', firstName: 'First name (optional)', language: 'Text message language',
     send: 'Send the invitation', sent: 'Invitation sent by text message to {{phone}}.', documents: 'Documents', vehicle: 'Current vehicle', nextExpiry: 'Next expiry',

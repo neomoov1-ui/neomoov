@@ -243,6 +243,17 @@ describe('module Flotte : parcours gestionnaire, chauffeur, versement (intégrat
     const weekly = await get(`/v1/org/${A.id}/reports/weekly?periodStart=${periodStart}`, ownerA.tokens).expect(200);
     expect(weekly.body.totals).toEqual({ rides: 1, fareCents, shareCents });
     expect(weekly.body.byVehicle).toEqual([expect.objectContaining({ vehicleId, rides: 1, fareCents })]);
+
+    // 10. Propriétaire de véhicule (rôle système N3) : ses véhicules, leurs courses et revenus, leurs échéances ; rien d'autre.
+    const vehicleOwner = await loginByOtp(app);
+    await addMembership(vehicleOwner.user.id, A.id, 'vehicle_owner');
+    const patched = await request(server()).patch(`/v1/org/${A.id}/vehicles/${vehicleId}`).set(bearer(ownerA.tokens)).send({ ownerUserId: vehicleOwner.user.id, odometerKm: 13_000 });
+    expect(patched.status, JSON.stringify(patched.body)).toBe(200);
+    expect(patched.body).toMatchObject({ ownerUserId: vehicleOwner.user.id, odometerKm: 13_000 });
+    const dashboard = await get(`/v1/org/${A.id}/owner/vehicles?periodStart=${periodStart}`, vehicleOwner).expect(200);
+    expect(dashboard.body.vehicles).toEqual([expect.objectContaining({ vehicleId, rides: 1, fareCents, maintenanceDue: [expect.objectContaining({ kind: 'tires', status: 'ok' })] })]);
+    expect((await get(`/v1/org/${A.id}/drivers`, vehicleOwner)).body.code).toBe('FORBIDDEN_ROLE');
+    expect((await get(`/v1/org/${A.id}/owner/vehicles`, dispatcherA)).body.code).toBe('FORBIDDEN_ROLE');
   });
 
   it('accès croisé : B ne voit ni n\'attribue rien de A', { timeout: 60_000 }, async ({ skip }) => {
