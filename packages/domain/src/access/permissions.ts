@@ -110,6 +110,8 @@ export const PERMISSIONS = {
   'domains.manage': p('organization', 'Domaines web de l\'organisation (réservation, My Hub)'),
   'domains.verify': p('organization', 'Marquer un domaine vérifié après contrôle du DNS', { platformOnly: true }),
   'pilot.zones.read': p('dispatch', 'Neomoov Pilote : exclusions de zones dans les critères des chauffeurs (surveillance de la discrimination indirecte)', { platformOnly: true }),
+  'billing.view': p('organization', 'Abonnement à la plateforme et factures de la plateforme'),
+  'billing.manage': p('organization', 'Gérer l\'abonnement à la plateforme : formule, règlements, relances', { sensitive: true }),
   'driver.app': p('self', 'Espace du chauffeur (ses courses, son dossier, ses revenus)'),
 } as const satisfies Record<string, PermissionDefinition>;
 

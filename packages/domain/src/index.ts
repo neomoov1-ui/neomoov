@@ -46,3 +46,6 @@ export * from './pilot/agenda.js';
 export * from './pilot/information.js';
 // Étape 21 : accès temporaire du support, règle du dernier propriétaire.
 export * from './access/support-access.js';
+// Facturation de la plateforme (étape 25) : formules, factures, relances, et schémas de l'API.
+export * from './platform-billing/billing.js';
+export * from './schemas/platform-billing.js';

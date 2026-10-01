@@ -263,6 +263,12 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'pilot.near_miss_percent', value: 10, description: 'Pilote : un seuil chiffré manqué de moins de 10 % donne un score jaune (le chauffeur décide) plutôt que rouge' },
   { key: 'pilot.departure_buffer_minutes', value: 5, description: 'Agenda du chauffeur : marge ajoutée au trajet pour l\'heure de départ conseillée' },
   { key: 'pilot.departure_alert_minutes', value: 15, description: 'Agenda du chauffeur : alerte de départ 15 minutes avant l\'heure de départ conseillée' },
+  // Facturation de la plateforme (étape 25, amendement v1.2 section 8) : relances et suspension progressive des organisations.
+  { key: 'billing.reminder_days', value: [3, 7, 14], description: 'Rappels d\'une facture de la plateforme impayée, en jours après l\'échéance' },
+  { key: 'billing.read_only_days', value: 30, description: 'Organisation en lecture seule après 30 jours d\'impayé' },
+  { key: 'billing.suspended_days', value: 45, description: 'Organisation suspendue après 45 jours d\'impayé, jamais pendant une course (reportée au lendemain)' },
+  { key: 'billing.payment_terms_days', value: 0, description: 'Échéance d\'une facture de la plateforme après son émission (0 : payable à réception, prélèvement automatique)' },
+  { key: 'billing.run_hour', value: 5, description: 'Heure de Montréal de la passe quotidienne de la facturation de la plateforme (renouvellements, relances, suspensions)' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.
@@ -307,3 +313,24 @@ export const DEMO_USERS = {
     { phone: '+15145550124', firstName: 'Élodie', lastName: 'Bergeron' },
   ],
 } as const;
+
+/**
+ * Formules de la plateforme (étape 25, décision D2 : grille Solo, Pro, Entreprise de l'étude 03, section 5.2). Montants
+ * PROPOSÉS au fondateur, à valider (l'étude donne des fourchettes) : Solo 99 $ d'installation et 49 $ par mois ; Pro
+ * 1 500 $ et 199 $ par mois, 10 véhicules inclus puis 15 $ par véhicule actif ; Entreprise 3 500 $ et 199 $ plus 12 $ par
+ * véhicule actif ; licence annuelle = 10 mois payés pour 12. Taxes en sus. Modules : modules de permissions inclus.
+ */
+export const PLANS = [
+  {
+    code: 'solo', name: 'Solo', setupFeeCents: 9_900, monthlyPriceCents: 4_900, annualPriceCents: 49_000, perActiveVehicleCents: 0, includedVehicles: 1,
+    modules: ['organization', 'rides', 'clients', 'payments', 'finance', 'reports', 'vehicles'], limits: { vehicles: 1, subOrganizations: 0 },
+  },
+  {
+    code: 'pro', name: 'Pro', setupFeeCents: 150_000, monthlyPriceCents: 19_900, annualPriceCents: 199_000, perActiveVehicleCents: 1_500, includedVehicles: 10,
+    modules: ['organization', 'rides', 'clients', 'payments', 'finance', 'reports', 'vehicles', 'dispatch', 'drivers', 'incidents', 'privacy', 'operations'], limits: { subOrganizations: 10 },
+  },
+  {
+    code: 'entreprise', name: 'Entreprise', setupFeeCents: 350_000, monthlyPriceCents: 19_900, annualPriceCents: 199_000, perActiveVehicleCents: 1_200, includedVehicles: 0,
+    modules: ['organization', 'rides', 'clients', 'payments', 'finance', 'reports', 'vehicles', 'dispatch', 'drivers', 'incidents', 'privacy', 'operations', 'pricing', 'offers', 'agents'], limits: {},
+  },
+] as const;

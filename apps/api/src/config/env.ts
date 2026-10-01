@@ -65,6 +65,10 @@ export const envSchema = z.object({
   HUBSPOT_ACCESS_TOKEN: optionalString,
   /** Numéro de compte HubSpot (Hub ID), facultatif et non secret : liens affichés par `crm:setup`. */
   HUBSPOT_PORTAL_ID: optionalString,
+  /** Facturation de la plateforme (étape 25) : simulée, ou Stripe Billing réel (même `STRIPE_SECRET_KEY` que les paiements). */
+  BILLING_PROVIDER: providerMode,
+  /** Secret de signature du point de terminaison `/v1/webhooks/stripe-billing` (distinct de `STRIPE_WEBHOOK_SECRET`). */
+  STRIPE_BILLING_WEBHOOK_SECRET: optionalString,
   // Vérification des jetons Apple et Google : simulée (jetons « mock-apple:<sujet>:<courriel> ») ou réelle (JWKS des fournisseurs).
   SOCIAL_LOGIN_PROVIDER: providerMode,
   /**
@@ -168,11 +172,11 @@ export function invitationTokenInResponse(env: Pick<AppEnv, 'INVITATION_TOKEN_IN
   return env.NODE_ENV !== 'production' && env.INVITATION_TOKEN_IN_RESPONSE === 'on';
 }
 
-type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER' | 'CRM_PROVIDER';
+type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER' | 'CRM_PROVIDER' | 'BILLING_PROVIDER';
 /** Nom court de chaque fournisseur dans `ALLOW_MOCK_PROVIDERS`. */
 const PROVIDER_ALIASES: Record<ProviderKey, string> = {
   PAYMENT_PROVIDER: 'payment', MAPS_PROVIDER: 'maps', SMS_PROVIDER: 'sms', EMAIL_PROVIDER: 'email', PUSH_PROVIDER: 'push', WHATSAPP_PROVIDER: 'whatsapp',
-  VOICE_PROVIDER: 'voice', LLM_PROVIDER: 'llm', SEV_PROVIDER: 'sev', STORAGE_PROVIDER: 'storage', VIRUS_SCANNER_PROVIDER: 'antivirus', CRM_PROVIDER: 'crm',
+  VOICE_PROVIDER: 'voice', LLM_PROVIDER: 'llm', SEV_PROVIDER: 'sev', STORAGE_PROVIDER: 'storage', VIRUS_SCANNER_PROVIDER: 'antivirus', CRM_PROVIDER: 'crm', BILLING_PROVIDER: 'billing',
 };
 const MOCKABLE_PROVIDERS = (Object.keys(PROVIDER_ALIASES) as ProviderKey[]).map((key) => [PROVIDER_ALIASES[key], key] as const);
 

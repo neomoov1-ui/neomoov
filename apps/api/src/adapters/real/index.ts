@@ -16,6 +16,8 @@ import { ClamAvScanner } from './clamav.js';
 import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
 import { HubSpotCrmProvider } from './hubspot.real.js';
+import { StripeBillingProvider } from './stripe-billing.real.js';
+import type { BillingProvider } from '../billing.types.js';
 import { ResendEmailProvider } from './resend.js';
 import { S3StorageProvider } from './s3.js';
 import { StripePaymentProvider } from './stripe.js';
@@ -133,4 +135,9 @@ export const realStorage = (env: AppEnv): StorageProvider => {
 export const realCrm = (env: AppEnv): CrmProvider => {
   requireKey('CRM (HubSpot)', 'HUBSPOT_ACCESS_TOKEN', env);
   return new HubSpotCrmProvider(env.HUBSPOT_ACCESS_TOKEN!, { portalId: env.HUBSPOT_PORTAL_ID ?? null });
+};
+/** Facturation de la plateforme (étape 25) : Stripe Billing par la clé secrète des paiements ; secret de webhook propre. */
+export const realBilling = (env: AppEnv): BillingProvider => {
+  requireKey('facturation de la plateforme (Stripe Billing)', 'STRIPE_SECRET_KEY', env);
+  return new StripeBillingProvider(env.STRIPE_SECRET_KEY!, env.STRIPE_BILLING_WEBHOOK_SECRET);
 };

@@ -158,9 +158,11 @@ Les trois identifiants se terminent par `.apps.googleusercontent.com`, séparés
 
 **Étape E. Webhook (plus tard, par moi).** Quand l'API sera en ligne, je créerai le point de réception `https://api.neomoov.net/v1/webhooks/stripe` sur la page des webhooks et je te dirai où lire le « Secret de signature » (`whsec_…`) pour `STRIPE_WEBHOOK_SECRET`.
 
+**Étape F. Facturation des organisations clientes (étape 25, plus tard, par moi).** Même compte et même clé secrète ; un second point de réception, `https://api.neomoov.net/v1/webhooks/stripe-billing`, avec les événements `invoice.paid`, `invoice.payment_failed` et `invoice.voided`, et son propre « Secret de signature » pour `STRIPE_BILLING_WEBHOOK_SECRET`. Aucun produit ni prix à créer. Réglages de Billing (courriels, nouvelles tentatives, portail client) : `docs/platform-billing.md`, section 8.
+
 **Avant le lancement (mode réel) :** « Activer le compte » : NEQ, adresse, compte bancaire de l'entreprise (spécimen de chèque), pièce d'identité du dirigeant, description de l'activité « transport de personnes par réservation ». Les clés réelles (`sk_live_`, `pk_live_`) remplaceront alors les clés de test sur le serveur seulement.
 
-- **Variables :** `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, puis `STRIPE_CONNECT_CLIENT_ID` (facultatif), `STRIPE_WEBHOOK_SECRET` (par moi)
+- **Variables :** `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, puis `STRIPE_CONNECT_CLIENT_ID` (facultatif), `STRIPE_WEBHOOK_SECRET` et `STRIPE_BILLING_WEBHOOK_SECRET` (par moi), `BILLING_PROVIDER=real` une fois le compte validé
 - **Tu me dis :** « les clés Stripe de test sont dans le .env »
 
 ## 7. Expo (fait)

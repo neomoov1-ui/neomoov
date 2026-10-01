@@ -3,6 +3,8 @@
  * WhatsApp), objet et corps HTML (courriel). Fonctions pures, testées ; un gabarit inconnu donne un texte générique
  * plutôt qu'une erreur (une notification n'est jamais perdue pour un libellé manquant).
  */
+import { BILLING_TEMPLATES } from '../platform-billing/billing-templates.js';
+
 export type TemplateLanguage = 'fr' | 'en';
 type Data = Record<string, unknown>;
 
@@ -356,6 +358,8 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Demande d\'accès du support Neomoov', body: (d) => `Le support Neomoov demande un accès de ${str(d['durationMinutes'])} minutes à ${str(d['organizationName']) || 'votre organisation'} (motif : ${str(d['reason'])}). Approuvez ou refusez dans My Hub, menu Accès du support.` },
     en: { title: 'Neomoov support access request', body: (d) => `Neomoov support requests ${str(d['durationMinutes'])} minutes of access to ${str(d['organizationName']) || 'your organization'} (reason: ${str(d['reason'])}). Approve or deny in My Hub, Support access menu.` },
   },
+  // Facturation de la plateforme (étape 25) : avis au propriétaire du compte de l'organisation.
+  ...BILLING_TEMPLATES,
 };
 
 const GENERIC: Template = {

@@ -16,3 +16,4 @@ export * from './access.js';
 export * from './branding.js';
 export * from './pilot.js';
 export * from './crm.js';
+export * from './platform-billing.js';
