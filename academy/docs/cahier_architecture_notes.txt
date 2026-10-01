@@ -1,0 +1,88 @@
+AUDIT TECHNIQUE READ ONLY POUR LE CAHIER DES CHARGES
+Date de lecture 30 septembre 2026. Aucun appel API métier, aucune modification de source ou production.
+Base de chemins : livraison/wordpress/.
+
+1 Architecture et construction
+Le système courant est une application PHP WordPress intégrée par Code Snippets, et non un LMS séparé. neomoov-academy.php gère présentation, routeur, compte, bilans, accès et administration. Modules : contract-delivery.php pour copie contractuelle/emails ; square-checkout-api.php pour commandes/paiements ; brevo-sync.php pour listes ; brevo-templates.php pour modèles. academy.css est injecté dans la fonction nma_style. data.json et les 28 templates sont incorporés en fonctions PHP retournant des tableaux JSON décodés.
+Commande depuis la racine : node livraison/wordpress/build-export.cjs. Le script vérifie l’ancre CSS, JSON pédagogique, 28 modèles et lien {{ unsubscribe }} ; écrit brevo-templates-data.json, neomoov-academy-ready.php puis neomoov-academy.code-snippets.json. L’export est INACTIF par construction, portée globale, priorité 10. Importer/remplacer un seul snippet, jamais activer deux copies. La source neomoov-academy.php seule contient __ACADEMY_CSS__ et n’est pas autonome. Preuves build-export.cjs lignes 1–18.
+Le routeur est un template_redirect priorité 0, imprime un document HTML autonome puis exit. Les routes Academy ne sont donc pas une collection de pages Elementor/Gutenberg. Il appelle nocache_headers et DONOTCACHEPAGE, mais exclure aussi Academy du cache LWS/CDN. Il ne passe pas par wp_head/wp_footer du thème : ne pas supposer que les extensions injectant leurs scripts/styles via ces hooks s’exécutent sur ces pages. Preuve neomoov-academy.php ligne 241.
+
+2 Pages et droits
+Routes autorisées : /academy/ ; rentabilite ; service ; demarrer ; entreprise ; inscription ; compagnon ; ressources ; passagers ; membre ; formation ; confidentialite. CGV et mentions légales sont des pages WordPress séparées. Les routes membre/formation/inscription sont noindex,nofollow.
+Visiteur : 5 pages de vente, inscription, compagnon avec calculs/photos locaux, les 8 fiches publiques et page passagers. Le compagnon et les fiches ne sont pas derrière le compte gratuit. Visiteur membre/formation : liens de connexion et mot de passe oublié ; aucun contenu de leçon.
+Membre gratuit : tableau de bord, sauvegarde de bilans, retrait consentement, achat ; pas de microleçons payantes.
+Membre payant valide : 7 leçons texte avec sections/exercice/corrigé, accès via nma_has_access.
+Administrateur manage_options : réglages, réconciliation et aperçu leçons explicitement marqué sans paiement ; cette dérogation ne prouve pas qu’un client payant a accès.
+Preuves neomoov-academy.php 228–241.
+
+3 Compte et authentification
+nma_post traite seulement POST muni du nonce nma_action. join : prénom/email obligatoires, honeypot website vide, maximum 5 demandes/heure par IP hachée avec salt WordPress ; création seulement si email inexistant, login aléatoire academy_..., mot de passe initial aléatoire 32 caractères, rôle subscriber. Enregistre nma_track, nma_consent yes/no, nma_consent_date UTC puis wp_new_user_notification pour définition du mot de passe. Message identique si compte déjà présent, sans création, connexion automatique ni achat. Authentification, perte du mot de passe et logout utilisent les mécanismes WordPress standards. Preuves neomoov-academy.php 150–153 et 225/230.
+Consentement commercial facultatif et non précoché ; retrait par POST authentifié change nma_consent à no. Première connexion authentifiée déclenche nmb_email_confirmed uniquement si consentant et sans email_review ; ce n’est pas un double opt-in Brevo natif. Preuves brevo-sync.php 69–72.
+
+4 Compagnon et stockage
+Calcul navigateur : m=recettes−coûts ; m/heures ; m/km. Recettes après commissions et hors taxes collectées ; tous les coûts attribuables, heures et km professionnels. Résultat avant impôt personnel, aucune prédiction garantie. Serveur balance refuse négatifs et >10 000 000 par champ, impose heures/km>0, date UTC. nma_balances contient au plus 100 objets {receipts,costs,hours,km,date}, nouveaux d’abord ; le tableau de bord affiche 30 derniers. Ni suivi kilométrique GPS ni calcul fiscal complet ni import bancaire.
+Photos : FileReader navigateur, JPEG/PNG/WebP, 4 premières maximum, 8Mo/image maximum ; aucune télétransmission ni stockage utilisateur. Liste déterministe des points non cochés dans ordre du questionnaire ; motorisation ajoute conseil essence/hybride ou électrique. Aucune reconnaissance d’image, notation IA ou diagnostic mécanique. Impressions via window.print. Preuves neomoov-academy.php 153,228,231,238.
+
+5 Configuration privée et API Square
+Option nma_settings : provider=square_api, sales, terms, square_api_environment, square_api_location, square_api_token, square_api_signature, square_api_terms_version, square_api_reviewed. Les constantes NMA_SQUARE_ACCESS_TOKEN, NMA_SQUARE_LOCATION_ID, NMA_SQUARE_ENVIRONMENT, NMA_SQUARE_WEBHOOK_SIGNATURE_KEY prennent priorité si définies. Secrets masqués dans UI et remplacés uniquement par case explicite. Ils sont privés dans options WP ; le code n’implémente pas lui-même un chiffrement de coffre-fort.
+nma_ready exige sales et configuration complète ; Sandbox public refusé sauf manage_options. Fermer sales empêche nouvelles créations mais pas rapprochements ni liens déjà obtenus. nmsa_mutations_ready reste indépendant de sales, nécessaire au traitement de paiements/remboursements pendants.
+API HTTPS serveur Square v2, header Square-Version 2026-09-16, production connect.squareup.com ou sandbox connect.squareupsandbox.com, timeout25s, aucune redirection suivie.
+Reconstruction : créer sa propre application et ses identifiants, définir environnement et location du compte cible ; ne pas reprendre ceux d’un autre compte. Vérifier location ACTIVE/CA/CAD et capacité CREDIT_CARD_PROCESSING via GET locations/{id}.
+Preuves square-checkout-api.php 5–39,226–245,260–273 ; neomoov-academy.php 25–34.
+
+6 Achat et machine à états
+POST admin-post.php action=nmsa_create : connexion, nonce, CA/QC, acceptation CGV, version, snapshot SHA et identité requis. Nom complet/adresse/ville/code postal validés ; email fixé au compte WP. Le module prend un verrou nma_access_lock_{uid}.
+Avant tout POST Square, persiste nmsa_checkout : uid, UUID reference, location, environment, created_at, country CA/province QC, URL/version/durée CGV, snapshot, date acceptation, buyer, seller, payload avec idempotency_key UUID. Ce payload reste identique lors des tentatives après timeout.
+Square POST online-checkout/payment-links crée une commande unique : CAP CHAUFFEUR, quantity1, prix9900centimes CAD ; taxes additives TPS5%495c et TVQ9.975%988c ; total11383c ; auto_apply_taxes=false, auto_apply_discounts=false, pourboire/coupon/fidélité désactivés. Aucun réglage fiscal global Square modifié.
+L’ordre renvoyé est relu et vérifié : une seule ligne, nom, quantité, prix, devise, total, taxes exactes, pas de catalogue/remise/service/tip. Le lien doit utiliser un host HTTPS Square autorisé pour le bon environnement. Map durable nmsa_order_{sha256(order_id)}=>uid.
+États : creating (écrit avant requête), pending (lien/commande connus), billing_review (paiement COMPLETED exact, province/country absents ou incompatibles), paid (production vérifiée et facturation QC), sandbox_paid (simulation uniquement), refunded (remboursement total). Des erreurs d’appel/stockage ne valent jamais paiement confirmé.
+Le retour navigateur /academy/membre/?squareapi=retour n’accorde rien. POST nmsa_verify authentifié+nonce relit Square, limité à une fois/15s par compte. nmsa_sync relit Order puis Payment, vérifie associations, montant/status/source. Production source CARD/WALLET uniquement ; EXTERNAL Developer Control Panel accepté uniquement Sandbox.
+Une seule référence de paiement peut être associée à un membre via nmsa_payment_{sha256(pid)}. Le code refuse conflits d’anciens modes Stripe/Square manuel. Conditions/identité changées bloquent une commande existante au lieu de la remplacer.
+Si billing_address ne confirme pas CA/QC : pas d’accès ; contrat préparé et alerte revue. Admin peut consigner note>=10caractères + attestation billing_verified liée au paiement, à l’administrateur et date ; le bouton relit ensuite Square. Ne pas transformer une adresse hors Québec en QC par simple coche.
+Preuves square-checkout-api.php 59–181,186–201,247–258.
+
+7 Webhook et reprise
+POST /wp-json/neomoov-academy/v1/square-api. Signature x-square-hmacsha256-signature = base64(HMAC_SHA256(URL exacte + corps brut, clé privée)). Corps max1Mo ; signature fausse403 ; événements ignorés200 ; pris en charge payment.created/payment.updated/refund.created/refund.updated.
+Le webhook ne fait pas confiance à la charge utile pour l’accès : persiste nmsa_job_{sha256(pid)}, planifie nmsa_reconcile_payment à+1s, réponse200 uniquement après planification ; stockage/cron impossible503. Le worker GET Payment retrouve order_id/map puis appelle nmsa_sync. Erreurs transitoires api/busy/response/pending/storage/configuration : reprise+300s, sans plafond compteur dans ce module. Autre résultat supprime le job. Répétitions relisent le serveur et ne prolongent pas l’accès.
+Pas de récupération périodique exhaustive des paiements/remboursements perdus ; le webhook, le bouton membre et la réconciliation admin sont les mécanismes disponibles. WP-Cron dépend du trafic et du fonctionnement du site ; prévoir surveillance et cron système pour plus de fiabilité.
+Preuves square-checkout-api.php 205–224.
+
+8 Accès expiration remboursements
+Production paid écrit nma_payment_provider=square_api ; nma_square_api_payment_id ; nma_access_started ; nma_access_until ; nma_paid=yes. Les dates sont fixées une fois, restent identiques aux rapprochements suivants. nma_calendar_access_end ajoute une année calendaire dans le fuseau WP et rabat le29février au dernier jour valide. Pour cohérence opérationnelle configurer WordPress America/Toronto ; email activation force déjà ce fuseau.
+nma_has_access exige yes et échéance future ; Square API impose échéance non nulle. Le blocage à expiration est effectué à chaque lecture, sans job obligatoire. Aucun renouvellement automatique, certificat, progression mémorisée ou gestion multi-licences n’est implémenté.
+Total refunded_money CAD11383 ou état local refunded : état terminal refunded et nma_paid=refunded si prestataireSquareAPI ; un vieux webhook ne réactive pas. Remboursement partiel ne retire pas automatiquement l’accès et demande une décision humaine selon les conditions. WordPress n’appelle aucun endpoint de remboursement : le financier reste Square. Après remboursement, nouveaux achats bloqués/support. Après expiration, nma_paid reste yes, donc achat autonome de renouvellement également bloqué : évolution à prévoir, ne pas annoncer abonnement renouvelable.
+Preuves neomoov-academy.php 32–34 ; square-checkout-api.php 136–167.
+
+9 Contrat et emails transactionnels
+CGV locales : nmcd_capture_terms lit exclusivement get_post(1909), page publiée sans mot de passe, URL canonique identique à option terms ; retire shortcodes et limite HTML/taille ; enregistre version, titre, modified_gmt, HTML et SHA256. Cette pageID est codée en dur et doit être paramétrée/adaptée sur une autre installation.
+Le snapshot, seller et buyer sont figés AVANT paiement. Après paiement COMPLETED vérifié en production, nmcd_after_verified prévoit reprise Cron+300s et traitement shutdown après libération du verrou ; création contrat même en billing_review, alerte distincte au support. Le contrat inclut coordonnées, référence, paiement, total/taxes, offre, conditions acceptées. Le reçu Square reste distinct ; le module ne crée pas de facture PDF numérotée.
+Docs uniques user_meta nmcd_contract/nmcd_activation/nmcd_review : environment production, reference, payment_id, created_at, recipient, subject, html, sha256. Ajout unique et refus de remplacement d’une copie acceptée. Sandbox ne crée ni doc ni file ni accès réel.
+Contrat mail au buyer.email ; alerte revue à contact@neomoov.net ; activation seulement après paid + nma_paid=yes avec dates, timezone America/Toronto, 12mois et aucun renouvellement. Envoi wp_mail HTML + Reply-To contact@neomoov.net, pas API Brevo ; sender réel du transport WP distinct des templates marketing.
+Jobs options nmcd_mail_{sha256(uid|kind|reference)}, statuts queued/sending/transport_accepted/retry_required/cancelled_state_changed ; compteur/timestamps ; verrous10min ; retries expo plafond1h mais sans limite globale de tentatives. wp_mail=true signifie seulement accepté transport. Panne après acceptation avant persistance peut produire doublon ; état nmcd_issue=mail_result_unknown à traiter. Activation/alerte en attente annulée si état a changé ; contrat historique reste.
+Téléchargement admin-post action nmcd_download : propriétaire connecté ou admin, nonce spécifique au membre/type, seulement contract/activation ; HTML pièce jointe imprimable, nocache, nosniff, CSPsandbox interdisant scripts/ressources. Les pièces restent téléchargeables après expiration/remboursement, indépendamment du paywall.
+Admin nmcd_retry prépare/renvoie uniquement non accepté. Test technique séparé nmcd_test_email limité au propre compteadmin ; nmcd_preview fixture sans écriture. Ces tests ne prouvent pas le parcours d’un contrat client.
+Preuves contract-delivery.php 14–24,58–155,159–186.
+
+10 Dépendances de portabilité et vrais écarts
+- Identifier les valeurs à adapter : pageCGV1909, URLconditions neomoov.net, coordonnées vendeur, noms médias attendus hero-chauffeur, routes à racine, dates/noms de packBrevo et IDs listestemplates du compte cible.
+- Les montants sont volontairement codés en dur dans payload, validations, affichages et contrat : changer seulement un réglage ne change pas l’offre API. Centraliser une configuration d’offre versionnée pour évolution99→199 ou taxes/autres provinces.
+- Une seule commande active/historique principal par membre, un contrat unique par kind. Pas de modèle multi-achats/renouvellements/cohortes. Une extension concrète doit créer une table commandes séparée et migrer les métadonnées sans écraser l’historique.
+- Verrous nma_access_lock ne s’expirent pas seuls. Un arrêt fatal peut laisser un verrou ; retirer seulement après contrôle qu’aucun traitement n’est en cours et rapprochement. Les verrous contractuels etBrevo ont leur propre expiration.
+- États admin member_status n’affichent pas un état expired explicite ; la date peut être échue tout en gardant libellé paid. Le paywall lui-même vérifie bien l’échéance.
+- Pas de suivi de progression, certificat réglementaire, vidéos produites, apps natives, visionIA, publication sociale autonome ni automatisation du support.
+- Pas d’export/suppression données en libre-service ou politique de purge implémentée ; demandes traitées par support, obligations de conservation à définir.
+- Source EXPLOITATION.md et premiers rapports Square/contrat contiennent des états historiques. Pour état courant retenir DEMARRAGE_ET_ETAT.md du30septembre et preuves récentes ; ne pas reproduire les mentions historiques « non déployé » des commentaires comme état actuel.
+- Distinguer code implémenté, configuration déployée et recette effective. La connexion Square production et l’email WordPress technique reçu ne prouvent pas paiement réel, remboursement, contrat remis, accèsclient ni réceptiontestBrevo.
+
+11 Plan de reprise pratique à fournir au développeur
+1 Inventorier sources et baseline sans secrets ; sauvegarder base/CodeSnippet/médias.
+2 Installer WordPressLWS ou équivalent HTTPS en staging, comptesroles, timezoneMontréal, mail, exclusioncache.
+3 CréerCGV/mentions/confidentialité et médias ; paramétrer les références d’installation plutôt que recopier1909.
+4 Reprendre HTML/CSS/JS/routes et coursJSON ; tester anonyme/gratuit/admin et contraste/mobile.
+5 Reprendre inscription WordPress + consentement + stockagebilans ; tester email/motdepasse sans marketing.
+6 CréerSquareappSandbox et webhook signés, prix/taxes parcommande ; vérifier idempotence/timeouts/province/refunds/fauxwebhooks et séparationSandbox.
+7 Réimplémenter snapshotcontrat/queues/email/téléchargementpropriétaire ; testertransport intercepté+pannes+documentsimmuables.
+8 RelierBrevo etscénariosinactifs, testeconsentement/retrait/achatarrêt ; ne pas confondre synchronisation etactivationemail.
+9 Recette de boutenbout avec comptes ordinaires, vrai navigateurmobile, erreursAPI etCron ; documenter exécuté/passé/nonexécuté.
+10 Déploiement unique version assemblée, configurationprodprivée, contrôleslecture, testtransactionréelautorisé ; surveillance journalière et procédure rollback.
+Prompts techniques doivent demander livrables + tests de comportement observables, pas seulement code, et interdire secrets dans dépôt ou sortie.

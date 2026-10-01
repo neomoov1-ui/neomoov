@@ -1,0 +1,89 @@
+NOTES FACTUELLES POUR LE CAHIER DES CHARGES
+Lecture seule des sources et preuves locales le 30 septembre 2026. Aucun appel réseau, aucune mutation de configuration, aucun envoi.
+
+1. SOURCE DE VÉRITÉ ET ÉCARTS
+Sources principales : livraison/wordpress/neomoov-academy.php, brevo-sync.php, brevo-templates.php, livraison/formation/data.json, livraison/marketing/emails_source.json, MAPPING_BREVO_4_LISTES_28_TEMPLATES.md, livraison/wordpress/BREVO-RECETTE.md, livraison/DEMARRAGE_ET_ETAT.md.
+Le plan 01_tunnels_et_pilotage.md décrit aussi des intentions initiales non réalisées : quatre lead magnets séparés, pages merci spécifiques, confirmation DOI dédiée, attributs CRM CAP_*, collecte UTM et programme d'envoi conditionnel préouverture/vente. Ne pas les décrire comme déployés. Déployé : 8 fiches publiques partagées, compagnon public, compte gratuit, marketing opt-in et première connexion, 4 listes et 4 scénarios inactifs. Les UTM existent dans les liens email ; aucune persistance/attribution analytique UTM implémentée dans la création de compte examinée.
+Les libellés des 7 axes affichés sur pages de vente ne sont pas les titres exacts des 7 leçons stockées en JSON. Prendre data.json pour la pédagogie livrée ; alignement des intitulés recommandé pour une reconstruction.
+
+2. CARTOGRAPHIE RÉELLE DES QUATRE TUNNELS
+Tronc commun : publication ou recherche -> page d'orientation -> CTA Commencer gratuitement -> /academy/inscription/?parcours={track} -> création de compte -> email WordPress de définition du mot de passe -> première connexion -> /academy/membre/ -> ressources et bilans gratuits ; si consentement et synchronisation active, liste du seul parcours -> scénario Brevo (actuellement inactif) -> liens de retour vers la même page de vente -> espace membre -> offre et commande Square -> vérification de paiement et facturation -> accès /academy/formation/ et contrat.
+La vente n'exige pas le consentement marketing. L'utilisateur connecté peut rejoindre son espace sans suivre les sept emails. Le paiement n'est pas déclenché depuis la page de vente publique : le CTA offre Mon espace formation mène à /academy/membre/ où le formulaire protégé apparaît.
+
+Rentabilité : slug rentabilite ; audience Chauffeurs en activité ; accroche actuelle Votre journée rapporte. Que vous reste-t-il ? ; sous-titre Approche, attente, kilomètres à vide, recharge : apprenez à compter toute votre journée ; ressource d'entrée affichée Le bilan de votre journée ; fiche correspondante /academy/ressources/#bilan-journee ; compagnon calculateur ; liste 3 CAP CHAUFFEUR — Rentabilité ; scénario #1 ; R01 à R07.
+Service : slug service ; audience Qualité de service ; accroche Devenez le chauffeur qu'on rappelle ; préparation, accueil clair, véhicule soigné, expérience régulière ; ressource affichée Le kit du bon chauffeur ; /academy/ressources/#kit-chauffeur et #prise-en-charge ; liste 4 CAP CHAUFFEUR — Qualité de service ; scénario #3 ; S01 à S07. Les passagers disposent de /academy/passagers/ ; ne pas assimiler leur guide à une inscription commerciale obligatoire.
+Démarrer : slug demarrer ; audience Futurs chauffeurs ; accroche Démarrez avec méthode ; quotidien du métier, organisation avant premières courses ; ressource affichée La feuille de route du futur chauffeur ; /academy/ressources/#debuter-quebec ; liste 5 CAP CHAUFFEUR — Démarrer ; scénario #4 ; D01 à D07.
+Entreprise : slug entreprise ; audience Exploitants et futurs investisseurs ; accroche Construisez une activité qui se pilote ; coûts, disponibilité des véhicules, qualité de service ; ressource affichée La grille de préparation d'activité ; /academy/ressources/#grille-exploitant ; liste 6 CAP CHAUFFEUR — Entreprise ; scénario #2 ; E01 à E07. L'offre reste individuelle, aucune licence d'équipe incluse.
+Le formulaire n'envoie pas automatiquement la fiche particulière : il crée le compte et donne accès aux ressources communes. Les ancrages sont exploitables pour rendre explicite ce rapprochement dans une reconstruction.
+
+3. INSCRIPTION ET ESPACE GRATUIT
+POST avec nonce nma_action ; champs prénom obligatoire max80 et email obligatoire max190 ; orientation hidden, vérifiée contre quatre slugs ; consentement case non cochée par défaut ; champ website honeypot ; plafond 5 tentatives/heure par clé dérivée d'IP via HMAC avec sel WP.
+Compte WordPress rôle subscriber, login academy_ + 16 caractères aléatoires, mot de passe initial aléatoire32. Notification native wp_new_user_notification user pour définir mot de passe. Une demande avec adresse déjà existante conserve compte et consentement existants ; réponse générique pour ne pas divulguer l'existence du compte.
+Métadonnées : nma_track, nma_consent yes/no, nma_consent_date UTC. Pas de champ profil distinct, pas de version du texte de consentement, pas de source UTM persistée dans ce code. Ajouter version et preuve détaillée constitue une amélioration future.
+Connexion et mot de passe oublié utilisent les fonctions natives WordPress avec retour membre ou formation ; pas de système d'authentification parallèle. Les routes membre/formation affichent un écran de connexion aux visiteurs.
+Un membre gratuit dispose du compagnon, des fiches, sauvegarde des bilans et bouton de retrait du consentement commercial. L'offre payante apparaît dans l'espace si ventes ouvertes. Aucun paiement n'est effectué par la création du compte.
+Les bilans reçus par POST exigent connexion et nonce ; receipts/costs/hours/km numériques 0..10000000, heures et km >0 ; date UTC ; nma_balances garde les 100 derniers (ordre récent d'abord), interface affiche 30. Aucun outil de suppression individuelle de bilan visible dans cette version ; demandes données par email support.
+
+4. COMPAGNON
+Route /academy/compagnon/ publique. Calcul JS immédiat : résultat = recettes après commissions hors taxes collectées - dépenses d'exploitation de même période ; résultat/total heures ; résultat/total kilomètres. Interdire valeurs non finies ou négatives et heures/km nulles. Ne pas présenter résultat comme bénéfice net garanti : exhaustivité des coûts et impôt personnel restent hors résultat.
+Impression via navigateur window.print(), sauvegarde uniquement par POST explicite connecté. Aucune sauvegarde automatique du formulaire ni synchronisation mobile dédiée.
+Photos locales : FileReader, JPEG/PNG/WebP, quatre premières au maximum puis filtre8Mo par image ; affichage DOM local, aucun téléversement et aucune analyse d'image IA. Indiquer qu'elles sont références d'auto-observation et ne quittent pas le navigateur.
+Questionnaire 8 cases : espace passager dégagé ; objets fixés sans airbags gênés ; visibilité/commandes dégagées ; câbles rangés/en bon état ; habitacle propre ; coffre disponible ; absence d'odeur après aération ; documents utiles accessibles.
+Priorités = cases non cochées, dans cet ordre fixe. Pas de scoring appris ni diagnostic mécanique. Si toutes cochées, message maintien routine sans conformité certifiée. Choix essence/hybride ou électrique ajoute consignes générales ravitaillement/entretien ou recharge/coût/temps/haute tension. Plan imprimable.
+Tests UI attestés : 300-100,10h,200km =200CAD,20CAD/h,1CAD/km ; heures0 rejetées ; électrique affiche consigne ; cocher3premières retire3priorités. Aucune sauvegarde distante de bilan effectuée pendant ce test.
+
+5. PÉDAGOGIE ET RESSOURCES
+Structure data.json : lessons[] {id,title,intro,sections:[{title,text}],exercise,answer} ; resources[] {id,title,intro,steps[],exercise,example}. Textes échappés en HTML. Les 7 leçons sont affichées intégralement à /formation/ lorsque membre payant actif ; corrigés dans details/summary. Pas de quiz noté, suivi de complétion, certificat, SCORM ou vidéo lecteur.
+Les 7 titres réels :
+1 cadre-professionnel — Traiter son activité comme une entreprise organisée
+2 journee-maitrisee — Organiser la journée sans courir après chaque course
+3 chiffres-utiles — Lire ses chiffres sans confondre recettes et résultat
+4 vehicule-client — Un véhicule agréable, organisé et préparé
+5 service-professionnel — Satisfaire le client avec un service simple et constant
+6 incident-factuel — Gérer une tension et préparer une réclamation utile
+7 progression-durable — Progresser en 30 jours et tester un projet de transport
+Les 8 fiches, toutes publiques sur ressources, imprimables (pas uniquement payantes) :
+bilan-journee — Mon bilan de journée : temps, kilomètres et flux
+kit-chauffeur — Le kit du bon chauffeur : utile avant luxueux
+debuter-quebec — Débuter au Québec : dossier de vérifications officielles
+grille-exploitant — Grille exploitant et futur investisseur : tester avant d'engager
+prise-en-charge — Prise en charge fiable : quatre messages prêts à adapter
+incident-reclamation — Incident et réclamation : un dossier factuel
+plan-30-jours — Mon plan d'amélioration en 30 jours
+guide-passagers — Guide passagers : préparer un trajet plus simple
+Route passagers filtre uniquement guide-passagers. Les fiches accompagnent l'offre payante mais ne sont pas exclusives à celle-ci. 7 scripts vidéo disponibles localement ; ce ne sont pas des vidéos livrées. Versions mobiles AppStore/PlayStore envisagées, non développées/déployées.
+
+6. BREVO FONCTIONNEMENT TECHNIQUE
+Réglage nma_settings : brevo_sync_enabled, brevo_lists_reviewed, brevo_key (ou constante NMA_BREVO_API_KEY), brevo_lists[track]. Actif seulement clé syntaxiquement valide 20..512 sans espace et quatre IDs positifs/distincts, cases activées/revues.
+Ne synchroniser que nma_consent=yes + nmb_email_confirmed=yes + parcoursvalide + pas de nmb_email_review + pas acheteur. nmb_email_confirmed est posé au hook wp_login pour membre consentant. Ce n'est pas un double opt-in Brevo séparé. Sans consentement ni ancien binding, aucun GET ni transmission d'adresse ; consentement avant premièreconnexion reste awaiting_login.
+Une seule liste Academy ciblée ; autres listes compteBrevo conservées. Appels API HTTPS api.brevo.com/v3/contacts GET/POST/PUT uniquement ; timeout15s, no redirect, responsemax256KiB ; aucun endpoint campagne/envoi.
+Avant toute écriture distante, mémoriser nmb_binding email+listesgérées pour nettoyer après timeout/retrait. Lecture contact, valider email/lists/blacklist. Création POST email/listIds target, updateEnabled=false, forceMerge=false ; existant PUT ajouts/retraits de seuleslistesgérées. Ne jamais modifier EMAIL, lever emailBlacklisted, annuler listUnsubscribed ni forcerfusion.
+Retrait WP nma_consent=no -> nmb_optout_at UTC -> job retrait ; les quatrelistesAcademy (et ancienneslistesbinding) retirées, autres listespréservées. Désabonné/blocklist distant -> retirer listesgérées et statut remote_suppressed, sans réactivation.
+Modification email WordPress -> nmb_email_review=yes, retirer ancienneadresse ; pas de nouvelle synchronisation avant contrôle. Pas d'interface selfservice complète de revalidation email/consentement implémentée.
+Acheteur exclus si nma_paid yes/refunded/revoked, paymentintent ou Squarepaymentid, ou checkout production confirmed_payment.id. Exclusion durable nmb_buyer_excluded=yes, y compris facturation en revue ; remboursement ne réinscrit pas. Dossier Sandbox seul ne constitue pas achat réel.
+Jobs persistants nmb_sync_job {generation UUID,status,attempts,at,reason,force_remove,last_attempt_at,code,completed_at}. Hook nma_brevo_sync_contact par WP-Cron, premièreplanif5s, verrou option nmb_sync_lock_UID TTL300s. États changés pendant traitement -> nouvelle génération et replanification.
+Maximum6tentatives ; erreursréessayables network,duplicatePOST,HTTP408/425/429/5xx ; backoff min60s exponentiel plafonné3600s avec Retry-After borné60..3600. Une interventionadmin est nécessaire après failed/cron_unavailable. WP-Cron dépend du trafic, pas d'heure exacte garantie. Prévoir surveillance et cron système en amélioration.
+États principaux : inactive, queued, running, retry, failed, synced, removed, not_shared, awaiting_login, buyer_excluded, remote_suppressed, email_review, cron_unavailable, member_missing, storage.
+Administration manage_options + nonce ; contrôleconnexion lit /contacts/lists/{id} sans contact ni email ; consultationmembre parID et synchronisationmanuelle unitaire. Aucun import rétroactif automatique en masse.
+
+7. SÉQUENCES ET IMPORT
+4alternatives de7emails, un seul parcours/contact, joursJ0,J1,J3,J5,J8,J11,J15 donc délais1,2,2,3,3,4jours. RéentréeOFF ; sorties workflow désinscription de tous emails et retrait immédiat de laliste du scénario. L'achat -> jobWP retire leslistes -> événementde sortieBrevo ; un délaiWP-Cron est possible entrepaiement et retrait. Ne pas promettre arrêt instantané absolu du systèmecomplet.
+28sourceHTMLactuels livraison/marketing/emails_html/brevo-ready/{R,S,D,E}01..07.html. Noms CAP_R01_J0_VENTE_20260930 etéquivalents. Sender Neomoov Academy <contact@neomoov.net>, replyTo identique ; footeradresse légale ; désinscription {{ unsubscribe }} ; montant99CAavanttaxes/113.83QC. N'utiliser ni anciennesvariantespréouverture ni placeholdersdedésinscription.
+Touslesliens CTA email retournent à pageorientation avec utm_source=brevo, utm_medium=email, utm_campaign=cap_chauffeur_lancement_20260930, utm_content=r_01 ouéquivalent. Sourceexactesujets/CTA : emails_source.json. Annexe28sujetsdéjàdans MAPPING_BREVO_4_LISTES_28_TEMPLATES.md.
+ImporteurPHP admin seulement : inventaire GET smtp/templates, max1000, exactement28élémentslocaux, détectiondoublonsnoms/état/objet, jamaisécrasement, max2POST/clic, isActive=false obligatoire. Enregistre nmbt_template_ids par nomréel. Ne supposez pas que cesIDsseront1..28surunautrecompte.
+Outilmigrationhistorique expéditeur limité auxIDs1..28dececompte, max2PUT/clic, vérifie28inactifsinventairecompletobjetsnoms et expéditeuractif ; modifieuniquementsender/replyTo/isActive=false ; nepaslecopiertelquelsurd'autresIDs. Lesmessages29+desautomatisationssontexclus, configurésdansUI.
+Les4scénariosontétécréésdansBrevoUI ; ilsnesontpascréésparl'importeur. Distinguer28modèlesbibliothèqueet28actionsmessageattachéesauxworkflows.
+
+8. ÉTAT ET RECETTE
+Déployé : routes,contenus,contrôleaccès,companion,inscriptioncodée,Squareproductionouvert,syncBrevoactive,listesAPIvérifiées,DNSauthentifié,expéditeurvérifié,28modèlesprofessionnelsinactifs,4scénarios7étapesinactifs.
+Vérifié :12routesHTTP200sansPHPerr/aprèsdéploiement01:12:14UTC30sept ; offrescohérentes ; visiteurs membre/formationvoientconnexion ; structureaccueil390CSSsansdébordement ; compagnoncasfictifs ; 73testsPHPWASMstubsBrevo(sync/import/migration), sansAPIréelle ; unemailtechniqueWordPressreçuinbox.
+NONconfirmé : compteclientnouveau/passwordreset/parcoursentier ; contactréelsync/retrait ; réceptionBrevo du seul test demandé ; lienspersonnalisés/désabonnement réel ; arrêtacheteursréel ; envoiJ0..J15 ; paiement/réelrefund/contractremise/paidaccessclient. Ne pas déduire réussite depublication oudeconfiguration.
+Pas de publicationsociale, pas de comptesréseauxidentifiés/sessionreliée, pas de programmeautonomeactif ;20textesprêts et vidéo scripts. Propositioncadence3/semaine10hMontréal nonvalidée. BlogWordPressdéjàaccessibleadministration ; préparationtexte n'estpas publication.
+
+9. PROMPTS RECONSTRUCTION UTILES
+P1 Parcours : À partir de nma_tracks et data.json, reconstruis quatre pages de vente avec une offre canonique et un CTA inscription par orientation. Conserve l'accès public aux huit fiches, distingue les bénéfices éditoriaux des fonctions réelles. Livre routes, ancrages et critères de recette sans créer de témoignage, compteur ou prix de référence fictif.
+P2 Comptes : Implémente les comptes WordPress subscriber et l'espace gratuit, nonce et antiabus. L'email de création de compte est transactionnel. Le marketing est une case distincte facultative. Sauvegarde parcours, choix, date ; ajoute la version de texte seulement comme amélioration documentée. Teste compteexistant, adresse invalide, absenceconsentement, premièreconnexion et isolementdonnées entrecomptes.
+P3 Compagnon : Implémente le bilan recettes-dépenses avec temps et kilomètres strictementpositifs, sauvegarde explicite100historique/30affichés, aperçulocal4images8Mo et règles fixes des8points. Aucun diagnostic/visionIA/upload. Teste calcul300/100/10/200, valeursnulles/infinies/négatives, bornes serveur, photosinvalides, essence/électrique, sécuritéDOM et séparationcomptes.
+P4 Brevo : Reproduis le pont API de listes consentantes uniquement, sans envoyer de campagne. Exige premièreconnexion et respectedeTOUSlesoptout/blocages ; préserve listesexternes ; acheteursproduction exclusdurablement, Sandboxignoré. Implémente jobsdurables, verrou,génération,6reprisesbornées,administrationnoncée et journauxsanssecrets. Livretablede transitions ettestsHTTPsimulés.
+P5 Emails : Importe les28HTML Brevo-ready commebrouillonsinactifs idempotents, mappingparnom. Configure dansBrevo quatreworkflows entréeparbonne liste, septactions et délais1/2/2/3/3/4jours, expéditeurprofessionnel, réentréeOFF et sortiesdésinscription/retrait. Garde inactif jusqu'àrecette autorisée réception/liens/opposition/acheteur. Redécouvre lesIDs ducomptecible et ne copieaucuneclé.
+P6 Exploitation : Rédige runbooks pour jobBrevofailed, cronabsent, changementemail, adressebloquée, demandeopposition, acheteurtoujoursenliste,quotaatteint et arrêtcampagne. Pourchaqueincident, preuvesàlire, actionminimale, vérificationrésultat et procédureescale ; aucune réinscriptionforcée ni renvoidetest sans base.

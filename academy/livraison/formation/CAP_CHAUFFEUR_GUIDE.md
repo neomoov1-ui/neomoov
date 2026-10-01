@@ -1,0 +1,414 @@
+# CAP CHAUFFEUR — Neomoov Academy
+
+Montréal · Première édition écrite · 29 septembre 2026
+
+Sept microleçons, huit outils pratiques et leurs exercices corrigés. Formation professionnelle complémentaire : aucune autorisation, certification réglementaire ou garantie de revenu. Ce guide ne comprend pas de vidéos et ne représente pas les 21 heures envisagées dans le programme de travail.
+
+## 1. Traiter son activité comme une entreprise organisée
+
+Objectif : disposer d'un dossier clair et savoir distinguer une obligation, une condition commerciale et une bonne pratique. Cette microleçon inaugure un parcours pratique ; elle ne constitue pas la formation réglementaire québécoise.
+
+### Définir ce que vous faites vraiment
+
+Écrivez votre activité en une phrase : qui transporte qui, avec quel véhicule, par quel canal et dans quel territoire ? « Je conduis parfois pour une application » est trop vague pour organiser les documents. Notez également votre statut par rapport au véhicule : propriétaire, locataire ou salarié. Cette description servira lorsque vous interrogerez l'opérateur, l'assureur ou l'autorité compétente. Un changement de service ou de canal mérite une nouvelle vérification ; les réponses d'un collègue ne remplacent pas une confirmation pour votre situation.
+
+### Construire trois colonnes
+
+Dans la première colonne, placez les exigences officielles à vérifier auprès des organismes compétents. Dans la deuxième, placez les conditions propres à votre plateforme, répartiteur ou contrat. Dans la troisième, placez vos choix de qualité : ligne professionnelle, rangement, présentation, messages. Une tablette est un outil possible, pas une preuve de conformité. À l'inverse, un dossier approuvé par une application ne confirme pas automatiquement toute votre situation. Ajoutez à chaque ligne une source, une date de consultation et un état : confirmé, non applicable ou à vérifier.
+
+### Transformer les documents en système
+
+Créez des dossiers aux noms simples : chauffeur, véhicule, assurance, opérateurs, relevés et incidents. Nommez vos fichiers avec une date compréhensible et un sujet. Inscrivez les échéances dans un calendrier et prévoyez un rappel assez tôt pour effectuer les démarches. Vérifiez que les pièces restent lisibles et accessibles lorsque vous en avez besoin. Protégez les appareils et limitez les accès. Une sauvegarde ne justifie pas de multiplier les copies de données personnelles sans nécessité.
+
+### Séparer le professionnel du personnel
+
+L'apport du fondateur est concret : un numéro professionnel évite de mêler réservations, vie privée et disponibilité permanente. Vous pouvez commencer avec les canaux fournis par votre opérateur, puis ajouter une ligne dédiée si le besoin le justifie. Définissez vos heures de réponse et un message simple. Pour développer des réservations directes, vérifiez préalablement les autorisations, l'assurance, la facturation et vos engagements contractuels. Ne collectez pas les coordonnées de chaque passager par réflexe. Une demande de trajet et une inscription à des promotions sont deux démarches distinctes.
+
+**Exercice**
+
+Classez ces éléments : numéro professionnel, autorisation chauffeur à vérifier, âge maximal du véhicule demandé par un opérateur, rappel de renouvellement. Puis écrivez une action pour une assurance dont l'usage professionnel n'est pas confirmé.
+
+**Correction**
+
+Le numéro et le rappel sont des pratiques d'organisation ; l'autorisation relève du cadre officiel ; l'âge maximal évoqué ici est une condition d'opérateur à vérifier, qui peut se cumuler avec des règles officielles. Pour l'assurance, décrivez l'usage exact à l'assureur, demandez confirmation et conservez sa réponse. Le dossier reste incomplet tant que ce point n'est pas résolu.
+
+## 2. Organiser la journée sans courir après chaque course
+
+Objectif : rendre visibles les minutes et kilomètres qui disparaissent entre deux trajets. Une bonne organisation commence par l'observation, puis par une modification testée sur plusieurs journées comparables.
+
+### Mesurer le travail réel
+
+Votre journée comprend la préparation, les approches, les attentes, les courses, les déplacements à vide, l'énergie et l'administration. Le temps affiché par une application n'est donc pas toujours le temps total consacré à l'activité. Notez une heure de début et de fin avec les pauses personnelles séparées. Si vous utilisez deux applications ensemble, la même heure ne devient pas deux heures. De la même manière, le kilométrage professionnel total inclut les déplacements qui n'avaient pas de passager, même lorsqu'ils sont moins visibles dans vos souvenirs.
+
+### Choisir une hypothèse réaliste
+
+Une longue file d'attente peut paraître rassurante parce que d'autres chauffeurs y restent. Elle ne prouve pas qu'elle convient à votre journée. Comparez le temps réellement attendu, l'approche, la course et les possibilités de suite avec vos propres observations. Ne fondez pas un changement sur une capture de gains exceptionnelle vue en ligne. Avant de changer de secteur, identifiez ce que vous savez et ce que vous supposez : demande constatée, circulation, accès, retour possible. Travaillez uniquement avec les informations disponibles et les règles de votre service.
+
+### Éviter les prises en charge confuses
+
+Une épingle GPS est un point sur une carte, pas toujours une entrée utilisable. Confirmez le repère utile : entrée, côté de rue ou point autorisé. Préparez un message court à envoyer lorsque vous êtes arrêté en sécurité. En cas de retard, annoncez une estimation réaliste et sa possible évolution. N'indiquez pas que vous êtes arrivé si cela donne au client une information trompeuse. Si le point demandé n'est pas utilisable, proposez une alternative et vérifiez son accessibilité pour la personne ; ne supposez pas qu'elle peut simplement marcher plus loin.
+
+### Préserver une marge d'organisation
+
+Une réservation planifiée doit laisser une marge pour les imprévus et les besoins du trajet précédent. Préparez vos informations avant de partir et gardez les pauses dans votre organisation. La productivité ne consiste pas à prolonger une journée malgré une fatigue incompatible avec la conduite. En fin de journée, retenez un seul événement : attente trop longue, rencontre confuse ou déplacement à vide. Décrivez ce que vous changerez demain et l'indicateur qui dira si cela a aidé. Vous construisez ainsi une méthode reproductible au lieu de multiplier les réactions improvisées.
+
+**Exercice**
+
+Vous avez travaillé de 8 h à 16 h, avec 30 minutes de pause personnelle. Deux applications affichent chacune 5 h de connexion en partie simultanée. Quelle durée utilisez-vous pour un premier bilan global ? Que faites-vous d'une épingle placée dans un arrêt interdit ?
+
+**Correction**
+
+Le temps consacré à l'activité est ici 7 h 30 si tout le reste de cette plage était professionnel. N'additionnez pas les 10 h des applications. Pour l'épingle, choisissez un arrêt sûr et autorisé, proposez un repère accessible au client et documentez la communication utile via le canal prévu.
+
+## 3. Lire ses chiffres sans confondre recettes et résultat
+
+Objectif : construire un bilan descriptif cohérent. Les exemples servent à apprendre une méthode de suivi ; ils ne constituent ni une promesse de gain, ni un conseil fiscal, comptable ou d'investissement.
+
+### Nommer chaque montant
+
+Le prix payé par un client, le montant inscrit au relevé chauffeur et le versement bancaire peuvent désigner des choses différentes. Avant toute addition, identifiez la définition du montant et sa période. Vérifiez si les pourboires, primes et retenues sont déjà inclus. Une erreur fréquente consiste à soustraire deux fois une commission : une première fois dans le relevé de l'opérateur, puis une deuxième fois dans son propre tableau. Conservez le relevé qui permet de comprendre chaque ligne et séparez les montants attendus des montants effectivement reçus.
+
+### Compter le temps et les kilomètres complets
+
+Pour comparer des journées, utilisez des définitions stables. Le montant chauffeur par heure de travail total peut éclairer l'organisation, tandis que le montant par heure avec passager répond à une autre question. Ne les comparez pas comme s'ils étaient identiques. Le même principe vaut pour les kilomètres : les distances d'approche et de repositionnement utilisent le véhicule. Choisissez une méthode de relevé simple, conservez les pauses personnelles à part et indiquez les données manquantes au lieu de les remplacer par des valeurs présentées comme certaines.
+
+### Reconnaître ce que le calcul oublie
+
+Soustraire l'énergie du montant chauffeur donne un solde après cette seule dépense. Ce n'est pas le bénéfice de l'activité. Il reste notamment des coûts de véhicule, d'assurance, d'entretien, d'usure et d'administration selon votre organisation. Des dépenses ne sont pas payées chaque jour mais concernent tout de même votre activité. Inventoriez-les avec leurs justificatifs et faites valider le traitement comptable et fiscal par la personne compétente. Dans votre carnet quotidien, utilisez une étiquette honnête comme « solde après dépenses saisies » plutôt que « revenu net garanti ».
+
+### Comparer sans surinterpréter
+
+Un samedi exceptionnel et un mardi calme ne suffisent pas à prouver qu'une nouvelle stratégie fonctionne. Comparez plusieurs plages similaires et relevez les différences importantes : durée, événements, météo, circulation et disponibilité. Commencez par chercher une anomalie concrète, comme des kilomètres à vide qui augmentent alors que le nombre de courses reste proche. Vous pourrez tester un seul changement et suivre son effet. Les chiffres deviennent alors un outil de décision opérationnelle ; ils ne servent ni à justifier plus de fatigue ni à promettre qu'un autre chauffeur obtiendra le même résultat.
+
+**Exercice**
+
+Un relevé indique 270 CAD, pourboires inclus et frais opérateur déjà retenus. Vous consacrez 9 h au travail, parcourez 225 km et payez 40 CAD d'énergie. Calculez les recettes/h, les recettes/km et le solde après énergie. Quel terme faut-il éviter ?
+
+**Correction**
+
+270 ÷ 9 = 30 CAD/h ; 270 ÷ 225 = 1,20 CAD/km ; 270 − 40 = 230 CAD après énergie. Évitez « bénéfice net » : les autres coûts et obligations fiscales ne sont pas intégrés. Les frais déjà retenus ne doivent pas être déduits une deuxième fois.
+
+## 4. Un véhicule agréable, organisé et préparé
+
+Objectif : distinguer amélioration visible du confort, préparation réglementaire et contrôle mécanique. Des photos et un questionnaire peuvent aider à prioriser le rangement ou la propreté ; ils ne permettent pas de certifier la sécurité d'un véhicule.
+
+### Commencer par ce que le client rencontre
+
+Installez-vous à l'arrière lorsque le véhicule est stationné. Observez l'accès, la banquette, les ceintures, les vitres, l'espace pour les pieds et les odeurs. Le point de vue du chauffeur ne révèle pas toujours une saleté ou un objet gênant à l'arrière. Retirez l'encombrement avant d'ajouter des accessoires. Rangez les objets pour éviter qu'ils circulent dans l'habitacle. Préservez les airbags, commandes et zones de visibilité. Une voiture simplement propre et facile à utiliser rend souvent davantage service qu'un habitacle rempli de cadeaux.
+
+### Transformer le kit en standard
+
+Le fondateur propose des rangements, mouchoirs, eau et câbles de charge. Choisissez d'abord les éléments utiles à vos passagers et à votre budget. Vérifiez leur état et leur emplacement avant chaque session. Proposez les petites attentions sans pression ni attente de pourboire ou d'évaluation. Les goûts, allergies et besoins diffèrent ; les parfums puissants et bonbons distribués automatiquement ne constituent pas un standard universel. Nettoyez et aérez selon les conditions au lieu de masquer systématiquement les odeurs. Un numéro professionnel et une tablette répondent à des besoins d'organisation distincts du confort à bord.
+
+### Séparer apparence et aptitude à circuler
+
+Une photo peut montrer des déchets, un coffre encombré ou des câbles mal rangés. Elle ne prouve pas l'état des freins, des éléments internes ou la conformité générale. La SAAQ décrit des vérifications avant remise en service et la consignation des observations ; consultez sa procédure applicable à votre situation. Une fiche Neomoov de confort ne remplace pas ce rapport officiel. Un bruit inhabituel, un voyant ou une anomalie exige une action appropriée et, selon le cas, l'avis d'un professionnel. N'inventez pas un résultat de contrôle pour terminer une liste.
+
+### Électrique et essence : partir du véhicule réel
+
+Pour une voiture électrique, préparez la disponibilité de recharge et un niveau d'énergie adapté au trajet prévu. Pour une voiture à essence, anticipez le ravitaillement dans l'organisation de la journée. Dans les deux cas, suivez le manuel du constructeur du modèle exact pour l'entretien, les produits, les pressions et les consignes d'utilisation. N'appliquez pas un pourcentage de recharge ou une intervention technique universels trouvés dans une discussion. Les coûts et contraintes dépendent de l'usage, du climat, de l'accès à l'énergie et du véhicule ; aucune technologie n'est déclarée gagnante pour tous.
+
+**Exercice**
+
+Sur une photo, vous voyez un câble au sol, des mouchoirs dispersés et un voyant au tableau de bord. Quelles améliorations pouvez-vous proposer et quelle conclusion devez-vous refuser ?
+
+**Correction**
+
+Rangez et fixez le câble sans gêner les équipements, nettoyez les mouchoirs et préparez un rangement. Identifiez le voyant à partir du manuel et obtenez l'aide adaptée. Refusez d'affirmer que le véhicule est mécaniquement sûr ou conforme à partir de la photo.
+
+## 5. Satisfaire le client avec un service simple et constant
+
+Objectif : transformer les plaintes sur l'accueil, les retards et le confort en comportements observables. La satisfaction se travaille ; elle ne garantit ni une note, ni un pourboire, ni une nouvelle réservation.
+
+### Construire un début de trajet clair
+
+Un accueil professionnel peut tenir en quelques phrases : saluer, confirmer les informations de réservation selon le service, vérifier la destination et proposer une préférence de confort. Ne demandez pas de détails personnels inutiles. Si le passager a des bagages, demandez comment l'aider et respectez les limites de votre véhicule et de vos capacités. Une personne qui ne souhaite pas parler doit pouvoir voyager tranquillement. Le standard n'est pas de réciter un long discours, mais de réduire l'incertitude du client sans détourner votre attention de la conduite.
+
+### Dire ce que vous savez
+
+Si le client interroge un prix ou une retenue que vous ne maîtrisez pas, expliquez la limite de l'information disponible puis orientez-le vers le reçu et le canal concerné. N'inventez pas une règle pour clore la conversation. Pour un retard, exprimez un fait et une estimation raisonnable plutôt qu'une promesse impossible. Une explication brève peut prévenir une frustration ; un débat prolongé pendant la conduite risque au contraire d'aggraver l'expérience. Les questions administratives détaillées peuvent être traitées à l'arrêt ou par le support approprié.
+
+### Adapter sans faire de suppositions
+
+Les préférences ne se déduisent pas de l'âge, de l'apparence ou du motif supposé du déplacement. Proposez sobrement température ou musique, et acceptez la réponse. Demandez à une personne comment elle souhaite être aidée ; ne touchez pas automatiquement ses affaires ou son équipement. Ne transformez pas une demande particulière en diagnostic ou en interrogation intrusive. La fiabilité signifie aussi expliquer honnêtement ce que vous pouvez faire, puis chercher une solution compatible avec votre service lorsque vous ne pouvez pas répondre seul.
+
+### Terminer proprement et apprendre
+
+À l'arrivée, choisissez un arrêt sûr et autorisé, confirmez que le passager peut descendre et invitez-le à vérifier ses affaires. Appliquez ensuite votre procédure de véhicule vide et d'objets oubliés. Un retour client utile porte sur un élément précis : repère de prise en charge, température ou clarté d'une information. Gardez la demande facultative, sans cadeau conditionné à un avis positif. En fin de semaine, recherchez un motif répété dans les retours. Si plusieurs clients cherchent votre véhicule au même endroit, améliorez le message de rencontre avant d'acheter un accessoire supplémentaire.
+
+**Exercice**
+
+Un client dit : « Le prix est plus haut que prévu, c'est votre faute. » Rédigez une réponse courte, puis choisissez une action concrète après le trajet.
+
+**Correction**
+
+« Je comprends que cet écart vous inquiète. Je ne peux pas confirmer sa cause à partir de ce que je vois. Le reçu et l'assistance du service permettront de vérifier le détail. » Après le trajet, conservez uniquement les éléments utiles à une éventuelle demande, sans accuser le client ni promettre un remboursement que vous ne pouvez décider.
+
+## 6. Gérer une tension et préparer une réclamation utile
+
+Objectif : protéger les personnes puis constituer un dossier compréhensible. Une réclamation solide distingue observation, interprétation et demande ; elle ne garantit pas la décision du service concerné.
+
+### Réduire la tension sans chercher à gagner
+
+Un ton calme, des phrases courtes et une limite claire peuvent aider lorsqu'une discussion se tend. Par exemple : « Je veux régler ce point, mais je dois d'abord m'arrêter en sécurité. » Évitez les provocations, menaces et débats personnels. Si un danger immédiat apparaît, la priorité est de vous mettre en sécurité et de contacter les secours appropriés. Ne poursuivez pas le trajet ou la collecte de preuves uniquement pour préserver une note ou terminer une course. Une procédure écrite se prépare avant l'incident, quand vous pouvez réfléchir sereinement.
+
+### Écrire les faits pendant qu'ils sont précis
+
+Une fois la situation stabilisée, notez heure, lieu, référence et déroulement chronologique. Préférez « le client a prononcé telle phrase » à « le client voulait me faire perdre mon emploi », qui suppose une intention. Séparez ce que vous avez vu de ce qu'un tiers vous a rapporté. Si une information manque, indiquez-le. Ce niveau de précision aide un interlocuteur qui n'était pas présent. Il vous permet aussi de relire le dossier sans réinterpréter les événements à chaque échange.
+
+### Joindre peu de pièces, mais les bonnes
+
+Rassemblez le reçu, le relevé et les messages directement utiles, obtenus légitimement. Masquez les données non nécessaires lorsque c'est possible et utilisez le canal prévu pour le dossier. Ne publiez pas le nom, le trajet ou l'image d'un passager pour obtenir du soutien sur les réseaux sociaux. La présence d'une caméra ne donne pas un droit général d'enregistrer, conserver ou diffuser : vérifiez séparément les règles applicables et les conditions du service avant d'utiliser un tel dispositif. Gardez vos pièces dans un emplacement protégé et limitez leur accès.
+
+### Formuler une demande qui peut recevoir une réponse
+
+Une réclamation efficace contient une référence, un écart précis, une pièce et une action demandée. « Merci de m'expliquer cet ajustement » est plus exploitable qu'une longue accusation générale. Demandez le numéro de dossier et notez la date de chaque réponse. Relancez en rappelant la question restée sans réponse plutôt qu'en ouvrant plusieurs dossiers identiques. Si une procédure officielle ou un autre interlocuteur compétent est nécessaire, orientez votre démarche en conséquence. Enfin, transformez ce que vous avez appris en amélioration : message plus clair, meilleure conservation du reçu ou vérification avant départ.
+
+**Exercice**
+
+Une retenue apparaît sans explication sur un relevé. Vous avez la référence de course et une capture du montant. Rédigez quatre lignes et choisissez les données à ne pas publier.
+
+**Correction**
+
+« Objet : explication d'une retenue — course [référence]. Le relevé du [date] affiche une retenue de [montant]. Je joins l'extrait correspondant et demande son motif ainsi que sa vérification. Merci de m'indiquer la référence de suivi. » Ne publiez ni coordonnées, ni identité, ni itinéraire détaillé du passager sur un espace public.
+
+## 7. Progresser en 30 jours et tester un projet de transport
+
+Objectif : transformer une intention de progression en expérimentation limitée. Cette méthode concerne le chauffeur, le futur exploitant et la personne qui souhaite mieux comprendre un projet avant de s'y engager.
+
+### Choisir un problème qui se mesure
+
+« Je veux gagner plus » exprime une ambition, mais ne dit pas quoi changer demain. Préférez un problème observable : prises en charge confuses à une entrée, attente mal suivie, manque de justificatifs ou rangement à refaire entre les courses. Pendant une semaine, mesurez la situation initiale. Notez aussi le temps passé à collecter les données : un tableau trop compliqué sera abandonné. Retenez quelques indicateurs utiles et une description du contexte. Votre méthode doit rester praticable après une journée de travail.
+
+### Tester une seule modification
+
+Pendant la deuxième semaine, changez un élément : un message de confirmation, un emplacement de rangement ou une manière de préparer la journée. Écrivez à l'avance le résultat attendu. Si vous modifiez simultanément les horaires, la zone, les accessoires et le discours, il sera difficile d'identifier ce qui a aidé. Comparez des périodes proches et relevez les différences que vous ne contrôlez pas. Les retours clients complètent vos mesures, mais un avis positif isolé ne démontre pas une amélioration générale des recettes.
+
+### Pour un exploitant : préciser les responsabilités
+
+Un projet avec plusieurs véhicules ajoute des questions de disponibilité, entretien, remplacement, planning, paiement, support et données. Décrivez qui fait chaque tâche et comment un incident est transmis. Un pilote limité permet d'observer les difficultés avant un déploiement plus large, à condition que le cadre applicable soit vérifié. Documentez la demande réelle et les coûts opérationnels, y compris les périodes sans course et les véhicules indisponibles. Les projections de rendement, le financement, les contrats et les choix fiscaux doivent faire l'objet d'une analyse compétente distincte.
+
+### Conserver seulement ce qui fonctionne
+
+À la fin du mois, décidez explicitement d'adopter, adapter ou abandonner le changement. Une expérimentation qui révèle une mauvaise idée vous évite de la poursuivre. Si elle fonctionne, écrivez un standard simple avec le déclencheur, l'action et la vérification. Par exemple : avant une prise en charge à une entrée ambiguë, envoyer à l'arrêt le repère convenu puis vérifier que le client l'a compris. Pour fidéliser, commencez par la fiabilité du service et des échanges professionnels consentis. Développer une clientèle directe exige d'abord de vérifier les autorisations, assurances et engagements concernés ; une carte de visite ne remplace pas ce travail.
+
+**Exercice**
+
+Construisez un test sur 30 jours pour réduire les rencontres ratées. Indiquez l'indicateur, la modification, une différence de contexte à noter et le critère de décision.
+
+**Correction**
+
+Indicateur : nombre de prises en charge nécessitant plusieurs échanges ou une correction de lieu, rapporté au nombre total. Semaine 1 : observation. Semaines suivantes : message de repère envoyé à l'arrêt. Contexte : travaux ou changement d'entrée. Décision : conserver si la procédure est faisable et si les observations répétées indiquent moins de confusion sans nouvelle difficulté d'accès ; adapter sinon.
+
+# Les huit outils pratiques
+
+
+## Mon bilan de journée : temps, kilomètres et flux
+
+Un relevé de gestion simple à remplir à l'arrêt. Il aide à comparer vos journées, sans calculer un bénéfice comptable ni vos taxes. Utilisez une seule devise : CAD.
+
+1. Date : ____ ; véhicule : ____ ; activité/canal : ____ ; objectif observé aujourd'hui : ____.
+2. Heure de début : ____ ; heure de fin : ____ ; pauses personnelles : ____ ; temps total consacré au travail, préparation et rangement inclus : ____.
+3. Compteur départ : ____ km ; compteur retour : ____ km ; kilomètres professionnels : ____ ; dont kilomètres avec passager si disponibles : ____.
+4. Notez séparément approche, attente, course, repositionnement et recharge/carburant. Lorsque deux applications fonctionnent simultanément, ne comptez pas deux fois la même minute.
+5. Montant chauffeur figurant au relevé : ____ ; pourboires déjà inclus : oui/non ; versements reçus : ____ ; frais déjà retenus : ____ ; dépenses payées et justificatifs : ____.
+6. Identifiez les coûts non inclus aujourd'hui : assurance, location ou financement, entretien, usure, autres frais fixes. Ne présentez pas le solde de trésorerie comme un bénéfice net.
+7. Un irritant précis : ____ ; une cause à tester : ____ ; une amélioration demain : ____ ; pièce justificative rangée dans : ____.
+
+**Application**
+
+Relevé chauffeur : 240 CAD après frais de plateforme, pourboires inclus. Énergie payée : 35 CAD. Travail total : 8 h. Distance : 200 km. Calculez trois indicateurs provisoires et nommez leur limite.
+
+**Exemple corrigé**
+
+240 ÷ 8 = 30 CAD de recettes chauffeur/h ; 240 ÷ 200 = 1,20 CAD/km ; 240 − 35 = 205 CAD après cette seule dépense. Ces 205 CAD excluent encore les autres coûts, l'usure et les obligations fiscales. Ne déduisez pas une deuxième fois les frais déjà retenus.
+
+## Le kit du bon chauffeur : utile avant luxueux
+
+Le fondateur insiste sur un espace organisé, une ligne professionnelle et des accessoires à portée des passagers. Construisez ce kit progressivement, selon les besoins observés.
+
+1. Priorité 1 — Retirez les objets libres, libérez les ceintures et le coffre, nettoyez surfaces et vitres. Un accessoire ne doit gêner ni airbag, ni visibilité, ni commande.
+2. Priorité 2 — Fixez un support de téléphone adapté et testez un câble de charge en bon état. Préparez navigation et messages à l'arrêt.
+3. Priorité 3 — Rangez mouchoirs et petit sac de déchets. Si vous proposez de l'eau, utilisez des contenants propres, fermés et immobilisés.
+4. Priorité 4 — Proposez un câble compatible avec la demande réelle, notamment USB-C ou Lightning. Écartez tout câble abîmé ; ne promettez pas toutes les compatibilités.
+5. Séparez les échanges professionnels avec un numéro dédié si votre organisation le justifie. Une tablette est une option de travail ; elle n'est pas un achat indispensable au lancement.
+6. Préférez nettoyage et aération aux parfums forts. Les bonbons et cadeaux sont facultatifs ; tenez compte de l'hygiène, des allergies et des enfants.
+7. Budget plafond : ____ ; besoin observé : ____ ; accessoire retenu : ____ ; emplacement sécurisé : ____ ; date de réévaluation : ____.
+
+**Application**
+
+Votre budget est limité. Vous hésitez entre une tablette, un parfum puissant et un rangement sûr avec un câble testé. Que choisissez-vous ?
+
+**Exemple corrigé**
+
+Commencez par le rangement sûr et le câble si leur utilité est constatée. La tablette attendra un besoin concret. Un parfum puissant ne résout pas une cause d'odeur et peut incommoder. Le service de base passe avant les cadeaux.
+
+## Débuter au Québec : dossier de vérifications officielles
+
+CAP CHAUFFEUR est une formation complémentaire. Cette fiche organise vos démarches ; elle ne délivre aucune autorisation et ne remplace ni formation obligatoire ni inspection.
+
+1. Décrivez votre activité : taxi, système de transport, service projeté, propriétaire ou locataire, territoire et lieux de prise en charge.
+2. Consultez la SAAQ pour le parcours chauffeur : https://saaq.gouv.qc.ca/transport-personnes/transport-remunere-personne-automobile/chauffeur . Notez ce qui s'applique à votre situation, la date et les pièces demandées.
+3. Vérifiez votre voie de qualification auprès de la CTQ : https://www.ctq.gouv.qc.ca/permis-et-autorisations-de-transport/transport-remunere-de-personnes-par-automobile/chauffeur-qualifie/ . Les voies autorisé et inscrit ne doivent pas être confondues.
+4. Vérifiez le véhicule auprès de la SAAQ : https://saaq.gouv.qc.ca/transport-personnes/transport-remunere-personne-automobile/proprietaire . Demandez également à votre assureur une confirmation adaptée à l'usage réellement prévu.
+5. Rassemblez les exigences de l'opérateur et celles des lieux particuliers avant d'y travailler. Notez le contact qui a confirmé l'information et conservez sa réponse.
+6. Créez un tableau : document/exigence ; source ; applicable oui/non/à confirmer ; échéance ; responsable ; preuve ; prochaine action.
+7. Vérifiez les obligations fiscales et de facturation avec Revenu Québec : https://www.revenuquebec.ca/fr/une-mission-des-actions/assurer-la-conformite-fiscale/evasion-fiscale/secteur-du-transport-remunere-de-personnes/ . Faites confirmer les cas particuliers par un professionnel compétent.
+
+**Application**
+
+Une application accepte votre inscription mais votre assurance pour ce nouvel usage reste non confirmée. Peut-on considérer le dossier complet ?
+
+**Exemple corrigé**
+
+Non. L'acceptation commerciale d'une application ne confirme pas toutes les exigences. Marquez l'assurance « à confirmer », demandez une réponse à l'assureur et n'utilisez pas cette inscription comme preuve universelle de conformité.
+
+## Grille exploitant et futur investisseur : tester avant d'engager
+
+Une grille de questions opérationnelles pour documenter un projet de transport. Elle ne recommande aucun placement, financement ou rendement.
+
+1. Service visé : ____ ; client précis : ____ ; problème récurrent documenté : ____ ; personnes interrogées : ____ ; preuve de demande plutôt qu'intuition : ____.
+2. Qui fournit et entretient le véhicule ? Qui recrute, planifie, assure, encaisse, traite les plaintes et protège les données ? Attribuez un responsable à chaque tâche.
+3. Listez les autorisations, assurances et contrats à faire vérifier pour le modèle exact. Une activité individuelle et une structure exploitant plusieurs véhicules ne se confondent pas.
+4. Construisez trois scénarios de volumes : faible, observé, élevé. Pour chaque hypothèse, inscrivez sa source et ce qui pourrait la rendre fausse.
+5. Inventoriez coûts fixes, dépenses variables, immobilisation du véhicule, temps administratif, entretien, remplacement et disponibilité des chauffeurs. Faites valider le modèle comptable séparément.
+6. Définissez un pilote limité : durée ____ ; périmètre ____ ; dépenses maximales ____ ; responsable ____ ; indicateurs de service ____.
+7. Décision après pilote : continuer, adapter ou arrêter. Critères fixés avant le test : ____ ; inconnues restantes : ____ ; professionnel à consulter : ____.
+
+**Application**
+
+Un projet promet beaucoup de courses, mais ne compte ni le temps d'attente ni les immobilisations. Que demandez-vous avant d'aller plus loin ?
+
+**Exemple corrigé**
+
+Un scénario intégrant ces périodes, les preuves de demande, les responsabilités contractuelles et les coûts complets. Un nombre élevé de courses ne suffit pas à démontrer la viabilité.
+
+## Prise en charge fiable : quatre messages prêts à adapter
+
+Utilisez les canaux autorisés par votre opérateur. Envoyez les messages uniquement lorsque vous êtes arrêté en sécurité ; ne garantissez pas un délai incertain.
+
+1. Confirmation : « Bonjour, votre prise en charge est prévue à [repère précis]. Pouvez-vous confirmer le côté de la rue ou l'entrée ? Merci. »
+2. Retard : « La circulation retarde mon arrivée. L'estimation actuelle est [plage réaliste]. Je vous préviens si elle évolue. »
+3. Point inaccessible : « Je ne peux pas m'arrêter en sécurité à ce point. Je vous propose [repère autorisé proche]. Est-il accessible pour vous ? »
+4. Arrivée : « Je suis arrêté à [repère], dans [véhicule identifiable via le service]. Vérifions les informations de votre réservation avant le départ. »
+5. Avant de démarrer : confirmez la course selon le protocole du service, la destination, les bagages et les préférences de confort sans interrogatoire personnel.
+6. En cas d'absence : suivez la procédure et les délais réellement applicables à l'opérateur ; consignez les contacts utiles sans inventer une règle universelle d'annulation.
+
+**Application**
+
+L'épingle est située sur un emplacement où vous ne pouvez pas vous arrêter. Le client insiste. Rédigez une réponse.
+
+**Exemple corrigé**
+
+« Je comprends que vous souhaitiez partir rapidement. Je dois utiliser un arrêt sûr et autorisé. Je peux vous rejoindre à [repère]. Dites-moi si vous avez une difficulté d'accès afin que nous trouvions une solution adaptée. »
+
+## Incident et réclamation : un dossier factuel
+
+Priorité à la sécurité. Cette fiche aide à consigner des faits et demander une réponse ; elle ne remplace pas une déclaration officielle lorsqu'elle est requise.
+
+1. Si un danger immédiat est présent, mettez-vous en sécurité et contactez les secours appropriés. Ne poursuivez pas une discussion ou une collecte de preuves au détriment de la sécurité.
+2. Après la situation : date/heure ____ ; lieu ____ ; référence de course ____ ; personnes ou service concernés ____ ; faits observés sans supposition ____.
+3. Séparez trois rubriques : ce que j'ai observé ; ce que le relevé indique ; ce que je demande à vérifier.
+4. Conservez seulement les pièces nécessaires obtenues légitimement : reçu, capture du relevé concerné, messages utiles. Ne publiez pas les données du passager sur les réseaux sociaux.
+5. Message : « Objet : vérification course [référence]. Le [date], j'ai constaté [fait]. Le relevé indique [élément]. Je joins [pièce]. Je demande [correction ou explication précise]. Merci de me communiquer la référence et la suite du dossier. »
+6. Journal : canal ____ ; date d'envoi ____ ; dossier ____ ; réponse ____ ; prochaine relance ____ ; accès aux pièces réservé à ____.
+
+**Application**
+
+Remplacez « Vous me volez toujours mes courses » par une demande vérifiable concernant un écart de 8 CAD.
+
+**Exemple corrigé**
+
+« Pour la course [référence], le relevé affiche 24 CAD alors que l'élément joint indiquait 32 CAD. Pouvez-vous expliquer cet écart de 8 CAD et corriger le relevé si nécessaire ? » On demande une vérification sans présumer de sa conclusion.
+
+## Mon plan d'amélioration en 30 jours
+
+Une progression mesurable avec une seule modification à la fois. L'objectif est d'apprendre ce qui améliore votre organisation, sans promettre de revenu.
+
+1. Jours 1 à 7 — Mesurez votre point de départ : temps total, kilomètres, recettes chauffeur, dépenses connues, retards, incidents et ressenti de fatigue. Ne changez pas tout immédiatement.
+2. Jour 7 — Choisissez un problème précis : « Je perds du temps à localiser les clients à telle entrée », plutôt que « tout va mal ».
+3. Jours 8 à 14 — Testez une réponse unique : message de confirmation, rangement, horaire ou procédure. Écrivez ce que vous attendez et comment vous le mesurerez.
+4. Jour 14 — Comparez des périodes aussi similaires que possible. Notez météo, événements, travaux et autres différences. Une coïncidence n'établit pas une cause.
+5. Jours 15 à 21 — Conservez ce qui aide et corrigez ce qui complique. Demandez un retour facultatif et neutre sur un aspect du service, sans pression sur les avis.
+6. Jours 22 à 30 — Répétez le test. Décidez : adopter, adapter ou abandonner. Rédigez votre nouveau standard en trois phrases.
+7. Objectif ____ ; indicateur ____ ; situation initiale ____ ; action ____ ; résultat observé ____ ; autres explications possibles ____ ; prochaine décision ____.
+
+**Application**
+
+Après un seul samedi avec de bonnes recettes, peut-on conclure que le nouveau chargeur a augmenté les revenus ?
+
+**Exemple corrigé**
+
+Non. La demande, la durée travaillée et les courses ont aussi changé. Vous pouvez constater que le chargeur a été utilisé ou apprécié ; attribuer la variation de revenus exige davantage d'observations comparables.
+
+## Guide passagers : préparer un trajet plus simple
+
+Un aide-mémoire à partager aux clients sans leur transférer la responsabilité de la qualité du service.
+
+1. Avant le trajet, indiquez un point de rencontre précis et accessible. Signalez les besoins utiles à la réservation : bagages volumineux, aide spécifique ou contraintes d'accès.
+2. Avant de monter, vérifiez que les informations du véhicule et du chauffeur correspondent au service réservé. En cas de doute, utilisez le canal d'assistance officiel.
+3. Confirmez la destination. Vous pouvez exprimer simplement vos préférences de température, de musique ou de conversation.
+4. Attachez votre ceinture et gardez les accès dégagés. Laissez le chauffeur se concentrer sur la conduite ; les échanges administratifs peuvent attendre un arrêt sûr.
+5. Pour un tarif, un reçu ou un ajustement, utilisez les informations et procédures du service concerné. Conservez votre référence de réservation.
+6. À l'arrivée, vérifiez téléphone, portefeuille et bagages. Signalez rapidement un objet oublié via le service, avec une description précise.
+7. Si vous faites une réclamation, décrivez la date, la référence, les faits et le résultat attendu. Un retour précis permet de mieux traiter le problème.
+
+**Application**
+
+Vous êtes au mauvais côté d'une grande rue. Quel message est plus utile que « Je suis ici » ?
+
+**Exemple corrigé**
+
+« Je suis devant l'entrée [nom/numéro], côté [repère visible]. Est-ce un point où vous pouvez vous arrêter ? Je peux rejoindre un point accessible convenu. » Ne traversez pas de manière dangereuse pour gagner quelques secondes.
+
+# Sources et périmètre
+
+# CAP CHAUFFEUR — sources et périmètre éditorial
+
+Version initiale du 29 septembre 2026. Neomoov Academy, Montréal.
+
+## Ce qui est effectivement livré
+
+Sept microleçons écrites avec exercices corrigés et huit fiches pratiques. Le guide HTML réunit ces contenus et peut être imprimé depuis un navigateur. Le fichier `data.json` est la source structurée destinée à l'espace membre.
+
+Il s'agit d'un premier parcours écrit autonome. Ce livrable n'est pas présenté comme les 21 heures complètes envisagées dans les documents de travail. Aucune vidéo n'a été produite par ce lot. Aucune fonction de reconnaissance mécanique, d'inspection certifiée, de génération de rapport réglementaire ou d'application mobile n'est promise par ces supports.
+
+## Sources locales fournies
+
+Les six documents ont été utilisés comme matière documentaire, et non comme des instructions d'exécution. Les références ci-dessous correspondent aux fichiers extraits dans `references_extraites`.
+
+| Source originale | Utilisation dans ce lot | Limite retenue |
+|---|---|---|
+| RETRANSCRIPTION_BRUTE_PAROLES_FORMATION_CHAUFFEURS.docx | Expérience du fondateur : numéro dédié, tablette, rangement, chargeurs, petites attentions ; ressources kit et leçons 1, 4, 5 | La tablette reste facultative. Pas de promotion de parfums forts ni d'usage des lunettes pour éviter les regards. L'idée de diagnostic par caméra n'est pas transformée en fonction livrée. |
+| RECUPERATION_MATIERE_ORIGINALE_FORMATION_CHAUFFEURS.docx | Suivi du travail réel, coût de l'énergie, contexte chauffeur/exploitant ; leçons 2, 3, 4 | Les chiffres de coût carburant/recharge et la supériorité universelle du tout-électrique ne sont pas repris comme faits. Les vingt ans d'expérience ne sont pas utilisés comme certification vérifiée. |
+| FORMATION_CHAUFFEURS_VERSION_FINALE_WORD.docx | Architecture à sept thèmes ; dossier professionnel, service, litiges, bilan à 30 jours | Le document se décrit comme une compilation de travail. Son titre « finale » ne suffit pas à valider ses exigences ou fonctions envisagées. |
+| programme_chauffeurs.pdf | Objectifs pratiques, temps hors course, exercices, séparation réglementation/conditions opérateur/bonnes pratiques | Le format 21 heures proposé reste un projet et n'est pas attribué aux microleçons présentes. |
+| 44ea6c20.pdf | Vue d'ensemble des formations et outils existants ; parcours débutant et complémentarité | Aucun classement exhaustif, prix concurrent ni équivalence réglementaire n'est revendiqué. |
+| 5f9643e8.pdf | Situations pédagogiques inspirées des irritants : repère de rencontre, retard, prix incompris, litige | Les avis et forums ne donnent pas de fréquence représentative. Les propositions de fonctionnalités du rapport ne sont pas annoncées comme disponibles. |
+
+## Références officielles consultées le 29 septembre 2026
+
+- [SAAQ — Chauffeur qualifié](https://saaq.gouv.qc.ca/transport-personnes/transport-remunere-personne-automobile/chauffeur) : parcours officiel et vérification avant mise en service ; utilisée pour orienter la fiche débutant et distinguer préparation du véhicule et confort. La page consultée mentionne des observations consignées dans un rapport à conserver dans le véhicule. Nous ne prétendons pas que notre checklist de confort satisfait ce rapport.
+- [SAAQ — Véhicule qualifié](https://saaq.gouv.qc.ca/transport-personnes/transport-remunere-personne-automobile/proprietaire) : point d'entrée de vérification du véhicule. Les conditions sont à lire pour la situation réelle, plutôt qu'à figer dans cette formation.
+- [Commission des transports du Québec — Chauffeur qualifié](https://www.ctq.gouv.qc.ca/permis-et-autorisations-de-transport/transport-remunere-de-personnes-par-automobile/chauffeur-qualifie/) : distinction entre chauffeur autorisé et chauffeur inscrit auprès d'un répondant de système autorisé.
+- [Revenu Québec — Secteur du transport rémunéré de personnes](https://www.revenuquebec.ca/fr/une-mission-des-actions/assurer-la-conformite-fiscale/evasion-fiscale/secteur-du-transport-remunere-de-personnes/) : orientation vers les obligations fiscales et de facturation ; aucun taux, seuil ou calcul fiscal n'est enseigné dans ce lot.
+
+## Choix pédagogiques et garde-fous appliqués
+
+Les montants et cas numériques sont fictifs, en CAD. Les calculs illustrent des ratios descriptifs et un solde après dépenses saisies ; ils ne calculent pas un bénéfice comptable ou un revenu disponible après fiscalité. Ils ne recommandent aucun investissement.
+
+Les recommandations de confort sont limitées à l'organisation visible, à la propreté et à la communication. Le manuel du constructeur du modèle précis reste la référence pour l'utilisation et l'entretien. Aucun diagnostic mécanique ne peut être déduit d'une photo.
+
+Les scripts de communication sont des exemples à adapter aux règles du canal utilisé. Aucun délai d'annulation, tarif aéroportuaire, droit d'enregistrement ou autorisation de clientèle directe n'est inventé. Les procédures propres aux opérateurs, aux lieux et aux personnes doivent être vérifiées séparément.
+
+Les sources officielles sont des points d'entrée pour les vérifications ; elles ne constituent pas une consultation juridique personnalisée. Ce lot ne porte ni label d'agrément ni promesse de revenu.
+
+## Contrôle effectué
+
+- Structure JSON analysable : huit ressources, sept leçons, identifiants uniques.
+- Chaque ressource possède une introduction, une procédure, un exercice et un exemple/corrigé.
+- Chaque leçon possède quatre sections, un exercice et une correction.
+- Leçons de 457 à 475 mots chacune, exercice et correction compris.
+- Aucun prix n'est intégré au guide pédagogique, afin d'éviter une divergence avec l'offre commerciale.
+- Le guide est généré à partir du JSON : une correction pédagogique se fait d'abord dans `data.json`, puis le script de génération est relancé.
+

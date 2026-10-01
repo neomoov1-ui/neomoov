@@ -1,0 +1,6 @@
+.env
+*.env
+node_modules/
+livraison/wordpress/neomoov-academy-ready.php
+livraison/wordpress/neomoov-academy.code-snippets.json
+livraison/wordpress/brevo-templates-data.json
