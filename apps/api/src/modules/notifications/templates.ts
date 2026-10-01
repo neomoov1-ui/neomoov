@@ -338,6 +338,16 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Agent IA en mode manuel', body: (d) => `Plafond quotidien de dépense atteint : l'agent ${str(d['agentCode'])} passe en mode manuel.` },
     en: { title: 'AI agent switched to manual', body: (d) => `Daily spending cap reached: agent ${str(d['agentCode'])} is now in manual mode.` },
   },
+  // My Hub côté organisation (étape 21) : invitation d'un membre (texto ou courriel, lien à usage unique) et demande
+  // d'accès du support de la plateforme, envoyée aux propriétaires du compte.
+  'organization.invitation': {
+    fr: { title: (d) => `Invitation à rejoindre ${str(d['organizationName']) || 'une organisation'}`, body: (d, l) => `Vous êtes invité à rejoindre ${str(d['organizationName']) || 'une organisation'} sur Neomoov${d['roleName'] ? ` comme ${str(d['roleName'])}` : ''}. Acceptez avec ce lien, valable jusqu'au ${when(d['expiresAt'], l)} : ${str(d['url'])}` },
+    en: { title: (d) => `Invitation to join ${str(d['organizationName']) || 'an organization'}`, body: (d, l) => `You are invited to join ${str(d['organizationName']) || 'an organization'} on Neomoov${d['roleName'] ? ` as ${str(d['roleName'])}` : ''}. Accept with this link, valid until ${when(d['expiresAt'], l)}: ${str(d['url'])}` },
+  },
+  'organization.support_access_requested': {
+    fr: { title: 'Demande d\'accès du support Neomoov', body: (d) => `Le support Neomoov demande un accès de ${str(d['durationMinutes'])} minutes à ${str(d['organizationName']) || 'votre organisation'} (motif : ${str(d['reason'])}). Approuvez ou refusez dans My Hub, menu Accès du support.` },
+    en: { title: 'Neomoov support access request', body: (d) => `Neomoov support requests ${str(d['durationMinutes'])} minutes of access to ${str(d['organizationName']) || 'your organization'} (reason: ${str(d['reason'])}). Approve or deny in My Hub, Support access menu.` },
+  },
 };
 
 const GENERIC: Template = {

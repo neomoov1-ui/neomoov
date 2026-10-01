@@ -20,7 +20,7 @@ import { AdminDirectoryService } from '../admin/admin-directory.service.js';
 import { AdminDriversService } from '../admin/admin-drivers.service.js';
 import { AdminOverviewService } from '../admin/admin-overview.service.js';
 import { auditPageSchema, auditQuerySchema, AuditService } from '../audit/audit.service.js';
-import { Authenticated, Can, CurrentOrgScope, CurrentUser, OrgScoped, type OrgScope, type UserActor } from '../auth/actor.js';
+import { Authenticated, Can, CurrentOrgScope, CurrentUser, OrgScoped, ReqCtx, type OrgScope, type RequestContext, type UserActor } from '../auth/actor.js';
 import { RidesService } from '../rides/rides.service.js';
 import { OrganizationsService } from './organizations.service.js';
 
@@ -47,8 +47,8 @@ export class OrgController {
   @ApiOperation({ summary: 'Fiche de l\'organisation, permissions effectives de l\'appelant et modules actifs (tout membre qui détient au moins une permission)' })
   @ZodResponse(200, organizationHomeSchema)
   @ApiErrors(401, 403, 404, 429)
-  home(@CurrentOrgScope() scope: OrgScope) {
-    return this.orgs.home(scope);
+  home(@CurrentOrgScope() scope: OrgScope, @CurrentUser() user: UserActor) {
+    return this.orgs.home(scope, user);
   }
 
   // --- Chauffeurs et véhicules ---
@@ -129,12 +129,12 @@ export class OrgController {
   @Post('invitations')
   @Can('members.invite')
   @HttpCode(201)
-  @ApiOperation({ summary: 'Invitation dans l\'organisation (rôle système ou rôle personnalisé de l\'organisation, permissions que vous détenez ici) ; le jeton n\'est montré qu\'une fois' })
+  @ApiOperation({ summary: 'Invitation dans l\'organisation (rôle système ou rôle personnalisé de l\'organisation, permissions que vous détenez ici) ; le lien part par texto ou courriel, le jeton n\'est jamais rendu (sauf réglage de développement)' })
   @ZodBody(invitationCreateSchema)
   @ZodResponse(201, invitationCreatedSchema)
   @ApiErrors(400, 401, 403, 404, 429)
-  invite(@Body(zodPipe(invitationCreateSchema)) body: z.infer<typeof invitationCreateSchema>, @CurrentUser() user: UserActor, @CurrentOrgScope() scope: OrgScope) {
-    return this.orgs.invite(scope.organizationId, body, user, scope);
+  invite(@Body(zodPipe(invitationCreateSchema)) body: z.infer<typeof invitationCreateSchema>, @CurrentUser() user: UserActor, @CurrentOrgScope() scope: OrgScope, @ReqCtx() ctx: RequestContext) {
+    return this.orgs.invite(scope.organizationId, body, user, scope, new Date(), ctx.language);
   }
 
   @Patch('memberships/:id')

@@ -128,11 +128,12 @@ export const settings = pgTable('settings', {
 /**
  * Personnel de My Hub (rôles admin, operator, finance, readonly) : mot de passe argon2id et second facteur TOTP
  * (secret chiffré avec ENCRYPTION_KEY), codes de secours hachés, verrouillage progressif. Clients et chauffeurs n'ont
- * jamais de mot de passe (prompt 03).
+ * jamais de mot de passe (prompt 03). Étape 21 : un membre d'une organisation cliente, connecté par code SMS, y inscrit
+ * aussi son second facteur TOTP (mot de passe nul : il ne peut jamais ouvrir de session du personnel).
  */
 export const staffCredentials = pgTable('staff_credentials', {
   userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }),
   totpSecretEncrypted: varchar('totp_secret_encrypted', { length: 255 }),
   /** Secret en cours d'inscription, confirmé par un premier code valide. */
   totpPendingSecretEncrypted: varchar('totp_pending_secret_encrypted', { length: 255 }),

@@ -13,6 +13,11 @@ export interface OrgScopeContext {
   path: string;
   /** Exécuteur Drizzle de la transaction restreinte (typé par le fournisseur de base). */
   tx: unknown;
+  /**
+   * Étape 21 : traitements à lancer après la validation de la transaction restreinte la plus externe (avis, événements),
+   * partagés par les transactions imbriquées. Absent d'un contexte posé à la main (tests).
+   */
+  afterCommit?: Array<() => unknown>;
 }
 
 export const orgScopeStorage = new AsyncLocalStorage<OrgScopeContext>();
@@ -20,6 +25,21 @@ export const orgScopeStorage = new AsyncLocalStorage<OrgScopeContext>();
 /** Contexte d'organisation de la requête ou de la tâche en cours, ou `null` pour la plateforme. */
 export function currentOrgScope(): OrgScopeContext | null {
   return orgScopeStorage.getStore() ?? null;
+}
+
+/**
+ * Étape 21 : un traitement qui écrit hors de la transaction restreinte (avis mis en file, événement de domaine) ne doit
+ * ni hériter de cette transaction (close avant qu'il finisse) ni partir si elle est annulée. Hors contexte d'organisation,
+ * il s'exécute tout de suite ; dans une transaction restreinte, après sa validation, hors du contexte (pool de la
+ * plateforme), avant la réponse ; jamais après une annulation.
+ */
+export async function afterScopeCommit(fn: () => unknown): Promise<void> {
+  const scope = currentOrgScope();
+  if (scope?.afterCommit) {
+    scope.afterCommit.push(fn);
+    return;
+  }
+  await fn();
 }
 
 /** Identifiant d'organisation porté par un chemin matérialisé (`/a/b/` donne `b`). */

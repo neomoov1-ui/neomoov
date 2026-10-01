@@ -25,9 +25,13 @@ export class AccessService {
 
   constructor(@Inject(DB) private readonly database: Database) {}
 
-  /** Permissions sur les routes de la plateforme : anciens rôles et adhésions actives à l'organisation racine. */
+  /**
+   * Permissions sur les routes de la plateforme : anciens rôles et adhésions actives à l'organisation racine. Étape 21 :
+   * une permission sensible de la plateforme exige la double authentification du personnel (mot de passe et TOTP) ; le
+   * second facteur d'un membre d'organisation (code SMS et TOTP) ne l'ouvre pas.
+   */
   async platformPermissions(actor: UserActor, now = new Date()): Promise<Set<Permission>> {
-    const mfa = actor.amr.includes('mfa');
+    const mfa = actor.amr.includes('mfa') && actor.amr.includes('pwd');
     const key = `${actor.userId}:${[...actor.roles].sort().join(',')}:${mfa ? 'mfa' : ''}`;
     const hit = this.cache.get(key);
     if (hit && now.getTime() - hit.at < TTL_MS) return hit.permissions;
@@ -86,6 +90,26 @@ export class AccessService {
     const permissions = effectivePermissions([], [...byMembership.values()], now);
     this.cache.set(key, { at: now.getTime(), permissions });
     return permissions;
+  }
+
+  /**
+   * Étape 21 : permissions sensibles que les rôles de l'utilisateur lui donnent dans l'organisation cible mais qui
+   * n'agissent qu'après la double authentification (vide si la session l'a déjà). My Hub propose alors l'inscription ou
+   * la vérification du second facteur.
+   */
+  async mfaPermissionsIn(actor: UserActor, targetPath: string, now = new Date()): Promise<Permission[]> {
+    if (actor.amr.includes('mfa')) return [];
+    const [current, withMfa] = await Promise.all([this.permissionsIn(actor, targetPath, now), this.permissionsIn({ ...actor, amr: [...actor.amr, 'mfa'] }, targetPath, now)]);
+    return [...withMfa].filter((code) => !current.has(code)).sort();
+  }
+
+  /** Modules actifs d'une organisation (`organization_features`) ; `null` : aucune restriction. */
+  async modulesOf(organizationId: string): Promise<string[] | null> {
+    const features = await this.database.db
+      .select({ module: schema.organizationFeatures.module, enabled: schema.organizationFeatures.enabled })
+      .from(schema.organizationFeatures)
+      .where(eq(schema.organizationFeatures.organizationId, organizationId));
+    return features.length ? features.filter((f) => f.enabled).map((f) => f.module) : null;
   }
 
   /**

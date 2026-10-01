@@ -98,6 +98,7 @@ export const PERMISSIONS = {
   'settings.edit': p('platform', 'Modifier un réglage', { sensitive: true, platformOnly: true }),
   'staff.manage': p('platform', 'Comptes du personnel de la plateforme', { sensitive: true, platformOnly: true }),
   'api_keys.manage': p('platform', 'Clés de service', { sensitive: true, platformOnly: true }),
+  'support.access': p('platform', 'Accès temporaire du support à une organisation cliente, approuvé par elle et journalisé', { sensitive: true, platformOnly: true }),
   'organizations.read': p('organization', 'Organisation et sous-organisations'),
   'organizations.manage': p('organization', 'Créer et modifier des sous-organisations'),
   'members.read': p('organization', 'Membres de l\'organisation'),

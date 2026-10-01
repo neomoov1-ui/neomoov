@@ -10,7 +10,7 @@ import { inScope, type MembershipScope } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
-import { organizationIdOfPath, orgScopeStorage } from '../../common/org-scope.context.js';
+import { currentOrgScope, organizationIdOfPath, orgScopeStorage } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
 
 export type ScopedExecutor = Parameters<Parameters<Database['db']['transaction']>[0]>[0];
@@ -25,14 +25,23 @@ export class OrgScopeService {
    * Exécute `fn` dans une transaction restreinte au sous-arbre `orgPath`. Pendant `fn`, `database.db` de tous les services
    * désigne cette transaction (contexte propagé par AsyncLocalStorage) : les politiques d'isolation s'appliquent à chaque
    * lecture et écriture, et le journal d'audit porte l'organisation. Réentrant : un appel imbriqué ouvre un point de sauvegarde.
+   * Étape 21 : les traitements confiés à `afterScopeCommit` pendant `fn` partent après la validation de la transaction la
+   * plus externe, hors du contexte (pool de la plateforme) ; une annulation les abandonne.
    */
   async run<T>(orgPath: string, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
     if (!PATH.test(orgPath)) throw new AppError('INVALID_ORGANIZATION_SCOPE', 'Portée d\'organisation invalide', 500);
-    return this.database.db.transaction(async (tx) => {
+    const outer = currentOrgScope();
+    const afterCommit = outer?.afterCommit ?? [];
+    const result = await this.database.db.transaction(async (tx) => {
       await tx.execute(sql`SET LOCAL ROLE neomoov_scoped`);
       await tx.execute(sql`SELECT set_config('app.scope_path', ${orgPath}, true)`);
-      return orgScopeStorage.run({ organizationId: organizationIdOfPath(orgPath), path: orgPath, tx }, () => fn(tx));
+      return orgScopeStorage.run({ organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, afterCommit }, () => fn(tx));
     });
+    if (!outer) {
+      // Chaque traitement gère ses propres erreurs (file des avis) ; un échec n'annule pas ce qui est déjà validé.
+      for (const hook of afterCommit.splice(0)) await orgScopeStorage.exit(async () => hook()).catch(() => undefined);
+    }
+    return result;
   }
 
   /** Comme `run`, pour une organisation désignée par son identifiant (404 si elle n'existe pas). */

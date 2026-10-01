@@ -26,7 +26,8 @@ export interface AccessClaims {
   amr: string[];
 }
 
-export type TransientPurpose = 'mfa_verify' | 'mfa_enroll' | 'link';
+/** Étape 21 : `member_mfa_*` pour le second facteur d'un membre d'organisation connecté par code SMS (jamais accepté par les routes du personnel). */
+export type TransientPurpose = 'mfa_verify' | 'mfa_enroll' | 'link' | 'member_mfa_verify' | 'member_mfa_enroll';
 
 export interface SessionInput {
   userId: string;

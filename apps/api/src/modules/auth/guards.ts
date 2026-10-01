@@ -14,7 +14,9 @@ import { AppError } from '../../common/app-error.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { AuditService } from '../audit/audit.service.js';
 import { OrgScopeService } from '../organizations/org-scope.service.js';
+import { SupportAccessService, type ActiveSupportAccess } from '../organizations/support-access.service.js';
 import { AUTHENTICATED_KEY, CAN_KEY, ORG_SCOPED_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, isStaffRole, hasStaffRole, requestContext, type Actor, type OrgScopedOptions, type OwnsOptions, type UserActor } from './actor.js';
 import { AccessService } from './access.service.js';
 import { ApiKeysService, isApiKey } from './api-keys.service.js';
@@ -213,6 +215,10 @@ export class OwnershipGuard implements CanActivate {
  * paramètre de route (ou de l'en-tête `X-Organization-Id`) ; une adhésion active doit la couvrir (`OrgScopeService.scopeFor`) ;
  * `@Can` est vérifié avec les permissions de l'appelant dans cette organisation (jamais ses anciens rôles) ; puis
  * `req.orgScope` est posé pour l'intercepteur (transaction restreinte) et les contrôleurs.
+ * Étape 21 : seule exception à l'adhésion, l'accès temporaire du support (`support_access_grants`), approuvé par
+ * l'organisation et en cours, pour un membre du personnel qui détient `support.access` ; chaque requête ainsi admise est
+ * journalisée dans le journal de l'organisation avec le motif. Une permission refusée faute de double authentification
+ * porte `mfaRequired` dans le détail (My Hub propose alors le second facteur).
  */
 @Injectable()
 export class OrgScopeGuard implements CanActivate {
@@ -220,6 +226,8 @@ export class OrgScopeGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly orgScope: OrgScopeService,
     private readonly access: AccessService,
+    private readonly support: SupportAccessService,
+    private readonly audit: AuditService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -234,13 +242,33 @@ export class OrgScopeGuard implements CanActivate {
     const organizationId = OrgScopeGuard.organizationIdOf(req, options);
     if (!organizationId) throw new AppError('ORGANIZATION_REQUIRED', 'Organisation requise (paramètre de route ou en-tête X-Organization-Id)', 400);
     if (!UUID.test(organizationId)) throw AppError.notFound('ORGANIZATION_NOT_FOUND', 'Organisation introuvable');
-    const scope = await this.orgScope.scopeFor(actor.userId, organizationId);
+    let scope: { path: string; organizationId: string };
+    let support: ActiveSupportAccess | null = null;
+    try {
+      scope = await this.orgScope.scopeFor(actor.userId, organizationId);
+    } catch (error) {
+      if (!(error instanceof AppError) || error.code !== 'NOT_A_MEMBER') throw error;
+      support = await this.support.activeFor(actor, organizationId);
+      if (!support) throw error;
+      scope = { path: support.path, organizationId };
+    }
     const can = this.reflector.getAllAndOverride<Permission[]>(CAN_KEY, targets) ?? [];
     if (!can.length) throw AppError.forbidden('NO_POLICY', 'Route d\'organisation sans permission (refus par défaut)');
-    const permissions = await this.access.permissionsIn(actor, scope.path);
+    const permissions = support ? support.permissions : await this.access.permissionsIn(actor, scope.path);
     // Même code d'erreur que la plateforme ; la permission manquante est donnée en détail.
-    if (!hasAnyPermission(permissions, can)) throw AppError.forbidden('FORBIDDEN_ROLE', 'Votre rôle ne permet pas cette action', { required: can });
-    req.orgScope = { organizationId: scope.organizationId, path: scope.path, permissions };
+    if (!hasAnyPermission(permissions, can)) {
+      const mfaRequired = !support && (await this.access.mfaPermissionsIn(actor, scope.path)).some((code) => can.includes(code));
+      throw AppError.forbidden('FORBIDDEN_ROLE', 'Votre rôle ne permet pas cette action', { required: can, ...(mfaRequired ? { mfaRequired: true } : {}) });
+    }
+    req.orgScope = { organizationId: scope.organizationId, path: scope.path, permissions, ...(support ? { support: { grantId: support.grantId, reason: support.reason, endsAt: support.endsAt } } : {}) };
+    if (support) {
+      const ctx = requestContext(req);
+      const route = (req.route as { path?: string } | undefined)?.path ?? req.path;
+      await this.audit.write(
+        [{ action: 'support_access.used', entity: 'support_access_grants', entityId: support.grantId, after: { reason: support.reason, method: req.method, route, endsAt: support.endsAt } }],
+        { actor, ip: ctx.ip, correlationId: ctx.correlationId, organizationId: scope.organizationId },
+      );
+    }
     return true;
   }
 

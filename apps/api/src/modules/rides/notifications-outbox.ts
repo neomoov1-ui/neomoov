@@ -20,6 +20,8 @@ export interface OutboxMessage {
   template: string;
   language?: Language;
   data?: Record<string, unknown>;
+  /** Étape 21 : organisation au nom de laquelle l'avis part (invitation, accès du support) ; nulle pour la plateforme. */
+  organizationId?: string | null;
 }
 
 @Injectable()
@@ -45,6 +47,7 @@ export class NotificationsOutbox {
           template: m.template,
           language: m.language ?? 'fr',
           data: m.data ?? {},
+          organizationId: m.organizationId ?? null,
         })),
       ).returning({ id: schema.notifications.id, template: schema.notifications.template });
       this.events.emit('notification.queued', { ids: rows.map((r) => r.id), templates: rows.map((r) => r.template) });

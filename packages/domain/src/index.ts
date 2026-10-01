@@ -35,3 +35,5 @@ export * from './schemas/index.js';
 // Facturation certifiée (étape 9) : contenu des factures et schémas propres.
 export * from './invoicing/invoice.js';
 export * from './schemas/invoicing.js';
+// Étape 21 : accès temporaire du support, règle du dernier propriétaire.
+export * from './access/support-access.js';
