@@ -109,7 +109,7 @@ Migration 0022 : colonne `provider` (`stripe`, `square`, `mock`) sur `client_pay
 | idem, `CANCELED` | `payment_intent.canceled` | Autorisation levée |
 | idem, `FAILED` | `payment_intent.payment_failed` | Paiement en échec avec le code de Square |
 | `refund.created` / `refund.updated` | `refund.updated` | État du remboursement ; note de crédit quand il réussit |
-| `card.disabled` | `payment_method.detached` | Carte retirée |
+| `card.disabled`, `card.forgotten` | `payment_method.detached` | Carte retirée |
 | `dispute.created` | `charge.dispute.created` | Incident « litige » |
 
 Le point de réception du fournisseur inactif répond `404 WEBHOOK_PROVIDER_INACTIVE` (`/v1/webhooks/stripe` quand Square est actif, et inversement) ; le simulateur accepte les deux.

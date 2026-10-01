@@ -24,7 +24,7 @@ Contrôle sans afficher de valeur : `pnpm env:check` (section « Paiements (Squa
 
 1. Application Neomoov, « Webhooks », « Subscriptions », onglet Production, « Add subscription ».
 2. Nom : `Neomoov API`. Adresse : `https://api.neomoov.net/v1/webhooks/square`. Version d'API : la plus récente proposée.
-3. Événements : `payment.created`, `payment.updated`, `refund.created`, `refund.updated`, `card.disabled`, `dispute.created`.
+3. Événements : `payment.created`, `payment.updated`, `refund.created`, `refund.updated`, `card.disabled`, `card.forgotten`, `dispute.created`.
 4. Enregistrer, ouvrir l'abonnement, copier la « Signature key » dans `SQUARE_WEBHOOK_SIGNATURE_KEY` et l'adresse exacte dans `SQUARE_WEBHOOK_URL`.
 5. Redémarrer l'API (`redemarrer-un-service.md`), puis « Send test event » : la réponse doit être `200` (un événement de test inconnu est enregistré puis ignoré). Un `400 WEBHOOK_SIGNATURE_INVALID` veut dire que la clé ou l'adresse diffère d'un caractère (barre finale, `http` au lieu de `https`, autre domaine) : la signature de Square couvre l'adresse.
 

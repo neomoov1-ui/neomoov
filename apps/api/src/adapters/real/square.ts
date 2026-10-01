@@ -191,7 +191,8 @@ export function normalizeSquareEvent(event: SquareEvent): WebhookEvent {
       if (!refund?.id) return translated(event.type, object);
       return translated('refund.updated', { id: refund.id, status: refundStatusOf(refund.status), payment_intent: refund.payment_id ?? null, amount: money(refund.amount_money) });
     }
-    case 'card.disabled': {
+    case 'card.disabled':
+    case 'card.forgotten': {
       const card = object['card'] as SquareCard | undefined;
       return card?.id ? translated('payment_method.detached', { id: card.id }) : translated(event.type, object);
     }

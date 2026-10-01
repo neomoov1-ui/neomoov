@@ -232,6 +232,7 @@ describe('adaptateur Square réel (sans réseau)', () => {
       expect(of('refund.updated', { refund: { id: 'r', status: 'REJECTED' } })).toMatchObject({ data: { object: { status: 'failed' } } });
       expect(of('refund.created', { refund: { id: 'r', status: 'PENDING' } })).toMatchObject({ type: 'refund.updated', data: { object: { status: 'pending' } } });
       expect(of('card.disabled', { card: { id: 'ccof:1' } })).toMatchObject({ type: 'payment_method.detached', data: { object: { id: 'ccof:1' } } });
+      expect(of('card.forgotten', { card: { id: 'ccof:2' } })).toMatchObject({ type: 'payment_method.detached', data: { object: { id: 'ccof:2' } } });
       expect(of('dispute.created', { dispute: { id: 'd', reason: 'FRAUD', amount_money: { amount: 4_000 }, disputed_payment: { payment_id: 'p' } } })).toMatchObject({ type: 'charge.dispute.created', data: { object: { payment_intent: 'p', amount: 4_000 } } });
       expect(of('customer.created', { customer: { id: 'c' } })).toMatchObject({ type: 'customer.created' });
     });
