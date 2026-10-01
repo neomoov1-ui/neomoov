@@ -1,3 +1,4 @@
+import { useBrand } from '@neomoov/mobile-core/brand';
 import { Body, Button, Field } from '@neomoov/mobile-core/components';
 import { colors, spacing, typography } from '@neomoov/mobile-core/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,8 @@ export default function VerifyScreen() {
   const params = useLocalSearchParams<{ phone: string; retryAfter?: string }>();
   const phone = params.phone ?? '';
   const config = useAppConfig();
+  // Conditions et politique de la marque affichée (organisation rattachée, sinon Neomoov ; étape 22).
+  const { brand } = useBrand();
   const [code, setCode] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);

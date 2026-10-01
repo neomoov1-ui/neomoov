@@ -1,4 +1,4 @@
-import { colors } from '@neomoov/mobile-core/theme';
+import { BrandProvider, useBrandColors } from '@neomoov/mobile-core/brand';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { getLocales } from 'expo-localization';
 import { router, Stack } from 'expo-router';
@@ -14,16 +14,41 @@ import { api } from '@/lib/api';
 // La tâche de localisation doit être déclarée au chargement de l'application, avant tout démarrage par le système.
 import '@/lib/location';
 import { initObservability } from '@/lib/observability';
+import { usePendingJoin } from '@/lib/pending-join';
 import { usePreferences } from '@/lib/preferences';
 import { restorePresence } from '@/lib/presence';
 import { listenToNotificationTaps, registerForPush } from '@/lib/push';
-import { keys, queryClient } from '@/lib/queries';
+import { keys, queryClient, useAppConfig } from '@/lib/queries';
 import { useDriverRealtime } from '@/lib/realtime';
 import { useHasDriverRole, useSession } from '@/lib/session';
 
 // Suivi des erreurs (Sentry) : seulement si EXPO_PUBLIC_SENTRY_DSN est renseignée au build.
 initObservability();
 void SplashScreen.preventAutoHideAsync();
+
+/** Pile des écrans aux couleurs de la marque courante (fond) ; l'offre et la course gardent leurs réglages. */
+function ThemedStack() {
+  const colors = useBrandColors();
+  return (
+    <>
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.mist } }}>
+        <Stack.Screen name="offer/[id]" options={{ presentation: 'fullScreenModal', gestureEnabled: false, animation: 'fade' }} />
+        <Stack.Screen name="ride/[id]" options={{ gestureEnabled: false }} />
+      </Stack>
+    </>
+  );
+}
+
+/** Marque reçue par `GET /v1/config` (étape 22) : organisation rattachée, sinon Neomoov tant qu'elle n'est pas connue. */
+function BrandedStack() {
+  const config = useAppConfig();
+  return (
+    <BrandProvider brand={config.data?.brand ?? null}>
+      <ThemedStack />
+    </BrandProvider>
+  );
+}
 
 /**
  * Racine : session et réglages relus au démarrage, langue du compte ou de l'appareil, socket `/driver` une fois la
@@ -45,6 +70,15 @@ export default function RootLayout() {
     const wanted = userLanguage ?? (device === 'en' ? 'en' : 'fr');
     void i18n.changeLanguage(wanted === 'en' ? 'en' : 'fr-CA');
   }, [userLanguage]);
+
+  // Code de rattachement reçu par un lien avant la connexion (étape 22) : l'écran « Rejoindre » reprend avec le code.
+  useEffect(() => {
+    if (status !== 'signedIn') return;
+    const pendingCode = usePendingJoin.getState().code;
+    if (!pendingCode) return;
+    usePendingJoin.getState().set(null);
+    router.push({ pathname: '/join', params: { code: pendingCode } });
+  }, [status]);
 
   useEffect(() => {
     if (status !== 'loading') void SplashScreen.hideAsync();
@@ -74,11 +108,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <I18nextProvider i18n={i18n}>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.mist } }}>
-              <Stack.Screen name="offer/[id]" options={{ presentation: 'fullScreenModal', gestureEnabled: false, animation: 'fade' }} />
-              <Stack.Screen name="ride/[id]" options={{ gestureEnabled: false }} />
-            </Stack>
+            <BrandedStack />
           </I18nextProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
