@@ -14,7 +14,7 @@ import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
-import { Authenticated, Can, CurrentUser, Public, ReqCtx, type RequestContext, type UserActor } from '../auth/actor.js';
+import { Authenticated, Can, CurrentActor, CurrentUser, Public, ReqCtx, type Actor, type RequestContext, type UserActor } from '../auth/actor.js';
 import { BrandingService } from './branding.service.js';
 
 /** Cache en mémoire des marques publiques (60 s, comme l'en-tête Cache-Control), borné. */
@@ -35,12 +35,13 @@ export class PublicBrandController {
   @Get()
   @Public()
   @Header('Cache-Control', 'public, max-age=60')
-  @ApiOperation({ summary: 'Marque d\'une organisation par code de rattachement ou par domaine vérifié : thème des applications et du web, sans donnée personnelle (limité par adresse, cache 60 s)' })
+  @ApiOperation({ summary: 'Marque d\'une organisation par code de rattachement ou par domaine vérifié : thème des applications et du web, sans donnée personnelle (limité par adresse sauf pour une clé de service, cache 60 s)' })
   @ZodQuery(z.object({ code: joinCodeSchema.optional(), domain: domainSchema.optional() }))
   @ZodResponse(200, publicBrandSchema)
   @ApiErrors(400, 404, 429)
-  async get(@Query(zodPipe(publicBrandQuerySchema)) query: z.infer<typeof publicBrandQuerySchema>, @ReqCtx() ctx: RequestContext): Promise<PublicBrand> {
-    if (ctx.ip) {
+  async get(@Query(zodPipe(publicBrandQuerySchema)) query: z.infer<typeof publicBrandQuerySchema>, @ReqCtx() ctx: RequestContext, @CurrentActor() actor: Actor | undefined): Promise<PublicBrand> {
+    // Le serveur web (clé de service) relaie les marques de tous les domaines depuis une seule adresse : pas de limite par adresse.
+    if (ctx.ip && actor?.kind !== 'service') {
       const max = await this.settings.number('public.brand_per_ip_per_hour', 300);
       const result = await this.rateLimit.hit(`public:brand:${ctx.ip}`, max, 3600);
       if (!result.allowed) throw new AppError('RATE_LIMITED', 'Trop de demandes, réessayez plus tard', 429, { retryAfter: result.resetIn });

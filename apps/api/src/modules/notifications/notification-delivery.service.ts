@@ -109,8 +109,12 @@ export class NotificationDeliveryService {
       await this.finish(row.id, { error: 'no_marketing_consent' });
       return 'failed';
     }
-    const brand = await this.brandOf(row);
-    const rendered = renderNotification(row.template, data, row.language ?? recipient.language, { name: brand.displayName });
+    const language = row.language ?? recipient.language;
+    // Étape 22 : courriels et textos au nom de la marque de l'organisation ; push, WhatsApp (numéro de Neomoov) et avis
+    // dans l'application restent « Neomoov » (nom dans les notifications : règles 4.2.6 et 4.3 d'Apple).
+    const brand = row.channel === 'email' || row.channel === 'sms' || row.channel === 'push' ? await this.brandOf(row) : null;
+    const branded = brand ? renderNotification(row.template, data, language, { name: brand.displayName, support: brand.support }) : null;
+    const rendered = row.channel === 'email' || row.channel === 'sms' ? branded! : renderNotification(row.template, data, language);
     switch (row.channel) {
       case 'push': {
         let detail = 'no_device';
@@ -126,7 +130,8 @@ export class NotificationDeliveryService {
           detail = tickets[0]?.detail ?? 'push_refused';
         }
         if (needsSmsFallback(row.template, 'push', false) && recipient.phone) {
-          const { messageId } = await this.sms.send({ to: recipient.phone, body: `${brand.displayName} : ${rendered.body}` });
+          // Texto de secours : au nom de la marque, comme tout texto.
+          const { messageId } = await this.sms.send({ to: recipient.phone, body: `${brand!.displayName} : ${branded!.body}` });
           await this.finish(row.id, { sentAt: now, providerMessageId: messageId, data: { ...data, fallback: { channel: 'sms', reason: detail } } });
           return 'sent';
         }
@@ -136,7 +141,7 @@ export class NotificationDeliveryService {
       case 'sms': {
         const to = row.recipientAddress ?? recipient.phone;
         if (!to) return this.fail(row.id, 'no_phone');
-        const { messageId } = await this.sms.send({ to, body: `${brand.displayName} : ${rendered.body}` });
+        const { messageId } = await this.sms.send({ to, body: `${brand!.displayName} : ${rendered.body}` });
         await this.finish(row.id, { sentAt: now, providerMessageId: messageId });
         return 'sent';
       }
@@ -157,7 +162,7 @@ export class NotificationDeliveryService {
           return 'deferred';
         }
         const { messageId } = await this.email.send({
-          to, from: `${brand.emailSender.name} <${brand.emailSender.address}>`, subject: rendered.subject, html: rendered.html, text: rendered.body, idempotencyKey: `notification:${row.id}`,
+          to, from: await this.branding.emailFrom(brand!), subject: rendered.subject, html: rendered.html, text: rendered.body, idempotencyKey: `notification:${row.id}`,
           ...(attachment && attachment !== 'pending' ? { attachments: [attachment] } : {}),
         });
         await this.finish(row.id, { sentAt: now, providerMessageId: messageId });

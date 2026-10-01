@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useWebBrand } from '@/components/brand-context';
 import { LanguageSwitch } from '@/components/language-switch';
 import { Action, cx, focus } from '@/components/ui/kit';
 import { canWrite, logout } from '@/lib/hub-api';
@@ -28,6 +29,9 @@ export function HubShell({ user, language, children }: { user: HubUser; language
   const { t } = useTranslation();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  // Nom de la marque de l'hôte (étape 22) : My Hub sous le domaine vérifié d'une organisation porte son nom.
+  const brand = useWebBrand();
+  const brandName = brand.displayName === 'Neomoov' ? 'neomoov' : brand.displayName;
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || '';
   const admin = user.roles.includes('admin');
   const active = (href: string) => (href === '/hub' ? pathname === '/hub' : pathname === href || (pathname.startsWith(`${href}/`) && href !== '/hub/courses') || (href === '/hub/courses' && /^\/hub\/courses\/(?!nouvelle)/.test(pathname)));
@@ -37,12 +41,12 @@ export function HubShell({ user, language, children }: { user: HubUser; language
       <div className="min-h-screen lg:flex">
         <a href="#contenu" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:p-2">{t('hub.shell.skip')}</a>
         <div className="flex items-center justify-between bg-brand-night px-4 py-3 text-white lg:hidden">
-          <span className="font-heading text-lg font-bold">neomoov · My Hub</span>
+          <span className="font-heading text-lg font-bold">{brandName} · My Hub</span>
           <button type="button" aria-expanded={open} aria-controls="hub-nav" onClick={() => setOpen((v) => !v)} className={cx('rounded-md border border-white/40 px-3 py-1 text-sm', focus)}>{t('hub.shell.menu')}</button>
         </div>
         <aside id="hub-nav" className={cx('bg-brand-night text-white lg:sticky lg:top-0 lg:block lg:h-screen lg:w-60 lg:shrink-0 lg:overflow-y-auto', open ? 'block' : 'hidden')}>
           <div className="hidden px-4 py-5 lg:block">
-            <Link href="/hub" className={cx('font-heading text-xl font-bold', focus)}>neomoov</Link>
+            <Link href="/hub" className={cx('font-heading text-xl font-bold', focus)}>{brandName}</Link>
             <p className="text-xs text-slate-300">My Hub</p>
           </div>
           <nav aria-label={t('hub.shell.menu')} className="px-2 pb-6">

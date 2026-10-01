@@ -251,6 +251,9 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'legal.privacy_policy_version', value: '2026-09-01', description: 'Version de la politique de confidentialité en vigueur (5.15 : nouvelle version = nouvelle acceptation)' },
   { key: 'privacy.data_request_due_days', value: 30, description: 'Délai de réponse aux demandes de droits (Loi 25 : 30 jours)' },
   { key: 'privacy.export_link_ttl_days', value: 7, description: 'Validité du lien signé vers un export de données' },
+  // Étape 22 : marque par organisation.
+  { key: 'public.brand_per_ip_per_hour', value: 300, description: 'Marque publique (GET /v1/public/brand) : demandes par adresse IP et par heure (le serveur web, clé de service, n\'est pas limité)' },
+  { key: 'email.sender_domains', value: [], description: 'Domaines d\'envoi authentifiés chez le fournisseur de courriels (Resend) en plus de celui d\'EMAIL_FROM : seule une adresse d\'expéditeur de marque sur l\'un d\'eux est employée' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.

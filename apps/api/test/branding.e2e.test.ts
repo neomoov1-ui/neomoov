@@ -5,8 +5,9 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { and, eq, inArray } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { MockEmailProvider, MockSmsProvider } from '../src/adapters/mock/index.js';
-import { EMAIL_PROVIDER, SMS_PROVIDER } from '../src/adapters/types.js';
+import type { MockEmailProvider, MockPushProvider, MockSmsProvider } from '../src/adapters/mock/index.js';
+import { EMAIL_PROVIDER, PUSH_PROVIDER, SMS_PROVIDER } from '../src/adapters/types.js';
+import { SettingsService } from '../src/common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../src/config/env.js';
 import { AccessService } from '../src/modules/auth/access.service.js';
 import { parseSender } from '../src/modules/branding/branding.service.js';
@@ -221,8 +222,48 @@ describe('marque par organisation (intégration)', () => {
     expect(alpha.subject).toBe('Course terminée · Taxi Alpha');
     expect(alpha.html).toContain('Taxi Alpha, propulsé par Neomoov.');
     expect(alpha.html).toContain('voyagé avec Taxi Alpha');
+    // Coordonnées de l'assistance de la marque dans le pied du courriel.
+    expect(alpha.html).toContain('+15145550101');
+    expect(alpha.html).toContain('aide@taxi-alpha.test');
     await sentFor(users[1]!.tokens.user.id, 'email');
     expect(email.sent.at(-1)!.from).toBe(`Service Taxi Beta <${platformSender.address}>`);
+
+    // Adresse d'expéditeur de la marque : employée seulement si son domaine est authentifié (réglage email.sender_domains).
+    await request(server()).put(`/v1/admin/organizations/${orgs.B.id}/brand`).set(bearer(admin.tokens)).send({ emailSenderAddress: 'avis@taxi-beta.test' }).expect(200);
+    const resend = async () => {
+      await db(app!).delete(schema.notifications).where(and(eq(schema.notifications.recipientUserId, users[1]!.tokens.user.id), eq(schema.notifications.channel, 'email')));
+      await sentFor(users[1]!.tokens.user.id, 'email');
+      return email.sent.at(-1)!.from;
+    };
+    expect(await resend()).toBe(`Service Taxi Beta <${platformSender.address}>`);
+    const settings = app.get(SettingsService);
+    const [existing] = await db(app).select().from(schema.settings).where(and(eq(schema.settings.key, 'email.sender_domains'), eq(schema.settings.scope, 'global')));
+    try {
+      if (existing) await db(app).update(schema.settings).set({ value: ['taxi-beta.test'] }).where(and(eq(schema.settings.key, 'email.sender_domains'), eq(schema.settings.scope, 'global')));
+      else await db(app).insert(schema.settings).values({ key: 'email.sender_domains', scope: 'global', value: ['taxi-beta.test'], description: 'Test de la marque (étape 22)' });
+      settings.invalidate();
+      expect(await resend()).toBe('Service Taxi Beta <avis@taxi-beta.test>');
+    } finally {
+      if (existing) await db(app).update(schema.settings).set({ value: existing.value as object }).where(and(eq(schema.settings.key, 'email.sender_domains'), eq(schema.settings.scope, 'global')));
+      else await db(app).delete(schema.settings).where(and(eq(schema.settings.key, 'email.sender_domains'), eq(schema.settings.scope, 'global')));
+      settings.invalidate();
+    }
+
+    // Push : le nom dans les notifications reste « Neomoov » (règles 4.2.6 et 4.3 d'Apple), même pour un client rattaché.
+    const push = app.get<MockPushProvider>(PUSH_PROVIDER);
+    const pushToken = `ExponentPushToken[brand-${tag()}]`;
+    const [device] = await db(app).insert(schema.devices).values({ userId: users[0]!.tokens.user.id, platform: 'ios', pushToken }).returning({ id: schema.devices.id });
+    try {
+      await outbox.queue({ recipientUserId: users[0]!.tokens.user.id, template: 'ride.completed', channel: 'push', data });
+      const [pushRow] = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, users[0]!.tokens.user.id), eq(schema.notifications.channel, 'push')));
+      expect(await delivery.deliver(pushRow!.id)).toBe('sent');
+      const sentPush = push.sent.at(-1)!;
+      expect(sentPush.tokens).toEqual([pushToken]);
+      expect(sentPush.body).toContain('Neomoov');
+      expect(sentPush.body).not.toContain('Taxi Alpha');
+    } finally {
+      await db(app).delete(schema.devices).where(eq(schema.devices.id, device!.id));
+    }
     await sentFor(users[2]!.tokens.user.id, 'email');
     const platform = email.sent.at(-1)!;
     expect(platform.from).toBe(`${platformSender.name} <${platformSender.address}>`);

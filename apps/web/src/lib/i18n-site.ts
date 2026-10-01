@@ -45,6 +45,11 @@ const fr = {
     code: 'Code d\'invitation', accept: 'Accepter l\'invitation', done: 'C\'est fait : vous êtes membre, avec le rôle « {{role}} ».',
     errors: { notForYou: 'Cette invitation est adressée à un autre numéro ou à un autre courriel.', expired: 'Cette invitation a expiré : demandez-en une nouvelle.', used: 'Cette invitation a déjà servi.', generic: 'Invitation introuvable ou invalide.' },
   },
+  joinCode: {
+    title: 'Rejoindre {{name}}', notFound: 'Ce code de rattachement ne correspond à aucune organisation.', code: 'Code de rattachement',
+    app: 'Ouvrez l\'application Neomoov sur votre téléphone : ce lien l\'ouvre directement. Sinon, installez-la, puis entrez le code dans Profil, « Rejoindre une organisation ».',
+    book: 'Réserver une course sur le web',
+  },
   rights: {
     title: 'Vos droits sur vos données',
     subtitle: 'Loi 25 : demandez l\'accès, la rectification ou la portabilité de vos données, retirez un consentement ou supprimez votre compte, puis suivez l\'état de vos demandes. Réponse sous 30 jours.',
@@ -140,6 +145,11 @@ const en: typeof fr = {
     title: 'Join an organization', subtitle: 'You received an invitation. Sign in with the invited phone number or email, then accept.',
     code: 'Invitation code', accept: 'Accept the invitation', done: 'Done: you are now a member, with the role "{{role}}".',
     errors: { notForYou: 'This invitation is addressed to another phone number or email.', expired: 'This invitation has expired: ask for a new one.', used: 'This invitation has already been used.', generic: 'Invitation not found or invalid.' },
+  },
+  joinCode: {
+    title: 'Join {{name}}', notFound: 'This join code does not match any organization.', code: 'Join code',
+    app: 'Open the Neomoov app on your phone: this link opens it directly. Otherwise, install it, then enter the code in Profile, "Join an organization".',
+    book: 'Book a ride on the web',
   },
   rights: {
     title: 'Your data rights',

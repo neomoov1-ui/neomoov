@@ -124,6 +124,22 @@ export class BrandingService {
     this.cache.clear();
   }
 
+  /**
+   * Expéditeur d'un courriel au nom d'une marque : « Nom <adresse> ». L'adresse de la marque n'est employée que si son
+   * domaine est celui de la plateforme ou un domaine d'envoi authentifié chez le fournisseur (réglage
+   * `email.sender_domains`) ; sinon l'adresse de la plateforme, avec le nom de la marque : un domaine non authentifié
+   * ferait refuser tous les courriels de l'organisation. Le nom est nettoyé (pas d'injection d'en-tête).
+   */
+  async emailFrom(brand: Brand): Promise<string> {
+    const platform = parseSender(this.env.EMAIL_FROM);
+    const domainOf = (address: string) => address.split('@')[1]?.trim().toLowerCase() ?? '';
+    const listed = await this.settings.get<unknown>('email.sender_domains', []);
+    const domains = new Set([domainOf(platform.address), ...(Array.isArray(listed) ? listed.filter((d): d is string => typeof d === 'string').map((d) => d.trim().toLowerCase()) : [])]);
+    const address = domains.has(domainOf(brand.emailSender.address)) ? brand.emailSender.address : platform.address;
+    const name = brand.emailSender.name.replace(/["<>\\\r\n]/g, '').trim() || platform.name;
+    return /^[\p{L}\p{N} '-]+$/u.test(name) ? `${name} <${address}>` : `"${name}" <${address}>`;
+  }
+
   // --- Marque publique (applications, web) ---
 
   private publicView(org: OrgRow, brand: Brand): PublicBrand {
