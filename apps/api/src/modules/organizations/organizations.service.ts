@@ -301,7 +301,7 @@ export class OrganizationsService {
 
   /** Acceptation par la personne invitée (même téléphone ou même courriel que l'invitation). */
   async accept(token: string, actor: UserActor, now = new Date()): Promise<MembershipView> {
-    const membershipId = await this.db.transaction(async (tx) => {
+    const { membershipId, organizationId } = await this.db.transaction(async (tx) => {
       const [inv] = await tx.select().from(schema.invitations).where(eq(schema.invitations.tokenHash, sha256Hex(token))).for('update').limit(1);
       if (!inv || inv.revokedAt) throw AppError.notFound('INVITATION_NOT_FOUND', 'Invitation introuvable');
       if (inv.acceptedAt) throw AppError.conflict('INVITATION_ALREADY_USED', 'Cette invitation a déjà servi');
@@ -313,10 +313,11 @@ export class OrganizationsService {
       const [row] = await tx.insert(schema.memberships).values({ userId: actor.userId, organizationId: inv.organizationId, roleId: inv.roleId, scope: inv.scope, invitedByUserId: inv.invitedByUserId })
         .onConflictDoUpdate({ target: [schema.memberships.userId, schema.memberships.organizationId, schema.memberships.roleId], set: { status: 'active', scope: inv.scope } })
         .returning({ id: schema.memberships.id });
-      return row!.id;
+      return { membershipId: row!.id, organizationId: inv.organizationId };
     });
     this.access.invalidate(actor.userId);
-    this.audit.record({ action: 'invitation.accepted', entity: 'memberships', entityId: membershipId, after: { userId: actor.userId } });
+    // Étape 21 : l'entrée appartient à l'organisation rejointe (visible dans son journal).
+    this.audit.record({ action: 'invitation.accepted', entity: 'memberships', entityId: membershipId, organizationId, after: { userId: actor.userId } });
     return this.membershipView(membershipId);
   }
 

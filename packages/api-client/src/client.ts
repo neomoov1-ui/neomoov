@@ -2,6 +2,7 @@ import { ApiError } from './errors.js';
 import { adminResource, publicResource, staffAuthResource } from './admin-resources.js';
 import { invoicingResource } from './invoicing-resources.js';
 import { ledgersResource } from './ledger-resources.js';
+import { memberMfaResource, orgResource, supportAccessResource } from './org-resources.js';
 import { authResource, configResource, driverResource, meResource, paymentsResource, placesResource, quotesResource, ridesResource } from './resources.js';
 import type { HealthReport } from './types.js';
 
@@ -133,6 +134,12 @@ export class ApiClient {
   readonly public = publicResource(this);
   /** Facturation certifiée (étape 9) : factures, PDF, vérification publique, SEV. */
   readonly invoicing = invoicingResource(this);
+  /** Étapes 20 et 21 : My Hub côté organisation cliente (`/v1/org/:organizationId`, sélecteur d'organisation). */
+  readonly org = orgResource(this);
+  /** Étape 21 : accès temporaire du support à une organisation cliente (plateforme). */
+  readonly supportAccess = supportAccessResource(this);
+  /** Étape 21 : second facteur TOTP d'un membre d'organisation connecté par code SMS. */
+  readonly memberMfa = memberMfaResource(this);
 
   /** Santé de l'API : base, Redis, files (`GET /v1/health`). */
   readonly health = {

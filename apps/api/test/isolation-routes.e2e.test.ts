@@ -284,7 +284,11 @@ describe('isolation par organisation : routes /v1/org (intégration)', () => {
     const before = await auditCount(A.id);
     const invitation = await request(server()).post(`/v1/org/${A.id}/invitations`).set(bearer(ownerA.tokens)).send({ roleId: dispatcherId, phone: testPhone() });
     expect(invitation.status).toBe(201);
-    expect(invitation.body.token).toMatch(/^inv_/);
+    // Étape 21 : le lien part par texto après la validation de la transaction restreinte ; le jeton n'est plus rendu.
+    expect(invitation.body).toMatchObject({ channel: 'sms' });
+    expect(invitation.body.token).toBeUndefined();
+    const [queued] = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.template, 'organization.invitation'), sql`${schema.notifications.data}->>'invitationId' = ${invitation.body.id as string}`));
+    expect(queued).toMatchObject({ organizationId: A.id, channel: 'sms' });
     const [stored] = await db(app).select({ organizationId: schema.invitations.organizationId }).from(schema.invitations).where(eq(schema.invitations.id, invitation.body.id));
     expect(stored!.organizationId).toBe(A.id);
     const [entry] = await db(app).select().from(schema.auditLog).where(and(eq(schema.auditLog.entityId, invitation.body.id), eq(schema.auditLog.action, 'invitation.created')));

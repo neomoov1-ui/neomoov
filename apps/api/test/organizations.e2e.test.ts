@@ -5,7 +5,7 @@ import { eq, inArray } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AccessService } from '../src/modules/auth/access.service.js';
-import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, startTestApp, testPhone, type StaffSession } from './helpers.js';
+import { bearer, cleanupTestData, createStaffAndLogin, db, invitationToken, loginByOtp, startTestApp, testPhone, type StaffSession } from './helpers.js';
 
 /** Étape 19 : organisations en arbre, rôle personnalisé qui limite réellement l'accès, invitations, pas d'escalade. */
 const tag = () => Math.random().toString(36).slice(2, 10);
@@ -54,17 +54,21 @@ describe('organisations, rôles et adhésions (intégration)', () => {
     expect((await request(server()).get('/v1/admin/rides').set(bearer(member))).status).toBe(403);
 
     const invitation = await request(server()).post(`/v1/admin/organizations/${rootId}/invitations`).set(bearer(admin.tokens)).send({ roleId: role.body.id, phone }).expect(201);
-    expect(invitation.body.token).toMatch(/^inv_/);
+    // Étape 21 : le jeton n'est plus rendu ; le lien part par texto (avis mis en file).
+    expect(invitation.body).toMatchObject({ channel: 'sms' });
+    expect(invitation.body.token).toBeUndefined();
+    const token = await invitationToken(app, invitation.body.id);
+    expect(token).toMatch(/^inv_/);
     const [stored] = await db(app).select().from(schema.invitations).where(eq(schema.invitations.id, invitation.body.id));
-    expect(stored!.tokenHash).not.toContain(invitation.body.token);
+    expect(stored!.tokenHash).not.toContain(token);
 
     // Une autre personne ne peut pas s'en servir.
     const stranger = await loginByOtp(app);
-    expect((await request(server()).post('/v1/invitations/accept').set(bearer(stranger)).send({ token: invitation.body.token })).status).toBe(403);
+    expect((await request(server()).post('/v1/invitations/accept').set(bearer(stranger)).send({ token })).status).toBe(403);
 
-    const accepted = await request(server()).post('/v1/invitations/accept').set(bearer(member)).send({ token: invitation.body.token }).expect(200);
+    const accepted = await request(server()).post('/v1/invitations/accept').set(bearer(member)).send({ token }).expect(200);
     expect(accepted.body).toMatchObject({ organizationId: rootId, roleId: role.body.id, status: 'active' });
-    expect((await request(server()).post('/v1/invitations/accept').set(bearer(member)).send({ token: invitation.body.token })).status).toBe(409);
+    expect((await request(server()).post('/v1/invitations/accept').set(bearer(member)).send({ token })).status).toBe(409);
 
     // Le rôle donne la lecture des courses, et rien d'autre.
     await request(server()).get('/v1/admin/rides').set(bearer(member)).expect(200);
