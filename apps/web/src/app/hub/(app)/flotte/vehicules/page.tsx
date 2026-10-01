@@ -24,7 +24,7 @@ export default function FleetVehiclesPage() {
   const columns: Column<AdminVehicle>[] = [
     { key: 'vehicle', header: t('fleet.vehicles.model'), cell: (v) => <span className="font-medium">{v.make} {v.model} ({v.year})</span> },
     { key: 'plate', header: t('fleet.vehicles.plate'), cell: (v) => v.plate },
-    { key: 'category', header: t('fleet.vehicles.category'), cell: (v) => <EnumBadge group="vehicleCategory" value={v.category} /> },
+    { key: 'category', header: t('fleet.vehicles.category'), cell: (v) => <EnumBadge group="category" value={v.category} /> },
     { key: 'status', header: t('fleet.drivers.status'), cell: (v) => <EnumBadge group="vehicleStatus" value={v.status} /> },
     { key: 'holder', header: t('fleet.vehicles.holder'), cell: (v) => v.driverName ?? v.driverPublicNumber },
     { key: 'inspection', header: t('fleet.drivers.nextInspection'), cell: (v) => formatDate(v.nextInspectionDueOn, lang) },

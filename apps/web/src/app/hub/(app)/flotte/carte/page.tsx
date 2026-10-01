@@ -28,14 +28,14 @@ export default function FleetLivePage() {
       {live.isPending ? <Loading /> : live.isError ? <ErrorBlock error={live.error} onRetry={() => void live.refetch()} /> : (
         <>
           <Card title={`${t('fleet.live.drivers')} (${live.data.drivers.length})`}>
-            <FleetMap positions={positions} labels={{ onRide: t('fleet.live.onRide'), available: t('fleet.live.available'), paused: t('fleet.live.busy'), category: (c) => t(`enum.vehicleCategory.${c}`) }} />
+            <FleetMap positions={positions} labels={{ onRide: t('fleet.live.onRide'), available: t('fleet.live.available'), paused: t('fleet.live.busy'), category: (c) => t(`enum.category.${c}`) }} />
           </Card>
           <Card title={`${t('fleet.live.rides')} (${live.data.rides.length})`}>
             {live.data.rides.length ? (
               <ul className="flex flex-col gap-2 text-sm">
                 {live.data.rides.map((r) => (
                   <li key={r.id} className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{r.publicNumber}</span> <RideStateBadge state={r.state} /> <EnumBadge group="vehicleCategory" value={r.category} />
+                    <span className="font-medium">{r.publicNumber}</span> <RideStateBadge state={r.state} /> <EnumBadge group="category" value={r.category} />
                     <span>{formatDateTime(r.requestedAt, lang)}</span> <span className="text-slate-600">{r.origin.address} → {r.destination.address}</span>
                     {r.networkShared ? <Badge tone="info">{t('fleet.live.network')}</Badge> : null}
                   </li>
