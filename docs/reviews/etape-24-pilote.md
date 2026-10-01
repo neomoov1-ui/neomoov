@@ -64,7 +64,7 @@ Le texte d'information (`PILOT_INFORMATION_VERSION` = `2026-10-01`) est à faire
 
 ## Tests lancés
 
-- `apps/api/test/pilot.e2e.test.ts` (base de développement, sous le verrou `agent-d`) : 1 fichier, 6 tests verts (186,8 s).
+- `apps/api/test/pilot.e2e.test.ts` (base de développement, sous le verrou `agent-d`) : premier passage 6 sur 6 (186,8 s) ; après les corrections de la revue, 6 sur 6 (157,7 s) ; avec le test « pas de course double », 7 sur 7 (179,6 s).
 - `apps/api/test/dispatch.e2e.test.ts` (sous le verrou) : 14 verts, 1 en échec (« réservation planifiée : favori seul pendant 120 s… », ligne 429) : la première offre de la réservation de contrôle est partie chez `CH-12451`, chauffeur de test orphelin (actif, terminal accepté, créé le 30 septembre à 17 h 32, heure de Paris, par une suite interrompue) ; l'ordre des candidats planifiés est déterministe (note, puis nombre de courses), il passe devant le chauffeur du test. Sans réglage Pilote, le crochet ne change rien pour lui.
 - `apps/api/test/dispatch-concurrency.e2e.test.ts` : non lancé (lancement refusé par le contrôle des autorisations de la session après la tentative de neutraliser les orphelins).
 - Domaine : 33 fichiers, 452 tests verts, couverture 100 % (instructions, branches, fonctions, lignes).
