@@ -6,7 +6,7 @@
 import { schema } from '@neomoov/db';
 import { isoDate, uuid } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gte, lt, or, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, like, lt, or, type SQL } from 'drizzle-orm';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Logger } from 'pino';
 import { z } from 'zod';
@@ -132,11 +132,17 @@ export class AuditService {
   }
 
   /**
-   * Journal, du plus récent au plus ancien, par curseur. Sous une transaction restreinte (route d'organisation), les
-   * politiques ne laissent voir que les entrées du sous-arbre de l'organisation.
+   * Journal, du plus récent au plus ancien, par curseur. Pour une organisation (`subtreePath`, route d'organisation) :
+   * filtre explicite sur les entrées de son sous-arbre, qui laisse le planificateur passer par l'index
+   * (`organization_id`, `occurred_at`) au lieu d'évaluer la politique sur tout le journal ; les politiques de la
+   * transaction restreinte appliquent de toute façon le même filtre.
    */
-  async list(query: AuditListQuery): Promise<AuditPage> {
+  async list(query: AuditListQuery, subtreePath?: string): Promise<AuditPage> {
     const conditions = auditConditions(query);
+    if (subtreePath) {
+      const subtree = this.database.db.select({ id: schema.organizations.id }).from(schema.organizations).where(like(schema.organizations.path, `${subtreePath}%`));
+      conditions.push(inArray(schema.auditLog.organizationId, subtree));
+    }
     if (query.cursor) {
       // Plusieurs entrées partagent souvent le même instant (un INSERT par requête) : le curseur porte aussi l'identifiant.
       const [at, id] = query.cursor.split('_') as [string, string];

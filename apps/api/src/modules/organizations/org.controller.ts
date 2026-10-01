@@ -196,8 +196,8 @@ export class OrgController {
   @ZodQuery(auditQuerySchema)
   @ZodResponse(200, auditPageSchema)
   @ApiErrors(400, 401, 403, 404, 429)
-  auditLog(@Query(zodPipe(auditQuerySchema)) query: z.infer<typeof auditQuerySchema>) {
-    return this.audit.list(query);
+  auditLog(@Query(zodPipe(auditQuerySchema)) query: z.infer<typeof auditQuerySchema>, @CurrentOrgScope() scope: OrgScope) {
+    return this.audit.list(query, scope.path);
   }
 }
 

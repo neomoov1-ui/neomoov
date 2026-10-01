@@ -11,7 +11,7 @@ import { schema } from '@neomoov/db';
 import { effectivePermissions, inScope, isPermission, PERMISSIONS, type EffectiveMembership, type MembershipScope, type Permission } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull } from 'drizzle-orm';
-import { organizationIdOfPath } from '../../common/org-scope.context.js';
+import { currentOrgScope, organizationIdOfPath, type OrgScopeContext } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import type { UserActor } from './actor.js';
 
@@ -20,6 +20,8 @@ const TTL_MS = 30_000;
 @Injectable()
 export class AccessService {
   private readonly cache = new Map<string, { at: number; permissions: Set<Permission> }>();
+  /** Utilisateurs dont les droits ont changé dans une transaction restreinte (`null` : tous), revidés après sa validation. */
+  private readonly afterCommit = new WeakMap<OrgScopeContext, Set<string | null>>();
 
   constructor(@Inject(DB) private readonly database: Database) {}
 
@@ -86,8 +88,29 @@ export class AccessService {
     return permissions;
   }
 
-  /** Oublie les droits en cache (d'un utilisateur, ou de tous). */
+  /**
+   * Oublie les droits en cache (d'un utilisateur, ou de tous). Dans une transaction restreinte (route d'organisation), le
+   * changement n'est visible des autres connexions qu'à la validation : une requête concurrente pourrait remettre en
+   * cache l'état d'avant pour 30 secondes ; `afterScopedCommit` vide donc le cache une seconde fois après la validation.
+   */
   invalidate(userId?: string): void {
+    this.forget(userId);
+    const scope = currentOrgScope();
+    if (!scope) return;
+    const users = this.afterCommit.get(scope) ?? new Set<string | null>();
+    users.add(userId ?? null);
+    this.afterCommit.set(scope, users);
+  }
+
+  /** Après la validation (ou l'annulation) d'une transaction restreinte : vide de nouveau le cache des utilisateurs touchés. */
+  afterScopedCommit(scope: OrgScopeContext): void {
+    const users = this.afterCommit.get(scope);
+    if (!users) return;
+    this.afterCommit.delete(scope);
+    for (const userId of users) this.forget(userId ?? undefined);
+  }
+
+  private forget(userId?: string): void {
     if (!userId) return this.cache.clear();
     for (const key of this.cache.keys()) if (key.startsWith(`${userId}:`)) this.cache.delete(key);
   }
