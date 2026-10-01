@@ -108,6 +108,7 @@ export const appResources = {
       },
       confirm: {
         title: 'Commodités et confirmation',
+        addCard: 'Ajouter une carte',
         amenitiesMessage: 'Choisissez toutes les commodités de votre voyage, et indiquez-nous vos demandes spéciales',
         included: 'Inclus dans tous nos véhicules : eau, chargeurs, Wi-Fi, parapluie.',
         conversation: 'Ambiance',
@@ -395,6 +396,7 @@ export const appResources = {
       },
       confirm: {
         title: 'Amenities and confirmation',
+        addCard: 'Add a card',
         amenitiesMessage: 'Choose all the amenities for your trip, and tell us your special requests',
         included: 'Included in all our vehicles: water, chargers, Wi-Fi, umbrella.',
         conversation: 'Atmosphere',

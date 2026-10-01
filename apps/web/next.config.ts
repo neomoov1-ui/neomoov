@@ -19,9 +19,9 @@ const bookingAncestors = process.env['BOOKING_FRAME_ANCESTORS'] || 'https://neom
  * de la documentation de Square (production et bac à sable), élargie aux sous-domaines de son CDN.
  */
 const SQUARE = {
-  script: 'https://web.squarecdn.com https://sandbox.web.squarecdn.com',
+  script: 'https://web.squarecdn.com https://sandbox.web.squarecdn.com https://*.squarecdn.com',
   frame: 'https://*.squarecdn.com https://*.squareup.com https://*.squareupsandbox.com https://*.cardinalcommerce.com',
-  connect: 'https://pci-connect.squareup.com https://pci-connect.squareupsandbox.com https://*.squareup.com https://*.squareupsandbox.com https://o160250.ingest.sentry.io',
+  connect: 'https://pci-connect.squareup.com https://pci-connect.squareupsandbox.com https://*.squareup.com https://*.squareupsandbox.com https://*.squarecdn.com https://o160250.ingest.sentry.io',
   style: 'https://*.squarecdn.com',
   font: 'https://*.squarecdn.com https://d1g145x70srn7h.cloudfront.net',
   img: 'https://*.squarecdn.com',
