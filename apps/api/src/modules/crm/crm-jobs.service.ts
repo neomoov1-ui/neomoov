@@ -75,8 +75,11 @@ export class CrmJobsService implements OnModuleInit {
     if (report.retried || report.caughtUp || report.failed) this.logger.info(report, 'passe CRM');
   }
 
-  /** Reprise des fiches en erreur, puis rattrapage des prospects récents (hors test, sauf demande) ; une erreur est comptée, jamais propagée. */
-  async sweep(now: Date, options: { catchUp?: boolean } = {}): Promise<CrmSweepReport> {
+  /**
+   * Reprise des fiches en erreur, puis rattrapage des prospects et comptes d'affaires récents (48 heures, ou depuis
+   * `since`) jamais présentés au CRM (hors test, sauf demande) ; une erreur est comptée, jamais propagée.
+   */
+  async sweep(now: Date, options: { catchUp?: boolean; since?: Date } = {}): Promise<CrmSweepReport> {
     const report: CrmSweepReport = { retried: 0, caughtUp: 0, failed: 0 };
     for (const { entityType, entityId } of await this.sync.pendingRetries()) {
       try {
@@ -87,9 +90,14 @@ export class CrmJobsService implements OnModuleInit {
       }
     }
     if (options.catchUp ?? this.env.NODE_ENV !== 'test') {
-      for (const id of await this.sync.unsyncedLeads(new Date(now.getTime() - 48 * 3_600_000))) {
+      const since = options.since ?? new Date(now.getTime() - 48 * 3_600_000);
+      const missed: Array<[CrmEntityType, string]> = [
+        ...(await this.sync.unsyncedLeads(since)).map((id): [CrmEntityType, string] => ['lead', id]),
+        ...(await this.sync.unsyncedBusinessAccounts(since)).map((id): [CrmEntityType, string] => ['business_account', id]),
+      ];
+      for (const [entityType, id] of missed) {
         try {
-          await this.sync.sync('lead', id, now);
+          await this.sync.sync(entityType, id, now);
           report.caughtUp += 1;
         } catch {
           report.failed += 1;

@@ -189,8 +189,15 @@ describe('CRM (intégration, fournisseur simulé)', () => {
     const [lost] = await db(app).insert(schema.leads).values({ kind: 'driver', firstName: 'Perdu', phone: testPhone(), language: 'fr', source: 'web', consentAt: new Date() }).returning({ id: schema.leads.id });
     leadIds.push(lost!.id);
     expect(await sync.unsyncedLeads(new Date(Date.now() - 60_000))).toContain(lost!.id);
-    const caught = await jobs.sweep(new Date(), { catchUp: true });
-    expect(caught.caughtUp).toBeGreaterThanOrEqual(1);
+    // Compte d'affaires saisi en base, sans événement (aucune route ne les crée encore) : rattrapé de même.
+    const [silent] = await db(app).insert(schema.businessAccounts).values({ name: `Entreprise Silencieuse ${tag()}`, billingEmail: testEmail('silencieuse') }).returning({ id: schema.businessAccounts.id });
+    accountIds.push(silent!.id);
+    expect(await sync.unsyncedBusinessAccounts(new Date(Date.now() - 60_000))).toContain(silent!.id);
+    // Fenêtre courte : la base est partagée, les prospects des autres suites ne doivent pas saturer la passe.
+    const caught = await jobs.sweep(new Date(), { catchUp: true, since: new Date(Date.now() - 60_000) });
+    expect(caught.caughtUp).toBeGreaterThanOrEqual(2);
     expect(crm.contact(`lead:${lost!.id}`)).toBeDefined();
+    expect(crm.company(`business_account:${silent!.id}`)).toMatchObject({ accountType: 'business_account', consent: { source: 'contract' } });
+    expect(await sync.unsyncedBusinessAccounts(new Date(Date.now() - 60_000))).not.toContain(silent!.id);
   });
 });

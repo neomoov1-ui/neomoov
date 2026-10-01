@@ -4,6 +4,27 @@ Guide pour le fondateur, 1er octobre 2026. Décision du 30 septembre 2026 : **Hu
 
 Durée totale pour toi : environ 45 minutes, en six étapes. Ensuite une seule phrase me suffit : « le jeton HubSpot est dans le .env ».
 
+## État au 1er octobre 2026 : ce qu'il reste à faire (10 minutes)
+
+Le compte et le jeton existent, et `crm:setup` a été lancé une fois contre le vrai compte. Constats (lectures seulement, aucun contact créé) :
+
+| Point | Constat | À faire |
+|---|---|---|
+| Compte | Numéro 343738989, formule gratuite | Rien |
+| Emplacement des données | `na3` (adresse `app-na3.hubspot.com`), que les pages publiques de HubSpot sur ses centres de données désignent comme le centre de **Montréal** | Confirmer dans Paramètres (étape 2) et garder la capture pour l'EFVP |
+| Fuseau horaire | Heure de l'Est (identique à Montréal) | Rien |
+| Devise du compte | **USD** | Passer en **CAD** (étape 1, point 4) avant la première transaction avec un montant |
+| Jeton | Lit et écrit les contacts, lit les propriétés des contacts ; **rien** sur les entreprises ni les transactions, et ne peut pas créer de propriétés | Ajouter les 9 portées ci-dessous |
+| `crm:setup` | Rien créé : la création du groupe « Neomoov » est refusée faute de portée | Relancer après l'ajout des portées |
+
+Portées à ajouter à l'application (ou à la clé de service) qui porte le jeton, en plus de celles déjà accordées :
+
+- `crm.schemas.contacts.write`
+- `crm.objects.companies.read`, `crm.objects.companies.write`, `crm.schemas.companies.read`, `crm.schemas.companies.write`
+- `crm.objects.deals.read`, `crm.objects.deals.write`, `crm.schemas.deals.read`, `crm.schemas.deals.write`
+
+Ensuite : si HubSpot affiche un nouveau jeton, le remplacer dans `.env` (même variable) ; puis me dire « portées HubSpot ajoutées » (ou lancer l'étape 5 toi-même). Tant que `crm:setup` ne se termine pas sans « portée manquante », garder `CRM_PROVIDER=mock` (ou vide) : avec le jeton actuel, les contacts partiraient mais les transactions échoueraient et s'accumuleraient en reprise.
+
 ---
 
 ## 1. Créer le compte gratuit (10 minutes)
@@ -42,7 +63,7 @@ Le jeton d'application privée est la clé avec laquelle la plateforme écrit da
 4. Bouton « Créer l'application », puis « Continuer la création ». HubSpot affiche le jeton **une seule fois** (il commence par `pat-na1-`) : bouton « Afficher le jeton », puis « Copier ». Ne pas le coller ailleurs que dans le fichier `.env` (étape 4) ; pas dans Bitwarden en clair non plus, il peut toujours être régénéré depuis cette page (« Faire pivoter »).
 5. Noter aussi le **numéro de compte** (Hub ID) : il est affiché dans le menu du compte en haut à droite (« ID du compte »), ou dans l'adresse de la page (`app.hubspot.com/contacts/12345678/...`). Il n'est pas secret.
 
-Si le menu « Applications privées » n'existe pas (HubSpot le remplace par les « Clés de service » pour les comptes créés après le 28 septembre 2026) : Paramètres, « Intégrations », **« Clés de service »**, « Créer une clé », mêmes portées, même usage. La clé obtenue va dans la même variable `HUBSPOT_ACCESS_TOKEN`.
+Si le menu « Applications privées » n'existe pas (HubSpot remplace progressivement les applications privées par les « Clés de service » et les applications de projet) : Paramètres, « Intégrations », **« Clés de service »**, « Créer une clé », mêmes portées, même usage. La clé obtenue va dans la même variable `HUBSPOT_ACCESS_TOKEN`. Le jeton actuel (1er octobre 2026) n'est pas reconnu par l'API d'information des applications privées : il vient probablement d'une clé de service ; c'est sans effet pour la plateforme, qui l'utilise de la même façon.
 
 ## 4. Déposer le jeton dans le fichier `.env` (5 minutes)
 
@@ -55,7 +76,7 @@ Si le menu « Applications privées » n'existe pas (HubSpot le remplace par les
    ```
 
 2. Enregistrer, puis vérifier sans rien afficher : dans PowerShell, `cd C:\Users\PC\code\neomoov` puis `pnpm env:check`. Les trois lignes doivent être marquées `OK`.
-3. Sur le serveur de production, les mêmes variables vont dans l'environnement de l'API et du worker (voir `docs/runbooks/`). Tant que le jeton n'y est pas, `CRM_PROVIDER` reste `mock` et `ALLOW_MOCK_PROVIDERS` contient `crm` : rien ne quitte la plateforme, rien n'est perdu non plus (la passe de reprise rattrape les prospects des 48 dernières heures dès que le CRM réel est branché).
+3. Sur le serveur de production, les mêmes variables vont dans l'environnement de l'API et du worker (voir `docs/runbooks/`). Tant que le jeton n'y est pas, `CRM_PROVIDER` reste `mock` et `ALLOW_MOCK_PROVIDERS` contient `crm` : rien ne quitte la plateforme (la passe de reprise rattrape les prospects et les comptes d'affaires des 48 dernières heures dès que le CRM réel est branché ; au-delà, rien n'est poussé automatiquement).
 
 ## 5. Lancer la mise en place du modèle de données (5 minutes)
 
@@ -63,7 +84,8 @@ Le script crée dans HubSpot le groupe de propriétés « Neomoov », les propri
 
 1. D'abord en simulation (rien n'est écrit) : `pnpm --filter @neomoov/api crm:setup -- --dry-run`. Chaque ligne annonce `[à faire]` ou `[déjà en place]`.
 2. Puis pour de vrai : `pnpm --filter @neomoov/api crm:setup`. Résultat attendu la première fois : 3 groupes créés, 25 propriétés créées, puis les pipelines.
-3. Le script n'affiche jamais le jeton. S'il répond « Jeton refusé ou portées insuffisantes », revoir l'étape 3 (portées) et le collage dans `.env`.
+3. Le script n'affiche jamais le jeton. Une portée manquante n'arrête pas tout : la section concernée (propriétés des contacts, des entreprises, des transactions, ou pipelines) est marquée `[ignoré] section … (portée manquante : …)` avec le nom exact de la portée à cocher, les autres sections avancent, et le script se termine avec le code 3 et la liste des portées à ajouter. S'il répond « Jeton refusé » (401), revoir le collage dans `.env`.
+4. Avec le fichier `.env` du dépôt principal, depuis une autre copie : `node C:/Users/PC/code/neomoov-outils/with-env.cjs <copie>/apps/api pnpm crm:setup --dry-run` (même chose sans `--dry-run` pour appliquer).
 
 **Un seul pipeline en formule gratuite.** HubSpot gratuit ne permet qu'un pipeline de transactions (deux en Starter, quinze en Professional). Le script s'en aperçoit (HubSpot refuse la création), renomme le pipeline existant **« Neomoov »** et y range les étapes des deux parcours à la suite : « Nouveau prospect », « Contact établi », « Proposition envoyée », « Essai en cours », « Client actif », « Perdu » (ventes B2B), puis « Candidature reçue », « Préinscrit à la formation », « Formation payée », « Formation en cours », « Certifié », « Abandon » (Formation chauffeurs). La propriété de transaction **« Parcours Neomoov »** (`b2b` ou `training`) permet de filtrer deux vues. Après un passage à Starter, relancer `crm:setup` : il crée alors les deux pipelines « Ventes B2B » et « Formation chauffeurs », et les nouvelles transactions y vont (les anciennes restent dans « Neomoov », à déplacer à la main si on y tient).
 
@@ -85,7 +107,7 @@ Le script crée dans HubSpot le groupe de propriétés « Neomoov », les propri
 | Organisation cliente créée (marque blanche, flotte, compagnie, Solo) | Entreprise (nom, raison sociale, type, formule) + transaction | « Essai en cours » en période d'essai, « Contact établi » sans formule, « Client actif » une fois abonnée |
 | Organisation abonnée (étape 25, facturation) | Mise à jour de l'entreprise (formule) et de la transaction | « Ventes B2B / Client actif » |
 
-La synchronisation est asynchrone (file `crm`, portée par le worker en production) : la plateforme répond au formulaire tout de suite, HubSpot est mis à jour quelques secondes plus tard. Une panne de HubSpot ne bloque rien : la tâche est relancée (cinq tentatives espacées), puis une passe toutes les dix minutes reprend les fiches en erreur (jusqu'à dix échecs, ensuite une personne regarde le journal) et rattrape les prospects des 48 dernières heures qui n'auraient jamais été présentés.
+La synchronisation est asynchrone (file `crm`, portée par le worker en production) : la plateforme répond au formulaire tout de suite, HubSpot est mis à jour quelques secondes plus tard. Une panne de HubSpot ne bloque rien : la tâche est relancée (cinq tentatives espacées), puis une passe toutes les dix minutes reprend les fiches en erreur (jusqu'à dix échecs, ensuite une personne regarde le journal) et rattrape les prospects et les comptes d'affaires des 48 dernières heures qui n'auraient jamais été présentés (aucune route ne crée encore de compte d'affaires : ceux saisis en base passent par ce rattrapage).
 
 Une fiche est identifiée chez HubSpot par la propriété unique « Identifiant Neomoov » : rejouer une synchronisation met la fiche à jour sans la dupliquer. Si un contact porte déjà le même courriel (créé par Tidio ou à la main), il est mis à jour plutôt que recréé.
 

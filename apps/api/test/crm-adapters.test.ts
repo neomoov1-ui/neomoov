@@ -2,7 +2,7 @@ import { inspect } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { MockCrmProvider } from '../src/adapters/mock/crm.mock.js';
 import { HUBSPOT_PIPELINES, HUBSPOT_PROPERTIES, assertCrmPropertiesMinimal, companyProperties, contactProperties, dealProperties } from '../src/adapters/real/hubspot-model.js';
-import { HubSpotCrmProvider, existingIdOf, pipelineLimitReached } from '../src/adapters/real/hubspot.real.js';
+import { HubSpotCrmProvider, existingIdOf, missingScopes, pipelineLimitReached } from '../src/adapters/real/hubspot.real.js';
 import { realCrm } from '../src/adapters/real/index.js';
 import { requireCrmConsent, type CrmConsent, type CrmContactInput } from '../src/adapters/types.js';
 import { loadEnv } from '../src/config/env.js';
@@ -200,6 +200,51 @@ describe('adaptateur HubSpot (faux serveur)', () => {
     expect(dry.requests.every((r) => r.method === 'GET')).toBe(true);
     expect(planned.filter((l) => l.action === 'planned').length).toBeGreaterThan(20);
     expect(planned.filter((l) => l.kind === 'pipeline').map((l) => l.action)).toEqual(['unchanged', 'unchanged']);
+  });
+
+  it('lit un échec d\'appel groupé rendu en 207, et signale une portée manquante sans arrêter la mise en place', async () => {
+    // Courriel déjà pris : HubSpot répond 207 avec la cause dans `errors` ; la fiche existante est mise à jour.
+    const multi = fakeHubSpot([
+      { match: /\/crm\/v3\/objects\/contacts\/batch\/upsert$/, method: 'POST', status: 207, body: { status: 'COMPLETE', results: [], errors: [{ status: 'error', category: 'CONFLICT', message: 'Contact already exists. Existing ID: 888' }] } },
+      { match: /\/crm\/v3\/objects\/contacts\/888$/, method: 'PATCH', body: { id: '888' } },
+    ]);
+    expect(await new HubSpotCrmProvider('pat-test-secret', { fetchImpl: multi.fetchImpl }).upsertContact(contact())).toEqual({ id: '888', created: false });
+    const empty = fakeHubSpot([{ match: /batch\/upsert$/, method: 'POST', body: { results: [] } }]);
+    await expect(new HubSpotCrmProvider('pat-test-secret', { fetchImpl: empty.fetchImpl }).upsertContact(contact())).rejects.toMatchObject({ code: 'CRM_PROVIDER_ERROR', message: expect.stringContaining('sans identifiant') });
+    // Jeton sans les portées « schemas » des entreprises : la section est signalée avec la portée exacte, le reste avance.
+    // HubSpot énumère toutes les portées acceptables : le rapport ne garde que celles de l'objet, sans les variantes « sensitive ».
+    const missing = { status: 'error', message: 'This app hasn\'t been granted all required scopes to make this call.', category: 'MISSING_SCOPES', errors: [{ message: 'One or more of the following scopes are required.', context: { requiredGranularScopes: ['crm.schemas.tasks.write', 'crm.schemas.companies.write', 'crm.objects.companies.sensitive.write'] } }] };
+    const server = fakeHubSpot([
+      { match: /\/crm\/v3\/properties\/companies\/groups\/neomoov$/, method: 'GET', status: 403, body: missing },
+      { match: /\/crm\/v3\/properties\/[a-z]+\/groups$/, method: 'POST', body: {} },
+      { match: /\/crm\/v3\/properties\/[a-z]+$/, method: 'POST', body: {} },
+      { match: /\/crm\/v3\/pipelines\/deals$/, method: 'GET', body: PIPELINES },
+      { match: /\/crm\/v3\/pipelines\/deals\/p[12]\/stages$/, method: 'POST', status: 403, body: { ...missing, errors: [{ context: { requiredGranularScopes: ['crm.objects.deals.write'] } }] } },
+    ]);
+    const report = await new HubSpotCrmProvider('pat-test-secret', { fetchImpl: server.fetchImpl }).setup();
+    expect(report.filter((l) => l.kind === 'scope')).toEqual([
+      { kind: 'scope', objectType: 'companies', name: 'propriétés', action: 'skipped', detail: 'portée manquante : crm.schemas.companies.write' },
+      { kind: 'scope', objectType: 'deals', name: 'pipelines', action: 'skipped', detail: 'portée manquante : crm.objects.deals.write' },
+    ]);
+    expect(report.filter((l) => l.kind === 'property' && l.action === 'created' && l.objectType === 'contacts')).toHaveLength(HUBSPOT_PROPERTIES.contacts.length);
+    expect(report.filter((l) => l.kind === 'property' && l.objectType === 'deals')).toHaveLength(HUBSPOT_PROPERTIES.deals.length);
+    // Un 403 de portée n'est jamais pris pour la limite de pipelines de la formule gratuite.
+    const scopeError = await new HubSpotCrmProvider('pat-test-secret', { fetchImpl: fakeHubSpot([{ match: /pipelines\/deals$/, method: 'GET', status: 403, body: missing }]).fetchImpl }).resolveStage('b2b', 'new').catch((e: unknown) => e);
+    expect(missingScopes(scopeError)).toEqual(['crm.schemas.tasks.write', 'crm.schemas.companies.write', 'crm.objects.companies.sensitive.write']);
+    expect(pipelineLimitReached(scopeError)).toBe(false);
+    expect((scopeError as Error).message).toContain('portées exigées : crm.schemas.tasks.write, crm.schemas.companies.write');
+    expect(missingScopes(new Error('x'))).toBeNull();
+    // Autre formulation réelle de HubSpot (1er octobre 2026) : ancien nom de portée dans le texte, traduit en portée à cocher.
+    const legacy = { status: 'error', message: 'You do not have permissions to view_schema object type ObjectTypeId{legacyObjectType=COMPANY} in portal 1 (requires one of [companies-read])' };
+    const legacyError = await new HubSpotCrmProvider('pat-test-secret', { fetchImpl: fakeHubSpot([{ match: /pipelines\/deals$/, method: 'GET', status: 403, body: legacy }]).fetchImpl }).resolveStage('b2b', 'new').catch((e: unknown) => e);
+    expect(missingScopes(legacyError)).toEqual(['crm.objects.companies.read (companies-read)']);
+    expect(pipelineLimitReached(legacyError)).toBe(false);
+    const limit = await new HubSpotCrmProvider('pat-test-secret', { fetchImpl: fakeHubSpot([{ match: /pipelines\/deals$/, method: 'GET', status: 403, body: { message: 'Your account has reached its pipeline limit' } }]).fetchImpl }).resolveStage('b2b', 'new').catch((e: unknown) => e);
+    expect(missingScopes(limit)).toBeNull();
+    expect(pipelineLimitReached(limit)).toBe(true);
+    // Un 401 (jeton refusé) arrête la mise en place : rien ne peut avancer.
+    const denied = fakeHubSpot([{ match: /./, status: 401, body: { status: 'error', message: 'Authentication credentials not found.', category: 'INVALID_AUTHENTICATION' } }]);
+    await expect(new HubSpotCrmProvider('pat-test-secret', { fetchImpl: denied.fetchImpl }).setup()).rejects.toMatchObject({ details: { status: 401 } });
   });
 
   it('realCrm exige le jeton et ne l\'expose pas', () => {

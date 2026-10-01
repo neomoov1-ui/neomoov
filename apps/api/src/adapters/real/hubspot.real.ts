@@ -23,11 +23,37 @@ const ID_PROPERTY = 'neomoov_platform_id';
 /** Associations définies par HubSpot : note vers contact, entreprise, transaction. */
 const NOTE_ASSOCIATIONS: Record<HubSpotObjectType, number> = { contacts: 202, companies: 190, deals: 214 };
 
+interface HubSpotErrorItem {
+  message?: string;
+  category?: string;
+  context?: { requiredGranularScopes?: string[]; requiredScopes?: string[] } & Record<string, unknown>;
+}
+
 interface HubSpotErrorBody {
   status?: string;
   message?: string;
   category?: string;
-  errors?: Array<{ message?: string }>;
+  errors?: HubSpotErrorItem[];
+}
+
+/**
+ * Anciens noms de portées que HubSpot cite dans certains refus (« requires one of [companies-read] ») et la portée
+ * à cocher dans l'application privée.
+ */
+const LEGACY_SCOPES: Record<string, string> = {
+  'contacts-read': 'crm.objects.contacts.read', 'contacts-write': 'crm.objects.contacts.write',
+  'companies-read': 'crm.objects.companies.read', 'companies-write': 'crm.objects.companies.write',
+  'deals-read': 'crm.objects.deals.read', 'deals-write': 'crm.objects.deals.write',
+};
+
+/** Portées exigées par HubSpot dans un refus 403 (contexte `MISSING_SCOPES` ou texte « requires one of [...] »), dédoublonnées. */
+function requiredScopesOf(items: HubSpotErrorItem[] | undefined, messages: string[]): string[] {
+  const scopes = (items ?? []).flatMap((e) => [...(e.context?.requiredGranularScopes ?? []), ...(e.context?.requiredScopes ?? [])]);
+  for (const message of messages) {
+    const listed = /requires one of \[([^\]]+)\]/i.exec(message)?.[1];
+    if (listed) scopes.push(...listed.split(',').map((s) => s.trim()).filter(Boolean).map((s) => (LEGACY_SCOPES[s] ? `${LEGACY_SCOPES[s]} (${s})` : s)));
+  }
+  return [...new Set(scopes.filter((s): s is string => typeof s === 'string'))];
 }
 
 interface PipelineStage {
@@ -52,7 +78,8 @@ interface ExistingProperty {
 export type HubSpotSetupAction = 'created' | 'updated' | 'unchanged' | 'skipped' | 'planned';
 
 export interface HubSpotSetupReport {
-  kind: 'group' | 'property' | 'pipeline' | 'stage';
+  /** `scope` : section non traitée faute de portée (le détail nomme la portée à ajouter à l'application privée). */
+  kind: 'group' | 'property' | 'pipeline' | 'stage' | 'scope';
   objectType: string;
   name: string;
   action: HubSpotSetupAction;
@@ -63,11 +90,21 @@ const normalize = (label: string) => label.trim().toLocaleLowerCase('fr-CA');
 
 interface ErrorDetails {
   status?: number;
+  category?: string | null;
   messages?: string[];
+  scopes?: string[];
 }
 
 const detailsOf = (error: unknown): ErrorDetails => (error instanceof AppError && error.details && typeof error.details === 'object' ? (error.details as ErrorDetails) : {});
 const isNotFound = (error: unknown) => detailsOf(error).status === 404;
+
+/** Portées manquantes du jeton (403 de permission) ; `null` pour toute autre erreur, dont la limite de pipelines. */
+export function missingScopes(error: unknown): string[] | null {
+  const { status, category, scopes, messages } = detailsOf(error);
+  if (status !== 403) return null;
+  if (category === 'MISSING_SCOPES' || (scopes?.length ?? 0) > 0 || /scope|permission/i.test((messages ?? []).join(' '))) return scopes ?? [];
+  return null;
+}
 
 /** Identifiant d'une fiche existante annoncé par HubSpot (« Contact already exists. Existing ID: 123 »). */
 export function existingIdOf(error: unknown): string | null {
@@ -80,7 +117,9 @@ export function existingIdOf(error: unknown): string | null {
 
 /** Création de pipeline refusée par la formule (un seul pipeline en gratuit, deux en Starter). */
 export function pipelineLimitReached(error: unknown): boolean {
-  const { status, messages } = detailsOf(error);
+  // Une portée manquante nommée n'est pas une limite de formule : elle doit remonter telle quelle.
+  const { status, messages, category, scopes } = detailsOf(error);
+  if (category === 'MISSING_SCOPES' || (scopes?.length ?? 0) > 0) return false;
   const text = (messages ?? []).join(' ');
   return status === 402 || status === 403 || (status === 400 && /limit|maximum|exceed|allow|quota|upgrade/i.test(text));
 }
@@ -137,12 +176,17 @@ export class HubSpotCrmProvider implements CrmProvider {
         json = {};
       }
     }
-    if (!res.ok) {
-      const error = json as HubSpotErrorBody;
-      const messages = [error.message, ...(error.errors ?? []).map((e) => e.message)].filter((m): m is string => typeof m === 'string' && m.length > 0);
-      throw new AppError('CRM_PROVIDER_ERROR', `HubSpot ${res.status}${messages[0] ? ` : ${messages[0].slice(0, 300)}` : ''}`, 502, { status: res.status, category: error.category ?? null, messages });
-    }
+    if (!res.ok) throw HubSpotCrmProvider.errorOf(res.status, json as HubSpotErrorBody);
     return json as T;
+  }
+
+  /** Erreur typée (502 `CRM_PROVIDER_ERROR`) : statut, catégorie, messages et portées exigées ; jamais le jeton. */
+  private static errorOf(status: number, body: HubSpotErrorBody): AppError {
+    const messages = [body.message, ...(body.errors ?? []).map((e) => e.message)].filter((m): m is string => typeof m === 'string' && m.length > 0);
+    const scopes = requiredScopesOf(body.errors, messages);
+    const category = body.category ?? body.errors?.find((e) => e.category)?.category ?? null;
+    const scopeText = scopes.length ? ` (portées exigées : ${scopes.join(', ')})` : '';
+    return new AppError('CRM_PROVIDER_ERROR', `HubSpot ${status}${messages[0] ? ` : ${messages[0].slice(0, 300)}` : ''}${scopeText}`, 502, { status, category, messages, scopes });
   }
 
   /** Mise à jour directe si l'identifiant HubSpot est connu, sinon création ou mise à jour par l'identifiant Neomoov. */
@@ -156,9 +200,10 @@ export class HubSpotCrmProvider implements CrmProvider {
       }
     }
     try {
-      const res = await this.call<{ results?: Array<{ id: string; new?: boolean }> }>('POST', `/crm/v3/objects/${objectType}/batch/upsert`, { inputs: [{ idProperty: ID_PROPERTY, id: platformId, properties }] });
+      const res = await this.call<{ results?: Array<{ id: string; new?: boolean }>; errors?: HubSpotErrorItem[] }>('POST', `/crm/v3/objects/${objectType}/batch/upsert`, { inputs: [{ idProperty: ID_PROPERTY, id: platformId, properties }] });
       const first = res.results?.[0];
-      if (!first?.id) throw new AppError('CRM_PROVIDER_ERROR', 'HubSpot : réponse sans identifiant', 502);
+      // Appel groupé : un échec peut revenir en 207 (succès HTTP) avec la cause dans `errors` (ex. courriel déjà pris).
+      if (!first?.id) throw HubSpotCrmProvider.errorOf(res.errors?.length ? 207 : 502, { ...(res.errors?.length ? {} : { message: 'réponse sans identifiant' }), errors: res.errors ?? [] });
       return { id: first.id, created: first.new === true };
     } catch (error) {
       const existing = existingIdOf(error);
@@ -242,11 +287,28 @@ export class HubSpotCrmProvider implements CrmProvider {
   async setup(options: { dryRun?: boolean } = {}): Promise<HubSpotSetupReport[]> {
     const dryRun = options.dryRun === true;
     const report: HubSpotSetupReport[] = [];
+    // Une portée manquante n'arrête pas tout : la section concernée est signalée (portée à ajouter), les autres avancent.
+    const section = async (objectType: string, name: string, work: () => Promise<void>) => {
+      try {
+        await work();
+      } catch (error) {
+        const scopes = missingScopes(error);
+        if (!scopes) throw error;
+        // HubSpot énumère toutes les portées acceptables (« une de ») : seules celles de l'objet concerné sont utiles ici.
+        const relevant = scopes.filter((s) => s.includes(`.${objectType}.`) && !/sensitive/.test(s));
+        const shown = relevant.length ? relevant : scopes;
+        report.push({ kind: 'scope', objectType, name, action: 'skipped', detail: `portée manquante : ${shown.length ? shown.join(' ou ') : 'voir docs/crm.md, étape 3'}` });
+      }
+    };
     for (const objectType of ['contacts', 'companies', 'deals'] as const) {
-      report.push(await this.ensureGroup(objectType, dryRun));
-      for (const def of HUBSPOT_PROPERTIES[objectType]) report.push(await this.ensureProperty(objectType, def, dryRun));
+      await section(objectType, 'propriétés', async () => {
+        report.push(await this.ensureGroup(objectType, dryRun));
+        for (const def of HUBSPOT_PROPERTIES[objectType]) report.push(await this.ensureProperty(objectType, def, dryRun));
+      });
     }
-    report.push(...(await this.ensurePipelines(dryRun)));
+    await section('deals', 'pipelines', async () => {
+      report.push(...(await this.ensurePipelines(dryRun)));
+    });
     this.pipelines = null;
     return report;
   }

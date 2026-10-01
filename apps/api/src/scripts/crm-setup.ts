@@ -18,7 +18,7 @@ if (!env.HUBSPOT_ACCESS_TOKEN) {
 }
 
 const ACTIONS: Record<HubSpotSetupReport['action'], string> = { created: 'créé', updated: 'mis à jour', unchanged: 'déjà en place', skipped: 'ignoré', planned: 'à faire' };
-const KINDS: Record<HubSpotSetupReport['kind'], string> = { group: 'groupe', property: 'propriété', pipeline: 'pipeline', stage: 'étape' };
+const KINDS: Record<HubSpotSetupReport['kind'], string> = { group: 'groupe', property: 'propriété', pipeline: 'pipeline', stage: 'étape', scope: 'section' };
 
 const provider = new HubSpotCrmProvider(env.HUBSPOT_ACCESS_TOKEN, { portalId: env.HUBSPOT_PORTAL_ID ?? null });
 let exitCode = 0;
@@ -28,6 +28,11 @@ try {
   for (const line of report) console.log(`[${ACTIONS[line.action]}] ${KINDS[line.kind]} ${line.objectType}.${line.name}${line.detail ? ` (${line.detail})` : ''}`);
   const count = (action: HubSpotSetupReport['action']) => report.filter((l) => l.action === action).length;
   console.log(`\n${dryRun ? 'Simulation' : 'Mise en place'} terminée : ${count('created')} créé(s), ${count('updated')} mis à jour, ${count('unchanged')} déjà en place, ${count('skipped')} ignoré(s)${dryRun ? `, ${count('planned')} à faire` : ''}.`);
+  const scopeGaps = report.filter((l) => l.kind === 'scope');
+  if (scopeGaps.length) {
+    console.error(`Portées à ajouter à l'application privée HubSpot (docs/crm.md, étape 3), puis relancer : ${scopeGaps.map((l) => `${l.objectType} ${l.name} : ${l.detail ?? ''}`).join(' ; ')}`);
+    exitCode = 3;
+  }
   if (env.HUBSPOT_PORTAL_ID) {
     const id = encodeURIComponent(env.HUBSPOT_PORTAL_ID);
     console.log(`Vérifier dans HubSpot : contacts https://app.hubspot.com/contacts/${id}/objects/0-1/views/all/list ; transactions https://app.hubspot.com/contacts/${id}/objects/0-3/views/all/list ; propriétés https://app.hubspot.com/property-settings/${id}/properties`);

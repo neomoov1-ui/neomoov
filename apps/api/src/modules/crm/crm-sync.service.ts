@@ -8,7 +8,7 @@
  */
 import { schema } from '@neomoov/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, gte, isNotNull, lt, ne, notExists, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, lt, ne, notExists, notInArray, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { CRM_PROVIDER, type CrmConsent, type CrmLeadKind, type CrmPipeline, type CrmProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
@@ -243,6 +243,31 @@ export class CrmSyncService {
         ),
       )
       .orderBy(asc(schema.leads.createdAt))
+      .limit(limit);
+    return rows.map((r) => r.id);
+  }
+
+  /**
+   * Comptes d'affaires récents jamais présentés au CRM : aucune route ne les crée encore (saisie en base, reprise de
+   * données), l'événement `business_account.created` peut donc manquer ; la passe les rattrape.
+   */
+  async unsyncedBusinessAccounts(since: Date, limit = 50): Promise<string[]> {
+    const rows = await this.db
+      .select({ id: schema.businessAccounts.id })
+      .from(schema.businessAccounts)
+      .where(
+        and(
+          gte(schema.businessAccounts.createdAt, since),
+          notInArray(schema.businessAccounts.status, ['closed', 'ended']),
+          notExists(
+            this.db
+              .select({ one: sql`1` })
+              .from(schema.crmRecords)
+              .where(and(eq(schema.crmRecords.provider, this.crm.name), eq(schema.crmRecords.entityType, 'business_account'), eq(schema.crmRecords.entityId, schema.businessAccounts.id))),
+          ),
+        ),
+      )
+      .orderBy(asc(schema.businessAccounts.createdAt))
       .limit(limit);
     return rows.map((r) => r.id);
   }
