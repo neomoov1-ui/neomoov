@@ -199,6 +199,9 @@ export class StaffAuthService {
     this.users.requireUsable(await this.users.findById(actor.userId));
     const credentials = await this.credentialsOf(actor.userId);
     if (credentials) this.assertNotLocked(credentials);
+    // Un membre du personnel inscrit son second facteur par sa propre connexion (mot de passe) : jamais par le code SMS,
+    // qui laisserait le détenteur du téléphone choisir le TOTP de son compte du personnel.
+    if (credentials?.passwordHash && !credentials.totpEnabledAt) throw AppError.conflict('MFA_STAFF_ENROLLMENT_REQUIRED', 'Inscrivez d\'abord votre second facteur par la connexion du personnel');
     const ttl = await this.settings.number('auth.mfa_token_ttl_seconds', 300);
     const enrolled = Boolean(credentials?.totpEnabledAt);
     const firstFactor = actor.amr.filter((m) => FIRST_FACTORS.has(m));

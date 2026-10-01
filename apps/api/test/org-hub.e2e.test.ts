@@ -10,8 +10,9 @@ import type { MockSmsProvider } from '../src/adapters/mock/index.js';
 import { SMS_PROVIDER } from '../src/adapters/types.js';
 import { totpCode } from '../src/common/crypto.js';
 import { AccessService } from '../src/modules/auth/access.service.js';
+import { StaffAuthService } from '../src/modules/auth/staff-auth.service.js';
 import { NotificationDeliveryService } from '../src/modules/notifications/notification-delivery.service.js';
-import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, resetHttpLimits, startTestApp, testEmail, testPhone, type StaffSession } from './helpers.js';
+import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, resetHttpLimits, startTestApp, testEmail, testPhone, trackUser } from './helpers.js';
 
 /**
  * Étape 21 : My Hub côté organisation cliente. Second facteur des membres connectés par code SMS, règle du dernier
@@ -161,6 +162,12 @@ describe('My Hub côté organisation et accès du support (étape 21, intégrati
     const staffRefresh = await request(server()).post('/v1/auth/refresh').send({ refreshToken: staffMember.body.refreshToken }).expect(200);
     expect(staffRefresh.body.user.roles).not.toContain('admin');
     await request(server()).post('/v1/auth/staff/login').send({ email: staff.email, password: staff.password }).expect(200);
+    // Un membre du personnel sans second facteur l'inscrit par sa connexion du personnel, jamais par le code SMS.
+    const newcomerPhone = testPhone();
+    const newcomer = await app.get(StaffAuthService).createStaff({ email: testEmail('staff'), phone: newcomerPhone, firstName: 'Test', lastName: 'Nouveau', roles: ['readonly'], password: 'MotDePasse-Test-1234', language: 'fr' });
+    trackUser(newcomer.id);
+    const newcomerOtp = await loginByOtp(app, newcomerPhone, {}, { card: false });
+    expect((await post('/v1/auth/mfa/start', newcomerOtp)).body.code).toBe('MFA_STAFF_ENROLLMENT_REQUIRED');
   });
 
   it('invitations par texto et par courriel : lien envoyé après la validation, jeton jamais rendu ; liste et révocation', async ({ skip }) => {

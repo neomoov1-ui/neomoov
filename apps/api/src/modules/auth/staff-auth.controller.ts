@@ -25,7 +25,7 @@ export class MemberMfaController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Membre d\'organisation connecté par code SMS : jeton de passage pour vérifier son code TOTP, ou pour l\'inscrire au premier usage' })
   @ZodResponse(200, staffLoginResponseSchema)
-  @ApiErrors(401, 423, 429)
+  @ApiErrors(401, 409, 423, 429)
   start(@CurrentUser() user: UserActor) {
     return this.staff.startMember(user);
   }
