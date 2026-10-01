@@ -29,6 +29,8 @@ Revue de fin d'étape, 1er octobre 2026. Branche `etape-26-paiements-square` (ag
 | `square-mode.e2e.test.ts` (base de développement, sous verrou) | 4 sur 4 verts (après le changement du lien de retour du chauffeur) |
 | `payments.e2e.test.ts` (fichier inchangé, sous verrou) | 15 sur 15 verts |
 | `invoicing.e2e.test.ts` (sous verrou) | 8 sur 8 verts après correction du test de numérotation (deux exécutions précédentes : 6 sur 8, voir Pièges) |
+| `settlement.e2e.test.ts` (règlement des relevés modifié, sous verrou) | 6 sur 6 verts |
+| `driver-account.e2e.test.ts` (état du compte de versement, sous verrou) | 7 sur 7 verts |
 | `pnpm --filter @neomoov/domain test` | 32 fichiers, 429 tests verts |
 | Web `vitest run` | 5 fichiers, 14 tests verts (dont `card-session.test.ts`, `card-csp.test.ts`) |
 | Client `vitest run` | 5 fichiers, 25 tests verts (dont `payments-logic.test.ts`) |
