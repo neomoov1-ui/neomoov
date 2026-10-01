@@ -12,6 +12,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PreferenceChips } from '@/components/Preferences';
 import { RideMap } from '@/components/RideMap';
+import { GraceBanner } from '@/features/pilot/GraceBanner';
 import { EndOfRide } from '@/features/ride/EndOfRide';
 import { CancelSheet, IncidentSheet, MessagesSheet, SosSheet } from '@/features/ride/RideSheets';
 import { clock, endOfRidePending, isActive, navigationTarget, nextAction, noShowStatus, waitedSeconds, type RideAction } from '@/features/ride/steps';
@@ -128,6 +129,7 @@ export default function RideScreen() {
         ) : null}
       </View>
       <ScrollView contentContainerStyle={styles.content}>
+        <GraceBanner rideId={id} state={data.state} now={now} />
         {active && !dataSaver ? <RideMap origin={data.origin.coordinates} destination={data.destination.coordinates} stops={data.stops.map((s) => s.coordinates)} labels={{ origin: t('ride.pickup'), destination: t('ride.dropoff'), unavailable: t('ride.mapUnavailable') }} /> : null}
 
         {active ? (

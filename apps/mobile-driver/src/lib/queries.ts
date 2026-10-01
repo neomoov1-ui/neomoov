@@ -44,6 +44,11 @@ export const keys = {
   messages: (id: string) => ['messages', id] as const,
   scheduled: ['scheduled'] as const,
   consents: ['consents'] as const,
+  pilot: ['pilot'] as const,
+  pilotDecisions: ['pilot-decisions'] as const,
+  agenda: (position: { lat: number; lng: number } | null) => ['agenda', position ? `${position.lat.toFixed(3)},${position.lng.toFixed(3)}` : 'none'] as const,
+  costs: (month: string) => ['costs', month] as const,
+  profitability: (month: string) => ['profitability', month] as const,
 };
 
 function useSignedIn(): boolean {
@@ -127,6 +132,28 @@ export function useScheduled() {
 
 export function useDriverRides() {
   return useQuery({ queryKey: keys.rides, queryFn: () => api.driver.rides(), enabled: useDriverReady() });
+}
+
+// Neomoov Pilote (étape 24).
+export function usePilot() {
+  return useQuery({ queryKey: keys.pilot, queryFn: () => api.driver.pilot(), enabled: useDriverReady() });
+}
+
+/** Décisions récentes de Pilote (bandeau de grâce sur la course, historique de l'écran Pilote). */
+export function usePilotDecisions(pageSize = 20) {
+  return useQuery({ queryKey: [...keys.pilotDecisions, pageSize], queryFn: () => api.driver.pilotDecisions({ pageSize }), enabled: useDriverReady(), refetchInterval: 15_000 });
+}
+
+export function useAgenda(position: { lat: number; lng: number } | null, enabled = true) {
+  return useQuery({ queryKey: keys.agenda(position), queryFn: () => api.driver.agenda(position ?? undefined), enabled: useDriverReady() && enabled, refetchInterval: 60_000 });
+}
+
+export function useCosts(month: string) {
+  return useQuery({ queryKey: keys.costs(month), queryFn: () => api.driver.costs(month), enabled: useDriverReady() });
+}
+
+export function useProfitability(month: string) {
+  return useQuery({ queryKey: keys.profitability(month), queryFn: () => api.driver.profitability(month), enabled: useDriverReady() });
 }
 
 export function useConsents() {

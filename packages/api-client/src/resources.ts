@@ -15,6 +15,7 @@ import type {
 } from '@neomoov/domain';
 import type { ConversationView, MembershipView, SupportMessageInput } from '@neomoov/domain';
 import type { DriverSanctionView, SanctionAppealInput } from '@neomoov/domain';
+import type { DriverAgendaView, DriverCostsInput, DriverCostsView, DriverProfitabilityView, PilotDecisionPage, PilotSettingsUpdate, PilotSettingsView } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
 /** Ce dont les ressources ont besoin : les verbes HTTP du client. */
@@ -203,5 +204,14 @@ export function driverResource(t: Transport) {
     claimScheduled: (rideId: string) => t.post<{ assignmentId: string; status: 'proposed' }>(`/driver/scheduled/${id(rideId)}/claim`),
     confirmScheduled: (rideId: string) => t.post<RideView>(`/driver/scheduled/${id(rideId)}/confirm`),
     declineScheduled: (rideId: string) => t.post<void>(`/driver/scheduled/${id(rideId)}/decline`),
+    // Neomoov Pilote (étape 24) : réglages et consentement, décisions, annulation de grâce, agenda, coûts et rentabilité.
+    pilot: () => t.get<PilotSettingsView>('/driver/pilot'),
+    updatePilot: (body: PilotSettingsUpdate) => t.put<PilotSettingsView>('/driver/pilot', body),
+    pilotDecisions: (query: { page?: number; pageSize?: number } = {}) => t.get<PilotDecisionPage>('/driver/pilot/decisions', { query }),
+    pilotCancel: (rideId: string) => t.post<RideView>(ride(rideId, 'pilot-cancel')),
+    agenda: (position?: { lat: number; lng: number }) => t.get<DriverAgendaView>('/driver/agenda', position ? { query: position } : undefined),
+    costs: (month: string) => t.get<DriverCostsView>(`/driver/costs/${id(month)}`),
+    saveCosts: (month: string, body: DriverCostsInput) => t.put<DriverCostsView>(`/driver/costs/${id(month)}`, body),
+    profitability: (month?: string) => t.get<DriverProfitabilityView>('/driver/profitability', month ? { query: { month } } : undefined),
   };
 }
