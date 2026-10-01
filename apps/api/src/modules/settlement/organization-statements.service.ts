@@ -89,12 +89,20 @@ export class OrganizationStatementsService {
     });
   }
 
-  /** Reprise des versements en échec (passe du lundi) ; les relevés sans compte Connect restent à régler hors plateforme. */
+  /**
+   * Reprise (passe du lundi) : versements en échec, et relevés encore à verser d'une organisation qui a ouvert son compte
+   * Connect depuis (les autres restent à régler hors plateforme, sans changement).
+   */
   async retryFailed(now = new Date()): Promise<OrganizationPayReport> {
     return withoutOrgScope(async () => {
       const report: OrganizationPayReport = { issued: 0, paid: 0, failed: 0, offline: 0 };
-      const failed = await this.db.select().from(schema.organizationStatements).where(eq(schema.organizationStatements.status, 'failed')).limit(200);
-      for (const statement of failed) report[await this.pay(statement, now)] += 1;
+      const pending = await this.db
+        .select()
+        .from(schema.organizationStatements)
+        .where(inArray(schema.organizationStatements.status, ['issued', 'failed']))
+        .orderBy(schema.organizationStatements.periodStart)
+        .limit(200);
+      for (const statement of pending) report[await this.pay(statement, now)] += 1;
       return report;
     });
   }
