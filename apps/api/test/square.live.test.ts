@@ -31,8 +31,10 @@ describe.skipIf(!enabled)('Square en bac à sable (RUN_SQUARE_TESTS=1)', () => {
     expect(location.currency, 'l\'emplacement du bac à sable doit encaisser en CAD').toBe('CAD');
     const square = new SquarePaymentProvider({ accessToken: token, locationId: location.id, environment: 'sandbox' });
 
-    const { customerRef } = await square.createCustomer({ externalId: run, email: `${run}@test.neomoov.local` });
-    expect((await square.createCustomer({ externalId: run })).customerRef).toBe(customerRef);
+    // Même demande rejouée (la recherche de Square par reference_id est différée : la clé d'idempotence rend le même client).
+    const customerInput = { externalId: run, email: `${run}@test.neomoov.local`, phone: '+15145550123' };
+    const { customerRef } = await square.createCustomer(customerInput);
+    expect((await square.createCustomer(customerInput)).customerRef).toBe(customerRef);
     const card = await square.saveCard({ customerRef, sourceId: 'cnon:card-nonce-ok', idempotencyKey: `${run}:card`, externalId: run });
     expect(card.ref).toMatch(/^ccof:/);
     expect(card.last4).toMatch(/^\d{4}$/);
