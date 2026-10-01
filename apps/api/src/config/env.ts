@@ -81,11 +81,17 @@ export const envSchema = z.object({
   STRIPE_PUBLISHABLE_KEY: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,
   STRIPE_CONNECT_CLIENT_ID: optionalString,
-  /** Square (étape 26) : jeton d'accès de l'application, emplacement qui encaisse (CAD), identifiant d'application du Web Payments SDK. */
+  /**
+   * Square (étape 26) : jeton d'accès et identifiant d'application de production, leurs équivalents du bac à sable (lus
+   * quand `SQUARE_ENVIRONMENT=sandbox`), emplacement qui encaisse (CAD ; celui du bac à sable est distinct), clé de
+   * signature du point de réception des webhooks et adresse publique déclarée chez Square (elle entre dans la signature).
+   */
   SQUARE_ACCESS_TOKEN: optionalString,
-  SQUARE_LOCATION_ID: optionalString,
+  SQUARE_SANDBOX_ACCESS_TOKEN: optionalString,
   SQUARE_APPLICATION_ID: optionalString,
-  /** Clé de signature du point de réception des webhooks et adresse publique déclarée chez Square (entre dans la signature). */
+  SQUARE_SANDBOX_APPLICATION_ID: optionalString,
+  SQUARE_LOCATION_ID: optionalString,
+  SQUARE_SANDBOX_LOCATION_ID: optionalString,
   SQUARE_WEBHOOK_SIGNATURE_KEY: optionalString,
   SQUARE_WEBHOOK_URL: z.string().url().optional(),
   /** `sandbox` (bac à sable Square) ou `production` ; vide : `production` quand NODE_ENV vaut production, sinon `sandbox`. */
@@ -188,12 +194,37 @@ export function cardPaymentsEnabled(env: Pick<AppEnv, 'CARD_PAYMENTS' | 'NODE_EN
   return !(env.NODE_ENV === 'production' && env.PAYMENT_PROVIDER === 'mock');
 }
 
-/** Variables exigées par `PAYMENT_PROVIDER=square` (étape 26) ; l'API refuse de démarrer en production sans elles. */
-export const SQUARE_REQUIRED_VARIABLES = ['SQUARE_ACCESS_TOKEN', 'SQUARE_LOCATION_ID', 'SQUARE_APPLICATION_ID', 'SQUARE_WEBHOOK_SIGNATURE_KEY', 'SQUARE_WEBHOOK_URL'] as const;
-
 /** Environnement Square effectif : explicite, sinon celui qui va avec `NODE_ENV`. */
 export function squareEnvironment(env: Pick<AppEnv, 'SQUARE_ENVIRONMENT' | 'NODE_ENV'>): 'sandbox' | 'production' {
   return env.SQUARE_ENVIRONMENT ?? (env.NODE_ENV === 'production' ? 'production' : 'sandbox');
+}
+
+type SquareEnvKeys = 'SQUARE_ENVIRONMENT' | 'NODE_ENV' | 'SQUARE_ACCESS_TOKEN' | 'SQUARE_SANDBOX_ACCESS_TOKEN' | 'SQUARE_APPLICATION_ID' | 'SQUARE_SANDBOX_APPLICATION_ID' | 'SQUARE_LOCATION_ID' | 'SQUARE_SANDBOX_LOCATION_ID' | 'SQUARE_WEBHOOK_SIGNATURE_KEY' | 'SQUARE_WEBHOOK_URL';
+
+/**
+ * Valeurs Square de l'environnement effectif (étape 26) : en bac à sable, le jeton et l'identifiant d'application du
+ * bac à sable (`SQUARE_SANDBOX_*`), et son emplacement s'il est donné ; en production, les valeurs de production.
+ * `missing` liste les variables qui manquent pour cet environnement (l'API refuse de démarrer en production avec Square).
+ */
+export function squareConfig(env: Pick<AppEnv, SquareEnvKeys>) {
+  const environment = squareEnvironment(env);
+  const sandbox = environment === 'sandbox';
+  const values = {
+    environment,
+    accessToken: sandbox ? env.SQUARE_SANDBOX_ACCESS_TOKEN : env.SQUARE_ACCESS_TOKEN,
+    applicationId: sandbox ? env.SQUARE_SANDBOX_APPLICATION_ID : env.SQUARE_APPLICATION_ID,
+    locationId: sandbox ? (env.SQUARE_SANDBOX_LOCATION_ID ?? env.SQUARE_LOCATION_ID) : env.SQUARE_LOCATION_ID,
+    webhookSignatureKey: env.SQUARE_WEBHOOK_SIGNATURE_KEY,
+    webhookUrl: env.SQUARE_WEBHOOK_URL,
+  };
+  const missing = [
+    ...(values.accessToken ? [] : [sandbox ? 'SQUARE_SANDBOX_ACCESS_TOKEN' : 'SQUARE_ACCESS_TOKEN']),
+    ...(values.applicationId ? [] : [sandbox ? 'SQUARE_SANDBOX_APPLICATION_ID' : 'SQUARE_APPLICATION_ID']),
+    ...(values.locationId ? [] : ['SQUARE_LOCATION_ID']),
+    ...(values.webhookSignatureKey ? [] : ['SQUARE_WEBHOOK_SIGNATURE_KEY']),
+    ...(values.webhookUrl ? [] : ['SQUARE_WEBHOOK_URL']),
+  ];
+  return { ...values, missing };
 }
 
 /** Charge le .env le plus proche en remontant depuis ce fichier (la racine du monorepo), sans écraser l'environnement. */
@@ -242,8 +273,8 @@ export function loadEnv(source?: Record<string, string | undefined>, { dotenv = 
       throw new Error(`Configuration invalide en production : fournisseurs simulés non déclarés (${simulated.map(([, key]) => key).join(', ')}). Passer chacun à « real » avec ses clés, ou l'autoriser explicitement dans ALLOW_MOCK_PROVIDERS (${simulated.map(([, key]) => PROVIDER_ALIASES[key]).join(',')}).`);
     }
     if (env.PAYMENT_PROVIDER === 'square') {
-      const absent = SQUARE_REQUIRED_VARIABLES.filter((key) => !env[key]);
-      if (absent.length) throw new Error(`Configuration invalide en production : PAYMENT_PROVIDER=square exige ${absent.join(', ')}.`);
+      const { environment, missing: absent } = squareConfig(env);
+      if (absent.length) throw new Error(`Configuration invalide en production : PAYMENT_PROVIDER=square (environnement Square « ${environment} ») exige ${absent.join(', ')}.`);
     }
   }
   return {

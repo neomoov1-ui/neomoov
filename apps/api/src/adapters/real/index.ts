@@ -9,7 +9,7 @@
  */
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
-import type { AppEnv } from '../../config/env.js';
+import { squareConfig, type AppEnv } from '../../config/env.js';
 import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
 import { AnthropicLlmProvider } from './anthropic.js';
 import { ClamAvScanner } from './clamav.js';
@@ -17,6 +17,7 @@ import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
 import { ResendEmailProvider } from './resend.js';
 import { S3StorageProvider } from './s3.js';
+import { SquarePaymentProvider } from './square.js';
 import { StripePaymentProvider } from './stripe.js';
 import { TwilioSmsProvider } from './twilio.js';
 import { VapiVoiceProvider } from './vapi.js';
@@ -77,7 +78,15 @@ export const realMaps = (env: AppEnv): MapsProvider => {
   requireKey('cartes (Google Maps Platform)', 'GOOGLE_MAPS_SERVER_KEY', env);
   return new GoogleMapsProvider(env.GOOGLE_MAPS_SERVER_KEY!);
 };
+/** Paiements : Stripe (`real` ou `stripe`), ou Square (`square`, étape 26) avec les valeurs de son environnement effectif. */
 export const realPayment = (env: AppEnv): PaymentProvider => {
+  if (env.PAYMENT_PROVIDER === 'square') {
+    const square = squareConfig(env);
+    // Le webhook est vérifié à la réception (501 sans sa clé) ; le reste est exigé au démarrage.
+    const required = square.missing.filter((key) => key !== 'SQUARE_WEBHOOK_SIGNATURE_KEY' && key !== 'SQUARE_WEBHOOK_URL');
+    if (required.length) throw notConfigured('paiements (Square)', required.join(', '));
+    return new SquarePaymentProvider({ accessToken: square.accessToken!, locationId: square.locationId!, environment: square.environment, webhookSignatureKey: square.webhookSignatureKey, webhookUrl: square.webhookUrl });
+  }
   requireKey('paiements (Stripe)', 'STRIPE_SECRET_KEY', env);
   return new StripePaymentProvider(env.STRIPE_SECRET_KEY!, env.STRIPE_WEBHOOK_SECRET);
 };

@@ -1,33 +1,39 @@
 /**
- * Paiements (section 5.6, prompt 07). Aucune donnée de carte ne transite par l'API : seulement des identifiants Stripe.
- * Chaque opération financière porte une clé d'idempotence (rejouée, elle ne crée ni second mouvement ni seconde
- * ligne). Carte : autorisation à capture différée du prix maximal consenti plus la marge (course immédiate avant sa
- * création, planifiée à l'attribution), capture du montant dû à la fin, frais d'annulation ou d'absence capturés sur
- * l'autorisation, sinon annulation. Échec de capture : nouvelle tentative, puis incident `payment_failed` et solde dû
- * (nouvelles courses refusées jusqu'au règlement). Paiement direct : montant confirmé par le chauffeur.
+ * Paiements (section 5.6, prompt 07). Aucune donnée de carte ne transite par l'API : seulement des identifiants du
+ * fournisseur (Stripe, ou Square à l'étape 26). Chaque opération financière porte une clé d'idempotence (rejouée, elle
+ * ne crée ni second mouvement ni seconde ligne). Carte : autorisation à capture différée du prix maximal consenti plus
+ * la marge (course immédiate avant sa création, planifiée à l'attribution), capture du montant dû à la fin, frais
+ * d'annulation ou d'absence capturés sur l'autorisation, sinon annulation. Échec de capture : nouvelle tentative, puis
+ * incident `payment_failed` et solde dû (nouvelles courses refusées jusqu'au règlement). Paiement direct : montant
+ * confirmé par le chauffeur. Cartes et paiements portent le nom de leur fournisseur : seules les cartes du fournisseur
+ * actif sont proposées et débitées ; un remboursement ne passe que par le fournisseur du paiement.
  */
 import { schema } from '@neomoov/db';
 import {
-  authorizationCents, captureCents, isCardMethod, refundableCents, type BalanceView, type PaymentMethod, type PaymentMethodView, type PaymentView, type RefundView,
-  type SetupIntentResponse,
+  authorizationCents, captureCents, isCardMethod, refundableCents, type BalanceView, type CardSessionConfirm, type CardSessionInfo, type CardSessionResult, type PaymentMethod,
+  type PaymentMethodView, type PaymentProviderName, type PaymentView, type RefundView, type SetupIntentConfirm, type SetupIntentResponse,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import type { Logger } from 'pino';
-import { PAYMENT_PROVIDER, type PaymentAuthorization, type PaymentProvider, type WebhookEvent } from '../../adapters/types.js';
+import { PAYMENT_PROVIDER, type CardDetails, type PaymentAuthorization, type PaymentProvider, type WebhookEvent } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
-import { APP_ENV, type AppEnv } from '../../config/env.js';
+import { APP_ENV, squareConfig, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
+import { CARD_SESSION_TTL_MS, cardSessionKey, signCardSession, verifyCardSession, type CardSession, type CardSessionPurpose } from './card-session.js';
 
 type PaymentRow = typeof schema.payments.$inferSelect;
 type MethodRow = typeof schema.clientPaymentMethods.$inferSelect;
 type Executor = Pick<Database['db'], 'insert' | 'update' | 'select' | 'execute'>;
+
+/** Lien profond qui ramène à l'application à la fin de la page de saisie de carte. */
+const RETURN_URLS: Record<CardSessionPurpose, string> = { client_card: 'neomoov://carte-enregistree', driver_debit: 'neomoov-driver://carte-enregistree' };
 
 export interface RideAuthorization {
   intentId: string;
@@ -55,21 +61,33 @@ export class PaymentsService {
     return this.database.db;
   }
 
-  get providerName(): string {
-    return this.provider.name;
+  get providerName(): PaymentProviderName {
+    return this.provider.name as PaymentProviderName;
   }
 
-  // --- Clients Stripe et méthodes de paiement ---
+  /** Versements aux chauffeurs par la plateforme (Stripe Connect) ; faux avec Square : relevés réglés hors plateforme (étape 26). */
+  get connectAvailable(): boolean {
+    return this.provider.capabilities.connect;
+  }
 
-  /** Client Stripe de l'utilisateur, créé au premier besoin (clé d'idempotence par utilisateur chez Stripe). */
+  // --- Clients du fournisseur et méthodes de paiement ---
+
+  /**
+   * Client de l'utilisateur chez le fournisseur actif, créé au premier besoin (clé d'idempotence par utilisateur). La
+   * référence gardée dans `users.stripe_customer_id` ne vaut que pour le fournisseur qui l'a émise : après un changement
+   * de fournisseur (Square puis Stripe), un nouveau client est créé chez le fournisseur actif et remplace l'ancienne.
+   */
   async customerFor(userId: string): Promise<string> {
     const [user] = await this.db.select({ customer: schema.users.stripeCustomerId, email: schema.users.email, phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
     if (!user) throw AppError.notFound('USER_NOT_FOUND', 'Utilisateur introuvable');
-    if (user.customer) return user.customer;
+    if (user.customer && this.provider.ownsCustomerRef(user.customer)) return user.customer;
     const { customerRef } = await this.provider.createCustomer({ externalId: userId, ...(user.email ? { email: user.email } : {}), phone: user.phone });
-    await this.db.update(schema.users).set({ stripeCustomerId: customerRef }).where(and(eq(schema.users.id, userId), isNull(schema.users.stripeCustomerId)));
+    await this.db
+      .update(schema.users)
+      .set({ stripeCustomerId: customerRef })
+      .where(and(eq(schema.users.id, userId), user.customer ? eq(schema.users.stripeCustomerId, user.customer) : isNull(schema.users.stripeCustomerId)));
     const [stored] = await this.db.select({ customer: schema.users.stripeCustomerId }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
-    return stored?.customer ?? customerRef;
+    return stored?.customer && this.provider.ownsCustomerRef(stored.customer) ? stored.customer : customerRef;
   }
 
   private async clientOf(userId: string): Promise<{ id: string; balanceDueCents: number }> {
@@ -83,20 +101,30 @@ export class PaymentsService {
     return this.newSetupIntent(userId);
   }
 
-  /** SetupIntent pour une carte (client) ou la méthode de prélèvement (chauffeur, relevés négatifs). */
-  async newSetupIntent(userId: string): Promise<SetupIntentResponse> {
+  /**
+   * Enregistrement d'une carte (client) ou de la méthode de prélèvement (chauffeur, relevés négatifs) : SetupIntent pour
+   * la feuille de paiement Stripe, et, pour un fournisseur par jeton de carte (Square, simulé), l'adresse de la page de
+   * saisie du web avec une session signée de 15 minutes liée à l'utilisateur (étape 26).
+   */
+  async newSetupIntent(userId: string, purpose: CardSessionPurpose = 'client_card'): Promise<SetupIntentResponse> {
     const customerId = await this.customerFor(userId);
-    const intent = await this.provider.createSetupIntent(customerId);
+    const intent = this.provider.capabilities.setupIntent ? await this.provider.createSetupIntent(customerId) : null;
     const merchant = await this.settings.string('payments.apple_pay_merchant_id', '');
+    const square = this.provider.name === 'square' ? squareConfig(this.env) : null;
     return {
-      setupIntentId: intent.setupIntentId,
-      clientSecret: intent.clientSecret,
+      provider: this.providerName,
+      setupIntentId: intent?.setupIntentId ?? null,
+      clientSecret: intent?.clientSecret ?? null,
       customerId,
-      // Fournisseur simulé : aucune clé publiable, l'application ne doit pas initialiser Stripe.
-      publishableKey: this.provider.name === 'mock' ? null : (this.env.STRIPE_PUBLISHABLE_KEY ?? null),
+      // Fournisseur simulé ou Square : aucune clé publiable, l'application ne doit pas initialiser Stripe.
+      publishableKey: this.provider.name === 'stripe' ? (this.env.STRIPE_PUBLISHABLE_KEY ?? null) : null,
       applePayMerchantId: merchant || null,
       merchantCountry: 'CA',
       simulated: this.provider.name === 'mock',
+      cardFormUrl: this.provider.capabilities.cardToken ? this.cardFormUrl(this.cardSession(userId, purpose).token) : null,
+      squareApplicationId: square?.applicationId ?? null,
+      squareLocationId: square?.locationId ?? null,
+      squareEnvironment: square?.environment ?? null,
     };
   }
 
@@ -109,57 +137,130 @@ export class PaymentsService {
     return intent.card;
   }
 
-  async confirmSetupIntent(userId: string, input: { setupIntentId: string; makeDefault: boolean }): Promise<PaymentMethodView> {
+  /**
+   * Carte décrite par le fournisseur : relue d'un SetupIntent confirmé (Stripe), ou créée à partir du jeton de carte
+   * (Square ; un même jeton rejoué donne la même carte). Jamais à partir de ce que l'application décrit elle-même.
+   */
+  async cardFrom(userId: string, input: SetupIntentConfirm | { sourceId: string; verificationToken?: string }): Promise<CardDetails> {
+    if ('setupIntentId' in input) return this.confirmedCardOf(userId, input.setupIntentId);
+    if (!this.provider.capabilities.cardToken) throw new AppError('CARD_TOKEN_UNAVAILABLE', 'Ce fournisseur enregistre les cartes par SetupIntent, pas par jeton de carte', 409);
+    const customerRef = await this.customerFor(userId);
+    return this.provider.saveCard({ customerRef, sourceId: input.sourceId, ...(input.verificationToken ? { verificationToken: input.verificationToken } : {}), idempotencyKey: `card:${shortHash(`${userId}|${input.sourceId}`)}`, externalId: userId });
+  }
+
+  async confirmSetupIntent(userId: string, input: SetupIntentConfirm): Promise<PaymentMethodView> {
     const client = await this.clientOf(userId);
-    const card = await this.confirmedCardOf(userId, input.setupIntentId);
-    const [others] = await this.db.select({ n: sql<number>`count(*)::int` }).from(schema.clientPaymentMethods).where(and(eq(schema.clientPaymentMethods.clientId, client.id), isNull(schema.clientPaymentMethods.deletedAt)));
-    const makeDefault = input.makeDefault || !others?.n;
+    const card = await this.cardFrom(userId, input);
+    return this.storeClientCard(client.id, card, input.makeDefault);
+  }
+
+  /** Carte du fournisseur actif rattachée au client ; une carte déjà connue n'est reprise que pour ce même client. */
+  private async storeClientCard(clientId: string, card: CardDetails, wantedDefault: boolean): Promise<PaymentMethodView> {
+    const [others] = await this.db.select({ n: sql<number>`count(*)::int` }).from(schema.clientPaymentMethods).where(and(eq(schema.clientPaymentMethods.clientId, clientId), isNull(schema.clientPaymentMethods.deletedAt), eq(schema.clientPaymentMethods.provider, this.provider.name)));
+    const makeDefault = wantedDefault || !others?.n;
     const row = await this.db.transaction(async (tx) => {
-      if (makeDefault) await tx.update(schema.clientPaymentMethods).set({ isDefault: false }).where(eq(schema.clientPaymentMethods.clientId, client.id));
+      if (makeDefault) await tx.update(schema.clientPaymentMethods).set({ isDefault: false }).where(eq(schema.clientPaymentMethods.clientId, clientId));
       const [inserted] = await tx
         .insert(schema.clientPaymentMethods)
-        .values({ clientId: client.id, stripePaymentMethodId: card.ref, brand: card.brand, last4: card.last4, expMonth: card.expMonth, expYear: card.expYear, isDefault: makeDefault })
+        .values({ clientId, stripePaymentMethodId: card.ref, provider: this.provider.name, brand: card.brand, last4: card.last4, expMonth: card.expMonth, expYear: card.expYear, isDefault: makeDefault })
         // Une carte déjà connue n'est reprise que pour ce même client (jamais la ligne d'un autre compte).
-        .onConflictDoUpdate({ target: schema.clientPaymentMethods.stripePaymentMethodId, set: { deletedAt: null, isDefault: makeDefault }, setWhere: eq(schema.clientPaymentMethods.clientId, client.id) })
+        .onConflictDoUpdate({ target: schema.clientPaymentMethods.stripePaymentMethodId, set: { deletedAt: null, isDefault: makeDefault }, setWhere: eq(schema.clientPaymentMethods.clientId, clientId) })
         .returning();
       if (!inserted) throw AppError.forbidden('PAYMENT_METHOD_NOT_YOURS', 'Cette carte appartient à un autre compte');
       return inserted;
     });
-    this.audit.record({ action: 'payment_method.added', entity: 'client_payment_methods', entityId: row.id, after: { brand: row.brand, last4: row.last4, isDefault: row.isDefault } });
+    this.audit.record({ action: 'payment_method.added', entity: 'client_payment_methods', entityId: row.id, after: { brand: row.brand, last4: row.last4, isDefault: row.isDefault, provider: row.provider } });
     return this.methodView(row);
+  }
+
+  // --- Session de saisie de carte (page `/carte` du web, étape 26) ---
+
+  private sessionKey?: Buffer;
+
+  private get cardSessionKey(): Buffer {
+    this.sessionKey ??= cardSessionKey(this.env.ENCRYPTION_KEY!);
+    return this.sessionKey;
+  }
+
+  private cardFormUrl(token: string): string {
+    const url = new URL('/carte', this.env.WEB_BASE_URL);
+    url.searchParams.set('session', token);
+    return url.toString();
+  }
+
+  /** Session signée de 15 minutes, liée à l'utilisateur et à son objet (carte du client, prélèvement du chauffeur). */
+  cardSession(userId: string, purpose: CardSessionPurpose): { token: string; expiresAt: Date } {
+    const expiresAt = new Date(Date.now() + CARD_SESSION_TTL_MS);
+    return { token: signCardSession({ userId, purpose, expiresAt }, this.cardSessionKey), expiresAt };
+  }
+
+  private sessionOf(token: string): CardSession {
+    const check = verifyCardSession(token, this.cardSessionKey);
+    if (!check.ok) {
+      if (check.reason === 'expired') throw AppError.unauthorized('CARD_SESSION_EXPIRED', 'Cette page de saisie a expiré : relancez l\'ajout de carte depuis l\'application');
+      throw AppError.unauthorized('CARD_SESSION_INVALID', 'Lien de saisie de carte invalide');
+    }
+    if (!this.provider.capabilities.cardToken) throw AppError.conflict('CARD_TOKEN_UNAVAILABLE', 'Le fournisseur de paiement actif n\'enregistre pas les cartes par cette page');
+    return check.session;
+  }
+
+  /** Ce que la page `/carte` doit savoir pour charger le Web Payments SDK (jamais de secret). */
+  async cardSessionInfo(token: string): Promise<CardSessionInfo> {
+    const session = this.sessionOf(token);
+    const square = this.provider.name === 'square' ? squareConfig(this.env) : null;
+    return {
+      provider: this.providerName, purpose: session.purpose, expiresAt: session.expiresAt.toISOString(),
+      squareApplicationId: square?.applicationId ?? null, squareLocationId: square?.locationId ?? null, squareEnvironment: square?.environment ?? null, returnUrl: RETURN_URLS[session.purpose],
+    };
+  }
+
+  /** Confirmation faite par le serveur web avec le jeton de carte : carte du client, ou méthode de prélèvement du chauffeur. */
+  async confirmCardSession(input: CardSessionConfirm): Promise<CardSessionResult> {
+    const session = this.sessionOf(input.session);
+    const card = await this.cardFrom(session.userId, { sourceId: input.sourceId, ...(input.verificationToken ? { verificationToken: input.verificationToken } : {}) });
+    if (session.purpose === 'driver_debit') {
+      const [driver] = await this.db.select({ id: schema.drivers.id }).from(schema.drivers).where(eq(schema.drivers.userId, session.userId)).limit(1);
+      if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Profil chauffeur introuvable');
+      await this.db.update(schema.drivers).set({ stripeDebitPaymentMethodId: card.ref, stripeDebitCardBrand: card.brand, stripeDebitCardLast4: card.last4 }).where(eq(schema.drivers.id, driver.id));
+      this.audit.record({ action: 'driver.debit_method', entity: 'drivers', entityId: driver.id, after: { brand: card.brand, last4: card.last4, provider: this.provider.name } });
+      return { purpose: session.purpose, card: null, debitMethod: { brand: card.brand, last4: card.last4 } };
+    }
+    const client = await this.clientOf(session.userId);
+    return { purpose: session.purpose, card: await this.storeClientCard(client.id, card, true), debitMethod: null };
   }
 
   private methodView(row: MethodRow): PaymentMethodView {
     return { id: row.id, brand: row.brand, last4: row.last4, expMonth: row.expMonth ?? null, expYear: row.expYear ?? null, isDefault: row.isDefault, createdAt: row.createdAt.toISOString() };
   }
 
+  /** Cartes enregistrées chez le fournisseur actif (celles d'un ancien fournisseur ne sont ni proposées ni débitées). */
   async listMethods(userId: string): Promise<PaymentMethodView[]> {
     const client = await this.clientOf(userId);
     const rows = await this.db
       .select()
       .from(schema.clientPaymentMethods)
-      .where(and(eq(schema.clientPaymentMethods.clientId, client.id), isNull(schema.clientPaymentMethods.deletedAt)))
+      .where(and(eq(schema.clientPaymentMethods.clientId, client.id), isNull(schema.clientPaymentMethods.deletedAt), eq(schema.clientPaymentMethods.provider, this.provider.name)))
       .orderBy(desc(schema.clientPaymentMethods.isDefault), desc(schema.clientPaymentMethods.createdAt));
     return rows.map((r) => this.methodView(r));
   }
 
-  /** Retrait d'une carte : détachée chez Stripe, masquée ici ; une autre carte devient la carte par défaut. */
+  /** Retrait d'une carte : détachée chez son fournisseur (s'il est actif), masquée ici ; une autre carte devient la carte par défaut. */
   async removeMethod(userId: string, methodId: string): Promise<void> {
     const client = await this.clientOf(userId);
     const [row] = await this.db.select().from(schema.clientPaymentMethods).where(and(eq(schema.clientPaymentMethods.id, methodId), eq(schema.clientPaymentMethods.clientId, client.id), isNull(schema.clientPaymentMethods.deletedAt))).limit(1);
     if (!row) throw AppError.notFound('PAYMENT_METHOD_NOT_FOUND', 'Carte introuvable');
-    await this.provider.detachPaymentMethod(row.stripePaymentMethodId);
+    if (row.provider === this.provider.name) await this.provider.detachPaymentMethod(row.stripePaymentMethodId);
     await this.db.update(schema.clientPaymentMethods).set({ deletedAt: new Date(), isDefault: false }).where(eq(schema.clientPaymentMethods.id, row.id));
     if (row.isDefault) {
-      const [next] = await this.db.select({ id: schema.clientPaymentMethods.id }).from(schema.clientPaymentMethods).where(and(eq(schema.clientPaymentMethods.clientId, client.id), isNull(schema.clientPaymentMethods.deletedAt))).orderBy(desc(schema.clientPaymentMethods.createdAt)).limit(1);
+      const [next] = await this.db.select({ id: schema.clientPaymentMethods.id }).from(schema.clientPaymentMethods).where(and(eq(schema.clientPaymentMethods.clientId, client.id), isNull(schema.clientPaymentMethods.deletedAt), eq(schema.clientPaymentMethods.provider, this.provider.name))).orderBy(desc(schema.clientPaymentMethods.createdAt)).limit(1);
       if (next) await this.db.update(schema.clientPaymentMethods).set({ isDefault: true }).where(eq(schema.clientPaymentMethods.id, next.id));
     }
     this.audit.record({ action: 'payment_method.removed', entity: 'client_payment_methods', entityId: row.id, before: { brand: row.brand, last4: row.last4 } });
   }
 
-  /** Carte choisie pour une course : celle indiquée (identifiant Neomoov ou Stripe) si elle est au client, sinon la carte par défaut. */
+  /** Carte choisie pour une course : celle indiquée (identifiant Neomoov ou du fournisseur) si elle est au client, sinon la carte par défaut ; fournisseur actif seulement. */
   async methodForClient(clientId: string, requested?: string): Promise<MethodRow> {
-    const conditions = [eq(schema.clientPaymentMethods.clientId, clientId), isNull(schema.clientPaymentMethods.deletedAt)];
+    const conditions = [eq(schema.clientPaymentMethods.clientId, clientId), isNull(schema.clientPaymentMethods.deletedAt), eq(schema.clientPaymentMethods.provider, this.provider.name)];
     const [row] = requested
       ? await this.db
           .select()
@@ -214,7 +315,7 @@ export class PaymentsService {
     await tx
       .insert(schema.payments)
       .values({
-        rideId: input.rideId, clientId: input.clientId, method: input.method, kind: 'ride', idempotencyKey: `ride:${input.rideId}`,
+        rideId: input.rideId, clientId: input.clientId, method: input.method, kind: 'ride', idempotencyKey: `ride:${input.rideId}`, provider: this.provider.name,
         stripePaymentMethodId: input.authorization?.paymentMethodRef ?? input.paymentMethodRef ?? null,
         stripePaymentIntentId: input.authorization?.intentId ?? null, authorizedCents: input.authorization?.authorizedCents ?? 0,
         status: input.authorization ? 'authorized' : 'pending',
@@ -450,7 +551,7 @@ export class PaymentsService {
       .insert(schema.payments)
       .values({
         rideId, clientId: client.id, method: method.method, kind: 'tip', idempotencyKey: `tip:${rideId}`, stripePaymentIntentId: charge.intentId, stripePaymentMethodId: method.stripePaymentMethodId,
-        authorizedCents: amountCents, capturedCents: amountCents, tipCents: amountCents, status: 'captured', capturedAt: new Date(),
+        provider: this.provider.name, authorizedCents: amountCents, capturedCents: amountCents, tipCents: amountCents, status: 'captured', capturedAt: new Date(),
       })
       .onConflictDoUpdate({ target: schema.payments.idempotencyKey, targetWhere: sql`${schema.payments.idempotencyKey} IS NOT NULL`, set: { status: 'captured', capturedCents: amountCents, tipCents: amountCents, stripePaymentIntentId: charge.intentId } })
       .returning();
@@ -468,7 +569,7 @@ export class PaymentsService {
     else {
       await this.db
         .insert(schema.payments)
-        .values({ rideId: input.rideId, clientId: input.clientId, method: input.method, kind: 'ride', status: 'paid_direct', collectedBy: 'driver', driverConfirmedCents: input.amountCents, idempotencyKey: `direct:${input.rideId}` })
+        .values({ rideId: input.rideId, clientId: input.clientId, method: input.method, kind: 'ride', status: 'paid_direct', collectedBy: 'driver', driverConfirmedCents: input.amountCents, idempotencyKey: `direct:${input.rideId}`, provider: this.provider.name })
         .onConflictDoNothing();
     }
     await this.db.execute(sql`
@@ -505,6 +606,8 @@ export class PaymentsService {
 
     if (input.mode === 'refund') {
       if (payment.collectedBy === 'driver' || !payment.stripePaymentIntentId) throw AppError.conflict('REFUND_CARD_IMPOSSIBLE', 'Payée au chauffeur : seul un crédit est possible');
+      // Étape 26 : un paiement encaissé par un ancien fournisseur se rembourse dans son tableau de bord, ou en crédit ici.
+      if (payment.provider !== this.provider.name) throw AppError.conflict('PAYMENT_PROVIDER_MISMATCH', `Paiement encaissé par ${payment.provider} : remboursement à faire dans son tableau de bord, ou crédit sur le compte du client`, { provider: payment.provider });
       const refundable = refundableCents(payment.capturedCents, already);
       if (input.amountCents > refundable) throw new AppError('REFUND_TOO_HIGH', 'Montant supérieur au reste remboursable', 400, { refundableCents: refundable });
       const result = await this.provider.refund({ intentId: payment.stripePaymentIntentId, amountCents: input.amountCents, idempotencyKey: key, reason: input.reason });
@@ -594,7 +697,7 @@ export class PaymentsService {
       if (charge.status !== 'captured') this.declined(charge);
       await this.db
         .insert(schema.payments)
-        .values({ rideId: item.rideId, clientId: client.id, method: 'card_app', kind: 'balance', idempotencyKey: key, stripePaymentIntentId: charge.intentId, stripePaymentMethodId: method.stripePaymentMethodId, authorizedCents: item.amountDueCents, capturedCents: item.amountDueCents, status: 'captured', capturedAt: new Date() })
+        .values({ rideId: item.rideId, clientId: client.id, method: 'card_app', kind: 'balance', idempotencyKey: key, stripePaymentIntentId: charge.intentId, stripePaymentMethodId: method.stripePaymentMethodId, provider: this.provider.name, authorizedCents: item.amountDueCents, capturedCents: item.amountDueCents, status: 'captured', capturedAt: new Date() })
         .onConflictDoNothing();
       await this.journal(item.rideId, 'balance_settled', { amountCents: item.amountDueCents });
       paid += item.amountDueCents;
@@ -640,7 +743,7 @@ export class PaymentsService {
     return this.provider.verifyWebhook(rawBody, signature);
   }
 
-  /** Réception : l'identifiant de l'événement est la clé ; un événement déjà reçu n'est jamais retraité. */
+  /** Réception : l'identifiant de l'événement est la clé ; un événement déjà reçu n'est jamais retraité (événement traduit et original gardés). */
   async ingestWebhook(event: WebhookEvent): Promise<{ duplicate: boolean }> {
     const inserted = await this.db
       .insert(schema.webhookEvents)

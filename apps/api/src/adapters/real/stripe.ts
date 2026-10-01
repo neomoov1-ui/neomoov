@@ -6,7 +6,7 @@
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { AppError } from '../../common/app-error.js';
-import type { CardDetails, PaymentAuthorization, PaymentProvider, SetupIntentResult, WebhookEvent } from '../types.js';
+import type { CardDetails, PaymentAuthorization, PaymentCapabilities, PaymentProvider, SetupIntentResult, WebhookEvent } from '../types.js';
 
 const API = 'https://api.stripe.com';
 const API_VERSION = '2024-06-20';
@@ -73,6 +73,7 @@ function authorizationOf(intent: { id: string; status: string; client_secret?: s
 
 export class StripePaymentProvider implements PaymentProvider {
   readonly name = 'stripe';
+  readonly capabilities: PaymentCapabilities = { setupIntent: true, cardToken: false, connect: true };
   // Champs privés JavaScript : jamais énumérés, ni par le journal ni par util.inspect.
   readonly #secretKey: string;
   readonly #webhookSecret: string | undefined;
@@ -122,6 +123,15 @@ export class StripePaymentProvider implements PaymentProvider {
   async createCustomer(input: { externalId: string; email?: string; phone?: string }) {
     const customer = await this.call<{ id: string }>('POST', '/v1/customers', { email: input.email, phone: input.phone, metadata: { neomoov_user_id: input.externalId } }, `customer:${input.externalId}`);
     return { customerRef: customer.id };
+  }
+
+  ownsCustomerRef(customerRef: string): boolean {
+    return customerRef.startsWith('cus_') && !customerRef.startsWith('cus_mock_');
+  }
+
+  /** Stripe enregistre les cartes par SetupIntent confirmé dans l'application (feuille de paiement), jamais par jeton de carte. */
+  saveCard(): Promise<CardDetails> {
+    return Promise.reject(new AppError('CARD_TOKEN_UNAVAILABLE', 'Stripe enregistre les cartes par SetupIntent, pas par jeton de carte', 501));
   }
 
   async createSetupIntent(customerRef: string) {

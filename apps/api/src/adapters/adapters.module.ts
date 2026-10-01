@@ -24,7 +24,8 @@ const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 
 @Module({
   providers: [
     choose<MapsProvider>(MAPS_PROVIDER, 'MAPS_PROVIDER', () => new MockMapsProvider(), realMaps),
-    choose<PaymentProvider>(PAYMENT_PROVIDER, 'PAYMENT_PROVIDER', (env) => new MockPaymentProvider(mockWebhooks(env)), realPayment),
+    // Paiements : `mock`, sinon `real` ou `stripe` (Stripe) ou `square` (étape 26), départagés par `realPayment`.
+    { provide: PAYMENT_PROVIDER, inject: [APP_ENV], useFactory: (env: AppEnv): PaymentProvider => (env.PAYMENT_PROVIDER === 'mock' ? new MockPaymentProvider(mockWebhooks(env)) : realPayment(env)) },
     choose<SmsProvider>(SMS_PROVIDER, 'SMS_PROVIDER', (env) => new MockSmsProvider(mockWebhooks(env)), realSms),
     choose<EmailProvider>(EMAIL_PROVIDER, 'EMAIL_PROVIDER', () => new MockEmailProvider(), realEmail),
     choose<PushProvider>(PUSH_PROVIDER, 'PUSH_PROVIDER', () => new MockPushProvider(), realPush),

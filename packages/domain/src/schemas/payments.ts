@@ -18,22 +18,72 @@ export const paymentMethodViewSchema = z.object({
 });
 export type PaymentMethodView = z.infer<typeof paymentMethodViewSchema>;
 
-/** Réponse d'un SetupIntent : à confirmer par le SDK Stripe de l'application (feuille de paiement, Apple Pay, Google Pay). */
+/** Fournisseurs de paiement (étape 26) : Stripe, Square (en attendant la validation du compte Stripe), simulé. */
+export const PAYMENT_PROVIDERS = ['stripe', 'square', 'mock'] as const;
+export type PaymentProviderName = (typeof PAYMENT_PROVIDERS)[number];
+export const SQUARE_ENVIRONMENTS = ['sandbox', 'production'] as const;
+
+/**
+ * Réponse d'un SetupIntent : à confirmer par le SDK Stripe de l'application (feuille de paiement, Apple Pay, Google Pay).
+ * Avec Square (`provider: 'square'`), il n'y a pas de SetupIntent (`setupIntentId` et `clientSecret` nuls) : l'application
+ * ouvre `cardFormUrl` (page de saisie du web, session signée de 15 minutes) qui charge le Web Payments SDK de Square.
+ */
 export const setupIntentResponseSchema = z.object({
-  setupIntentId: z.string(),
-  clientSecret: z.string(),
+  provider: z.enum(PAYMENT_PROVIDERS),
+  setupIntentId: z.string().nullable(),
+  clientSecret: z.string().nullable(),
   customerId: z.string(),
-  /** Clé publiable Stripe pour le SDK ; nulle avec le fournisseur simulé. */
+  /** Clé publiable Stripe pour le SDK ; nulle avec le fournisseur simulé ou Square. */
   publishableKey: z.string().nullable(),
   /** Identifiant marchand Apple Pay et pays, pour la feuille de paiement native. */
   applePayMerchantId: z.string().nullable(),
   merchantCountry: z.literal('CA'),
   simulated: z.boolean(),
+  /** Page de saisie de carte (fournisseur par jeton de carte : Square, simulé) ; nulle avec Stripe. */
+  cardFormUrl: z.string().url().nullable(),
+  squareApplicationId: z.string().nullable(),
+  squareLocationId: z.string().nullable(),
+  squareEnvironment: z.enum(SQUARE_ENVIRONMENTS).nullable(),
 });
 export type SetupIntentResponse = z.infer<typeof setupIntentResponseSchema>;
 
-/** Après confirmation par le SDK : l'API relit le SetupIntent chez Stripe (jamais les détails fournis par l'application). */
-export const setupIntentConfirmSchema = z.object({ setupIntentId: z.string().trim().min(3).max(100), makeDefault: z.boolean().default(true) });
+/**
+ * Enregistrement d'une carte : SetupIntent confirmé par la feuille de paiement Stripe (l'API le relit chez Stripe, jamais
+ * les détails fournis par l'application), ou jeton de carte du Web Payments SDK de Square (`sourceId`, avec le jeton de
+ * vérification 3-D Secure quand Square l'a demandé).
+ */
+export const setupIntentConfirmSchema = z.union([
+  z.object({ setupIntentId: z.string().trim().min(3).max(100), makeDefault: z.boolean().default(true) }),
+  z.object({ sourceId: z.string().trim().min(3).max(200), verificationToken: z.string().trim().min(3).max(500).optional(), makeDefault: z.boolean().default(true) }),
+]);
+export type SetupIntentConfirm = z.infer<typeof setupIntentConfirmSchema>;
+
+/** Session de saisie de carte (page `/carte` du web, étape 26) : jeton signé de 15 minutes lié à l'utilisateur. */
+export const cardSessionQuerySchema = z.object({ session: z.string().min(20).max(400) });
+export const CARD_SESSION_PURPOSES = ['client_card', 'driver_debit'] as const;
+export const cardSessionInfoSchema = z.object({
+  provider: z.enum(PAYMENT_PROVIDERS),
+  purpose: z.enum(CARD_SESSION_PURPOSES),
+  expiresAt: isoDate,
+  squareApplicationId: z.string().nullable(),
+  squareLocationId: z.string().nullable(),
+  squareEnvironment: z.enum(SQUARE_ENVIRONMENTS).nullable(),
+  /** Lien profond qui ramène à l'application une fois la carte enregistrée. */
+  returnUrl: z.string(),
+});
+export type CardSessionInfo = z.infer<typeof cardSessionInfoSchema>;
+export const cardSessionConfirmSchema = z.object({
+  session: z.string().min(20).max(400),
+  sourceId: z.string().trim().min(3).max(200),
+  verificationToken: z.string().trim().min(3).max(500).optional(),
+});
+export type CardSessionConfirm = z.infer<typeof cardSessionConfirmSchema>;
+export const cardSessionResultSchema = z.object({
+  purpose: z.enum(CARD_SESSION_PURPOSES),
+  card: paymentMethodViewSchema.nullable(),
+  debitMethod: z.object({ brand: z.string(), last4: z.string() }).nullable(),
+});
+export type CardSessionResult = z.infer<typeof cardSessionResultSchema>;
 
 export const tipInputSchema = z.object({ amountCents: cents.refine((v) => v > 0, 'Montant positif requis') });
 
@@ -85,11 +135,14 @@ export const settleResultSchema = z.object({ paidCents: cents, balanceDueCents: 
 export const paidDirectSchema = z.object({ method: z.enum(['cash', 'interac', 'terminal']), amountCents: cents });
 
 /** Compte Connect Express du chauffeur (versements) et méthode de prélèvement (relevés négatifs, étape 9). */
+export const PAYOUT_MODES = ['connect', 'offline'] as const;
 export const connectStatusSchema = z.object({
   linked: z.boolean(),
   onboarded: z.boolean(),
   payoutsEnabled: z.boolean(),
   debitMethod: z.object({ brand: z.string(), last4: z.string() }).nullable(),
   provider: z.string(),
+  /** `connect` : versements par Stripe Connect ; `offline` (Square, étape 26) : relevés réglés par virement ou Interac chaque semaine. */
+  payoutMode: z.enum(PAYOUT_MODES),
 });
 export type ConnectStatus = z.infer<typeof connectStatusSchema>;
