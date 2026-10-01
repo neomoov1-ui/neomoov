@@ -19,11 +19,11 @@ import { schema } from '@neomoov/db';
 import {
   chainAgenda, DEFAULT_PILOT_CRITERIA, evaluateOffer, netProfitability, parsePilotCriteria, parseWatchedZones, PILOT_INFORMATION_VERSION, pilotInformation,
   pilotZoneExclusions, watchedZonesExcluded, type DriverAgendaView, type DriverCostsInput, type DriverCostsView, type DriverOfferView, type DriverProfitabilityView,
-  type PilotCriteria, type PilotDecisionPage, type PilotDecisionsQuery, type PilotEvaluation, type PilotOffer, type PilotScoreView, type PilotSettingsUpdate,
+  type PilotContext, type PilotCriteria, type PilotDecisionPage, type PilotDecisionsQuery, type PilotEvaluation, type PilotOffer, type PilotScoreView, type PilotSettingsUpdate,
   type PilotSettingsView, type PilotZoneExclusionsView, type RidePreferences, type RideView, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
-import { and, count, desc, eq, gte, inArray, isNotNull, isNull, lt, ne, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, lt, ne, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { MAPS_PROVIDER, type GeoPoint, type MapsProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
@@ -245,6 +245,12 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
   }
 
   private async evaluate(facts: OfferFacts, criteria: PilotCriteria | null, cfg: PilotConfig): Promise<PilotEvaluation> {
+    const input = await this.evaluationInput(facts, criteria, cfg);
+    return evaluateOffer(input.offer, criteria, input.context);
+  }
+
+  /** Ce que le domaine évalue : l'offre (zones, note du client) et le contexte (réservations du chauffeur, réglages). */
+  private async evaluationInput(facts: OfferFacts, criteria: PilotCriteria | null, cfg: PilotConfig): Promise<{ offer: PilotOffer; context: PilotContext }> {
     const [originZones, destinationZones, planned, clientRating] = await Promise.all([
       this.zones.zonesOf(facts.origin).then((zones) => zones.map((z) => z.code)),
       this.zones.zonesOf(facts.destination).then((zones) => zones.map((z) => z.code)),
@@ -257,7 +263,7 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
       originZones, destinationZones, clientRating,
       assistanceAnimal: facts.preferences?.assistanceAnimal === true, accessibility: facts.preferences?.accessibility === true,
     };
-    return evaluateOffer(offer, criteria, { timeZone: cfg.timeZone, multiAppFactor: cfg.multiAppFactor, nearMissPercent: cfg.nearMissPercent, planned });
+    return { offer, context: { timeZone: cfg.timeZone, multiAppFactor: cfg.multiAppFactor, nearMissPercent: cfg.nearMissPercent, planned } };
   }
 
   private factsOfOffer(offer: OfferRow, ride: RideRow): OfferFacts {
@@ -306,8 +312,11 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
     const row = await this.settingsRow(offer.driverId);
     if (!row || (!row.enabled && !row.multiAppMode)) return { expiresAt: offer.expiresAt, notify: true };
     const cfg = await this.config();
-    const evaluation = await this.evaluate(this.factsOfOffer(offer, ride), this.criteriaOf(row), cfg);
-    const autoAccept = this.scoreOf(evaluation, row, cfg, offer.type).autoAccept;
+    const criteria = this.criteriaOf(row);
+    const input = await this.evaluationInput(this.factsOfOffer(offer, ride), criteria, cfg);
+    const recorded = row.enabled ? await this.recordDecision(offer, ride, row, cfg, criteria, input) : null;
+    const decisionId = recorded?.id ?? null;
+    const autoAccept = decisionId !== null && this.scoreOf(recorded!.evaluation, row, cfg, offer.type).autoAccept;
     let expiresAt = offer.expiresAt;
     if (row.multiAppMode && !autoAccept) {
       const extended = new Date(offer.sentAt.getTime() + cfg.multiAppResponseSeconds * 1000);
@@ -316,17 +325,51 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
         if (updated) expiresAt = extended;
       }
     }
-    if (!row.enabled) return { expiresAt, notify: true };
-    const [decision] = await this.db
-      .insert(schema.driverPilotDecisions)
-      .values({ driverId: offer.driverId, rideId: ride.id, offerId: offer.id, decision: evaluation.decision, score: evaluation.score, reasons: evaluation.reasons })
-      .onConflictDoNothing()
-      .returning({ id: schema.driverPilotDecisions.id });
-    if (!autoAccept || !decision) return { expiresAt, notify: true };
-    const task = this.autoAccept(offer, ride, driverUserId, decision.id, cfg);
+    if (!autoAccept || decisionId === null) return { expiresAt, notify: true };
+    const task = this.autoAccept(offer, ride, driverUserId, decisionId, cfg);
     this.pending.add(task);
     void task.finally(() => this.pending.delete(task));
     return { expiresAt, notify: false };
+  }
+
+  /**
+   * Décision enregistrée sous le verrou du chauffeur (une évaluation à la fois, entre processus). Une offre que Pilote
+   * accepterait est réévaluée avec les acceptations encore en cours du chauffeur comptées comme réservations prévues :
+   * offre réclamée dont la course n'est pas encore attribuée (l'acceptation attend le verrou de sa course), ou décision
+   * « accept » dont l'offre attend d'être réclamée. Deux répartitions simultanées ne font donc pas accepter pour lui deux
+   * courses qui se chevauchent. La décision est validée avant que l'acceptation ne commence.
+   */
+  private async recordDecision(
+    offer: OfferRow, ride: RideRow, row: SettingsRow, cfg: PilotConfig, criteria: PilotCriteria | null, input: { offer: PilotOffer; context: PilotContext },
+  ): Promise<{ id: string | null; evaluation: PilotEvaluation }> {
+    let evaluation = evaluateOffer(input.offer, criteria, input.context);
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`pilot-accept:${offer.driverId}`}))`);
+      if (this.scoreOf(evaluation, row, cfg, offer.type).autoAccept) {
+        const pending = await tx.execute<{ starts_at: Date | string; duration_seconds: number | null }>(sql`
+          SELECT coalesce(r.requested_at, o.created_at) AS starts_at, r.duration_seconds
+          FROM ride_offers o JOIN rides r ON r.id = o.ride_id
+          WHERE o.driver_id = ${offer.driverId}::uuid AND o.ride_id <> ${ride.id}::uuid
+            AND r.driver_id IS NULL AND r.state IN ('requested', 'offering')
+            AND ((o.state = 'accepted' AND o.responded_at > now() - interval '5 minutes')
+              OR (o.state = 'sent' AND o.expires_at > now() AND EXISTS (
+                SELECT 1 FROM driver_pilot_decisions pd WHERE pd.offer_id = o.id AND pd.decision = 'accept' AND pd.auto_accepted_at IS NULL)))
+          LIMIT 20`);
+        if (pending.length) {
+          const inFlight = [...pending].map((p) => {
+            const startsAt = new Date(p.starts_at);
+            return { startsAt, endsAt: new Date(startsAt.getTime() + (p.duration_seconds ?? DEFAULT_RIDE_SECONDS) * 1000) };
+          });
+          evaluation = evaluateOffer(input.offer, criteria, { ...input.context, planned: [...input.context.planned, ...inFlight] });
+        }
+      }
+      const [inserted] = await tx
+        .insert(schema.driverPilotDecisions)
+        .values({ driverId: offer.driverId, rideId: ride.id, offerId: offer.id, decision: evaluation.decision, score: evaluation.score, reasons: evaluation.reasons })
+        .onConflictDoNothing()
+        .returning({ id: schema.driverPilotDecisions.id });
+      return { id: inserted?.id ?? null, evaluation };
+    });
   }
 
   /**
@@ -511,10 +554,19 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
   async agenda(userId: string, position: GeoPoint | null, now = new Date()): Promise<DriverAgendaView> {
     const driver = await this.requireDriver(userId);
     const cfg = await this.config();
-    const rows = (await selectRides(this.db, and(
-      eq(schema.rides.driverId, driver.id), eq(schema.rides.type, 'scheduled'), eq(schema.rides.state, 'assigned'), isNotNull(schema.rides.requestedAt),
-      gte(schema.rides.requestedAt, new Date(now.getTime() - 2 * 3_600_000)), lt(schema.rides.requestedAt, new Date(now.getTime() + 7 * 86_400_000)),
-    ), { limit: 10 })).sort((a, b) => a.requestedAt!.getTime() - b.requestedAt!.getTime());
+    // Les 10 réservations les plus proches (et non les 10 dernières créées), puis leurs lignes complètes.
+    const upcoming = await this.db
+      .select({ id: schema.rides.id })
+      .from(schema.rides)
+      .where(and(
+        eq(schema.rides.driverId, driver.id), eq(schema.rides.type, 'scheduled'), eq(schema.rides.state, 'assigned'), isNotNull(schema.rides.requestedAt),
+        gte(schema.rides.requestedAt, new Date(now.getTime() - 2 * 3_600_000)), lt(schema.rides.requestedAt, new Date(now.getTime() + 7 * 86_400_000)),
+      ))
+      .orderBy(asc(schema.rides.requestedAt), asc(schema.rides.id))
+      .limit(10);
+    const rows = upcoming.length
+      ? (await selectRides(this.db, inArray(schema.rides.id, upcoming.map((r) => r.id)))).sort((a, b) => a.requestedAt!.getTime() - b.requestedAt!.getTime())
+      : [];
     let from: DriverAgendaView['from'] = position ? 'position' : 'none';
     let previous: GeoPoint | null = position;
     if (!previous) {
