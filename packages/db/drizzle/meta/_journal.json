@@ -169,6 +169,13 @@
       "when": 1790813680280,
       "tag": "0023_isolation-recipients",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790853142614,
+      "tag": "0024_fleet",
+      "breakpoints": true
     }
   ]
 }

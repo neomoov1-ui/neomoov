@@ -21,6 +21,7 @@ export * from './drivers/safety.js';
 export * from './drivers/quality.js';
 export * from './drivers/fairness.js';
 export * from './access/permissions.js';
+export * from './fleet/fleet.js';
 export * from './drivers/training.js';
 export * from './drivers/onboarding.js';
 export * from './geo/polygon.js';

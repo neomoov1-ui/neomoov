@@ -80,6 +80,8 @@ export const rides = pgTable('rides', {
   distanceMeters: integer('distance_meters'),
   durationSeconds: integer('duration_seconds'),
   createdByUserId: uuid('created_by_user_id'),
+  /** Étape 23 : course d'une organisation repartie au réseau Neomoov (mode réseau), avec les seuls champs permis. */
+  networkSharedAt: tz('network_shared_at'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [
