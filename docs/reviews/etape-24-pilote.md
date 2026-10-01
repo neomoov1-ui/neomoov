@@ -23,6 +23,7 @@ Revue de fin d'étape, 1er octobre 2026. Branche `etape-24-pilote`. Plan : `docs
 | Information sur la décision automatisée (Loi 25, art. 12.1) | Oui : activation refusée sans consentement (409 `PILOT_CONSENT_REQUIRED`), version périmée refusée (409 `PILOT_CONSENT_OUTDATED`), consentement journalisé (`pilot.consent_given`), texte en français et en anglais selon `Accept-Language` |
 | Surveillance des exclusions de zones | Oui : deux enregistrements des mêmes critères, un seul marqueur d'audit et une alerte par courriel au personnel ; rapport de la plateforme (zones, nombres, chauffeurs ; aire de service hors du tableau) ; 403 pour un chauffeur |
 | Coûts et rentabilité nette | Oui : saisie par poste, revenus externes en un total, net et marge calculés ; mois invalide refusé (400) |
+| Pas de course double par Pilote | Oui : une offre réclamée dont la course n'est pas encore attribuée compte comme réservation prévue ; la seconde offre qui la chevauche est rejetée (`schedule_conflict`), la course n'est pas attribuée |
 | Répartition inchangée après le crochet | `dispatch.e2e` : 14 sur 15, l'échec vient d'un chauffeur de test orphelin de la base partagée (voir « Reste à faire ») ; `dispatch-concurrency.e2e` non lancé dans cette session |
 
 ## Montants et facteurs proposés (à faire valider par le fondateur)
@@ -55,6 +56,11 @@ Le texte d'information (`PILOT_INFORMATION_VERSION` = `2026-10-01`) est à faire
 - Le journal d'audit ne reçoit pas le détail des montants saisis (seulement le mois).
 - L'avis push `pilot.auto_accepted` porte `rideId` : le toucher ouvre la course et son bandeau de grâce.
 - Application chauffeur : le socket ignore une offre que Pilote accepte (`pilotScore.autoAccept`), la course arrive par `ride.updated`.
+
+## Revue de code (niveau moyen) et corrections
+
+- Course double (corrigé) : entre la réclamation d'une offre par Pilote et l'attribution (attente du verrou de la course, jusqu'à 5 s avec Redis), une seconde offre qui la chevauchait n'était pas vue comme un conflit, ni par Pilote (qui ne comptait que les courses attribuées) ni par la répartition. La décision est maintenant enregistrée sous un verrou consultatif par chauffeur, et une offre que Pilote accepterait est réévaluée avec les acceptations en cours comptées comme réservations prévues. Test ajouté dans `pilot.e2e` (« pas de course double »).
+- Agenda (corrigé) : les 10 réservations prises étaient les dernières créées, triées ensuite par heure ; ce sont maintenant les 10 plus proches.
 
 ## Tests lancés
 
