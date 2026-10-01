@@ -368,7 +368,8 @@ export const driverScoreSchema = z.object({
 });
 export type DriverScoreView = z.infer<typeof driverScoreSchema>;
 
-export const payoutStatusSchema = z.object({ linked: z.boolean(), onboarded: z.boolean(), provider: z.string() });
+/** `payoutMode` `offline` (Square, étape 26) : aucun compte Connect à ouvrir, relevés positifs réglés par virement chaque semaine. */
+export const payoutStatusSchema = z.object({ linked: z.boolean(), onboarded: z.boolean(), provider: z.string(), payoutMode: z.enum(['connect', 'offline']) });
 /** Lien d'inscription Stripe Connect Express ; `simulated` : fournisseur simulé, l'inscription est déjà terminée. */
 export const payoutLinkSchema = z.object({ url: z.string().url(), expiresAt: isoDate, simulated: z.boolean() });
 

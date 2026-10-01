@@ -128,7 +128,7 @@ export async function addTestCard(app: NestExpressApplication, userId: string): 
   const payments = app.get(PaymentsService);
   try {
     const intent = await payments.setupIntent(userId);
-    return (await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId, makeDefault: true })).id;
+    return (await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId!, makeDefault: true })).id;
   } catch (error) {
     if ((error as { code?: string }).code === 'CLIENT_PROFILE_REQUIRED') return null;
     throw error;

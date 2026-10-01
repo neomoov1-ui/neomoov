@@ -5,9 +5,9 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  adminBalanceSchema, adminStatementDetailSchema, statementAdjustSchema, statementGenerateSchema, statementGenerationSchema, statementSettleOfflineSchema, uuid,
+  adminBalanceSchema, adminStatementDetailSchema, offlinePayoutSchema, statementAdjustSchema, statementGenerateSchema, statementGenerationSchema, statementSettleOfflineSchema, uuid,
 } from '@neomoov/domain';
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Res, StreamableFile } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Res, StreamableFile } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { and, eq, ne } from 'drizzle-orm';
 import type { Response } from 'express';
@@ -104,6 +104,30 @@ export class AdminSettlementController {
     const [row] = await this.database.db.select({ pdfKey: schema.weeklyStatements.pdfKey }).from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, id)).limit(1);
     if (!row) throw AppError.notFound('STATEMENT_NOT_FOUND', 'Relevé introuvable');
     return sendPdf(res, await this.jobs.pdfOf(row.pdfKey), id);
+  }
+
+  @Get('payouts/offline')
+  @Can('statements.read')
+  @NoAudit()
+  @ApiOperation({ summary: 'Versements à faire hors plateforme (Square, sans Stripe Connect ; ou versements en échec) : relevés positifs non réglés, avec la référence du virement à reprendre dans settle-offline' })
+  @ZodResponse(200, z.array(offlinePayoutSchema))
+  @ApiErrors(401, 403, 429)
+  offlinePayouts() {
+    return this.payouts.offlinePayouts();
+  }
+
+  @Get('payouts/offline/export')
+  @Can('statements.read')
+  @NoAudit()
+  @Header('content-type', 'text/csv; charset=utf-8')
+  @ApiProduces('text/csv')
+  @ApiOperation({ summary: 'Export CSV des virements à faire (chauffeur, courriel Interac, montant en cents, référence, relevé), total en dernière ligne ; téléchargement journalisé' })
+  @ApiErrors(401, 403, 429)
+  async offlinePayoutsCsv(@CurrentUser() user: UserActor, @Res({ passthrough: true }) res: Response) {
+    const body = await this.payouts.offlinePayoutsCsv(user);
+    res.setHeader('content-disposition', `attachment; filename="${this.payouts.offlinePayoutsFileName()}"`);
+    res.setHeader('cache-control', 'private, no-store');
+    return body;
   }
 
   @Get('balances')

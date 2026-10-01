@@ -16,9 +16,12 @@ export const payments = pgTable('payments', {
   method: paymentMethodEnum('method').notNull(),
   /** Nature (étape 7) : `ride`, `tip` (paiement séparé), frais d'annulation ou d'absence, règlement d'un solde. */
   kind: varchar('kind', { length: 20 }).notNull().default('ride'),
+  /** Référence du paiement chez le fournisseur (PaymentIntent `pi_…` chez Stripe, identifiant de paiement chez Square). */
   stripePaymentIntentId: varchar('stripe_payment_intent_id', { length: 100 }),
   /** Méthode Stripe choisie à la réservation (carte enregistrée) : l'autorisation d'une planifiée est faite à l'attribution. */
   stripePaymentMethodId: varchar('stripe_payment_method_id', { length: 100 }),
+  /** Fournisseur qui tient ce paiement (étape 26) : un remboursement ne passe que par lui. */
+  provider: varchar('provider', { length: 20 }).notNull().default('stripe'),
   /** Clé d'idempotence de l'opération qui a créé ce paiement : un rejeu ne crée jamais de second paiement. */
   idempotencyKey: varchar('idempotency_key', { length: 120 }),
   /** Tentatives de capture (nouvelle tentative, puis ticket et solde dû). */
@@ -41,6 +44,7 @@ export const payments = pgTable('payments', {
   index('payments_failed_idx').on(t.status, t.updatedAt).where(sql`${t.status} = 'failed'`),
   check('payments_amounts_positive', sql`${t.authorizedCents} >= 0 AND ${t.capturedCents} >= 0 AND ${t.tipCents} >= 0`),
   check('payments_kind', sql`${t.kind} IN ('ride', 'tip', 'cancellation_fee', 'no_show_fee', 'balance')`),
+  check('payments_provider', sql`${t.provider} IN ('stripe', 'square', 'mock')`),
 ]);
 
 export const refunds = pgTable('refunds', {

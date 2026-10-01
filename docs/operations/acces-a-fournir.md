@@ -149,6 +149,22 @@ Point de départ : le `.env` créé par `infra/server-setup.sh` met dix fourniss
 | `CARD_PAYMENTS` | | `/opt/neomoov/.env` | Vide : carte jamais proposée en production avec le paiement simulé. Dès `PAYMENT_PROVIDER=real`, poser `CARD_PAYMENTS=off` tant que les applications n'ont pas d'écran d'ajout de carte (sinon la carte est proposée et le prépaiement échoue) | À poser au passage à Stripe réel |
 | Identifiant marchand Apple Pay et domaine vérifié | Stripe, moyens de paiement ; réglage `payments.apple_pay_merchant_id` | My Hub, Paramètres | Apple Pay | Avec la feuille de paiement (non branchée dans les applications) |
 
+## 9 bis. Paiements (Square, en attendant Stripe ; étape 26)
+
+Procédure complète : `docs/runbooks/square.md`. Compte Square canadien du fondateur, encaissement en CAD.
+
+| Élément | Où le créer | Où le déposer | Bloqué tant qu'il manque | État |
+|---|---|---|---|---|
+| Jeton d'accès de production | Square Developer, application, « Credentials », Production | `SQUARE_ACCESS_TOKEN` | Encaissement par Square | Fourni (forme vérifiée le 1er octobre) |
+| Identifiant d'application de production | Même page | `SQUARE_APPLICATION_ID` | Formulaire de carte de la page `/carte` | Fourni |
+| Identifiant de l'emplacement qui encaisse | « Locations », Production | `SQUARE_LOCATION_ID` | Paiements (chaque paiement est rattaché à l'emplacement) | Fourni |
+| Clé de signature du webhook | « Webhooks », abonnement `https://api.neomoov.net/v1/webhooks/square` | `SQUARE_WEBHOOK_SIGNATURE_KEY` | Démarrage de l'API en production avec Square | Fournie |
+| Adresse du webhook déclarée chez Square | Même abonnement, au caractère près | `SQUARE_WEBHOOK_URL` | Démarrage de l'API en production avec Square | À poser au déploiement |
+| Jeton d'accès du bac à sable | « Credentials », Sandbox, « Sandbox Access token » (`EAAA…`) | `SQUARE_SANDBOX_ACCESS_TOKEN` | Essais en bac à sable (`square.live.test.ts`), développement avec Square | À corriger : la variable contient l'identifiant d'application du bac à sable (`sandbox-sq0idb-…`), pas le jeton |
+| Identifiant d'application du bac à sable | Même page, Sandbox | `SQUARE_SANDBOX_APPLICATION_ID` | Page `/carte` en bac à sable | Fourni |
+| Emplacement du bac à sable | « Locations », Sandbox | `SQUARE_SANDBOX_LOCATION_ID` | Développement avec Square (le test en bac à sable prend le premier emplacement actif s'il manque) | À fournir |
+| Bascule | | `PAYMENT_PROVIDER=square`, `SQUARE_ENVIRONMENT=production`, retirer `payment` d'`ALLOW_MOCK_PROVIDERS` | Encaissement réel | Au déploiement, après la déclaration du webhook |
+
 ## 10. Cartes (Google Maps Platform)
 
 | Élément | Où le créer | Où le déposer | Bloqué tant qu'il manque | État |

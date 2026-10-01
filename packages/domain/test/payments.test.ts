@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  authorizationCents, captureCents, completeRideSchema, connectStatusSchema, isCardMethod, paidDirectSchema, paymentViewSchema, refundableCents, refundInputSchema, setupIntentConfirmSchema,
-  tipInputSchema,
+  authorizationCents, captureCents, cardSessionConfirmSchema, cardSessionInfoSchema, cardSessionQuerySchema, cardSessionResultSchema, completeRideSchema, connectStatusSchema, isCardMethod,
+  offlinePayoutSchema, paidDirectSchema, paymentViewSchema, payoutStatusSchema, refundableCents, refundInputSchema, setupIntentConfirmSchema, setupIntentResponseSchema, tipInputSchema,
 } from '../src/index.js';
 
 describe('paiements : règles (5.6)', () => {
@@ -51,6 +51,56 @@ describe('paiements : schémas', () => {
       authorizedCents: 5_750, capturedCents: 4_500, refundedCents: 0, driverConfirmedCents: null, card: { brand: 'visa', last4: '4242' }, failureCode: null, createdAt: new Date().toISOString(),
     };
     expect(paymentViewSchema.parse(view)).toEqual(view);
-    expect(connectStatusSchema.safeParse({ linked: true, onboarded: true, payoutsEnabled: true, debitMethod: null, provider: 'mock' }).success).toBe(true);
+    expect(connectStatusSchema.safeParse({ linked: true, onboarded: true, payoutsEnabled: true, debitMethod: null, provider: 'mock', payoutMode: 'connect' }).success).toBe(true);
+    // Étape 26 : le mode de versement est obligatoire (`offline` avec Square, sans Connect).
+    expect(connectStatusSchema.safeParse({ linked: false, onboarded: false, payoutsEnabled: false, debitMethod: { brand: 'visa', last4: '1111' }, provider: 'square', payoutMode: 'offline' }).success).toBe(true);
+    expect(connectStatusSchema.safeParse({ linked: true, onboarded: true, payoutsEnabled: true, debitMethod: null, provider: 'mock' }).success).toBe(false);
+    expect(payoutStatusSchema.safeParse({ linked: false, onboarded: false, provider: 'square', payoutMode: 'offline' }).success).toBe(true);
+    expect(payoutStatusSchema.safeParse({ linked: false, onboarded: false, provider: 'square', payoutMode: 'virement' }).success).toBe(false);
+  });
+});
+
+describe('paiements par Square (étape 26) : schémas', () => {
+  const session = 'AQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+  it('réponse de setup-intent : SetupIntent (Stripe, simulateur) ou page de saisie (Square), sans secret', () => {
+    const square = {
+      provider: 'square', setupIntentId: null, clientSecret: null, customerId: 'CUST', publishableKey: null, applePayMerchantId: null, merchantCountry: 'CA', simulated: false,
+      cardFormUrl: 'https://neomoov.net/carte?session=abc', squareApplicationId: 'sq0idp-x', squareLocationId: 'L1', squareEnvironment: 'production',
+    };
+    expect(setupIntentResponseSchema.parse(square)).toEqual(square);
+    const stripe = { ...square, provider: 'stripe', setupIntentId: 'seti_1', clientSecret: 'seti_1_secret_x', publishableKey: 'pk_test', cardFormUrl: null, squareApplicationId: null, squareLocationId: null, squareEnvironment: null };
+    expect(setupIntentResponseSchema.safeParse(stripe).success).toBe(true);
+    expect(setupIntentResponseSchema.safeParse({ ...square, provider: 'paypal' }).success).toBe(false);
+    expect(setupIntentResponseSchema.safeParse({ ...square, squareEnvironment: 'live' }).success).toBe(false);
+    expect(setupIntentResponseSchema.safeParse({ ...square, cardFormUrl: 'pas une adresse' }).success).toBe(false);
+  });
+
+  it('confirmation : SetupIntent ou jeton de carte (avec vérification facultative), jamais un corps vide', () => {
+    expect(setupIntentConfirmSchema.parse({ sourceId: ' cnon:abc ' })).toEqual({ sourceId: 'cnon:abc', makeDefault: true });
+    expect(setupIntentConfirmSchema.parse({ sourceId: 'cnon:abc', verificationToken: 'verf:x', makeDefault: false })).toEqual({ sourceId: 'cnon:abc', verificationToken: 'verf:x', makeDefault: false });
+    expect(setupIntentConfirmSchema.safeParse({ makeDefault: true }).success).toBe(false);
+    expect(setupIntentConfirmSchema.safeParse({ sourceId: 'x' }).success).toBe(false);
+  });
+
+  it('session de saisie de carte : requête, informations publiques, confirmation et résultat', () => {
+    expect(cardSessionQuerySchema.safeParse({ session }).success).toBe(true);
+    expect(cardSessionQuerySchema.safeParse({ session: 'court' }).success).toBe(false);
+    const info = { provider: 'square', purpose: 'driver_debit', expiresAt: new Date().toISOString(), squareApplicationId: 'sq0idp-x', squareLocationId: 'L1', squareEnvironment: 'sandbox', returnUrl: 'neomoov-driver://payout' };
+    expect(cardSessionInfoSchema.parse(info)).toEqual(info);
+    expect(cardSessionInfoSchema.safeParse({ ...info, purpose: 'autre' }).success).toBe(false);
+    expect(cardSessionConfirmSchema.parse({ session, sourceId: 'cnon:abc' })).toEqual({ session, sourceId: 'cnon:abc' });
+    expect(cardSessionConfirmSchema.safeParse({ session, sourceId: 'cnon:abc', verificationToken: 'x' }).success).toBe(false);
+    expect(cardSessionResultSchema.safeParse({ purpose: 'driver_debit', card: null, debitMethod: { brand: 'visa', last4: '4242' } }).success).toBe(true);
+  });
+
+  it('versement à faire hors plateforme', () => {
+    const payout = {
+      statementId: '00000000-0000-4000-8000-000000000001', driverId: '00000000-0000-4000-8000-000000000002', driverPublicNumber: 'CH-00042', driverName: 'Ana Test', interacEmail: null,
+      periodStart: '2026-09-21', periodEnd: '2026-09-27', amountCents: 12_345, reference: 'NM-20260921-CH-00042', status: 'issued', issuedAt: new Date().toISOString(),
+    };
+    expect(offlinePayoutSchema.parse(payout)).toEqual(payout);
+    expect(offlinePayoutSchema.safeParse({ ...payout, amountCents: -1 }).success).toBe(false);
+    expect(offlinePayoutSchema.safeParse({ ...payout, status: 'virement' }).success).toBe(false);
   });
 });

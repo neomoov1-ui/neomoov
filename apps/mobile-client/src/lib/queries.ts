@@ -32,6 +32,7 @@ export const keys = {
   messages: (id: string) => ['messages', id] as const,
   vehicles: (quoteId: string) => ['vehicles', quoteId] as const,
   invoices: ['invoice'] as const,
+  paymentMethods: ['payment-methods'] as const,
   invoice: (rideId: string) => ['invoice', rideId] as const,
 };
 
@@ -50,6 +51,11 @@ export function usePreferences() {
 
 export function usePlaces() {
   return useQuery({ queryKey: keys.places, queryFn: () => api.me.places(), enabled: useSignedIn() });
+}
+
+/** Cartes enregistrées chez le fournisseur actif (étape 26 : relues au retour de la page de saisie). */
+export function usePaymentMethods() {
+  return useQuery({ queryKey: keys.paymentMethods, queryFn: () => api.payments.methods(), enabled: useSignedIn() });
 }
 
 export function useConsents() {

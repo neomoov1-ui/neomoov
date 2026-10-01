@@ -139,7 +139,8 @@ export class DriverActivityService {
     const alerts: DriverAlert[] = [];
     const [balance, payoutRequired, trainingRequired, targets, unconfirmed] = await Promise.all([
       this.db.select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.id)).limit(1),
-      this.settings.get<boolean>('drivers.require_payout_account', false),
+      // Étape 26 : sans Stripe Connect (Square), aucun compte de versement exigé (relevés réglés par virement).
+      this.payments.connectAvailable ? this.settings.get<boolean>('drivers.require_payout_account', false) : Promise.resolve(false),
       this.settings.get<boolean>('drivers.require_training', true),
       this.scoreTargets(),
       this.db

@@ -13,6 +13,21 @@ const TILES = 'https://tile.openstreetmap.org https://*.tile.openstreetmap.org';
  */
 const bookingAncestors = process.env['BOOKING_FRAME_ANCESTORS'] || 'https://neomoov.net https://www.neomoov.net';
 
+/**
+ * Web Payments SDK de Square (étape 26), page `/carte` seulement : script et cadres des champs de carte, appels de
+ * tokenisation (pci-connect), polices et images du formulaire, vérification 3-D Secure, suivi d'erreurs du SDK. Liste
+ * de la documentation de Square (production et bac à sable), élargie aux sous-domaines de son CDN.
+ */
+const SQUARE = {
+  script: 'https://web.squarecdn.com https://sandbox.web.squarecdn.com https://*.squarecdn.com',
+  frame: 'https://*.squarecdn.com https://*.squareup.com https://*.squareupsandbox.com https://*.cardinalcommerce.com',
+  connect: 'https://pci-connect.squareup.com https://pci-connect.squareupsandbox.com https://*.squareup.com https://*.squareupsandbox.com https://*.squarecdn.com https://o160250.ingest.sentry.io',
+  style: 'https://*.squarecdn.com',
+  font: 'https://*.squarecdn.com https://d1g145x70srn7h.cloudfront.net',
+  img: 'https://*.squarecdn.com',
+};
+type Extra = Partial<Record<keyof typeof SQUARE, string>>;
+
 /** Suivi des erreurs (Sentry) : le navigateur envoie les événements à l'adresse d'ingestion du DSN ; rien sans DSN. */
 function sentryOrigin(): string {
   const dsn = process.env['NEXT_PUBLIC_SENTRY_DSN']?.trim();
@@ -28,16 +43,17 @@ function sentryOrigin(): string {
  * Politique de sécurité du contenu. Les scripts en ligne restent permis (amorçage de Next.js sans nonce) : le passage
  * aux nonces se fait avec le durcissement de l'étape 14. `unsafe-eval` seulement en développement (rechargement à chaud).
  */
-function csp(frameAncestors: string): string {
+function csp(frameAncestors: string, extra: Extra = {}): string {
+  const more = (key: keyof Extra) => (extra[key] ? ` ${extra[key]}` : '');
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' ${TURNSTILE}${production ? '' : " 'unsafe-eval'"}`,
-    "style-src 'self' 'unsafe-inline'",
+    `script-src 'self' 'unsafe-inline' ${TURNSTILE}${more('script')}${production ? '' : " 'unsafe-eval'"}`,
+    `style-src 'self' 'unsafe-inline'${more('style')}`,
     // `https:` : logo d'une organisation hébergé chez elle (marque par organisation, étape 22), images seulement.
-    `img-src 'self' data: blob: https: ${TILES}`,
-    "font-src 'self' data:",
-    `connect-src 'self' ${apiOrigin} ${socketOrigin} ${TURNSTILE}${sentryOrigin()}`,
-    `frame-src 'self' blob: ${TURNSTILE}`,
+    `img-src 'self' data: blob: https: ${TILES}${more('img')}`,
+    `font-src 'self' data:${more('font')}`,
+    `connect-src 'self' ${apiOrigin} ${socketOrigin} ${TURNSTILE}${sentryOrigin()}${more('connect')}`,
+    `frame-src 'self' blob: ${TURNSTILE}${more('frame')}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -62,8 +78,16 @@ const nextConfig: NextConfig = {
   // Les paquets internes sont consommés depuis leur dist compilé (ESM) ; domain reste transpilé pour ses sources partagées.
   transpilePackages: ['@neomoov/domain'],
   headers: async () => [
-    // Tout le site sauf la réservation : aucun cadrage par un autre site.
-    { source: '/((?!reserver).*)', headers: [...common, { key: 'X-Frame-Options', value: 'DENY' }, { key: 'Content-Security-Policy', value: csp("'none'") }] },
+    // Tout le site sauf la réservation et la saisie de carte : aucun cadrage par un autre site.
+    { source: '/((?!reserver|carte).*)', headers: [...common, { key: 'X-Frame-Options', value: 'DENY' }, { key: 'Content-Security-Policy', value: csp("'none'") }] },
+    // Saisie de carte (étape 26) : formulaire de Square permis, jamais cadrée, aucun référent (la session est dans l'adresse).
+    {
+      source: '/carte',
+      headers: [
+        ...common.filter((h) => h.key !== 'Referrer-Policy'), { key: 'Referrer-Policy', value: 'no-referrer' }, { key: 'X-Frame-Options', value: 'DENY' },
+        { key: 'Cache-Control', value: 'private, no-store' }, { key: 'Content-Security-Policy', value: csp("'none'", SQUARE) },
+      ],
+    },
     // Réservation : intégrable en iframe sur les domaines autorisés seulement.
     { source: '/reserver', headers: [...common, { key: 'Content-Security-Policy', value: csp(`'self' ${bookingAncestors}`) }] },
   ],

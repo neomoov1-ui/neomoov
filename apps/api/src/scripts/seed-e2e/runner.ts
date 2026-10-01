@@ -194,7 +194,7 @@ export class SeedE2e {
     await mapLimit(needCard, this.concurrency, async (c) => {
       const userId = users.get(c.phone)!;
       const intent = await payments.setupIntent(userId);
-      await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId, makeDefault: true });
+      await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId!, makeDefault: true });
       this.count('client_payment_methods');
     });
     this.log(`Clients : ${existing.size} (${missing.length} créés, ${needCard.length} cartes simulées)`);
@@ -390,7 +390,7 @@ export class SeedE2e {
   ): Promise<Omit<PaymentInsert, 'rideId'>[]> {
     const t = c.timeline;
     if (r.paymentChoice === 'pay_driver_after') {
-      return [{ clientId: c.client.clientId, method: r.paymentMethod, kind: 'ride', status: 'paid_direct', collectedBy: 'driver', driverConfirmedCents: c.final!.totalCents, idempotencyKey: 'direct:<ride>', createdAt: t.assigned, updatedAt: at(t.closed, 20) }];
+      return [{ clientId: c.client.clientId, method: r.paymentMethod, kind: 'ride', status: 'paid_direct', collectedBy: 'driver', driverConfirmedCents: c.final!.totalCents, idempotencyKey: 'direct:<ride>', provider: c.provider.name, createdAt: t.assigned, updatedAt: at(t.closed, 20) }];
     }
     if (!c.card || !c.customerRef) throw new Error(`Client sans carte simulée pour la course ${r.key}`);
     const authorizedCents = c.quote.maxConsentedCents;
@@ -400,13 +400,13 @@ export class SeedE2e {
     if (captured.status !== 'captured') throw new Error(`Capture simulée refusée pour ${r.key}`);
     const kind = r.outcome === 'no_show' ? 'no_show_fee' : r.outcome === 'cancelled_by_client' ? 'cancellation_fee' : 'ride';
     const rows: Omit<PaymentInsert, 'rideId'>[] = [{
-      clientId: c.client.clientId, method: r.paymentMethod, kind, stripePaymentIntentId: auth.intentId, stripePaymentMethodId: c.card, idempotencyKey: 'ride:<ride>', attempts: 1,
+      clientId: c.client.clientId, method: r.paymentMethod, kind, stripePaymentIntentId: auth.intentId, stripePaymentMethodId: c.card, provider: c.provider.name, idempotencyKey: 'ride:<ride>', attempts: 1,
       authorizedCents, capturedCents: due, status: 'captured', capturedAt: at(t.closed, 3), createdAt: t.requested, updatedAt: at(t.closed, 3),
     }];
     if (r.tipCents && t.rated) {
       const tip = await c.provider.chargeOffSession({ amountCents: r.tipCents, customerRef: c.customerRef, paymentMethodRef: c.card, idempotencyKey: `${r.key}:tip`, description: `Pourboire, course ${r.publicNumber}`, metadata: { seed: this.marker.key } });
       rows.push({
-        clientId: c.client.clientId, method: r.paymentMethod, kind: 'tip', stripePaymentIntentId: tip.intentId, stripePaymentMethodId: c.card, idempotencyKey: 'tip:<ride>',
+        clientId: c.client.clientId, method: r.paymentMethod, kind: 'tip', stripePaymentIntentId: tip.intentId, stripePaymentMethodId: c.card, provider: c.provider.name, idempotencyKey: 'tip:<ride>',
         authorizedCents: r.tipCents, capturedCents: r.tipCents, tipCents: r.tipCents, status: 'captured', capturedAt: at(t.rated, 2), createdAt: at(t.rated, 2), updatedAt: at(t.rated, 2),
       });
     }

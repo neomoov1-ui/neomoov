@@ -31,6 +31,7 @@ export default function ConfirmScreen() {
   const draft = useBooking();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsCard, setNeedsCard] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const quote = draft.quotes?.quotes.find((q) => q.category === draft.category) ?? null;
   const vehicles = useQuery({ queryKey: keys.vehicles(quote?.id ?? ''), queryFn: () => api.quotes.vehicles(quote!.id), enabled: Boolean(quote?.id && draft.vehicleId) });
@@ -96,6 +97,8 @@ export default function ConfirmScreen() {
         } else setError(errorMessage(e));
       } else {
         setError(errorMessage(e));
+        // Étape 26 : prépaiement sans carte enregistrée, accès direct à l'ajout d'une carte.
+        setNeedsCard(errorCode(e) === 'PAYMENT_METHOD_REQUIRED');
       }
     } finally {
       setBusy(false);
@@ -148,6 +151,7 @@ export default function ConfirmScreen() {
       {passengerIncomplete ? <Notice tone="warning">{t('category.passengerIncomplete')}</Notice> : null}
       {notice ? <Notice tone="warning">{notice}</Notice> : null}
       {error ? <ErrorState message={error} /> : null}
+      {error && needsCard ? <Button label={t('confirm.addCard')} variant="ghost" onPress={() => router.push('/payment-methods')} testID="confirm-add-card" /> : null}
     </Screen>
   );
 }

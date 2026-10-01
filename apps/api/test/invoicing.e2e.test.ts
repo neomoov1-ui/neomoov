@@ -221,6 +221,10 @@ describe('facturation certifiée : factures, numérotation, notes de crédit, SE
     const gaps = numbers.at(-1)! - numbers[0]! + 1 - numbers.length;
     // Ces factures ne sont jamais transmises : retirées ici pour ne pas encombrer la reprise du SEV testée plus loin.
     await db(app).delete(schema.invoices).where(inArray(schema.invoices.rideId, rideIds));
+    // Ces courses restent terminées sans facture : sorties de la fenêtre de rattrapage (2 jours), sinon la passe périodique
+    // testée plus loin en reprend 50 dès qu'elles ont 2 minutes (délai du test dépassé sur un poste chargé, puis échec SEV
+    // préparé par le test suivant consommé par cette passe encore en cours).
+    await db(app).update(schema.rides).set({ updatedAt: new Date(Date.now() - 3 * 86_400_000) }).where(inArray(schema.rides.id, rideIds));
     console.info(`Numérotation sous concurrence : ${results.length} émissions (100 courses, 20 rejouées) en ${elapsed} ms ; séquences du fournisseur 1 à ${rows.at(-1)!.supplierSequence}, sans trou ni doublon ; numéros globaux ${rows[0]!.number} à ${rows.at(-1)!.number} (${gaps} numéros intercalés par d'autres émissions de la base partagée)`);
   });
 

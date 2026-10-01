@@ -10,7 +10,7 @@ import type {
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
-import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration, StatementSettleOffline } from '@neomoov/domain';
+import type { AdminBalance, AdminStatementDetail, OfflinePayout, StatementAdjust, StatementGenerate, StatementGeneration, StatementSettleOffline } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
 import type { AdminSanctionAppealView, AppealStatus, SanctionAppealDecision } from '@neomoov/domain';
@@ -148,6 +148,9 @@ export function adminResource(t: Transport) {
     adjustStatement: (statementId: string, body: StatementAdjust) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/adjust`, body),
     statementPdfPath: (statementId: string) => `/admin/statements/${id(statementId)}/pdf`,
     balances: () => t.get<AdminBalance[]>('/admin/balances'),
+    /** Étape 26 : versements à faire hors plateforme (Square sans Connect, ou versements en échec) et leur export CSV. */
+    offlinePayouts: () => t.get<OfflinePayout[]>('/admin/payouts/offline'),
+    offlinePayoutsCsvPath: () => '/admin/payouts/offline/export',
     agents: () => t.get<AdminAgent[]>('/admin/agents'),
     /** Agents IA (étape 13) : réglage (administrateur), journal des exécutions, rapports, conversations de l'assistance. */
     updateAgent: (code: string, body: AgentUpdate) => t.patch<AdminAgent>(`/admin/agents/${id(code)}`, body),

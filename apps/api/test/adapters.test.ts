@@ -46,6 +46,21 @@ describe('adaptateurs simulés', () => {
     await expect(provider.verifyWebhook('{}', 't=1,v1=00')).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501 });
   });
 
+  it('Square (étape 26) : choisi par PAYMENT_PROVIDER=square, exige jeton, application et emplacement de son environnement', async () => {
+    const base = { NODE_ENV: 'test', DATABASE_URL: 'postgresql://x', PAYMENT_PROVIDER: 'square' };
+    expect(() => realPayment(loadEnv(base, { dotenv: false }))).toThrow(/SQUARE_SANDBOX_ACCESS_TOKEN, SQUARE_SANDBOX_APPLICATION_ID, SQUARE_SANDBOX_LOCATION_ID/);
+    // Les valeurs de production ne servent jamais au bac à sable.
+    expect(() => realPayment(loadEnv({ ...base, SQUARE_ACCESS_TOKEN: 'EAAAprod', SQUARE_APPLICATION_ID: 'sq0idp-x', SQUARE_LOCATION_ID: 'LPROD' }, { dotenv: false }))).toThrow(/SQUARE_SANDBOX_ACCESS_TOKEN/);
+    const provider = realPayment(loadEnv({ ...base, SQUARE_SANDBOX_ACCESS_TOKEN: 'EAAAsandbox_secret_x', SQUARE_SANDBOX_APPLICATION_ID: 'sandbox-sq0idb-x', SQUARE_SANDBOX_LOCATION_ID: 'LSANDBOX' }, { dotenv: false }));
+    expect(provider.name).toBe('square');
+    expect(provider.capabilities).toEqual({ setupIntent: false, cardToken: true, connect: false });
+    expect(JSON.parse(JSON.stringify(provider))).toEqual({ name: 'square', configured: true, environment: 'sandbox' });
+    expect(inspect(provider, { depth: 5, showHidden: true })).not.toContain('EAAAsandbox_secret_x');
+    // Sans clé de signature ni adresse du webhook, la réception refuse proprement (501), sans appel réseau.
+    await expect(provider.verifyWebhook('{}', 'x')).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501 });
+    expect(realPayment(loadEnv({ ...base, PAYMENT_PROVIDER: 'stripe', STRIPE_SECRET_KEY: 'sk_test_x' }, { dotenv: false })).name).toBe('stripe');
+  });
+
   it('un adaptateur réel est un objet ordinaire pour NestJS et le journal (pas de crochets fantômes)', () => {
     const env = loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://x', STRIPE_SECRET_KEY: 'sk_test_x', TWILIO_ACCOUNT_SID: 'AC_x', TWILIO_AUTH_TOKEN: 'tw_secret_x', TWILIO_FROM_NUMBER: '+15145550100', S3_ACCESS_KEY: 'k', S3_SECRET_KEY: 's3_secret_x', S3_ENDPOINT: 'https://projet.supabase.co/storage/v1/s3', S3_BUCKET: 'documents' }, { dotenv: false });
     const provider = realPayment(env) as unknown as Record<string, unknown>;

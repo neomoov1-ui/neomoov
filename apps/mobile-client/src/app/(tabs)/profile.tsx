@@ -14,7 +14,7 @@ import { disconnectRealtime } from '@/lib/realtime';
 import { useSession } from '@/lib/session';
 
 /**
- * Profil : langue, préférences de confort, lieux enregistrés, consentements, droits (copie des données), factures,
+ * Profil : langue, préférences de confort, lieux enregistrés, consentements, droits (copie des données), moyens de paiement, factures,
  * assistance, déconnexion et suppression du compte dans l'application (exigence des magasins).
  */
 export default function ProfileScreen() {
@@ -171,6 +171,7 @@ export default function ProfileScreen() {
         await api.me.createDataRequest({ type: 'access' });
       }, t('profile.dataRequested'))} disabled={busy} />
 
+      <Button label={t('profile.paymentMethods')} variant="ghost" onPress={() => router.push('/payment-methods')} testID="profile-payment-methods" />
       <Button label={t('profile.invoices')} variant="ghost" onPress={() => router.push('/invoices')} />
       <Button label={t('profile.support')} variant="ghost" onPress={() => router.push('/support')} />
       <Button label={t('profile.logout')} variant="ghost" onPress={() => void logout()} disabled={busy} />
