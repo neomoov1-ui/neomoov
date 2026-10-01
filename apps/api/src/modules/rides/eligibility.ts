@@ -78,3 +78,15 @@ export function scheduledSlotFree(rules: Pick<EligibilityRules, 'scheduledConfli
     SELECT 1 FROM rides r2 WHERE r2.driver_id = d.id ${except} AND r2.type = 'scheduled' AND r2.state IN ('assigned', 'en_route', 'arrived', 'in_progress')
       AND r2.requested_at BETWEEN ${at}::timestamptz - make_interval(mins => ${rules.scheduledConflictMinutes}::int) AND ${at}::timestamptz + make_interval(mins => ${rules.scheduledConflictMinutes}::int)))`;
 }
+
+/**
+ * Étape 23 (module Flotte) : une course d'une organisation cliente, tant qu'elle n'est pas repartie au réseau Neomoov
+ * (`network_shared_at`), n'est proposée qu'aux chauffeurs de cette organisation et de ses descendantes ; les chauffeurs
+ * d'autres organisations ne sont jamais proposés. Une course de la plateforme (racine, ou sans organisation) reste ouverte
+ * à tous les chauffeurs éligibles, ceux des flottes compris. Alias `d` (drivers).
+ */
+export function organizationAllows(ride: { organizationId: string | null; networkSharedAt: Date | null }): SQL {
+  if (!ride.organizationId || ride.networkSharedAt) return sql`true`;
+  return sql`(NOT EXISTS (SELECT 1 FROM organizations ro WHERE ro.id = ${ride.organizationId}::uuid AND ro.parent_id IS NOT NULL)
+    OR EXISTS (SELECT 1 FROM organizations ro JOIN organizations dor ON dor.path LIKE ro.path || '%' WHERE ro.id = ${ride.organizationId}::uuid AND dor.id = d.organization_id))`;
+}

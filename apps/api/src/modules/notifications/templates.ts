@@ -72,6 +72,17 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Nouvelle course', body: 'Une course vous est attribuée. Ouvrez l\'application pour démarrer.' },
     en: { title: 'New ride', body: 'A ride has been assigned to you. Open the app to start.' },
   },
+  // Étape 23 : invitation d'un chauffeur par son organisation (texto, lien à usage unique).
+  'fleet.driver_invitation': {
+    fr: {
+      title: 'Invitation Neomoov',
+      body: (d) => `${str(d['firstName']) ? `Bonjour ${str(d['firstName'])}, ` : ''}${str(d['organizationName'])} vous invite à conduire avec Neomoov. Acceptez l'invitation : ${str(d['link'])}`,
+    },
+    en: {
+      title: 'Neomoov invitation',
+      body: (d) => `${str(d['firstName']) ? `Hello ${str(d['firstName'])}, ` : ''}${str(d['organizationName'])} invites you to drive with Neomoov. Accept the invitation: ${str(d['link'])}`,
+    },
+  },
   'ride.driver_departed': {
     fr: { title: 'Votre chauffeur est en route', body: 'Votre chauffeur est parti vers le point de départ. Suivez son trajet dans l\'application.' },
     en: { title: 'Your driver is on the way', body: 'Your driver has left for the pickup point. Follow the route in the app.' },

@@ -44,20 +44,40 @@ export class OrgScopeService {
     if (active && active.path === orgPath) {
       return (active.tx as ScopedExecutor).transaction((sp) => this.within({ organizationId: active.organizationId, path: orgPath, tx: sp, ended: false, parent: active }, fn));
     }
-    return withoutOrgScope(() =>
+    const opened: { store: OrgScopeContext | null } = { store: null };
+    const result = await withoutOrgScope(() =>
       this.database.db.transaction(async (tx) => {
         await tx.execute(sql`SET LOCAL ROLE neomoov_scoped`);
         await tx.execute(sql`SELECT set_config('app.scope_path', ${orgPath}, true)`);
-        return this.within({ organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, ended: false, parent: null }, fn);
+        opened.store = { organizationId: organizationIdOfPath(orgPath), path: orgPath, tx, ended: false, parent: null };
+        return this.within(opened.store, fn);
       }),
     );
+    // Étape 23 : la transaction est validée ; les suites différées (événements de domaine, envois) partent maintenant.
+    this.flushAfterCommit(opened.store);
+    return result;
   }
 
   private async within<T>(store: OrgScopeContext, fn: (tx: ScopedExecutor) => Promise<T>): Promise<T> {
     try {
-      return await orgScopeStorage.run(store, () => fn(store.tx as ScopedExecutor));
+      const result = await orgScopeStorage.run(store, () => fn(store.tx as ScopedExecutor));
+      // Point de sauvegarde réussi : ses suites attendent la validation de la transaction englobante.
+      if (store.parent && store.afterCommit?.length) (store.parent.afterCommit ??= []).push(...store.afterCommit.splice(0));
+      return result;
     } finally {
       store.ended = true;
+    }
+  }
+
+  /** Suites différées d'une transaction validée, dans son contexte terminé (pool de la plateforme, organisation gardée). */
+  private flushAfterCommit(store: OrgScopeContext | null): void {
+    const callbacks = store?.afterCommit?.splice(0) ?? [];
+    for (const callback of callbacks) {
+      try {
+        orgScopeStorage.run(store!, callback);
+      } catch (error) {
+        this.logger.error({ err: error, organizationId: store!.organizationId }, 'Suite différée d\'une transaction d\'organisation en échec');
+      }
     }
   }
 

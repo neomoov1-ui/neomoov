@@ -7,7 +7,7 @@
  * ici : ses anciens rôles n'y donnent rien.
  */
 import {
-  adminDriverDetailSchema, adminDriverListItemSchema, adminListQuerySchema, adminRideListItemSchema, adminRideListQuerySchema, adminStatementSchema,
+  adminDriverDetailSchema, adminListQuerySchema, adminRideListItemSchema, adminRideListQuerySchema, adminStatementSchema,
   adminVehicleSchema, invitationCreatedSchema, invitationCreateSchema, membershipUpdateSchema, membershipViewSchema, myOrganizationSchema, ORGANIZATION_PERMISSIONS,
   organizationHomeSchema, orgRoleCreateSchema, pageOf, rideSchema, rolePermissionsUpdateSchema, roleViewSchema, uuid,
 } from '@neomoov/domain';
@@ -53,15 +53,7 @@ export class OrgController {
 
   // --- Chauffeurs et véhicules ---
 
-  @Get('drivers')
-  @Can('drivers.read')
-  @ApiOperation({ summary: 'Chauffeurs de l\'organisation et de ses descendantes (mêmes filtres que My Hub)' })
-  @ZodQuery(adminListQuerySchema)
-  @ZodResponse(200, pageOf(adminDriverListItemSchema))
-  @ApiErrors(400, 401, 403, 404, 429)
-  listDrivers(@Query(zodPipe(adminListQuerySchema)) query: ListQuery) {
-    return this.drivers.list(query);
-  }
+  // `GET drivers` : servie par le module Flotte (étape 23), enrichie des documents, échéances et véhicule courant.
 
   @Get('drivers/:id')
   @Can('drivers.read')

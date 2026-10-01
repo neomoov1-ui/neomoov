@@ -245,6 +245,8 @@ export class OrganizationsService {
 
   /** Acceptation par la personne invitée (même téléphone ou même courriel que l'invitation). */
   async accept(token: string, actor: UserActor, now = new Date()): Promise<MembershipView> {
+    // Étape 23 : une invitation de chauffeur (`drv_...`) passe par `POST /v1/driver-invitations/accept` (rattachement du profil).
+    if (token.startsWith('drv_')) throw AppError.conflict('DRIVER_INVITATION', 'Invitation de chauffeur : acceptez-la depuis l\'application chauffeur');
     const membershipId = await this.db.transaction(async (tx) => {
       const [inv] = await tx.select().from(schema.invitations).where(eq(schema.invitations.tokenHash, sha256Hex(token))).for('update').limit(1);
       if (!inv || inv.revokedAt) throw AppError.notFound('INVITATION_NOT_FOUND', 'Invitation introuvable');

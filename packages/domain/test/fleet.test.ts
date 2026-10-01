@@ -60,13 +60,13 @@ describe('flotte : règles de partage des revenus', () => {
     const rides = [
       { rideId: 'a', date: '2026-09-22', fareCents: 4_000 },
       { rideId: 'b', date: '2026-09-24', fareCents: 2_000 },
-      { rideId: 'c', date: '2026-09-28', fareCents: 9_999 },
-      { rideId: 'd', date: '2026-09-20', fareCents: 9_999 },
+      // Course en retard d'une semaine précédente : la règle de son jour.
+      { rideId: 'd', date: '2026-09-20', fareCents: 1_000 },
     ];
     const share = revenueShare(rules, 'd1', WEEK, rides);
-    expect(share.totalCents).toBe(800 + 500);
+    expect(share.totalCents).toBe(1_000 + 500);
     expect(share.lines.map((l) => [l.ruleId, l.amountCents, l.baseCents, l.label])).toEqual([
-      ['p20', 800, 4_000, 'Part de l\'organisation : 20 % du tarif'],
+      ['p20', 1_000, 5_000, 'Part de l\'organisation : 20 % du tarif'],
       ['p25', 500, 2_000, 'Part de l\'organisation : 25 % du tarif'],
     ]);
   });

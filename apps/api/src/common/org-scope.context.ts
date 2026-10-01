@@ -21,6 +21,8 @@ export interface OrgScopeContext {
   ended: boolean;
   /** Contexte englobant de la même organisation (point de sauvegarde), ou `null` pour une transaction de premier niveau. */
   parent: OrgScopeContext | null;
+  /** Étape 23 : suites à lancer après la validation de la transaction (événements de domaine, envois) ; abandonnées sur annulation. */
+  afterCommit?: Array<() => void>;
 }
 
 export const orgScopeStorage = new AsyncLocalStorage<OrgScopeContext>();
@@ -35,6 +37,22 @@ export function activeOrgScope(): OrgScopeContext | null {
   let scope = orgScopeStorage.getStore() ?? null;
   while (scope?.ended) scope = scope.parent;
   return scope;
+}
+
+/**
+ * Étape 23 : remet `fn` après la validation de la transaction restreinte en cours (événements de domaine, envois de
+ * textos) ; abandonnée si la transaction (ou son point de sauvegarde) est annulée. Hors contexte, ou contexte terminé,
+ * `fn` s'exécute tout de suite. Les suites s'exécutent dans le contexte terminé : pool de la plateforme pour les requêtes,
+ * organisation gardée pour l'étiquetage. Renvoie vrai si `fn` est différée.
+ */
+export function afterOrgScopeCommit(fn: () => void): boolean {
+  const scope = activeOrgScope();
+  if (!scope) {
+    fn();
+    return false;
+  }
+  (scope.afterCommit ??= []).push(fn);
+  return true;
 }
 
 /**

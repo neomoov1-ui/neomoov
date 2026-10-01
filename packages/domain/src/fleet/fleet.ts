@@ -80,9 +80,10 @@ export interface RevenueShareLine {
 }
 
 /**
- * Part de l'organisation sur une période de relevé : loyer au prorata des jours où une règle « loyer » s'applique,
- * pourcentage du tarif chauffeur des courses d'un jour où une règle « pourcentage » s'applique. Une ligne par règle, les
- * lignes nulles écartées. Le chauffeur ne finance jamais une promotion : le tarif retenu est le tarif complet de la course.
+ * Part de l'organisation sur une période de relevé : loyer au prorata des jours de la période où une règle « loyer »
+ * s'applique, pourcentage du tarif chauffeur des courses du relevé (celles que l'appelant fournit, y compris une course
+ * en retard d'une semaine précédente) selon la règle en vigueur le jour de chaque course. Une ligne par règle, les lignes
+ * nulles écartées. Le tarif retenu est le tarif complet de la course (une promotion est compensée au chauffeur à 100 %).
  */
 export function revenueShare(rules: readonly RevenueShareRule[], driverId: string, period: { startDate: string; endDate: string }, rides: readonly ShareRide[]): { totalCents: number; lines: RevenueShareLine[] } {
   const byRule = new Map<string, { rule: RevenueShareRule; days: number; baseCents: number }>();
@@ -97,7 +98,6 @@ export function revenueShare(rules: readonly RevenueShareRule[], driverId: strin
     if (rule?.mode === 'rent') entry(rule).days += 1;
   }
   for (const ride of rides) {
-    if (ride.date < period.startDate || ride.date > period.endDate) continue;
     const rule = ruleOn(rules, driverId, ride.date);
     if (rule?.mode === 'percentage') entry(rule).baseCents += ride.fareCents;
   }
