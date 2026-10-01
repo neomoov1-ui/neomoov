@@ -1,3 +1,4 @@
+import { useBrand } from '@neomoov/mobile-core/brand';
 import { Body, Button, Card, Heading } from '@neomoov/mobile-core/components';
 import { isLanguage, SUPPORTED_LANGUAGES } from '@neomoov/mobile-core/i18n';
 import { colors, spacing } from '@neomoov/mobile-core/theme';
@@ -10,26 +11,31 @@ import { useSession } from '@/lib/session';
 
 const LABELS: Record<string, string> = { 'fr-CA': 'FR', en: 'EN' };
 
-/** Accueil : logo, slogan commercial (D44), préavis de 2 heures (D32), langue ; une session ouverte mène à la réservation. */
+/**
+ * Accueil : logo, slogan commercial (D44), préavis de 2 heures (D32), langue ; une session ouverte mène à la réservation.
+ * Avec la marque d'une organisation (étape 22) : son logo, son nom, sa signature, et « Propulsé par Neomoov ».
+ */
 export default function StartScreen() {
   const { t, i18n } = useTranslation();
   const status = useSession((s) => s.status);
+  const { brand, isDefault, colors: theme } = useBrand();
   const current = isLanguage(i18n.language) ? i18n.language : 'fr-CA';
   if (status === 'signedIn') return <Redirect href="/book" />;
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.mist }]}>
       <View style={styles.languages} accessibilityLabel={t('core:language')}>
         {SUPPORTED_LANGUAGES.map((lang) => (
-          <Pressable key={lang} onPress={() => void i18n.changeLanguage(lang)} accessibilityRole="button" accessibilityState={{ selected: lang === current }} style={[styles.langPill, lang === current && styles.langPillActive]}>
+          <Pressable key={lang} onPress={() => void i18n.changeLanguage(lang)} accessibilityRole="button" accessibilityState={{ selected: lang === current }} style={[styles.langPill, lang === current && { backgroundColor: theme.blue }]}>
             <Text style={[styles.langText, lang === current && styles.langTextActive]}>{LABELS[lang]}</Text>
           </Pressable>
         ))}
       </View>
       <View style={styles.hero}>
-        <Image source={require('../../assets/images/logo.png')} style={styles.logo} contentFit="contain" accessibilityLabel="Neomoov" />
-        <Heading>{t('welcome')}</Heading>
-        <Body style={styles.tagline}>{t('core:tagline')}</Body>
+        <Image source={brand.logoUrl ? { uri: brand.logoUrl } : require('../../assets/images/logo.png')} style={styles.logo} contentFit="contain" accessibilityLabel={brand.displayName} />
+        <Heading>{isDefault ? t('welcome') : brand.displayName}</Heading>
+        {isDefault ? <Body style={styles.tagline}>{t('core:tagline')}</Body> : brand.tagline ? <Body style={[styles.tagline, { color: theme.blueDark }]}>{brand.tagline}</Body> : null}
         <Body muted style={styles.center}>{t('intro')}</Body>
+        {!isDefault ? <Body muted style={styles.center}>{t('organization.poweredBy')}</Body> : null}
       </View>
       <Card style={styles.card}>
         <Body>{t('core:leadTime')}</Body>

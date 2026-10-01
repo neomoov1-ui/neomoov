@@ -77,10 +77,10 @@ export default function VerifyScreen() {
       </Pressable>
       {config.data ? (
         <View style={styles.links}>
-          <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(config.data.legal.termsUrl)}>
+          <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(brand.termsUrl)}>
             <Text style={styles.link}>{t('auth.terms')}</Text>
           </Pressable>
-          <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(config.data.legal.privacyUrl)}>
+          <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(brand.privacyUrl)}>
             <Text style={styles.link}>{t('auth.privacy')}</Text>
           </Pressable>
         </View>

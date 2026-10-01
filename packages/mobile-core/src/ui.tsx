@@ -1,4 +1,5 @@
 /** Éléments d'écran communs aux applications client et chauffeur (au-dessus des composants de base). */
+import { useBrandColors } from './brand';
 import { Body, Button, Card } from './components';
 import { colors, radius, spacing, typography } from './theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,11 +9,12 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-/** Écran standard : zone sûre, défilement, titre et retour facultatifs. */
+/** Écran standard : zone sûre, défilement, titre et retour facultatifs ; fond de la marque courante (étape 22). */
 export function Screen({ title, subtitle, back, children, footer, onRefresh, refreshing }: { title?: string; subtitle?: string; back?: boolean; children: ReactNode; footer?: ReactNode; onRefresh?: () => void; refreshing?: boolean }) {
   const { t } = useTranslation();
+  const brand = useBrandColors();
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: brand.mist }]} edges={['top', 'left', 'right']}>
       {back || title ? (
         <View style={styles.header}>
           {back ? (
@@ -29,16 +31,17 @@ export function Screen({ title, subtitle, back, children, footer, onRefresh, ref
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} /> : undefined}>
         {children}
       </ScrollView>
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
+      {footer ? <View style={[styles.footer, { backgroundColor: brand.mist }]}>{footer}</View> : null}
     </SafeAreaView>
   );
 }
 
 export function Loading({ label }: { label?: string }) {
   const { t } = useTranslation();
+  const brand = useBrandColors();
   return (
     <View style={styles.center} accessibilityLiveRegion="polite">
-      <ActivityIndicator color={colors.blue} size="large" />
+      <ActivityIndicator color={brand.blue} size="large" />
       <Body muted>{label ?? t('core:loading')}</Body>
     </View>
   );
@@ -69,6 +72,7 @@ export function SectionTitle({ children }: { children: ReactNode }) {
 
 /** Choix exclusif en pastilles (ambiance, jour, créneau, pourboire…). */
 export function Choices<T extends string | number>({ options, value, onChange, label }: { options: Array<{ value: T; label: string }>; value: T | null; onChange: (value: T) => void; label?: string }) {
+  const brand = useBrandColors();
   return (
     <View style={styles.choicesBlock}>
       {label ? <Text style={styles.choicesLabel}>{label}</Text> : null}
@@ -76,7 +80,7 @@ export function Choices<T extends string | number>({ options, value, onChange, l
         {options.map((o) => {
           const selected = o.value === value;
           return (
-            <Pressable key={String(o.value)} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => onChange(o.value)} style={[styles.chip, selected && styles.chipSelected]}>
+            <Pressable key={String(o.value)} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => onChange(o.value)} style={[styles.chip, selected && { backgroundColor: brand.blue, borderColor: brand.blue }]}>
               <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{o.label}</Text>
             </Pressable>
           );
@@ -88,6 +92,7 @@ export function Choices<T extends string | number>({ options, value, onChange, l
 
 /** Interrupteur avec son libellé et une aide facultative : toute la ligne se touche (cible large, un seul élément accessible). */
 export function ToggleRow({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (value: boolean) => void }) {
+  const brand = useBrandColors();
   return (
     <Pressable accessibilityRole="switch" accessibilityState={{ checked: value }} accessibilityLabel={label} accessibilityHint={hint} onPress={() => onChange(!value)} style={styles.toggle}>
       <View style={styles.toggleText}>
@@ -95,7 +100,7 @@ export function ToggleRow({ label, hint, value, onChange }: { label: string; hin
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       </View>
       <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Switch value={value} trackColor={{ true: colors.blue, false: colors.border }} thumbColor={colors.white} />
+        <Switch value={value} trackColor={{ true: brand.blue, false: colors.border }} thumbColor={colors.white} />
       </View>
     </Pressable>
   );
