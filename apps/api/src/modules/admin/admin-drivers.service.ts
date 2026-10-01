@@ -97,7 +97,8 @@ export class AdminDriversService {
         .limit(100),
       this.db.select().from(schema.sanctions).where(eq(schema.sanctions.driverId, driver.id)).orderBy(desc(schema.sanctions.startsAt)).limit(50),
       this.db.select({ n: count() }).from(schema.rides).where(and(eq(schema.rides.driverId, driver.id), inArray(schema.rides.state, ['completed', 'rated']))),
-      this.db.select({ n: count() }).from(schema.rideEvents).where(and(eq(schema.rideEvents.actorUserId, driver.userId), eq(schema.rideEvents.type, 'driver_cancels'), sql`${schema.rideEvents.occurredAt} >= ${since.toISOString()}`)),
+      // Annulation de grâce de Neomoov Pilote (étape 24) : sans effet sur le dossier, hors du compte.
+      this.db.select({ n: count() }).from(schema.rideEvents).where(and(eq(schema.rideEvents.actorUserId, driver.userId), eq(schema.rideEvents.type, 'driver_cancels'), sql`coalesce((${schema.rideEvents.data}->>'pilotGrace')::boolean, false) = false`, sql`${schema.rideEvents.occurredAt} >= ${since.toISOString()}`)),
       this.db.select({ n: count() }).from(schema.incidents).innerJoin(schema.rides, eq(schema.rides.id, schema.incidents.rideId)).where(eq(schema.rides.driverId, driver.id)),
     ]);
     const pending = documents.filter((d) => d.status === 'pending').length;

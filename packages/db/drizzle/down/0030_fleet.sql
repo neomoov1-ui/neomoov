@@ -1,0 +1,20 @@
+-- Inverse de 0024 : module Flotte (étape 23).
+DROP INDEX IF EXISTS "rides_org_open_idx";
+DROP TRIGGER IF EXISTS vehicle_maintenance_org_fill ON "vehicle_maintenance";
+DROP FUNCTION IF EXISTS org_fill_from_vehicle();
+DROP TABLE IF EXISTS "organization_statements";
+DROP TABLE IF EXISTS "revenue_share_rules";
+DROP TABLE IF EXISTS "vehicle_maintenance";
+ALTER TABLE "organizations" DROP CONSTRAINT IF EXISTS "organizations_network_after";
+ALTER TABLE "organizations" DROP CONSTRAINT IF EXISTS "organizations_network_mode";
+ALTER TABLE "organizations" DROP COLUMN IF EXISTS "stripe_account_onboarded";
+ALTER TABLE "organizations" DROP COLUMN IF EXISTS "stripe_account_id";
+ALTER TABLE "organizations" DROP COLUMN IF EXISTS "network_after_minutes";
+ALTER TABLE "organizations" DROP COLUMN IF EXISTS "network_mode";
+ALTER TABLE "rides" DROP COLUMN IF EXISTS "network_shared_at";
+ALTER TABLE "vehicles" DROP CONSTRAINT IF EXISTS "vehicles_owner_user_id_users_id_fk";
+ALTER TABLE "vehicles" DROP COLUMN IF EXISTS "owner_user_id";
+ALTER TABLE "driver_documents" DROP COLUMN IF EXISTS "org_reviewed_at";
+ALTER TABLE "driver_documents" DROP COLUMN IF EXISTS "org_reviewed_by_user_id";
+ALTER TABLE "driver_documents" DROP COLUMN IF EXISTS "org_review_note";
+ALTER TABLE "driver_documents" DROP COLUMN IF EXISTS "org_review_decision";

@@ -30,6 +30,17 @@ const fr = {
     title: 'Vérification d\'une facture', subtitle: 'Code QR imprimé sur une facture ou une note de crédit Neomoov.', valid: 'Facture authentique', number: 'Numéro',
     kind: 'Nature', issued: 'Émise le', supplier: 'Fournisseur du transport', total: 'Total', sev: 'Enregistrement des ventes', invalid: 'Ce code de vérification est invalide ou altéré.', missing: 'Aucun code de vérification dans le lien.',
   },
+  cardForm: {
+    title: 'Ajouter une carte', titleDriver: 'Carte de prélèvement',
+    subtitle: 'Votre carte est enregistrée chez Square, notre processeur de paiement : son numéro ne passe jamais par les serveurs de Neomoov.',
+    subtitleDriver: 'Carte prélevée pour un relevé hebdomadaire négatif. Elle est enregistrée chez Square : son numéro ne passe jamais par les serveurs de Neomoov.',
+    save: 'Enregistrer la carte', saving: 'Enregistrement…', saved: 'Carte enregistrée', savedBody: '{{brand}} se terminant par {{last4}}. Retour à l\'application…', back: 'Revenir à l\'application',
+    missing: 'Lien incomplet : relancez l\'ajout de carte depuis l\'application.', invalid: 'Ce lien de saisie de carte est invalide.',
+    expired: 'Cette page de saisie a expiré (15 minutes) : relancez l\'ajout de carte depuis l\'application.', unavailable: 'Le service de paiement est indisponible pour le moment. Réessayez plus tard.',
+    sdkError: 'Le formulaire de carte n\'a pas pu se charger. Vérifiez votre connexion, puis rechargez la page.', invalidCard: 'Vérifiez le numéro, la date d\'expiration, le code de sécurité et le code postal.',
+    declined: 'Carte refusée par la banque : essayez une autre carte.', generic: 'L\'enregistrement a échoué. Réessayez.', notSupported: 'Le fournisseur de paiement actif n\'utilise pas cette page : ajoutez votre carte dans l\'application.',
+    testMode: 'Mode de démonstration : aucune vraie carte n\'est demandée.', testCard: 'Enregistrer une carte de test', secure: 'Paiement sécurisé par Square. Neomoov ne voit que la marque et les 4 derniers chiffres.',
+  },
   driversPage: {
     title: 'Devenez chauffeur Neomoov',
     subtitle: 'Une application conçue par un chauffeur pour les chauffeurs : prix fixes connus avant d\'accepter, négociation encadrée, versements rapides et une vraie équipe derrière vous.',
@@ -42,8 +53,13 @@ const fr = {
   },
   join: {
     title: 'Rejoindre une organisation', subtitle: 'Vous avez reçu une invitation. Connectez-vous avec le numéro ou le courriel invité, puis acceptez.',
-    code: 'Code d\'invitation', accept: 'Accepter l\'invitation', done: 'C\'est fait : vous êtes membre, avec le rôle « {{role}} ».',
+    code: 'Code d\'invitation', accept: 'Accepter l\'invitation', done: 'C\'est fait : vous êtes membre, avec le rôle « {{role}} ».', openHub: 'Ouvrir l\'espace de votre organisation dans My Hub',
     errors: { notForYou: 'Cette invitation est adressée à un autre numéro ou à un autre courriel.', expired: 'Cette invitation a expiré : demandez-en une nouvelle.', used: 'Cette invitation a déjà servi.', generic: 'Invitation introuvable ou invalide.' },
+  },
+  joinCode: {
+    title: 'Rejoindre {{name}}', notFound: 'Ce code de rattachement ne correspond à aucune organisation.', code: 'Code de rattachement',
+    app: 'Ouvrez l\'application Neomoov sur votre téléphone : ce lien l\'ouvre directement. Sinon, installez-la, puis entrez le code dans Profil, « Rejoindre une organisation ».',
+    book: 'Réserver une course sur le web',
   },
   rights: {
     title: 'Vos droits sur vos données',
@@ -126,6 +142,17 @@ const en: typeof fr = {
     title: 'Invoice verification', subtitle: 'QR code printed on a Neomoov invoice or credit note.', valid: 'Authentic invoice', number: 'Number',
     kind: 'Type', issued: 'Issued on', supplier: 'Transport supplier', total: 'Total', sev: 'Sales recording', invalid: 'This verification code is invalid or has been altered.', missing: 'No verification code in the link.',
   },
+  cardForm: {
+    title: 'Add a card', titleDriver: 'Debit card',
+    subtitle: 'Your card is stored with Square, our payment processor: its number never goes through Neomoov\'s servers.',
+    subtitleDriver: 'Card charged when a weekly statement is negative. It is stored with Square: its number never goes through Neomoov\'s servers.',
+    save: 'Save the card', saving: 'Saving…', saved: 'Card saved', savedBody: '{{brand}} ending in {{last4}}. Returning to the app…', back: 'Back to the app',
+    missing: 'Incomplete link: start adding your card again from the app.', invalid: 'This card entry link is invalid.',
+    expired: 'This card entry page has expired (15 minutes): start adding your card again from the app.', unavailable: 'The payment service is unavailable right now. Please try again later.',
+    sdkError: 'The card form could not load. Check your connection, then reload the page.', invalidCard: 'Check the card number, expiry date, security code and postal code.',
+    declined: 'Card declined by the bank: try another card.', generic: 'Saving failed. Please try again.', notSupported: 'The active payment provider does not use this page: add your card in the app.',
+    testMode: 'Demo mode: no real card is requested.', testCard: 'Save a test card', secure: 'Payment secured by Square. Neomoov only sees the brand and the last 4 digits.',
+  },
   driversPage: {
     title: 'Drive with Neomoov',
     subtitle: 'An app designed by a driver for drivers: fixed prices known before you accept, fair negotiation, fast payouts and a real team behind you.',
@@ -138,8 +165,13 @@ const en: typeof fr = {
   },
   join: {
     title: 'Join an organization', subtitle: 'You received an invitation. Sign in with the invited phone number or email, then accept.',
-    code: 'Invitation code', accept: 'Accept the invitation', done: 'Done: you are now a member, with the role "{{role}}".',
+    code: 'Invitation code', accept: 'Accept the invitation', done: 'Done: you are now a member, with the role "{{role}}".', openHub: 'Open your organization space in My Hub',
     errors: { notForYou: 'This invitation is addressed to another phone number or email.', expired: 'This invitation has expired: ask for a new one.', used: 'This invitation has already been used.', generic: 'Invitation not found or invalid.' },
+  },
+  joinCode: {
+    title: 'Join {{name}}', notFound: 'This join code does not match any organization.', code: 'Join code',
+    app: 'Open the Neomoov app on your phone: this link opens it directly. Otherwise, install it, then enter the code in Profile, "Join an organization".',
+    book: 'Book a ride on the web',
   },
   rights: {
     title: 'Your data rights',

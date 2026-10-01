@@ -9,7 +9,7 @@ import { addUsage, EMPTY_USAGE, type LlmUsage } from '@neomoov/domain';
 import {
   LlmError,
   type AutocompleteSuggestion, type CardDetails, type EmailProvider, type GeoPoint, type GeocodeResult, type LlmMessage, type LlmProvider, type LlmStructuredRequest, type LlmStructuredResult,
-  type LlmToolsRequest, type LlmToolsResult, type MapsProvider, type PaymentAuthorization, type PaymentProvider, type SetupIntentResult, type WebhookEvent,
+  type LlmToolsRequest, type LlmToolsResult, type MapsProvider, type PaymentAuthorization, type PaymentCapabilities, type PaymentProvider, type SetupIntentResult, type WebhookEvent,
   type PushProvider, type RouteRequest, type RouteResult, type SevDocument, type SevProvider, type SevReceipt, type ScanResult, type SmsDeliveryStatus, type SmsProvider, type StorageProvider, type VirusScanner, type VoiceProvider, type WhatsAppProvider,
 } from '../types.js';
 
@@ -114,6 +114,8 @@ export class MockMapsProvider implements MapsProvider {
  */
 export class MockPaymentProvider implements PaymentProvider {
   readonly name = 'mock';
+  /** Modifiable par les tests : `connect` à faux simule un fournisseur sans versements par la plateforme (Square). */
+  capabilities: PaymentCapabilities = { setupIntent: true, cardToken: true, connect: true };
   readonly calls: Array<{ method: string; args: unknown[] }> = [];
   readonly intents = new Map<string, PaymentAuthorization & { amountCents: number; capturedCents?: number; refundedCents: number }>();
   readonly setupIntents = new Map<string, { customerRef: string; card: CardDetails }>();
@@ -139,6 +141,21 @@ export class MockPaymentProvider implements PaymentProvider {
   async createCustomer(input: { externalId: string }) {
     this.calls.push({ method: 'createCustomer', args: [input] });
     return { customerRef: `cus_mock_${input.externalId.replace(/-/g, '').slice(0, 20)}` };
+  }
+  ownsCustomerRef(customerRef: string): boolean {
+    return customerRef.startsWith('cus_mock_');
+  }
+  /**
+   * Carte à partir d'un jeton de carte (parcours Square simulé) : `cnon:card-nonce-ok` donne la carte `nextCard`,
+   * `cnon:card-nonce-declined` une carte refusée aux paiements, tout autre jeton est rejeté comme Square le ferait.
+   */
+  async saveCard(input: { customerRef: string; sourceId: string; verificationToken?: string; idempotencyKey: string; externalId: string }): Promise<CardDetails> {
+    this.calls.push({ method: 'saveCard', args: [input] });
+    this.available();
+    if (input.sourceId !== 'cnon:card-nonce-ok' && input.sourceId !== 'cnon:card-nonce-declined') throw new AppError('PAYMENT_DECLINED', 'Jeton de carte invalide (simulation)', 402, { code: 'invalid_card_data' });
+    return this.once(`card:${input.idempotencyKey}`, () => ({
+      ref: `${nextId('pm_mock')}${input.sourceId === 'cnon:card-nonce-declined' ? '_declined' : ''}`, brand: this.nextCard.brand, last4: this.nextCard.last4, expMonth: 12, expYear: new Date().getFullYear() + 3,
+    }));
   }
   async createSetupIntent(customerRef: string) {
     this.calls.push({ method: 'createSetupIntent', args: [customerRef] });
@@ -279,10 +296,10 @@ export class MockSmsProvider implements SmsProvider {
 
 export class MockEmailProvider implements EmailProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ to: string; subject: string; html: string; attachments: string[]; messageId: string }> = [];
-  async send(input: { to: string; subject: string; html: string; attachments?: Array<{ filename: string }> }) {
+  readonly sent: Array<{ to: string; from: string | null; subject: string; html: string; attachments: string[]; messageId: string }> = [];
+  async send(input: { to: string; from?: string; subject: string; html: string; attachments?: Array<{ filename: string }> }) {
     const messageId = nextId('email_mock');
-    this.sent.push({ to: input.to, subject: input.subject, html: input.html, attachments: (input.attachments ?? []).map((a) => a.filename), messageId });
+    this.sent.push({ to: input.to, from: input.from ?? null, subject: input.subject, html: input.html, attachments: (input.attachments ?? []).map((a) => a.filename), messageId });
     return { messageId };
   }
 }
@@ -523,3 +540,6 @@ export class MockStorageProvider implements StorageProvider {
     this.objects.delete(key);
   }
 }
+
+export * from './crm.mock.js';
+export * from './billing.mock.js';

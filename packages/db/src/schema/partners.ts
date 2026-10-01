@@ -85,13 +85,24 @@ export const organizations = pgTable('organizations', {
   gstNumber: varchar('gst_number', { length: 30 }),
   qstNumber: varchar('qst_number', { length: 30 }),
   settings: jsonb('settings').notNull().default(sql`'{}'::jsonb`),
+  /** Code de rattachement (étape 22) : 8 caractères sans ambiguïté, généré par la base (`generate_join_code()`), unique. */
+  joinCode: varchar('join_code', { length: 8 }).notNull().default(sql`generate_join_code()`),
+  /** Étape 23 : `isolated` (ses courses restent à ses chauffeurs) ou `neomoov_network` (non pourvues, elles repartent au réseau). */
+  networkMode: varchar('network_mode', { length: 20 }).notNull().default('isolated'),
+  networkAfterMinutes: integer('network_after_minutes').notNull().default(15),
+  /** Étape 23 : compte Stripe Connect de l'organisation pour le versement de sa part des revenus. */
+  stripeAccountId: varchar('stripe_account_id', { length: 100 }),
+  stripeAccountOnboarded: boolean('stripe_account_onboarded').notNull().default(false),
   active: boolean('active').notNull().default(true),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [
   uniqueIndex('organizations_code_unique').on(t.code),
   uniqueIndex('organizations_path_unique').on(t.path),
+  uniqueIndex('organizations_join_code_unique').on(t.joinCode),
   index('organizations_parent_idx').on(t.parentId),
   check('organizations_type', sql`${t.type} IN ('platform', 'fleet', 'taxi_company', 'vtc_company', 'business', 'establishment', 'solo', 'sub_org', 'white_label')`),
   check('organizations_status', sql`${t.status} IN ('trial', 'active', 'read_only', 'suspended', 'closed')`),
+  check('organizations_network_mode', sql`${t.networkMode} IN ('isolated', 'neomoov_network')`),
+  check('organizations_network_after', sql`${t.networkAfterMinutes} BETWEEN 1 AND 1440`),
 ]);

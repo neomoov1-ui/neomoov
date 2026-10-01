@@ -114,8 +114,9 @@ export class AuthService {
     const user = this.users.requireUsable(await this.users.findById(rotated.userId));
     const roles = await this.users.rolesOf(user.id);
     // Les rôles du personnel n'existent que dans une session ouverte par mot de passe et second facteur (`amr` contient
-    // `mfa`, conservé à la rotation) ; une session ouverte par code SMS reste sans rôle du personnel.
-    const grantedRoles = rotated.amr.includes('mfa') ? roles : roles.filter((r) => !isStaffRole(r));
+    // `mfa`, conservé à la rotation) ; une session ouverte par code SMS reste sans rôle du personnel. Étape 21 : le second
+    // facteur d'un membre d'organisation (code SMS puis TOTP, sans `pwd`) ne donne pas non plus les rôles du personnel.
+    const grantedRoles = rotated.amr.includes('mfa') && rotated.amr.includes('pwd') ? roles : roles.filter((r) => !isStaffRole(r));
     const access = await this.tokens.issueAccessToken({ userId: user.id, sessionId: rotated.session.sessionId, primaryRole: user.primaryRole, roles: grantedRoles, amr: rotated.amr });
     return {
       tokenType: 'Bearer',

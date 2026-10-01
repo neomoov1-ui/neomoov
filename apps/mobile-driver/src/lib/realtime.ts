@@ -54,6 +54,8 @@ export function useDriverRealtime(enabled: boolean): { connected: boolean } {
     const onDisconnect = () => setConnected(false);
     const onOffer = (offer: DriverOfferView) => {
       if (!offer?.id) return;
+      // Neomoov Pilote (étape 24) : une offre que Pilote accepte pour le chauffeur n'ouvre pas l'écran d'offre ; la course arrive par `ride.updated`.
+      if (offer.pilotScore?.autoAccept) return;
       upsertOffer(offer);
       router.push({ pathname: '/offer/[id]', params: { id: offer.id } });
     };
@@ -65,6 +67,8 @@ export function useDriverRealtime(enabled: boolean): { connected: boolean } {
       void queryClient.invalidateQueries({ queryKey: keys.ride(view.id) });
       void queryClient.invalidateQueries({ queryKey: keys.rides });
       void queryClient.invalidateQueries({ queryKey: keys.home });
+      void queryClient.invalidateQueries({ queryKey: keys.offers });
+      void queryClient.invalidateQueries({ queryKey: keys.pilotDecisions });
     };
     const onMessage = (event: { rideId?: string }) => {
       if (event?.rideId) void queryClient.invalidateQueries({ queryKey: keys.messages(event.rideId) });

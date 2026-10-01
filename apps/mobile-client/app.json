@@ -2,6 +2,7 @@
   "expo": {
     "name": "Neomoov",
     "slug": "neomoov-client",
+    "owner": "neomoov-inc",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

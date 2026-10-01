@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PilotBadge } from '@/components/PilotScore';
 import { PreferenceChips } from '@/components/Preferences';
 import { secondsLeft } from '@/features/ride/steps';
 import { api, errorMessage } from '@/lib/api';
@@ -117,6 +118,7 @@ export default function OfferScreen() {
               {offer.pickupSeconds !== null ? <Row label={t('offer.pickupIn', { minutes: Math.max(1, Math.round(offer.pickupSeconds / 60)) })} value={offer.pickupDistanceMeters !== null ? t('offer.pickupDistance', { distance: formatDistance(offer.pickupDistanceMeters, language) }) : ''} strong /> : null}
               {ride.distanceMeters !== null && ride.durationSeconds !== null ? <Body>{t('offer.trip', { distance: formatDistance(ride.distanceMeters, language), duration: formatDuration(ride.durationSeconds) })}</Body> : null}
               {ride.type === 'scheduled' && ride.requestedAt ? <Body>{t('offer.scheduledFor', { date: formatDateTime(ride.requestedAt, language) })}</Body> : null}
+              {offer.pilotScore ? <PilotBadge score={offer.pilotScore} /> : null}
             </Card>
             <Card style={styles.card}>
               <View style={styles.place}>

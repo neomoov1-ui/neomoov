@@ -11,7 +11,7 @@ import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@ne
 import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
-import type { GeoPoint } from '../../adapters/types.js';
+import { PAYMENT_PROVIDER, type GeoPoint, type PaymentProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { haversineMeters } from '../../common/geo.js';
@@ -62,6 +62,7 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     private readonly settings: SettingsService,
     private readonly events: DomainEventsService,
     private readonly packs: PackLifecycleService,
+    @Inject(PAYMENT_PROVIDER) private readonly payment: PaymentProvider,
   ) {}
 
   private get db() {
@@ -108,7 +109,8 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     }
     // Prompt 11 : formation Neomoov réussie, compte de versement (quand Stripe est branché), géolocalisation non retirée.
     if (!driver.trainingCertifiedAt && (await this.settings.get<boolean>('drivers.require_training', true))) reasons.push('training_required');
-    if (!driver.stripeConnectOnboarded && (await this.settings.get<boolean>('drivers.require_payout_account', false))) reasons.push('payout_required');
+    // Étape 26 : sans Stripe Connect (Square), aucun compte de versement exigé (relevés réglés par virement).
+    if (!driver.stripeConnectOnboarded && this.payment.capabilities.connect && (await this.settings.get<boolean>('drivers.require_payout_account', false))) reasons.push('payout_required');
     // Retrait : au moins un accord enregistré et aucun en vigueur (un chauffeur qui n'a jamais répondu n'est pas bloqué ici).
     const [geolocation] = await this.db
       .select({ total: sql<number>`count(*)::int`, active: sql<number>`count(*) FILTER (WHERE ${schema.consents.withdrawnAt} IS NULL)::int` })

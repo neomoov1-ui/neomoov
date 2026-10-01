@@ -1,0 +1,99 @@
+import { isJoinCode, normalizeJoinCode, type PublicBrand } from '@neomoov/domain';
+import { BrandPreview } from '@neomoov/mobile-core/brand';
+import { Body, Button, Field } from '@neomoov/mobile-core/components';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ErrorState, Notice, Screen } from '@/components/ui';
+import { api, errorMessage } from '@/lib/api';
+import { usePendingJoin } from '@/lib/pending-join';
+import { keys, queryClient } from '@/lib/queries';
+import { useSession } from '@/lib/session';
+
+/**
+ * Rejoindre une organisation (étape 22, amendement v1.2 section 5) : code saisi, lu sur un code QR ou reçu par le lien
+ * `https://neomoov.net/c/<code>` ; aperçu de la marque avant de confirmer ; le profil client est rattaché par l'API et
+ * la configuration (marque) est relue. Sans session, le code est gardé jusqu'à la connexion.
+ */
+export default function JoinScreen() {
+  const { t } = useTranslation();
+  const params = useLocalSearchParams<{ code?: string }>();
+  const status = useSession((s) => s.status);
+  const [code, setCode] = useState(typeof params.code === 'string' ? normalizeJoinCode(params.code) : '');
+  const [preview, setPreview] = useState<PublicBrand | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [joined, setJoined] = useState<string | null>(null);
+  const normalized = normalizeJoinCode(code);
+  const valid = isJoinCode(normalized);
+
+  useEffect(() => {
+    if (!valid) {
+      setPreview(null);
+      setPreviewError(null);
+      return;
+    }
+    let cancelled = false;
+    api.branding
+      .publicByCode(normalized)
+      .then((b) => {
+        if (cancelled) return;
+        setPreview(b);
+        setPreviewError(null);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setPreview(null);
+        setPreviewError(errorMessage(e));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [normalized, valid]);
+
+  async function join() {
+    if (!valid) {
+      setError(t('organization.invalidCode'));
+      return;
+    }
+    if (status !== 'signedIn') {
+      usePendingJoin.getState().set(normalized);
+      router.push('/login');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await api.branding.attach(normalized);
+      await queryClient.invalidateQueries({ queryKey: keys.config });
+      setJoined(result.organization.name);
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  return (
+    <Screen
+      back
+      title={t('organization.title')}
+      footer={joined ? <Button label={t('core:continue')} onPress={leave} /> : <Button label={t('organization.join')} onPress={() => void join()} disabled={busy || !valid} testID="join-organization" />}
+    >
+      <Body muted>{t('organization.intro')}</Body>
+      <Field label={t('organization.codeLabel')} hint={t('organization.codeHint')} value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" autoCorrect={false} maxLength={12} testID="join-code" />
+      {preview ? (
+        <>
+          <BrandPreview brand={preview.brand} />
+          <Body>{t('organization.preview', { name: preview.organizationName })}</Body>
+        </>
+      ) : null}
+      {previewError ? <ErrorState message={previewError} /> : null}
+      {status !== 'signedIn' ? <Notice>{t('organization.signInFirst')}</Notice> : null}
+      {joined ? <Notice tone="success">{t('organization.joined', { name: joined })}</Notice> : null}
+      {error ? <ErrorState message={error} /> : null}
+    </Screen>
+  );
+}

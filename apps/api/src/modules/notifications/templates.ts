@@ -3,6 +3,8 @@
  * WhatsApp), objet et corps HTML (courriel). Fonctions pures, testées ; un gabarit inconnu donne un texte générique
  * plutôt qu'une erreur (une notification n'est jamais perdue pour un libellé manquant).
  */
+import { BILLING_TEMPLATES } from '../platform-billing/billing-templates.js';
+
 export type TemplateLanguage = 'fr' | 'en';
 type Data = Record<string, unknown>;
 
@@ -71,6 +73,17 @@ const TEMPLATES: Record<string, Template> = {
   'ride.assigned_to_you': {
     fr: { title: 'Nouvelle course', body: 'Une course vous est attribuée. Ouvrez l\'application pour démarrer.' },
     en: { title: 'New ride', body: 'A ride has been assigned to you. Open the app to start.' },
+  },
+  // Étape 23 : invitation d'un chauffeur par son organisation (texto, lien à usage unique).
+  'fleet.driver_invitation': {
+    fr: {
+      title: 'Invitation Neomoov',
+      body: (d) => `${str(d['firstName']) ? `Bonjour ${str(d['firstName'])}, ` : ''}${str(d['organizationName'])} vous invite à conduire avec Neomoov. Acceptez l'invitation : ${str(d['link'])}`,
+    },
+    en: {
+      title: 'Neomoov invitation',
+      body: (d) => `${str(d['firstName']) ? `Hello ${str(d['firstName'])}, ` : ''}${str(d['organizationName'])} invites you to drive with Neomoov. Accept the invitation: ${str(d['link'])}`,
+    },
   },
   'ride.driver_departed': {
     fr: { title: 'Votre chauffeur est en route', body: 'Votre chauffeur est parti vers le point de départ. Suivez son trajet dans l\'application.' },
@@ -292,6 +305,14 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Suspension de précaution à réexaminer', body: (d) => `Le chauffeur ${str(d['driverPublicNumber'])} est suspendu à titre préventif depuis ${str(d['hours'])} heures sans décision humaine. La Charte d'équité prévoit un réexamen sous 24 heures : levez ou maintenez le blocage dans My Hub.` },
     en: { title: 'Precautionary suspension to review', body: (d) => `Driver ${str(d['driverPublicNumber'])} has been suspended as a precaution for ${str(d['hours'])} hours without a human decision. The Fairness charter requires a review within 24 hours: lift or keep the hold in My Hub.` },
   },
+  'pilot.auto_accepted': {
+    fr: { title: 'Course acceptée pour vous par Pilote', body: (d, l) => `Course${ride(d)}${d['requestedAt'] ? ` du ${when(d['requestedAt'], l)}` : ''} acceptée par Neomoov Pilote selon vos critères, annulable sans frais pendant ${str(d['graceSeconds'])} secondes.` },
+    en: { title: 'Ride accepted for you by Pilot', body: (d, l) => `Ride${ride(d)}${d['requestedAt'] ? ` on ${when(d['requestedAt'], l)}` : ''} accepted by Neomoov Pilot based on your criteria; you can cancel at no cost for ${str(d['graceSeconds'])} seconds.` },
+  },
+  'alert.pilot_zone_exclusion': {
+    fr: { title: 'Pilote : zone surveillée exclue', body: (d) => `Le chauffeur ${str(d['driverPublicNumber'])} exclut la zone surveillée « ${str(d['zone'])} » de ses critères Neomoov Pilote (${d['origin'] && d['destination'] ? 'départ et arrivée' : d['origin'] ? 'départ' : 'arrivée'}). Surveillance de la discrimination indirecte : voir le rapport des exclusions dans My Hub.` },
+    en: { title: 'Pilot: watched zone excluded', body: (d) => `Driver ${str(d['driverPublicNumber'])} excludes the watched zone "${str(d['zone'])}" from their Neomoov Pilot criteria (${d['origin'] && d['destination'] ? 'pickup and drop-off' : d['origin'] ? 'pickup' : 'drop-off'}). Indirect discrimination monitoring: see the exclusions report in My Hub.` },
+  },
   'alert.stuck_ride': {
     fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
     en: { title: 'Alert: stuck ride', body: (d) => `Ride${ride(d)} has been "${str(d['state'])}" for ${str(d['minutes'])} minutes. Check it in My Hub.` },
@@ -338,6 +359,18 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Agent IA en mode manuel', body: (d) => `Plafond quotidien de dépense atteint : l'agent ${str(d['agentCode'])} passe en mode manuel.` },
     en: { title: 'AI agent switched to manual', body: (d) => `Daily spending cap reached: agent ${str(d['agentCode'])} is now in manual mode.` },
   },
+  // My Hub côté organisation (étape 21) : invitation d'un membre (texto ou courriel, lien à usage unique) et demande
+  // d'accès du support de la plateforme, envoyée aux propriétaires du compte.
+  'organization.invitation': {
+    fr: { title: (d) => `Invitation à rejoindre ${str(d['organizationName']) || 'une organisation'}`, body: (d, l) => `Vous êtes invité à rejoindre ${str(d['organizationName']) || 'une organisation'} sur Neomoov${d['roleName'] ? ` comme ${str(d['roleName'])}` : ''}. Acceptez avec ce lien, valable jusqu'au ${when(d['expiresAt'], l)} : ${str(d['url'])}` },
+    en: { title: (d) => `Invitation to join ${str(d['organizationName']) || 'an organization'}`, body: (d, l) => `You are invited to join ${str(d['organizationName']) || 'an organization'} on Neomoov${d['roleName'] ? ` as ${str(d['roleName'])}` : ''}. Accept with this link, valid until ${when(d['expiresAt'], l)}: ${str(d['url'])}` },
+  },
+  'organization.support_access_requested': {
+    fr: { title: 'Demande d\'accès du support Neomoov', body: (d) => `Le support Neomoov demande un accès de ${str(d['durationMinutes'])} minutes à ${str(d['organizationName']) || 'votre organisation'} (motif : ${str(d['reason'])}). Approuvez ou refusez dans My Hub, menu Accès du support.` },
+    en: { title: 'Neomoov support access request', body: (d) => `Neomoov support requests ${str(d['durationMinutes'])} minutes of access to ${str(d['organizationName']) || 'your organization'} (reason: ${str(d['reason'])}). Approve or deny in My Hub, Support access menu.` },
+  },
+  // Facturation de la plateforme (étape 25) : avis au propriétaire du compte de l'organisation.
+  ...BILLING_TEMPLATES,
 };
 
 const GENERIC: Template = {
@@ -355,20 +388,36 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/** Rend un gabarit ; la langue vient du destinataire (`fr` par défaut). */
-export function renderNotification(code: string, data: Data, language: string | null | undefined): RenderedNotification {
+/** Marque d'un courriel ou d'un texto (étape 22) : nom commercial et coordonnées de l'assistance. */
+export interface NotificationBrand {
+  name: string;
+  support?: { phone: string | null; email: string | null };
+}
+
+/**
+ * Rend un gabarit ; la langue vient du destinataire (`fr` par défaut). Avec la marque d'une organisation (étape 22,
+ * courriels et textos seulement) : son nom remplace « Neomoov » dans le titre, le texte et l'objet, et le pied du
+ * courriel dit « propulsé par Neomoov » ; les coordonnées de l'assistance de la marque y sont ajoutées.
+ */
+export function renderNotification(code: string, data: Data, language: string | null | undefined, brand?: NotificationBrand): RenderedNotification {
   const l: TemplateLanguage = language === 'en' ? 'en' : 'fr';
   const template = (TEMPLATES[code] ?? GENERIC)[l];
-  const title = typeof template.title === 'function' ? template.title(data, l) : template.title;
-  const body = typeof template.body === 'function' ? template.body(data, l) : template.body;
-  const footer = l === 'en' ? 'Neomoov, an app designed by customers for drivers.' : 'Neomoov, une application conçue par le client pour les chauffeurs.';
+  const brandName = brand?.name && brand.name !== 'Neomoov' ? brand.name : null;
+  const branded = (text: string) => (brandName ? text.replaceAll('Neomoov', brandName) : text);
+  const title = branded(typeof template.title === 'function' ? template.title(data, l) : template.title);
+  const body = branded(typeof template.body === 'function' ? template.body(data, l) : template.body);
+  const footer = brandName
+    ? (l === 'en' ? `${brandName}, powered by Neomoov.` : `${brandName}, propulsé par Neomoov.`)
+    : (l === 'en' ? 'Neomoov, an app designed by customers for drivers.' : 'Neomoov, une application conçue par le client pour les chauffeurs.');
+  const contacts = [brand?.support?.phone, brand?.support?.email].filter((v): v is string => Boolean(v));
+  const support = contacts.length ? `${l === 'en' ? 'Support' : 'Assistance'} : ${contacts.join(' · ')}` : null;
   const html = `<!doctype html><html lang="${l === 'en' ? 'en' : 'fr-CA'}"><body style="font-family:Arial,Helvetica,sans-serif;color:#0B1F3A;max-width:560px;margin:auto;padding:24px">`
     + `<h1 style="font-size:20px;margin:0 0 12px">${escapeHtml(title)}</h1><p style="font-size:15px;line-height:1.5;white-space:pre-line">${escapeHtml(body)}</p>`
-    + `<p style="font-size:12px;color:#555;margin-top:32px">${escapeHtml(footer)}</p></body></html>`;
+    + `<p style="font-size:12px;color:#555;margin-top:32px">${escapeHtml(footer)}${support ? `<br>${escapeHtml(support)}` : ''}</p></body></html>`;
   const deepLink: Record<string, string> = { template: code };
   for (const key of ['rideId', 'offerId', 'statementId', 'invoiceId']) if (typeof data[key] === 'string') deepLink[key] = data[key] as string;
   // Écran nommé de l'application chauffeur quand la notification ne porte pas d'identifiant (packs, documents, planifiées).
   const screen = code.startsWith('pack.') ? 'packs' : code.startsWith('document.') || code.startsWith('compliance.') || code.startsWith('vehicle.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled' : null;
   if (screen) deepLink['screen'] = screen;
-  return { title, body, subject: `${title} · Neomoov`, html, deepLink };
+  return { title, body, subject: `${title} · ${brandName ?? 'Neomoov'}`, html, deepLink };
 }

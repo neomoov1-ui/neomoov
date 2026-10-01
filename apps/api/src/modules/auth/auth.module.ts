@@ -9,7 +9,7 @@ import { AuthService } from './auth.service.js';
 import { AuthGuard, OwnershipGuard, RateLimitGuard } from './guards.js';
 import { OtpService } from './otp.service.js';
 import { SocialService } from './social.service.js';
-import { StaffAuthController } from './staff-auth.controller.js';
+import { MemberMfaController, StaffAuthController } from './staff-auth.controller.js';
 import { StaffAuthService } from './staff-auth.service.js';
 import { TokensService } from './tokens.service.js';
 
@@ -21,7 +21,7 @@ import { TokensService } from './tokens.service.js';
 @Global()
 @Module({
   imports: [DiscoveryModule],
-  controllers: [AuthController, StaffAuthController, AdminStaffController, AdminApiKeysController, ServiceController],
+  controllers: [AuthController, StaffAuthController, AdminStaffController, AdminApiKeysController, ServiceController, MemberMfaController],
   providers: [
     RateLimitService,
     TokensService,

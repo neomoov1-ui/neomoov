@@ -94,6 +94,8 @@ export const conversations = pgTable('conversations', {
   phone: varchar('phone', { length: 20 }),
   language: varchar('language', { length: 2 }).notNull().default('fr'),
   rideId: uuid('ride_id').references(() => rides.id, { onDelete: 'set null' }),
+  /** Organisation de la conversation (étape 20) : celle de la course ou de la personne ; nulle pour la plateforme. */
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   status: varchar('status', { length: 12 }).notNull().default('open'),
   escalationReason: text('escalation_reason'),
   escalatedAt: tz('escalated_at'),
@@ -102,6 +104,7 @@ export const conversations = pgTable('conversations', {
   updatedAt: updatedAt(),
 }, (t) => [
   index('conversations_user_idx').on(t.userId, t.lastMessageAt),
+  index('conversations_org_idx').on(t.organizationId, t.lastMessageAt),
   index('conversations_phone_idx').on(t.phone, t.lastMessageAt),
   index('conversations_open_idx').on(t.status, t.lastMessageAt).where(sql`${t.status} <> 'closed'`),
   check('conversations_channel', sql`${t.channel} IN ('whatsapp', 'sms', 'voice', 'web', 'app')`),
@@ -130,6 +133,8 @@ export const notifications = pgTable('notifications', {
   id: id(),
   recipientUserId: uuid('recipient_user_id'),
   recipientAddress: varchar('recipient_address', { length: 254 }),
+  /** Organisation au nom de laquelle l'avis est envoyé (étape 20) ; nulle pour la plateforme. */
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   channel: notificationChannelEnum('channel').notNull(),
   template: varchar('template', { length: 80 }).notNull(),
   language: varchar('language', { length: 2 }).notNull().default('fr'),
@@ -140,4 +145,4 @@ export const notifications = pgTable('notifications', {
   readAt: tz('read_at'),
   error: text('error'),
   createdAt: createdAt(),
-}, (t) => [index('notifications_recipient_idx').on(t.recipientUserId, t.createdAt), index('notifications_pending_idx').on(t.createdAt).where(sql`${t.sentAt} IS NULL AND ${t.error} IS NULL`)]);
+}, (t) => [index('notifications_recipient_idx').on(t.recipientUserId, t.createdAt), index('notifications_org_idx').on(t.organizationId, t.createdAt), index('notifications_pending_idx').on(t.createdAt).where(sql`${t.sentAt} IS NULL AND ${t.error} IS NULL`)]);

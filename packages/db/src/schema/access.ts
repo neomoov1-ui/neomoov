@@ -4,7 +4,7 @@
  * usage unique, formules et modules effectifs d'une organisation.
  */
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, jsonb, pgTable, primaryKey, smallint, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, index, integer, jsonb, pgTable, primaryKey, smallint, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 import { createdAt, id, tz } from './_helpers.js';
 import { users } from './identity.js';
 import { organizations } from './partners.js';
@@ -79,15 +79,27 @@ export const invitations = pgTable('invitations', {
   check('invitations_scope', sql`${t.scope} IN ('organization', 'subtree')`),
 ]);
 
-/** Formule commerciale : modules inclus et limites (membres, véhicules, sous-organisations). */
+/**
+ * Formule commerciale : modules inclus et limites (membres, véhicules, sous-organisations) ; prix de la facturation de la
+ * plateforme (étape 25) en cents, devise CAD : installation (première facture), mensuel, licence annuelle, véhicule actif
+ * au-delà des inclus.
+ */
 export const plans = pgTable('plans', {
   code: varchar('code', { length: 40 }).primaryKey(),
   name: varchar('name', { length: 120 }).notNull(),
   modules: jsonb('modules').notNull().default(sql`'[]'::jsonb`),
   limits: jsonb('limits').notNull().default(sql`'{}'::jsonb`),
   active: boolean('active').notNull().default(true),
+  setupFeeCents: integer('setup_fee_cents').notNull().default(0),
+  monthlyPriceCents: integer('monthly_price_cents').notNull().default(0),
+  annualPriceCents: integer('annual_price_cents').notNull().default(0),
+  perActiveVehicleCents: integer('per_active_vehicle_cents').notNull().default(0),
+  includedVehicles: integer('included_vehicles').notNull().default(0),
+  currency: varchar('currency', { length: 3 }).notNull().default('CAD'),
   createdAt: createdAt(),
-});
+}, (t) => [
+  check('plans_prices', sql`${t.setupFeeCents} >= 0 AND ${t.monthlyPriceCents} >= 0 AND ${t.annualPriceCents} >= 0 AND ${t.perActiveVehicleCents} >= 0 AND ${t.includedVehicles} >= 0`),
+]);
 
 /** Modules effectifs d'une organisation : formule, options achetées, dérogations. */
 export const organizationFeatures = pgTable('organization_features', {
@@ -97,3 +109,26 @@ export const organizationFeatures = pgTable('organization_features', {
   source: varchar('source', { length: 12 }).notNull().default('plan'),
   limits: jsonb('limits').notNull().default(sql`'{}'::jsonb`),
 }, (t) => [primaryKey({ columns: [t.organizationId, t.module] }), check('organization_features_source', sql`${t.source} IN ('plan', 'option', 'override')`)]);
+
+/**
+ * Étape 21 (amendement v1.2, section 3.2) : accès temporaire du support de la plateforme à une organisation cliente,
+ * demandé avec un motif et une durée, approuvé ou refusé par l'organisation, révocable ; visible de l'organisation
+ * (politique d'isolation) et journalisé.
+ */
+export const supportAccessGrants = pgTable('support_access_grants', {
+  id: id(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id),
+  requestedByUserId: uuid('requested_by_user_id').notNull().references(() => users.id),
+  reason: text('reason').notNull(),
+  durationMinutes: smallint('duration_minutes').notNull(),
+  status: varchar('status', { length: 12 }).notNull().default('requested'),
+  approvedByUserId: uuid('approved_by_user_id').references(() => users.id),
+  startsAt: tz('starts_at'),
+  endsAt: tz('ends_at'),
+  createdAt: createdAt(),
+}, (t) => [
+  index('support_access_grants_org_idx').on(t.organizationId, t.createdAt),
+  index('support_access_grants_requester_idx').on(t.requestedByUserId, t.status),
+  check('support_access_grants_status', sql`${t.status} IN ('requested', 'approved', 'denied', 'expired', 'revoked')`),
+  check('support_access_grants_duration', sql`${t.durationMinutes} BETWEEN 15 AND 1440`),
+]);

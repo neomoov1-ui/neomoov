@@ -21,6 +21,7 @@ export * from './drivers/safety.js';
 export * from './drivers/quality.js';
 export * from './drivers/fairness.js';
 export * from './access/permissions.js';
+export * from './fleet/fleet.js';
 export * from './drivers/training.js';
 export * from './drivers/onboarding.js';
 export * from './geo/polygon.js';
@@ -35,3 +36,17 @@ export * from './schemas/index.js';
 // Facturation certifiée (étape 9) : contenu des factures et schémas propres.
 export * from './invoicing/invoice.js';
 export * from './schemas/invoicing.js';
+// Marque par organisation (étape 22) : marque résolue, contraste, code de rattachement, domaines.
+export * from './branding/brand.js';
+export * from './branding/join-code.js';
+export * from './branding/domains.js';
+// Neomoov Pilote (étape 24) : critères et score des offres, rentabilité nette, agenda, information sur la décision automatisée.
+export * from './pilot/pilot.js';
+export * from './pilot/profitability.js';
+export * from './pilot/agenda.js';
+export * from './pilot/information.js';
+// Étape 21 : accès temporaire du support, règle du dernier propriétaire.
+export * from './access/support-access.js';
+// Facturation de la plateforme (étape 25) : formules, factures, relances, et schémas de l'API.
+export * from './platform-billing/billing.js';
+export * from './schemas/platform-billing.js';

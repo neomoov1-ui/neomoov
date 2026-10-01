@@ -43,7 +43,7 @@ export const rides = pgTable('rides', {
   /** Référence chez le fournisseur de paiement échelonné (plus de 150 $, V1.1). */
   installmentProviderRef: varchar('installment_provider_ref', { length: 100 }),
   tollsCents: cents('tolls_cents').notNull().default(0),
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   maxConsentedCents: cents('max_consented_cents').notNull(),
   quotedTotalCents: cents('quoted_total_cents').notNull(),
   finalPriceCents: cents('final_price_cents'),
@@ -80,6 +80,8 @@ export const rides = pgTable('rides', {
   distanceMeters: integer('distance_meters'),
   durationSeconds: integer('duration_seconds'),
   createdByUserId: uuid('created_by_user_id'),
+  /** Étape 23 : course d'une organisation repartie au réseau Neomoov (mode réseau), avec les seuls champs permis. */
+  networkSharedAt: tz('network_shared_at'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [

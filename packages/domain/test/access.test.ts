@@ -17,7 +17,7 @@ describe('catalogue des permissions (étape 19)', () => {
   });
 
   it('anciens rôles : mêmes accès qu\'avant la bascule (tailles dérivées des routes)', () => {
-    expect(LEGACY_ROLE_PERMISSIONS['operator']).toHaveLength(56);
+    expect(LEGACY_ROLE_PERMISSIONS['operator']).toHaveLength(57);
     expect(LEGACY_ROLE_PERMISSIONS['finance']).toHaveLength(29);
     expect(LEGACY_ROLE_PERMISSIONS['readonly']).toHaveLength(23);
     expect(LEGACY_ROLE_PERMISSIONS['agent']).toEqual(['agents.run', 'agents.runs.read', 'agents.tools']);

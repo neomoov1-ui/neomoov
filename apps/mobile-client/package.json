@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eas-build-post-install": "pnpm --filter @neomoov/domain run build && pnpm --filter @neomoov/api-client run build"
   },
   "dependencies": {
     "@expo/vector-icons": "15.1.1",
@@ -38,6 +39,7 @@
     "expo-status-bar": "57.0.1",
     "expo-system-ui": "57.0.4",
     "expo-updates": "~57.0.23",
+    "expo-web-browser": "57.0.3",
     "i18next": "26.4.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",

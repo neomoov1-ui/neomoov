@@ -13,6 +13,7 @@ import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DispatchService } from './dispatch.service.js';
+import { PilotHook } from './pilot-hook.js';
 import { RidesService } from './rides.service.js';
 
 export type RealtimeSpace = 'client' | 'driver' | 'admin';
@@ -29,6 +30,7 @@ export class RealtimeService implements OnModuleInit {
     private readonly events: DomainEventsService,
     private readonly rides: RidesService,
     private readonly dispatch: DispatchService,
+    private readonly pilot: PilotHook,
   ) {}
 
   attach(space: RealtimeSpace, namespace: Namespace): void {
@@ -91,8 +93,10 @@ export class RealtimeService implements OnModuleInit {
       if (!driverSpace) return;
       const view = await this.dispatch.offerView(payload.offerId).catch(() => null);
       if (!view) return;
+      // Score Neomoov Pilote (étape 24) : une offre acceptée par Pilote n'ouvre pas l'écran d'offre de l'application.
+      const [scored] = await this.pilot.scoreOffers(payload.driverUserId, [view]);
       this.emitted.offer += 1;
-      driverSpace.to(`driver:${payload.driverId}`).emit('offer.new', view);
+      driverSpace.to(`driver:${payload.driverId}`).emit('offer.new', scored ?? view);
     });
     this.events.on('offer.expired', (payload) => {
       this.emitted.offer += 1;

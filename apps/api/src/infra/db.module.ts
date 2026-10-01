@@ -1,9 +1,29 @@
 import { createDatabase } from '@neomoov/db';
 import { Global, Inject, Module, type OnModuleDestroy } from '@nestjs/common';
+import { activeOrgScope } from '../common/org-scope.context.js';
 import { APP_ENV, type AppEnv } from '../config/env.js';
 
 export const DB = Symbol('DB');
 export type Database = ReturnType<typeof createDatabase>;
+
+/**
+ * Accès à la base (étape 20). Hors contexte d'organisation : le pool de l'API, propriétaire des tables et non soumis à la
+ * sécurité au niveau des lignes. Dans une transaction restreinte ouverte par `OrgScopeService.run` : l'exécuteur de cette
+ * transaction, propagé par AsyncLocalStorage. Tout service qui lit `database.db` pendant la requête ou la tâche passe alors
+ * par le rôle `neomoov_scoped` et les politiques d'isolation, sans changement de son code. Hors contexte, le coût se
+ * limite à une lecture du stockage asynchrone.
+ */
+export function scopedDatabase(real: Database): Database {
+  return {
+    get db() {
+      // Contexte terminé (transaction validée ou annulée) : le travail asynchrone qui lui survit passe par le contexte
+      // englobant encore ouvert, sinon par le pool.
+      return (activeOrgScope()?.tx as Database['db'] | undefined) ?? real.db;
+    },
+    client: real.client,
+    close: real.close,
+  };
+}
 
 @Global()
 @Module({
@@ -11,7 +31,7 @@ export type Database = ReturnType<typeof createDatabase>;
     {
       provide: DB,
       inject: [APP_ENV],
-      useFactory: (env: AppEnv) => createDatabase({ url: env.DATABASE_URL, max: env.DATABASE_POOL_MAX ?? (env.NODE_ENV === 'test' ? 2 : 10) }),
+      useFactory: (env: AppEnv) => scopedDatabase(createDatabase({ url: env.DATABASE_URL, max: env.DATABASE_POOL_MAX ?? (env.NODE_ENV === 'test' ? 2 : 10) })),
     },
   ],
   exports: [DB],

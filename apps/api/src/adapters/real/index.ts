@@ -9,14 +9,18 @@
  */
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
-import type { AppEnv } from '../../config/env.js';
-import type { EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
+import { squareConfig, type AppEnv } from '../../config/env.js';
+import type { CrmProvider, EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
 import { AnthropicLlmProvider } from './anthropic.js';
 import { ClamAvScanner } from './clamav.js';
 import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
+import { HubSpotCrmProvider } from './hubspot.real.js';
+import { StripeBillingProvider } from './stripe-billing.real.js';
+import type { BillingProvider } from '../billing.types.js';
 import { ResendEmailProvider } from './resend.js';
 import { S3StorageProvider } from './s3.js';
+import { SquarePaymentProvider } from './square.js';
 import { StripePaymentProvider } from './stripe.js';
 import { TwilioSmsProvider } from './twilio.js';
 import { VapiVoiceProvider } from './vapi.js';
@@ -77,7 +81,15 @@ export const realMaps = (env: AppEnv): MapsProvider => {
   requireKey('cartes (Google Maps Platform)', 'GOOGLE_MAPS_SERVER_KEY', env);
   return new GoogleMapsProvider(env.GOOGLE_MAPS_SERVER_KEY!);
 };
+/** Paiements : Stripe (`real` ou `stripe`), ou Square (`square`, étape 26) avec les valeurs de son environnement effectif. */
 export const realPayment = (env: AppEnv): PaymentProvider => {
+  if (env.PAYMENT_PROVIDER === 'square') {
+    const square = squareConfig(env);
+    // Le webhook est vérifié à la réception (501 sans sa clé) ; le reste est exigé au démarrage.
+    const required = square.missing.filter((key) => key !== 'SQUARE_WEBHOOK_SIGNATURE_KEY' && key !== 'SQUARE_WEBHOOK_URL');
+    if (required.length) throw notConfigured('paiements (Square)', required.join(', '));
+    return new SquarePaymentProvider({ accessToken: square.accessToken!, locationId: square.locationId!, environment: square.environment, webhookSignatureKey: square.webhookSignatureKey, webhookUrl: square.webhookUrl });
+  }
   requireKey('paiements (Stripe)', 'STRIPE_SECRET_KEY', env);
   return new StripePaymentProvider(env.STRIPE_SECRET_KEY!, env.STRIPE_WEBHOOK_SECRET);
 };
@@ -127,4 +139,14 @@ export const realStorage = (env: AppEnv): StorageProvider => {
   }
   for (const variable of ['R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_ACCOUNT_ID', 'R2_BUCKET'] as const) requireKey('stockage objet (S3 compatible ou R2)', variable, env);
   return new S3StorageProvider({ endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`, region: 'auto', bucket: env.R2_BUCKET!, accessKeyId: env.R2_ACCESS_KEY_ID!, secretAccessKey: env.R2_SECRET_ACCESS_KEY! });
+};
+/** CRM (étape 25) : HubSpot par jeton d'application privée ; le numéro de compte ne sert qu'aux liens de `crm:setup`. */
+export const realCrm = (env: AppEnv): CrmProvider => {
+  requireKey('CRM (HubSpot)', 'HUBSPOT_ACCESS_TOKEN', env);
+  return new HubSpotCrmProvider(env.HUBSPOT_ACCESS_TOKEN!, { portalId: env.HUBSPOT_PORTAL_ID ?? null });
+};
+/** Facturation de la plateforme (étape 25) : Stripe Billing par la clé secrète des paiements ; secret de webhook propre. */
+export const realBilling = (env: AppEnv): BillingProvider => {
+  requireKey('facturation de la plateforme (Stripe Billing)', 'STRIPE_SECRET_KEY', env);
+  return new StripeBillingProvider(env.STRIPE_SECRET_KEY!, env.STRIPE_BILLING_WEBHOOK_SECRET);
 };

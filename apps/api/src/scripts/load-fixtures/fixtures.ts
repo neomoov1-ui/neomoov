@@ -126,7 +126,7 @@ export async function createLoadFixtures(app: INestApplicationContext, options: 
   for (const part of chunks(accounts.slice(driverCount), 500)) {
     const rows = await db.insert(schema.clients).values(part.map((a) => ({ userId: userIds.get(a.phone)! }))).returning({ id: schema.clients.id, userId: schema.clients.userId });
     // Carte simulée enregistrée : l'autorisation et la capture passent par le fournisseur simulé de l'API visée.
-    await db.insert(schema.clientPaymentMethods).values(rows.map((r) => ({ clientId: r.id, stripePaymentMethodId: `pm_mock_${marker.key.replace(/[^a-z0-9]/gi, '')}_${r.id.replace(/-/g, '').slice(0, 20)}`, brand: 'visa', last4: '4242', expMonth: 12, expYear: now.getUTCFullYear() + 3, isDefault: true })));
+    await db.insert(schema.clientPaymentMethods).values(rows.map((r) => ({ clientId: r.id, stripePaymentMethodId: `pm_mock_${marker.key.replace(/[^a-z0-9]/gi, '')}_${r.id.replace(/-/g, '').slice(0, 20)}`, provider: 'mock', brand: 'visa', last4: '4242', expMonth: 12, expYear: now.getUTCFullYear() + 3, isDefault: true })));
     clients.push(...rows.map((r) => ({ userId: r.userId, clientId: r.id })));
   }
 

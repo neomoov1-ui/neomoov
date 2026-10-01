@@ -3,6 +3,7 @@
  * et autour de la réservation. Réglages lus en base ou dans l'environnement, jamais codés dans l'application.
  */
 import { z } from 'zod';
+import { brandSchema, organizationSummarySchema } from '../branding/brand.js';
 import { VEHICLE_CATEGORIES } from '../enums.js';
 import { cents, uuid } from './common.js';
 import { coordinatesSchema } from './quotes.js';
@@ -14,6 +15,10 @@ const count = z.number().int().min(0);
  * dans l'application que si `features.negotiation` est vrai (drapeau `FEATURE_NEGOTIATION` de l'API).
  */
 export const appConfigSchema = z.object({
+  /** Étape 22 : marque de l'organisation du profil client de l'appelant (avec jeton), sinon Neomoov. */
+  brand: brandSchema,
+  /** Organisations de l'appelant (profil client rattaché, fiche chauffeur, adhésions) pour le sélecteur ; vide sans jeton. */
+  organizations: z.array(organizationSummarySchema),
   features: z.object({
     negotiation: z.boolean(),
     negotiationAboveMax: z.boolean(),

@@ -13,6 +13,7 @@ import type { Logger } from 'pino';
 import { REDIS } from '../infra/redis.module.js';
 import { reportError } from './error-reporting.js';
 import { APP_LOGGER, currentCorrelationId, runWithCorrelation } from './logger.js';
+import { afterOrgScopeCommit } from './org-scope.context.js';
 
 export interface RideEventPayload {
   rideId: string;
@@ -21,6 +22,8 @@ export interface RideEventPayload {
   clientUserId: string | null;
   driverId: string | null;
   driverUserId: string | null;
+  /** Organisation de la course (étape 20) ; absent pour les événements construits avant cette étape. */
+  organizationId?: string | null;
   fromState: string | null;
   toState: string;
   event: string;
@@ -67,6 +70,11 @@ export interface DomainEvents {
   'payment.refunded': { refundId: string; rideId: string; paymentId: string; amountCents: number; mode: 'refund' | 'credit'; occurredAt: Date };
   /** Document de chauffeur téléversé, en attente de vérification (agent recrutement, puis humain). */
   'driver.document_uploaded': { documentId: string; driverId: string; type: string };
+  /** CRM (étape 25) : entités à synchroniser chez le fournisseur, avec consentement seulement (file `crm`). */
+  'lead.created': { leadId: string; kind: string; consent: boolean };
+  'organization.created': { organizationId: string; parentId: string | null; type: string };
+  'organization.subscribed': { organizationId: string; planCode: string };
+  'business_account.created': { businessAccountId: string };
 }
 
 type Handler<K extends keyof DomainEvents> = (payload: DomainEvents[K]) => void | Promise<void>;
@@ -134,8 +142,16 @@ export class DomainEventsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  /** Publie aux abonnés locaux sans les attendre, et aux autres processus par Redis quand il existe. */
+  /**
+   * Publie aux abonnés locaux sans les attendre, et aux autres processus par Redis quand il existe. Étape 23 : émis pendant
+   * une transaction restreinte (route ou tâche d'une organisation), l'événement ne part qu'après sa validation (jamais sur
+   * annulation) ; ses abonnés travaillent alors par le pool de la plateforme, l'organisation gardée pour l'étiquetage.
+   */
   emit<K extends keyof DomainEvents>(name: K, payload: DomainEvents[K]): void {
+    afterOrgScopeCommit(() => this.emitNow(name, payload));
+  }
+
+  private emitNow<K extends keyof DomainEvents>(name: K, payload: DomainEvents[K]): void {
     this.stats.emitted += 1;
     this.dispatch(name, payload);
     if (this.redis && this.subscriber) {

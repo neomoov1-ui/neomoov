@@ -198,7 +198,7 @@ export class AdminDirectoryService {
     ]);
     return {
       items: rows.map((l) => ({
-        id: l.id, kind: l.kind as 'driver' | 'business' | 'partner', firstName: l.firstName, lastName: l.lastName, phone: maskPhone(l.phone), email: maskEmail(l.email), city: l.city,
+        id: l.id, kind: l.kind as 'driver' | 'business' | 'partner' | 'training', firstName: l.firstName, lastName: l.lastName, phone: maskPhone(l.phone), email: maskEmail(l.email), city: l.city,
         message: l.message, source: l.source, status: l.status as 'new' | 'contacted' | 'converted' | 'discarded', createdAt: l.createdAt.toISOString(),
       })),
       total: total?.n ?? 0, page: query.page, pageSize: query.pageSize,

@@ -28,9 +28,25 @@ export interface ServiceActor {
 
 export type Actor = UserActor | ServiceActor;
 
+/**
+ * Organisation courante d'une route `@OrgScoped` (étape 20), posée par `OrgScopeGuard` : organisation visée, son chemin
+ * (le sous-arbre autorisé) et les permissions de l'appelant dans cette organisation.
+ */
+export interface OrgScope {
+  organizationId: string;
+  path: string;
+  permissions: ReadonlySet<Permission>;
+  /**
+   * Étape 21 : accès temporaire du support de la plateforme (membre du personnel sans adhésion, accès approuvé par
+   * l'organisation et en cours) ; absent pour un membre de l'organisation.
+   */
+  support?: { grantId: string; reason: string; endsAt: string };
+}
+
 declare module 'express' {
   interface Request {
     actor?: Actor;
+    orgScope?: OrgScope;
   }
 }
 
@@ -42,6 +58,21 @@ export const SCOPES_KEY = 'neomoov:scopes';
 export const OWNS_KEY = 'neomoov:owns';
 export const AUDIT_KEY = 'neomoov:audit';
 export const NO_AUDIT_KEY = 'neomoov:audit:skip';
+export const ORG_SCOPED_KEY = 'neomoov:org-scoped';
+
+export interface OrgScopedOptions {
+  /** Paramètre de route qui porte l'identifiant de l'organisation (défaut : `organizationId`). */
+  param: string;
+  /** En-tête lu quand le paramètre est absent (défaut : `X-Organization-Id`). */
+  header: string;
+}
+/**
+ * Route d'organisation (étape 20) : l'appelant doit être un utilisateur membre de l'organisation visée (ou d'un ancêtre
+ * avec la portée « sous-arbre ») ; `@Can` est évalué avec ses permissions dans cette organisation, jamais avec ses anciens
+ * rôles du personnel ; le gestionnaire s'exécute dans une transaction restreinte à son sous-arbre. Une route `@OrgScoped`
+ * sans `@Can` empêche le démarrage.
+ */
+export const OrgScoped = (options: Partial<OrgScopedOptions> = {}) => SetMetadata(ORG_SCOPED_KEY, { param: 'organizationId', header: 'x-organization-id', ...options } satisfies OrgScopedOptions);
 
 /** Route sans authentification (santé, demande de code SMS, connexion). */
 export const Public = () => SetMetadata(PUBLIC_KEY, true);
@@ -103,6 +134,13 @@ export const CurrentUser = createParamDecorator((_data: unknown, ctx: ExecutionC
   if (!actor) throw AppError.unauthorized('UNAUTHENTICATED', 'Jeton d\'accès requis');
   if (actor.kind !== 'user') throw AppError.forbidden('SERVICE_ACCOUNT_NOT_ALLOWED', 'Cette route est réservée aux utilisateurs');
   return actor;
+});
+
+/** Organisation courante d'une route `@OrgScoped` (posée par `OrgScopeGuard`) ; erreur 500 sur une route qui ne l'est pas. */
+export const CurrentOrgScope = createParamDecorator((_data: unknown, ctx: ExecutionContext): OrgScope => {
+  const scope = ctx.switchToHttp().getRequest<Request>().orgScope;
+  if (!scope) throw new AppError('ORGANIZATION_SCOPE_MISSING', 'Route sans contexte d\'organisation', 500);
+  return scope;
 });
 
 export interface RequestContext {

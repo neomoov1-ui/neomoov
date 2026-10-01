@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiDocsServed, loadEnv } from '../src/config/env.js';
+import { apiDocsServed, cardPaymentsEnabled, loadEnv, squareConfig } from '../src/config/env.js';
 
 const base = { NODE_ENV: 'test', DATABASE_URL: 'postgresql://user:pass@localhost:5432/neomoov_test' };
 
@@ -48,10 +48,10 @@ describe('configuration', () => {
     const ready = { ...secrets, REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real' };
     // Revue finale : aucun retour silencieux aux simulateurs en production ; chaque simulation est déclarée.
     expect(() => loadEnv(ready, { dotenv: false })).toThrow(/fournisseurs simulés non déclarés.*SMS_PROVIDER/);
-    const all = 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus';
+    const all = 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing';
     expect(loadEnv({ ...ready, ALLOW_MOCK_PROVIDERS: all }, { dotenv: false }).SOCIAL_LOGIN_PROVIDER).toBe('real');
     expect(() => loadEnv({ ...ready, ALLOW_MOCK_PROVIDERS: 'payment,sev' }, { dotenv: false })).toThrow(/storage/);
-    const real = { ...ready, SMS_PROVIDER: 'real', EMAIL_PROVIDER: 'real', PUSH_PROVIDER: 'real', MAPS_PROVIDER: 'real', STORAGE_PROVIDER: 'real', LLM_PROVIDER: 'real', VIRUS_SCANNER_PROVIDER: 'real' };
+    const real = { ...ready, SMS_PROVIDER: 'real', EMAIL_PROVIDER: 'real', PUSH_PROVIDER: 'real', MAPS_PROVIDER: 'real', STORAGE_PROVIDER: 'real', LLM_PROVIDER: 'real', VIRUS_SCANNER_PROVIDER: 'real', CRM_PROVIDER: 'real', BILLING_PROVIDER: 'real' };
     expect(loadEnv({ ...real, ALLOW_MOCK_PROVIDERS: 'payment, SEV ,whatsapp,voice' }, { dotenv: false }).PAYMENT_PROVIDER).toBe('mock');
   });
 
@@ -64,5 +64,32 @@ describe('configuration', () => {
   it('fournit des secrets de repli non secrets hors production', () => {
     const env = loadEnv(base, { dotenv: false });
     expect(env.JWT_ACCESS_SECRET).toMatch(/non-secret/);
+  });
+
+  it('Square (étape 26) : valeurs de l\'environnement effectif, démarrage refusé en production sans ses variables', () => {
+    const square = { SQUARE_ACCESS_TOKEN: 'EAAAprod', SQUARE_APPLICATION_ID: 'sq0idp-x', SQUARE_LOCATION_ID: 'LPROD', SQUARE_SANDBOX_ACCESS_TOKEN: 'EAAAsandbox', SQUARE_SANDBOX_APPLICATION_ID: 'sandbox-sq0idb-x', SQUARE_SANDBOX_LOCATION_ID: 'LSANDBOX' };
+    // Hors production : bac à sable par défaut, jamais les valeurs de production.
+    const dev = squareConfig(loadEnv({ ...base, PAYMENT_PROVIDER: 'square', ...square }, { dotenv: false }));
+    expect(dev).toMatchObject({ environment: 'sandbox', accessToken: 'EAAAsandbox', applicationId: 'sandbox-sq0idb-x', locationId: 'LSANDBOX' });
+    expect(dev.missing).toEqual(['SQUARE_WEBHOOK_SIGNATURE_KEY', 'SQUARE_WEBHOOK_URL']);
+    const noSandboxLocation = squareConfig(loadEnv({ ...base, ...square, SQUARE_SANDBOX_LOCATION_ID: '' }, { dotenv: false }));
+    expect(noSandboxLocation.locationId).toBeUndefined();
+    expect(noSandboxLocation.missing).toContain('SQUARE_SANDBOX_LOCATION_ID');
+    expect(squareConfig(loadEnv({ ...base, ...square, SQUARE_ENVIRONMENT: 'production' }, { dotenv: false }))).toMatchObject({ environment: 'production', accessToken: 'EAAAprod', locationId: 'LPROD' });
+    expect(() => loadEnv({ ...base, SQUARE_ENVIRONMENT: 'live' }, { dotenv: false })).toThrow(/SQUARE_ENVIRONMENT/);
+    expect(() => loadEnv({ ...base, PAYMENT_PROVIDER: 'paypal' }, { dotenv: false })).toThrow(/PAYMENT_PROVIDER/);
+
+    const ready = {
+      ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a', JWT_REFRESH_SECRET: 'b', ENCRYPTION_KEY: 'c', REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real',
+      ALLOW_MOCK_PROVIDERS: 'maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing', PAYMENT_PROVIDER: 'square',
+    };
+    expect(() => loadEnv(ready, { dotenv: false })).toThrow(/PAYMENT_PROVIDER=square.*SQUARE_ACCESS_TOKEN, SQUARE_APPLICATION_ID, SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY, SQUARE_WEBHOOK_URL/);
+    expect(() => loadEnv({ ...ready, ...square }, { dotenv: false })).toThrow(/SQUARE_WEBHOOK_SIGNATURE_KEY, SQUARE_WEBHOOK_URL/);
+    const live = loadEnv({ ...ready, ...square, SQUARE_WEBHOOK_SIGNATURE_KEY: 'cle', SQUARE_WEBHOOK_URL: 'https://api.neomoov.net/v1/webhooks/square' }, { dotenv: false });
+    expect(squareConfig(live)).toMatchObject({ environment: 'production', accessToken: 'EAAAprod', missing: [] });
+    // Paiement par carte proposé en production avec Square comme avec Stripe ; jamais avec le simulateur.
+    expect(cardPaymentsEnabled(live)).toBe(true);
+    expect(cardPaymentsEnabled({ ...live, PAYMENT_PROVIDER: 'mock' })).toBe(false);
+    expect(cardPaymentsEnabled({ ...live, PAYMENT_PROVIDER: 'stripe' })).toBe(true);
   });
 });

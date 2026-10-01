@@ -5,6 +5,7 @@
  */
 import type { AgentEffort, LlmUsage } from '@neomoov/domain';
 import type { z } from 'zod';
+import { AppError } from '../common/app-error.js';
 
 export interface GeoPoint {
   lat: number;
@@ -75,23 +76,44 @@ export interface SetupIntentResult {
   card: CardDetails | null;
 }
 
-/** Événement de webhook vérifié : `data.object` est l'objet Stripe concerné (PaymentIntent, compte, transfert, litige…). */
+/**
+ * Événement de webhook vérifié, dans le vocabulaire interne des paiements (celui de Stripe : `payment_intent.succeeded`,
+ * `refund.updated`, `payment_method.detached`…) : `data.object` est l'objet concerné (PaymentIntent, compte, transfert,
+ * litige…). Un autre fournisseur (Square) traduit ses événements dans ce vocabulaire et garde l'original dans `raw`.
+ */
 export interface WebhookEvent {
   id: string;
   type: string;
   data: { object: Record<string, unknown> };
+  /** Événement d'origine quand il a été traduit (Square), gardé dans `webhook_events.payload` pour le support. */
+  raw?: unknown;
+}
+
+/** Ce qu'un fournisseur de paiement sait faire (étape 26) : le service des paiements s'y adapte, jamais au nom du fournisseur. */
+export interface PaymentCapabilities {
+  /** Carte enregistrée par un SetupIntent confirmé dans l'application (feuille de paiement Stripe). */
+  setupIntent: boolean;
+  /** Carte enregistrée à partir d'un jeton de carte produit dans une page web (Web Payments SDK de Square). */
+  cardToken: boolean;
+  /** Versements aux chauffeurs par la plateforme (Stripe Connect) ; sinon, relevés réglés hors plateforme. */
+  connect: boolean;
 }
 
 /**
- * Paiements (Stripe en production, simulé ailleurs ; section 5.6, prompt 07). Aucune donnée de carte ne transite par
- * l'API : seulement des identifiants Stripe. Toute opération financière porte une clé d'idempotence.
+ * Paiements (Stripe ou Square en production, simulé ailleurs ; section 5.6, prompt 07, étape 26). Aucune donnée de carte
+ * ne transite par l'API : seulement des identifiants du fournisseur. Toute opération financière porte une clé d'idempotence.
  */
 export interface PaymentProvider {
   readonly name: string;
+  readonly capabilities: PaymentCapabilities;
   createCustomer(input: { externalId: string; email?: string; phone?: string }): Promise<{ customerRef: string }>;
+  /** Vrai si cette référence de client a été émise par ce fournisseur (un autre fournisseur en crée une nouvelle). */
+  ownsCustomerRef(customerRef: string): boolean;
   createSetupIntent(customerRef: string): Promise<{ setupIntentId: string; clientSecret: string }>;
   /** Relit un SetupIntent confirmé par l'application : la carte vient de Stripe, jamais de l'application. */
   retrieveSetupIntent(setupIntentId: string): Promise<SetupIntentResult>;
+  /** Carte enregistrée à partir d'un jeton de carte (Square : `source_id` du Web Payments SDK, jeton de vérification 3-D Secure). */
+  saveCard(input: { customerRef: string; sourceId: string; verificationToken?: string; idempotencyKey: string; externalId: string }): Promise<CardDetails>;
   detachPaymentMethod(paymentMethodRef: string): Promise<void>;
   /** Autorisation à capture différée (`capture_method: manual`) sur une carte enregistrée. */
   authorize(input: { amountCents: number; currency: 'CAD'; customerRef: string; paymentMethodRef: string; idempotencyKey: string; metadata?: Record<string, string> }): Promise<PaymentAuthorization>;
@@ -130,7 +152,8 @@ export interface SmsProvider {
 
 export interface EmailProvider {
   readonly name: string;
-  send(input: { to: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }>;
+  /** `from` (« Nom <adresse> ») : expéditeur de la marque d'une organisation (étape 22) ; sinon `EMAIL_FROM`. */
+  send(input: { to: string; from?: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }>;
 }
 
 export interface PushTicket {
@@ -343,3 +366,104 @@ export const SEV_PROVIDER = Symbol('SEV_PROVIDER');
 export const LLM_PROVIDER = Symbol('LLM_PROVIDER');
 export const STORAGE_PROVIDER = Symbol('STORAGE_PROVIDER');
 export const VIRUS_SCANNER = Symbol('VIRUS_SCANNER');
+
+// --- CRM (étape 25, amendement v1.2 section 9) --------------------------------------------------------------------
+
+/** Consentement attaché à toute donnée envoyée au CRM (Loi 25) : sans consentement donné, rien ne part. */
+export interface CrmConsent {
+  given: boolean;
+  /** Date du consentement (formulaire) ou du contrat (compte d'affaires, organisation). */
+  at: Date | null;
+  source: 'form' | 'contract';
+}
+
+/** Refus commun aux adaptateurs, simulé comme réel : aucune donnée ne part sans consentement. */
+export function requireCrmConsent(consent: CrmConsent): void {
+  if (!consent.given) throw new AppError('CRM_CONSENT_REQUIRED', 'Aucune donnée n\'est envoyée au CRM sans consentement', 422);
+}
+
+/** Parcours commerciaux : ventes B2B (entreprises, marque blanche, flotte) et Formation chauffeurs. */
+export type CrmPipeline = 'b2b' | 'training';
+export type CrmLeadKind = 'driver' | 'business' | 'partner' | 'training';
+
+/** Contact : identité, coordonnées, statuts et consentement. Jamais de trajet, d'adresse personnelle ni de paiement. */
+export interface CrmContactInput {
+  /** Identifiant Neomoov de la fiche (`lead:<id>`, `business_account:<id>`) : clé d'idempotence chez le fournisseur. */
+  platformId: string;
+  /** Identifiant déjà connu chez le fournisseur (`crm_records`), pour une mise à jour directe. */
+  externalId?: string | null;
+  email: string | null;
+  phone: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  language: 'fr' | 'en' | null;
+  /** Ville seulement, jamais une adresse. */
+  city?: string | null;
+  /** Entité du Groupe NSK (`neomoov`). */
+  entity: string;
+  /** Origine de la fiche (site web, nom de la clé d'API, My Hub, plateforme). */
+  source: string;
+  consent: CrmConsent;
+  leadKind?: CrmLeadKind | null;
+  driverStatus?: 'candidate' | 'documents_pending' | 'validated' | 'active' | 'inactive' | null;
+  trainingStatus?: 'preregistered' | 'paid' | 'in_progress' | 'certified' | null;
+  affiliationProgram?: 'business' | 'fleet' | 'taxi' | 'white_label' | 'partner' | null;
+}
+
+export interface CrmCompanyInput {
+  platformId: string;
+  externalId?: string | null;
+  name: string;
+  legalName?: string | null;
+  accountType: 'business_account' | 'organization';
+  organizationType?: string | null;
+  planCode?: string | null;
+  entity: string;
+  source: string;
+  consent: CrmConsent;
+}
+
+export interface CrmDealInput {
+  platformId: string;
+  externalId?: string | null;
+  name: string;
+  pipeline: CrmPipeline;
+  /** Étape du parcours (codes du modèle HubSpot : `new`, `trial`, `active`, `candidate`, `preregistered`…). */
+  stage: string;
+  /** Montant de la transaction (prix d'une formule), jamais un paiement. */
+  amountCents?: number | null;
+  contactExternalId?: string | null;
+  companyExternalId?: string | null;
+  entity: string;
+  source: string;
+  consent: CrmConsent;
+}
+
+export interface CrmNoteInput {
+  body: string;
+  occurredAt?: Date;
+  contactExternalId?: string | null;
+  companyExternalId?: string | null;
+  dealExternalId?: string | null;
+  consent: CrmConsent;
+}
+
+export interface CrmUpsertResult {
+  id: string;
+  created: boolean;
+}
+
+/**
+ * CRM (HubSpot en production, simulé ailleurs). Chaque méthode porte l'indicateur de consentement et refuse sans lui ;
+ * une fiche est identifiée par son identifiant Neomoov (rejouable). Une panne du fournisseur lance une erreur 502
+ * `CRM_PROVIDER_ERROR` : la file `crm` relance plus tard.
+ */
+export interface CrmProvider {
+  readonly name: string;
+  upsertContact(input: CrmContactInput): Promise<CrmUpsertResult>;
+  upsertCompany(input: CrmCompanyInput): Promise<CrmUpsertResult>;
+  upsertDeal(input: CrmDealInput): Promise<CrmUpsertResult>;
+  addNote(input: CrmNoteInput): Promise<{ id: string }>;
+}
+
+export const CRM_PROVIDER = Symbol('CRM_PROVIDER');

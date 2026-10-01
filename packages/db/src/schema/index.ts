@@ -13,3 +13,8 @@ export * from './partners.js';
 export * from './agents.js';
 export * from './backoffice.js';
 export * from './access.js';
+export * from './branding.js';
+export * from './pilot.js';
+export * from './crm.js';
+export * from './platform-billing.js';
+export * from './fleet.js';

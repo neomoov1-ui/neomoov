@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { PilotBadge } from '@/components/PilotScore';
 import { describeBlocker } from '@/features/home/blockers';
 import { eligibilityReasons, errorMessage } from '@/lib/api';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
@@ -89,6 +90,7 @@ export default function HomeScreen() {
       {(offers.data ?? []).length ? (
         <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/offer/[id]', params: { id: offers.data![0]!.id } })}>
           <Notice tone="warning">{t('offer.title')}</Notice>
+          {offers.data![0]!.pilotScore ? <PilotBadge score={offers.data![0]!.pilotScore} compact /> : null}
         </Pressable>
       ) : null}
 

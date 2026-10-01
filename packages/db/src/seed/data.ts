@@ -251,6 +251,24 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'legal.privacy_policy_version', value: '2026-09-01', description: 'Version de la politique de confidentialité en vigueur (5.15 : nouvelle version = nouvelle acceptation)' },
   { key: 'privacy.data_request_due_days', value: 30, description: 'Délai de réponse aux demandes de droits (Loi 25 : 30 jours)' },
   { key: 'privacy.export_link_ttl_days', value: 7, description: 'Validité du lien signé vers un export de données' },
+  // Étape 22 : marque par organisation.
+  { key: 'public.brand_per_ip_per_hour', value: 300, description: 'Marque publique (GET /v1/public/brand) : demandes par adresse IP et par heure (le serveur web, clé de service, n\'est pas limité)' },
+  { key: 'email.sender_domains', value: [], description: 'Domaines d\'envoi authentifiés chez le fournisseur de courriels (Resend) en plus de celui d\'EMAIL_FROM : seule une adresse d\'expéditeur de marque sur l\'un d\'eux est employée' },
+  // Neomoov Pilote (étape 24) : acceptation automatique des courses Neomoov selon les critères du chauffeur (montants et facteurs proposés, à valider par le fondateur).
+  { key: 'pilot.enabled', value: true, description: 'Neomoov Pilote offert aux chauffeurs (interrupteur général) : acceptation automatique des courses Neomoov selon leurs critères, jamais sur une autre plateforme (D1)' },
+  { key: 'pilot.grace_seconds', value: 60, description: 'Pilote : délai pendant lequel le chauffeur annule sans frais, sans pénalité ni effet sur son dossier une course acceptée pour lui (proposé : 60 secondes)' },
+  { key: 'pilot.multi_app_factor', value: 1.25, description: 'Pilote, mode multi-applications déclaré : seuils minimaux (montant, gain net au kilomètre et à l\'heure) multipliés par ce facteur (proposé : 1,25)' },
+  { key: 'pilot.multi_app_response_seconds', value: 30, description: 'Pilote, mode multi-applications : fenêtre de réponse d\'une offre à ce chauffeur, au lieu de dispatch.offer_seconds (proposé : 30 secondes)' },
+  { key: 'pilot.watched_zones', value: [], description: 'Pilote : codes des zones dont l\'exclusion par un chauffeur alerte le personnel (surveillance de la discrimination indirecte) ; vide tant que l\'équipe ne les a pas choisies' },
+  { key: 'pilot.near_miss_percent', value: 10, description: 'Pilote : un seuil chiffré manqué de moins de 10 % donne un score jaune (le chauffeur décide) plutôt que rouge' },
+  { key: 'pilot.departure_buffer_minutes', value: 5, description: 'Agenda du chauffeur : marge ajoutée au trajet pour l\'heure de départ conseillée' },
+  { key: 'pilot.departure_alert_minutes', value: 15, description: 'Agenda du chauffeur : alerte de départ 15 minutes avant l\'heure de départ conseillée' },
+  // Facturation de la plateforme (étape 25, amendement v1.2 section 8) : relances et suspension progressive des organisations.
+  { key: 'billing.reminder_days', value: [3, 7, 14], description: 'Rappels d\'une facture de la plateforme impayée, en jours après l\'échéance' },
+  { key: 'billing.read_only_days', value: 30, description: 'Organisation en lecture seule après 30 jours d\'impayé' },
+  { key: 'billing.suspended_days', value: 45, description: 'Organisation suspendue après 45 jours d\'impayé, jamais pendant une course (reportée au lendemain)' },
+  { key: 'billing.payment_terms_days', value: 0, description: 'Échéance d\'une facture de la plateforme après son émission (0 : payable à réception, prélèvement automatique)' },
+  { key: 'billing.run_hour', value: 5, description: 'Heure de Montréal de la passe quotidienne de la facturation de la plateforme (renouvellements, relances, suspensions)' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.
@@ -295,3 +313,24 @@ export const DEMO_USERS = {
     { phone: '+15145550124', firstName: 'Élodie', lastName: 'Bergeron' },
   ],
 } as const;
+
+/**
+ * Formules de la plateforme (étape 25, décision D2 : grille Solo, Pro, Entreprise de l'étude 03, section 5.2). Montants
+ * PROPOSÉS au fondateur, à valider (l'étude donne des fourchettes) : Solo 99 $ d'installation et 49 $ par mois ; Pro
+ * 1 500 $ et 199 $ par mois, 10 véhicules inclus puis 15 $ par véhicule actif ; Entreprise 3 500 $ et 199 $ plus 12 $ par
+ * véhicule actif ; licence annuelle = 10 mois payés pour 12. Taxes en sus. Modules : modules de permissions inclus.
+ */
+export const PLANS = [
+  {
+    code: 'solo', name: 'Solo', setupFeeCents: 9_900, monthlyPriceCents: 4_900, annualPriceCents: 49_000, perActiveVehicleCents: 0, includedVehicles: 1,
+    modules: ['organization', 'rides', 'clients', 'payments', 'finance', 'reports', 'vehicles'], limits: { vehicles: 1, subOrganizations: 0 },
+  },
+  {
+    code: 'pro', name: 'Pro', setupFeeCents: 150_000, monthlyPriceCents: 19_900, annualPriceCents: 199_000, perActiveVehicleCents: 1_500, includedVehicles: 10,
+    modules: ['organization', 'rides', 'clients', 'payments', 'finance', 'reports', 'vehicles', 'dispatch', 'drivers', 'incidents', 'privacy', 'operations'], limits: { subOrganizations: 10 },
+  },
+  {
+    code: 'entreprise', name: 'Entreprise', setupFeeCents: 350_000, monthlyPriceCents: 19_900, annualPriceCents: 199_000, perActiveVehicleCents: 1_200, includedVehicles: 0,
+    modules: ['organization', 'rides', 'clients', 'payments', 'finance', 'reports', 'vehicles', 'dispatch', 'drivers', 'incidents', 'privacy', 'operations', 'pricing', 'offers', 'agents'], limits: {},
+  },
+] as const;

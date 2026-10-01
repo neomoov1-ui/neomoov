@@ -10,12 +10,13 @@ import type {
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
-import type { AdminBalance, AdminStatementDetail, StatementAdjust, StatementGenerate, StatementGeneration, StatementSettleOffline } from '@neomoov/domain';
+import type { AdminBalance, AdminStatementDetail, OfflinePayout, StatementAdjust, StatementGenerate, StatementGeneration, StatementSettleOffline } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
 import type { AdminSanctionAppealView, AppealStatus, SanctionAppealDecision } from '@neomoov/domain';
-import type { InvitationCreate, MembershipUpdate, MembershipView, OrganizationCreate, OrganizationView, RoleCreate, RoleView } from '@neomoov/domain';
+import type { InvitationCreate, InvitationCreated, MembershipUpdate, MembershipView, OrganizationCreate, OrganizationView, RoleCreate, RoleView } from '@neomoov/domain';
 import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeView, PrivacyBreachInput, PrivacyBreachView, StaffCreate } from '@neomoov/domain';
+import type { PilotZoneExclusionsView } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -147,6 +148,9 @@ export function adminResource(t: Transport) {
     adjustStatement: (statementId: string, body: StatementAdjust) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/adjust`, body),
     statementPdfPath: (statementId: string) => `/admin/statements/${id(statementId)}/pdf`,
     balances: () => t.get<AdminBalance[]>('/admin/balances'),
+    /** Étape 26 : versements à faire hors plateforme (Square sans Connect, ou versements en échec) et leur export CSV. */
+    offlinePayouts: () => t.get<OfflinePayout[]>('/admin/payouts/offline'),
+    offlinePayoutsCsvPath: () => '/admin/payouts/offline/export',
     agents: () => t.get<AdminAgent[]>('/admin/agents'),
     /** Agents IA (étape 13) : réglage (administrateur), journal des exécutions, rapports, conversations de l'assistance. */
     updateAgent: (code: string, body: AgentUpdate) => t.patch<AdminAgent>(`/admin/agents/${id(code)}`, body),
@@ -179,6 +183,8 @@ export function adminResource(t: Transport) {
     /** Charte d'équité (D7) : réponses et appels des chauffeurs, décision motivée, exclusion d'une note. */
     sanctionAppeals: (query: { status?: AppealStatus } = {}) => t.get<AdminSanctionAppealView[]>('/admin/fairness/appeals', { query }),
     decideSanctionAppeal: (appealId: string, body: SanctionAppealDecision) => t.post<AdminSanctionAppealView>(`/admin/fairness/appeals/${id(appealId)}/decide`, body),
+    /** Neomoov Pilote (étape 24) : exclusions de zones dans les critères des chauffeurs (surveillance de la discrimination indirecte). */
+    pilotZoneExclusions: () => t.get<PilotZoneExclusionsView>('/admin/pilot/zone-exclusions'),
     /** Étape 19 : organisations en arbre, catalogue des permissions, rôles personnalisés, membres et invitations. */
     organizations: () => t.get<OrganizationView[]>('/admin/organizations'),
     createOrganization: (body: OrganizationCreate) => t.post<OrganizationView>('/admin/organizations', body),
@@ -187,7 +193,7 @@ export function adminResource(t: Transport) {
     createRole: (body: RoleCreate) => t.post<RoleView>('/admin/roles', body),
     updateRolePermissions: (roleId: string, permissions: string[]) => t.put<RoleView>(`/admin/roles/${id(roleId)}/permissions`, { permissions }),
     members: (organizationId: string) => t.get<MembershipView[]>(`/admin/organizations/${id(organizationId)}/members`),
-    invite: (organizationId: string, body: Partial<InvitationCreate> & Pick<InvitationCreate, 'roleId'>) => t.post<{ id: string; token: string; expiresAt: string }>(`/admin/organizations/${id(organizationId)}/invitations`, body),
+    invite: (organizationId: string, body: Partial<InvitationCreate> & Pick<InvitationCreate, 'roleId'>) => t.post<InvitationCreated>(`/admin/organizations/${id(organizationId)}/invitations`, body),
     updateMembership: (membershipId: string, body: MembershipUpdate) => t.patch<MembershipView>(`/admin/memberships/${id(membershipId)}`, body),
     removeMembership: (membershipId: string) => t.delete<void>(`/admin/memberships/${id(membershipId)}`),
     excludeRating: (ratingId: string, reason: string) => t.post<{ id: string; excludedAt: string; driverRating: { average: number; count: number } | null }>(`/admin/ratings/${id(ratingId)}/exclude`, { reason }),

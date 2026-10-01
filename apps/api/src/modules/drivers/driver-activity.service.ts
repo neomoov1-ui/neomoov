@@ -16,6 +16,7 @@ import { and, asc, desc, eq, gt, isNull, lte, sql } from 'drizzle-orm';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
+import { organizationIdFor } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -138,7 +139,8 @@ export class DriverActivityService {
     const alerts: DriverAlert[] = [];
     const [balance, payoutRequired, trainingRequired, targets, unconfirmed] = await Promise.all([
       this.db.select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.id)).limit(1),
-      this.settings.get<boolean>('drivers.require_payout_account', false),
+      // Étape 26 : sans Stripe Connect (Square), aucun compte de versement exigé (relevés réglés par virement).
+      this.payments.connectAvailable ? this.settings.get<boolean>('drivers.require_payout_account', false) : Promise.resolve(false),
       this.settings.get<boolean>('drivers.require_training', true),
       this.scoreTargets(),
       this.db
@@ -387,7 +389,7 @@ export class DriverActivityService {
         WHERE driver_id = ${driver.id} AND state IN ('completed', 'rated', 'disputed')
           AND (state_timestamps->>'completed')::timestamptz >= ${start} AND (state_timestamps->>'completed')::timestamptz < ${end}`),
       this.db.execute<{ n: number }>(sql`
-        SELECT count(*)::int AS n FROM ride_events WHERE actor_user_id = ${driver.userId} AND type = 'driver_cancels' AND occurred_at >= ${start} AND occurred_at < ${end}`),
+        SELECT count(*)::int AS n FROM ride_events WHERE actor_user_id = ${driver.userId} AND type = 'driver_cancels' AND coalesce((data->>'pilotGrace')::boolean, false) = false AND occurred_at >= ${start} AND occurred_at < ${end}`),
     ]);
     const analysis = analyseDriving(
       [...points].map((p) => ({ at: new Date(p.at).getTime(), lat: Number(p.lat), lng: Number(p.lng), speedMps: p.speed === null ? null : Number(p.speed) })),
@@ -514,7 +516,7 @@ export class DriverActivityService {
     const mapping = INCIDENT_MAPPING[input.kind] ?? INCIDENT_MAPPING['other']!;
     const [incident] = await this.db
       .insert(schema.incidents)
-      .values({ rideId: ride.id, type: mapping.type, severity: mapping.severity, reportedByUserId: userId, reportedByKind: 'driver', description: `[${input.kind}] ${input.description}` })
+      .values({ rideId: ride.id, organizationId: organizationIdFor(ride.organizationId), type: mapping.type, severity: mapping.severity, reportedByUserId: userId, reportedByKind: 'driver', description: `[${input.kind}] ${input.description}` })
       .returning({ id: schema.incidents.id });
     await this.rides.mark(ride.id, 'incident_reported', { kind: 'driver', userId }, { incidentId: incident!.id, kind: input.kind });
     this.events.emit('ride.incident', { rideId: ride.id, incidentId: incident!.id, type: mapping.type, severity: mapping.severity, reportedByUserId: userId });

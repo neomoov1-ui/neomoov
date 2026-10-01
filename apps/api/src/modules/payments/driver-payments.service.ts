@@ -1,10 +1,11 @@
 /**
  * Côté chauffeur (5.6, prompt 07) : compte Stripe Connect Express pour les versements du vendredi (vérification
  * d'identité par Stripe) et méthode de prélèvement pour les relevés négatifs (étape 9). Le service des chauffeurs
- * (écran « Versements » de l'application) délègue ici.
+ * (écran « Versements » de l'application) délègue ici. Avec Square (étape 26), aucun compte Connect : les relevés
+ * positifs sont réglés hors plateforme (`payoutMode: offline`), les routes Connect répondent 409 `CONNECT_UNAVAILABLE`.
  */
 import { schema } from '@neomoov/db';
-import type { ConnectStatus, SetupIntentResponse } from '@neomoov/domain';
+import type { ConnectStatus, SetupIntentConfirm, SetupIntentResponse } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { PAYMENT_PROVIDER, type PaymentProvider } from '../../adapters/types.js';
@@ -32,9 +33,15 @@ export class DriverPaymentsService {
     return driver;
   }
 
+  /** Versements par la plateforme (Stripe Connect) possibles avec le fournisseur actif ; faux avec Square (étape 26). */
+  get connectAvailable(): boolean {
+    return this.provider.capabilities.connect;
+  }
+
   /** Lien d'inscription Stripe (webview de l'application) ; le compte Express est créé au premier appel. */
   async onboardingLink(userId: string): Promise<{ url: string; expiresAt: string; simulated: boolean }> {
     const driver = await this.driverOf(userId);
+    if (!this.connectAvailable) throw AppError.conflict('CONNECT_UNAVAILABLE', 'Aucun compte de versement à ouvrir pour le moment : vos relevés positifs sont réglés par virement ou Interac chaque semaine');
     let accountRef = driver.stripeConnectAccountId;
     if (!accountRef) {
       const [user] = await this.db.select({ email: schema.users.email, phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
@@ -53,7 +60,7 @@ export class DriverPaymentsService {
   async status(userId: string): Promise<ConnectStatus> {
     let driver = await this.driverOf(userId);
     let payoutsEnabled = driver.stripeConnectOnboarded;
-    if (driver.stripeConnectAccountId) {
+    if (driver.stripeConnectAccountId && this.connectAvailable) {
       const remote = await this.provider.connectAccountStatus(driver.stripeConnectAccountId);
       payoutsEnabled = remote.payoutsEnabled;
       if (remote.onboarded !== driver.stripeConnectOnboarded) {
@@ -67,18 +74,19 @@ export class DriverPaymentsService {
       payoutsEnabled,
       debitMethod: driver.stripeDebitPaymentMethodId && driver.stripeDebitCardLast4 ? { brand: driver.stripeDebitCardBrand ?? 'card', last4: driver.stripeDebitCardLast4 } : null,
       provider: this.provider.name,
+      payoutMode: this.connectAvailable ? 'connect' : 'offline',
     };
   }
 
   async debitSetupIntent(userId: string): Promise<SetupIntentResponse> {
     await this.driverOf(userId);
-    return this.payments.newSetupIntent(userId);
+    return this.payments.newSetupIntent(userId, 'driver_debit');
   }
 
-  /** Méthode de prélèvement : carte relue chez Stripe à partir du SetupIntent confirmé par l'application. */
-  async confirmDebitMethod(userId: string, setupIntentId: string): Promise<ConnectStatus> {
+  /** Méthode de prélèvement : carte relue chez Stripe (SetupIntent confirmé par l'application) ou créée du jeton de carte Square. */
+  async confirmDebitMethod(userId: string, input: SetupIntentConfirm): Promise<ConnectStatus> {
     const driver = await this.driverOf(userId);
-    const card = await this.payments.confirmedCardOf(userId, setupIntentId);
+    const card = await this.payments.cardFrom(userId, input);
     await this.db.update(schema.drivers).set({ stripeDebitPaymentMethodId: card.ref, stripeDebitCardBrand: card.brand, stripeDebitCardLast4: card.last4 }).where(eq(schema.drivers.id, driver.id));
     return this.status(userId);
   }

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { EXCEPTIONAL_REASONS, NEGOTIATION_MODES } from '../dispatch/negotiation.js';
 import { OFFER_STATES, OFFER_TYPES, PAYMENT_METHODS, RIDE_TYPES, VEHICLE_CATEGORIES } from '../enums.js';
 import { cents, isoDate, uuid } from './common.js';
+import { pilotScoreSchema } from './pilot.js';
 import { placeSchema, ridePreferencesSchema } from './quotes.js';
 import { PAYMENT_CHOICES } from './rides.js';
 
@@ -76,6 +77,8 @@ export const driverOfferSchema = z.object({
   sentAt: isoDate,
   expiresAt: isoDate,
   ride: offerRideSummarySchema,
+  /** Neomoov Pilote (étape 24) : score de l'offre selon les critères du chauffeur, Pilote activé ou non. */
+  pilotScore: pilotScoreSchema.nullable().optional(),
 });
 export type DriverOfferView = z.infer<typeof driverOfferSchema>;
 

@@ -8,12 +8,15 @@ import type { AppConfig, MembershipView } from '@neomoov/domain';
 import { useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useWebBrand } from '@/components/brand-context';
 import { OtpSignIn } from '@/components/otp-sign-in';
 import { Action, Card, Field, Input, Notice } from '@/components/ui/kit';
 import { createGuestApi, errorCode } from '@/lib/site-api';
 
 export function Join({ initialCode }: { initialCode: string }) {
   const { t } = useTranslation();
+  // Conditions et politique de la marque de l'hôte (étape 22).
+  const brand = useWebBrand();
   const guest = useRef(createGuestApi()).current;
   const config = useQuery<AppConfig>({ queryKey: ['config'], queryFn: () => guest.api.config.get(), staleTime: 300_000 });
   const [code, setCode] = useState(initialCode);
@@ -43,7 +46,11 @@ export function Join({ initialCode }: { initialCode: string }) {
       </div>
       {error ? <Notice tone="danger">{error}</Notice> : null}
       {joined ? (
-        <Notice tone="success">{t('join.done', { role: joined.roleName })}</Notice>
+        <div className="flex flex-col gap-3">
+          <Notice tone="success">{t('join.done', { role: joined.roleName })}</Notice>
+          {/* Étape 21 : l'espace de l'organisation dans My Hub, par la connexion « Organisation » (code SMS). */}
+          <a href="/hub/connexion?espace=organisation" className="font-semibold text-brand-blue-dark underline">{t('join.openHub')}</a>
+        </div>
       ) : (
         <Card>
           {signedIn ? (
@@ -52,7 +59,7 @@ export function Join({ initialCode }: { initialCode: string }) {
               <div><Action type="submit" busy={busy} disabled={busy || code.trim().length < 20}>{t('join.accept')}</Action></div>
             </form>
           ) : (
-            <OtpSignIn guest={guest} onSignedIn={() => setSignedIn(true)} {...(config.data ? { terms: { termsUrl: config.data.legal.termsUrl, privacyUrl: config.data.legal.privacyUrl, version: config.data.legal.privacyPolicyVersion } } : {})} />
+            <OtpSignIn guest={guest} onSignedIn={() => setSignedIn(true)} {...(config.data ? { terms: { termsUrl: brand.termsUrl, privacyUrl: brand.privacyUrl, version: config.data.legal.privacyPolicyVersion } } : {})} />
           )}
         </Card>
       )}

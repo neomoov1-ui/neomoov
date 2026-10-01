@@ -1,11 +1,12 @@
 import type { ScheduledRideView } from '@neomoov/domain';
 import { Body, Button, Card } from '@neomoov/mobile-core/components';
 import { spacing } from '@neomoov/mobile-core/theme';
-import { Empty, ErrorState, Loading, Notice, Row, Screen, SectionTitle } from '@neomoov/mobile-core/ui';
+import { Choices, Empty, ErrorState, Loading, Notice, Row, Screen, SectionTitle } from '@neomoov/mobile-core/ui';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { Agenda } from '@/features/pilot/Agenda';
 import { api, errorMessage } from '@/lib/api';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
 import { keys, queryClient, useDriverRides, useScheduled } from '@/lib/queries';
@@ -21,6 +22,7 @@ export default function RidesScreen() {
   const scheduled = useScheduled();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<'scheduled' | 'agenda'>('scheduled');
   const money = (cents: number) => formatMoney(cents, language);
 
   async function act(rideId: string, action: () => Promise<unknown>) {
@@ -73,15 +75,25 @@ export default function RidesScreen() {
         </Pressable>
       ) : null}
 
-      <SectionTitle>{t('rides.scheduledTitle')}</SectionTitle>
-      <Body muted>{t('rides.reminder')}</Body>
-      {scheduled.isLoading ? <Loading /> : null}
-      {scheduled.error ? <ErrorState message={errorMessage(scheduled.error)} onRetry={() => void scheduled.refetch()} /> : null}
-      {reserved.length ? <Body>{t('rides.reserved')}</Body> : null}
-      {reserved.map((r) => card(r, true))}
-      {available.length ? <Body>{t('rides.available')}</Body> : null}
-      {available.map((r) => card(r, false))}
-      {scheduled.isFetched && !list.length ? <Empty message={t('rides.none')} /> : null}
+      <Choices value={view} onChange={setView} options={[{ value: 'scheduled' as const, label: t('agenda.tabs.scheduled') }, { value: 'agenda' as const, label: t('agenda.tabs.agenda') }]} />
+      {view === 'agenda' ? (
+        <>
+          <SectionTitle>{t('agenda.title')}</SectionTitle>
+          <Agenda />
+        </>
+      ) : (
+        <>
+          <SectionTitle>{t('rides.scheduledTitle')}</SectionTitle>
+          <Body muted>{t('rides.reminder')}</Body>
+          {scheduled.isLoading ? <Loading /> : null}
+          {scheduled.error ? <ErrorState message={errorMessage(scheduled.error)} onRetry={() => void scheduled.refetch()} /> : null}
+          {reserved.length ? <Body>{t('rides.reserved')}</Body> : null}
+          {reserved.map((r) => card(r, true))}
+          {available.length ? <Body>{t('rides.available')}</Body> : null}
+          {available.map((r) => card(r, false))}
+          {scheduled.isFetched && !list.length ? <Empty message={t('rides.none')} /> : null}
+        </>
+      )}
 
       <SectionTitle>{t('rides.recent')}</SectionTitle>
       {(rides.data?.items ?? []).slice(0, 20).map((r) => (

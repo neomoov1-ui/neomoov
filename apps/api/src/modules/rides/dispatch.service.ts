@@ -41,8 +41,9 @@ import { AuditService } from '../audit/audit.service.js';
 import type { UserActor } from '../auth/actor.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { ZonesService } from '../pricing/zones.service.js';
-import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, paymentAccepted, scheduledSlotFree } from './eligibility.js';
+import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, organizationAllows, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
+import { PilotHook } from './pilot-hook.js';
 import { PresenceService } from './presence.service.js';
 import { RideContextService } from './ride-context.service.js';
 import { dispatchSummaryOf, parseGeoPoint, preferencesOf, type RideRow } from './ride-view.js';
@@ -187,6 +188,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     private readonly outbox: NotificationsOutbox,
     private readonly audit: AuditService,
     private readonly context: RideContextService,
+    private readonly pilot: PilotHook,
   ) {}
 
   private get db() {
@@ -723,6 +725,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
                 AND (ar.type = 'immediate' OR ar.state <> 'assigned' OR ar.requested_at < now() + make_interval(mins => ${cfg.scheduledConflictMinutes}::int))
                 AND NOT (ar.state = 'in_progress' AND ST_DWithin(ar.destination_position::geography, ${point}, ${chainMeters}::float)))
         ${radiusFilter} ${excludedFilter} ${onlyFilter} AND ${paymentAccepted(ride.paymentChoice, ride.paymentMethod)}
+        AND ${organizationAllows(ride)}
       ORDER BY distance_m ASC
       LIMIT 60`;
     return this.db.execute<CandidateRow>(query);
@@ -802,6 +805,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         AND ${categoryAtLeast(ride.reservedCategory)}
         AND ${scheduledSlotFree(cfg, ride.requestedAt ?? new Date(), ride.id)}
         ${excludedFilter} AND ${paymentAccepted(ride.paymentChoice, ride.paymentMethod)}
+        AND ${organizationAllows(ride)}
       ORDER BY (d.id = ${requested ?? NIL_UUID}::uuid) DESC, is_client_favourite DESC, d.rating_average DESC, d.ride_count ASC
       LIMIT ${cfg.scheduledCandidatesMax}::int`;
     const rows = await this.db.execute<CandidateRow>(query);
@@ -869,11 +873,14 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       await this.rides.mark(current.id, 'offer_skipped', SYSTEM_ACTOR, { driverId: candidate.driverId, reason: 'pending_offer_elsewhere' });
       return null;
     }
+    // Neomoov Pilote (étape 24), seul crochet de la répartition : évaluation de l'offre selon les critères du chauffeur,
+    // fenêtre de réponse du mode multi-applications ; une acceptation automatique passe ensuite par `accept`.
+    const piloted = await this.pilot.onOfferCreated(offer, current, candidate.userId);
     this.stats.offers += 1;
-    this.events.emit('offer.sent', { offerId: offer.id, rideId: current.id, driverId: candidate.driverId, driverUserId: candidate.userId, wave: options.wave, type: options.type, expiresAt: options.expiresAt, proposedTotalCents: proposed });
-    await this.rides.mark(current.id, 'offer_sent', SYSTEM_ACTOR, { offerId: offer.id, driverId: candidate.driverId, wave: options.wave, type: options.type, expiresAt: options.expiresAt.toISOString(), pickupSeconds: candidate.etaSeconds, proposedTotalCents: proposed });
-    await this.outbox.queue({ recipientUserId: candidate.userId, template: 'offer.new', data: { offerId: offer.id, rideId: current.id, expiresAt: options.expiresAt.toISOString() } });
-    return offer;
+    this.events.emit('offer.sent', { offerId: offer.id, rideId: current.id, driverId: candidate.driverId, driverUserId: candidate.userId, wave: options.wave, type: options.type, expiresAt: piloted.expiresAt, proposedTotalCents: proposed });
+    await this.rides.mark(current.id, 'offer_sent', SYSTEM_ACTOR, { offerId: offer.id, driverId: candidate.driverId, wave: options.wave, type: options.type, expiresAt: piloted.expiresAt.toISOString(), pickupSeconds: candidate.etaSeconds, proposedTotalCents: proposed });
+    if (piloted.notify) await this.outbox.queue({ recipientUserId: candidate.userId, template: 'offer.new', data: { offerId: offer.id, rideId: current.id, expiresAt: piloted.expiresAt.toISOString() } });
+    return { ...offer, expiresAt: piloted.expiresAt };
   }
 
   /**
@@ -918,7 +925,9 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       pickupDistanceMeters: offer.pickupDistanceMeters, pickupSeconds: offer.pickupSeconds, isFavourite: this.favouriteOf(ride).requested === offer.driverId, sentAt: offer.sentAt.toISOString(), expiresAt: offer.expiresAt.toISOString(),
       ride: {
         id: ride.id, publicNumber: ride.publicNumber, type: ride.type, category: ride.reservedCategory, origin: { address: ride.originAddress, coordinates: parseGeoPoint(ride.originGeo) }, destination: { address: ride.destinationAddress, coordinates: parseGeoPoint(ride.destinationGeo) },
-        requestedAt: ride.requestedAt?.toISOString() ?? null, paymentMethod: ride.paymentMethod, paymentChoice: ride.paymentChoice as 'prepaid' | 'pay_driver_after', specialRequests: ride.specialRequests, flightNumber: ride.flightNumber,
+        requestedAt: ride.requestedAt?.toISOString() ?? null, paymentMethod: ride.paymentMethod, paymentChoice: ride.paymentChoice as 'prepaid' | 'pay_driver_after',
+        // Étape 23 : course d'une organisation repartie au réseau Neomoov : le strict nécessaire, sans les demandes particulières ni le vol.
+        specialRequests: ride.networkSharedAt ? null : ride.specialRequests, flightNumber: ride.networkSharedAt ? null : ride.flightNumber,
         distanceMeters: ride.distanceMeters, durationSeconds: ride.durationSeconds, stops: Array.isArray(ride.stops) ? ride.stops.length : 0, preferences: preferencesOf(ride.preferences),
       },
     };

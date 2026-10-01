@@ -216,8 +216,8 @@ export class ComplianceService {
   }
 
   private async notifyDriver(driverId: string, template: string, data: Record<string, unknown>): Promise<void> {
-    const [driver] = await this.db.select({ userId: schema.drivers.userId }).from(schema.drivers).where(eq(schema.drivers.id, driverId)).limit(1);
-    if (driver) await this.outbox.queue({ recipientUserId: driver.userId, template, data });
+    const [driver] = await this.db.select({ userId: schema.drivers.userId, organizationId: schema.drivers.organizationId }).from(schema.drivers).where(eq(schema.drivers.id, driverId)).limit(1);
+    if (driver) await this.outbox.queue({ recipientUserId: driver.userId, organizationId: driver.organizationId, template, data });
   }
 
   /** Inspection trimestrielle de Neomoov enregistrée dans My Hub : prochaine échéance, ou véhicule non conforme. */

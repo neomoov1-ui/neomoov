@@ -111,6 +111,8 @@ export const complianceChecks = pgTable('compliance_checks', {
 export const incidents = pgTable('incidents', {
   id: id(),
   rideId: uuid('ride_id').references(() => rides.id),
+  /** Organisation de l'incident (étape 20) : celle de la course ; nulle pour la plateforme. */
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   type: incidentTypeEnum('type').notNull(),
   severity: incidentSeverityEnum('severity').notNull().default('medium'),
   reportedByUserId: uuid('reported_by_user_id'),
@@ -125,7 +127,7 @@ export const incidents = pgTable('incidents', {
   privacyBreach: jsonb('privacy_breach'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-}, (t) => [index('incidents_status_idx').on(t.status, t.severity), index('incidents_ride_idx').on(t.rideId), check('incidents_reporter_kind', sql`${t.reportedByKind} IN ('client', 'driver', 'operator', 'system', 'agent')`)]);
+}, (t) => [index('incidents_status_idx').on(t.status, t.severity), index('incidents_ride_idx').on(t.rideId), index('incidents_org_idx').on(t.organizationId, t.status), check('incidents_reporter_kind', sql`${t.reportedByKind} IN ('client', 'driver', 'operator', 'system', 'agent')`)]);
 
 export const sanctions = pgTable('sanctions', {
   id: id(),

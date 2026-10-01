@@ -1,6 +1,8 @@
 /**
  * Gardes globales, exécutées dans cet ordre sur chaque route : limitation de débit par adresse IP, authentification et
- * politique (rôles, portées, limite par utilisateur), propriété de la ressource. Politique par défaut : refus.
+ * politique (rôles, portées, limite par utilisateur), propriété de la ressource, puis, sur les routes d'organisation
+ * (étape 20, enregistrée par le module des organisations), adhésion et permissions dans l'organisation. Politique par
+ * défaut : refus.
  */
 import { schema } from '@neomoov/db';
 import { Injectable, type CanActivate, type ExecutionContext } from '@nestjs/common';
@@ -12,11 +14,16 @@ import { AppError } from '../../common/app-error.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { AUTHENTICATED_KEY, CAN_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, isStaffRole, hasStaffRole, requestContext, type Actor, type OwnsOptions, type UserActor } from './actor.js';
+import { AuditService } from '../audit/audit.service.js';
+import { OrgScopeService } from '../organizations/org-scope.service.js';
+import { SupportAccessService, type ActiveSupportAccess } from '../organizations/support-access.service.js';
+import { AUTHENTICATED_KEY, CAN_KEY, ORG_SCOPED_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, isStaffRole, hasStaffRole, requestContext, type Actor, type OrgScopedOptions, type OwnsOptions, type UserActor } from './actor.js';
 import { AccessService } from './access.service.js';
 import { ApiKeysService, isApiKey } from './api-keys.service.js';
 import { TokensService } from './tokens.service.js';
 import { hasAnyPermission, type Permission, type UserRole } from '@neomoov/domain';
+
+const UUID = /^[0-9a-f-]{36}$/i;
 
 function bearer(req: Request): string | null {
   const header = req.header('authorization');
@@ -110,6 +117,8 @@ export class AuthGuard implements CanActivate {
       return true;
     }
     if (can.length) {
+      // Route d'organisation (étape 20) : l'utilisateur est authentifié ; OrgScopeGuard décide avec ses permissions dans l'organisation.
+      if (this.reflector.getAllAndOverride<OrgScopedOptions | undefined>(ORG_SCOPED_KEY, targets)) return true;
       // Code d'erreur inchangé pour les applications déjà publiées ; la permission manquante est donnée en détail.
       if (!hasAnyPermission(await this.access.platformPermissions(actor), can)) throw AppError.forbidden('FORBIDDEN_ROLE', 'Votre rôle ne permet pas cette action', { required: can });
       return true;
@@ -198,5 +207,76 @@ export class OwnershipGuard implements CanActivate {
         return row ? [row.clientUserId, row.createdByUserId].filter((v): v is string => Boolean(v)) : null;
       }
     }
+  }
+}
+
+/**
+ * Routes d'organisation (étape 20, amendement v1.2 section 4) : compte utilisateur seulement ; l'organisation vient du
+ * paramètre de route (ou de l'en-tête `X-Organization-Id`) ; une adhésion active doit la couvrir (`OrgScopeService.scopeFor`) ;
+ * `@Can` est vérifié avec les permissions de l'appelant dans cette organisation (jamais ses anciens rôles) ; puis
+ * `req.orgScope` est posé pour l'intercepteur (transaction restreinte) et les contrôleurs.
+ * Étape 21 : seule exception à l'adhésion, l'accès temporaire du support (`support_access_grants`), approuvé par
+ * l'organisation et en cours, pour un membre du personnel qui détient `support.access` ; chaque requête ainsi admise est
+ * journalisée dans le journal de l'organisation avec le motif. Une permission refusée faute de double authentification
+ * porte `mfaRequired` dans le détail (My Hub propose alors le second facteur).
+ */
+@Injectable()
+export class OrgScopeGuard implements CanActivate {
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly orgScope: OrgScopeService,
+    private readonly access: AccessService,
+    private readonly support: SupportAccessService,
+    private readonly audit: AuditService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (context.getType() !== 'http') return true;
+    const targets = [context.getHandler(), context.getClass()];
+    const options = this.reflector.getAllAndOverride<OrgScopedOptions | undefined>(ORG_SCOPED_KEY, targets);
+    if (!options) return true;
+    const req = context.switchToHttp().getRequest<Request>();
+    const actor = req.actor;
+    if (!actor) throw AppError.unauthorized('UNAUTHENTICATED', 'Jeton d\'accès requis');
+    if (actor.kind !== 'user') throw AppError.forbidden('SERVICE_ACCOUNT_NOT_ALLOWED', 'Les routes d\'organisation sont réservées aux utilisateurs');
+    const organizationId = OrgScopeGuard.organizationIdOf(req, options);
+    if (!organizationId) throw new AppError('ORGANIZATION_REQUIRED', 'Organisation requise (paramètre de route ou en-tête X-Organization-Id)', 400);
+    if (!UUID.test(organizationId)) throw AppError.notFound('ORGANIZATION_NOT_FOUND', 'Organisation introuvable');
+    let scope: { path: string; organizationId: string };
+    let support: ActiveSupportAccess | null = null;
+    try {
+      scope = await this.orgScope.scopeFor(actor.userId, organizationId);
+    } catch (error) {
+      if (!(error instanceof AppError) || error.code !== 'NOT_A_MEMBER') throw error;
+      support = await this.support.activeFor(actor, organizationId);
+      if (!support) throw error;
+      scope = { path: support.path, organizationId };
+    }
+    const can = this.reflector.getAllAndOverride<Permission[]>(CAN_KEY, targets) ?? [];
+    if (!can.length) throw AppError.forbidden('NO_POLICY', 'Route d\'organisation sans permission (refus par défaut)');
+    const permissions = support ? support.permissions : await this.access.permissionsIn(actor, scope.path);
+    // Même code d'erreur que la plateforme ; la permission manquante est donnée en détail.
+    if (!hasAnyPermission(permissions, can)) {
+      const mfaRequired = !support && (await this.access.mfaPermissionsIn(actor, scope.path)).some((code) => can.includes(code));
+      throw AppError.forbidden('FORBIDDEN_ROLE', 'Votre rôle ne permet pas cette action', { required: can, ...(mfaRequired ? { mfaRequired: true } : {}) });
+    }
+    req.orgScope = { organizationId: scope.organizationId, path: scope.path, permissions, ...(support ? { support: { grantId: support.grantId, reason: support.reason, endsAt: support.endsAt } } : {}) };
+    if (support) {
+      const ctx = requestContext(req);
+      const route = (req.route as { path?: string } | undefined)?.path ?? req.path;
+      await this.audit.write(
+        [{ action: 'support_access.used', entity: 'support_access_grants', entityId: support.grantId, after: { reason: support.reason, method: req.method, route, endsAt: support.endsAt } }],
+        { actor, ip: ctx.ip, correlationId: ctx.correlationId, organizationId: scope.organizationId },
+      );
+    }
+    return true;
+  }
+
+  /** Identifiant d'organisation de la requête : le paramètre de route, sinon l'en-tête. */
+  static organizationIdOf(req: Request, options: OrgScopedOptions): string | null {
+    const fromParam = req.params[options.param];
+    if (typeof fromParam === 'string' && fromParam) return fromParam;
+    const fromHeader = req.header(options.header)?.trim();
+    return fromHeader || null;
   }
 }

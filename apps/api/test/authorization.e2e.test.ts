@@ -10,7 +10,10 @@ import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, resetHttp
 
 const SAMPLE_ID = '00000000-0000-4000-8000-000000000001';
 const concrete = (p: RoutePolicy) => p.path.replace(/:[A-Za-z]+/g, SAMPLE_ID);
-const send = (app: NestExpressApplication, p: RoutePolicy, headers: Record<string, string> = {}) => {
+// Plus de 300 routes : la limite par adresse (300 requêtes par minute) est remise à zéro toutes les 200 requêtes du test.
+let sent = 0;
+const send = async (app: NestExpressApplication, p: RoutePolicy, headers: Record<string, string> = {}) => {
+  if (++sent % 200 === 0) await resetHttpLimits(app);
   const method = p.method.toLowerCase() as 'get' | 'post' | 'patch' | 'put' | 'delete';
   return request(app.getHttpServer())[method](concrete(p)).set(headers).send({});
 };
@@ -42,7 +45,10 @@ describe('autorisation sur chaque endpoint (intégration)', () => {
     expect(byPath.get('POST /v1/admin/api-keys')?.roles).toEqual(['admin']);
     expect(byPath.get('GET /v1/admin/audit')?.roles).toEqual(['admin', 'operator', 'finance', 'readonly']);
     expect(byPath.get('GET /v1/internal/service/whoami')?.scopes).toEqual(['*']);
-    for (const p of policies) expect(p.public || p.authenticated || p.roles.length > 0 || p.scopes.length > 0, `${p.method} ${p.path}`).toBe(true);
+    // Étape 20 : une route d'organisation porte @OrgScoped et @Can ; ses permissions s'évaluent dans l'organisation, aucun ancien rôle n'y donne accès.
+    expect(byPath.get('GET /v1/org/:organizationId/rides')).toMatchObject({ orgScoped: true, permissions: ['rides.read'], roles: [] });
+    expect(byPath.get('GET /v1/me/organizations')?.authenticated).toBe(true);
+    for (const p of policies) expect(p.public || p.authenticated || p.roles.length > 0 || p.scopes.length > 0 || (p.orgScoped && p.permissions.length > 0), `${p.method} ${p.path}`).toBe(true);
   });
 
   it('étape 19 : chaque route du personnel et de l\'espace chauffeur passe par @Can ; aucun accès changé par la bascule', ({ skip }) => {
@@ -78,6 +84,14 @@ describe('autorisation sur chaque endpoint (intégration)', () => {
       const res = await send(app, p, bearer(client));
       expect(res.status, `${p.method} ${p.path}`).toBe(403);
       expect(['FORBIDDEN_ROLE', 'SERVICE_ACCOUNT_ONLY'], `${p.method} ${p.path}`).toContain(res.body.code);
+    }
+    // Routes d'organisation (étape 20) : l'organisation est résolue avant toute permission ; inconnue, 404 (membre ou non).
+    const orgRoutes = policies.filter((p) => p.orgScoped);
+    expect(orgRoutes.length).toBeGreaterThan(10);
+    for (const p of orgRoutes) {
+      const res = await send(app, p, bearer(client));
+      expect(res.status, `${p.method} ${p.path}`).toBe(404);
+      expect(res.body.code, `${p.method} ${p.path}`).toBe('ORGANIZATION_NOT_FOUND');
     }
   });
 

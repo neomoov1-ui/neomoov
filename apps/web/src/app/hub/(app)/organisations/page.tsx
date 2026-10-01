@@ -1,6 +1,6 @@
 'use client';
 
-import type { MembershipView, OrganizationView, RoleView } from '@neomoov/domain';
+import type { InvitationCreated, MembershipView, OrganizationView, RoleView } from '@neomoov/domain';
 import { ORGANIZATION_TYPES } from '@neomoov/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -101,11 +101,12 @@ function Members({ org }: { org: OrganizationView }) {
   const [roleId, setRoleId] = useState('');
   const [contact, setContact] = useState('');
   const [scope, setScope] = useState<'organization' | 'subtree'>('organization');
-  const [token, setToken] = useState<string | null>(null);
+  // Étape 21 : le lien part par texto ou courriel ; le jeton n'est rendu qu'en développement (réglage de l'API).
+  const [created, setCreated] = useState<InvitationCreated | null>(null);
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['hub', 'orgs', org.id, 'members'] });
   const invite = useMutation({
     mutationFn: () => hubApi.admin.invite(org.id, { roleId, scope, ...(contact.includes('@') ? { email: contact.trim() } : { phone: contact.trim() }) }),
-    onSuccess: (r) => { setToken(r.token); setContact(''); },
+    onSuccess: (r) => { setCreated(r); setContact(''); },
   });
   const update = useMutation({ mutationFn: (v: { id: string; status: 'active' | 'suspended' }) => hubApi.admin.updateMembership(v.id, { status: v.status }), onSuccess: refresh });
   const remove = useMutation({ mutationFn: (id: string) => hubApi.admin.removeMembership(id), onSuccess: refresh });
@@ -125,16 +126,16 @@ function Members({ org }: { org: OrganizationView }) {
   ];
   return (
     <div className="flex flex-col gap-3">
-      <div><Action onClick={() => { setInviting(true); setToken(null); invite.reset(); }}>{t('hub.orgs.invite')}</Action></div>
+      <div><Action onClick={() => { setInviting(true); setCreated(null); invite.reset(); }}>{t('hub.orgs.invite')}</Action></div>
       {update.isError || remove.isError ? <Notice tone="danger">{errorText(update.error ?? remove.error)}</Notice> : null}
       {members.isPending ? <Loading /> : members.isError ? <ErrorBlock error={members.error} onRetry={() => void members.refetch()} /> : (
         <DataTable caption={t('hub.orgs.members')} columns={columns} rows={members.data} rowKey={(m) => m.id} empty={t('hub.orgs.noMembers')} />
       )}
       <Dialog open={inviting} title={t('hub.orgs.invite')} onClose={() => setInviting(false)}>
-        {token ? (
+        {created ? (
           <div className="flex flex-col gap-3">
-            <Notice tone="success">{t('hub.orgs.tokenOnce')}</Notice>
-            <code className="break-all rounded bg-slate-100 p-2 text-sm">{`${window.location.origin}/rejoindre?code=${token}`}</code>
+            <Notice tone="success">{t('org.members.sent', { channel: t(`org.members.channels.${created.channel}`) })}</Notice>
+            {created.token ? <p className="text-xs text-slate-600">{t('org.members.devToken')} <code className="break-all">{`${window.location.origin}/rejoindre?token=${created.token}`}</code></p> : null}
             <div className="flex justify-end"><Action onClick={() => setInviting(false)}>{t('hub.common.close')}</Action></div>
           </div>
         ) : (

@@ -1,25 +1,28 @@
 import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View, type PressableProps, type TextInputProps, type ViewProps } from 'react-native';
-import { colors, radius, shadows, spacing, typography } from './theme';
+import { useBrandColors } from './brand';
+import { colors, radius, shadows, spacing, typography, type ThemeColors } from './theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
-const buttonColors: Record<ButtonVariant, { bg: string; fg: string }> = {
-  primary: { bg: colors.blue, fg: colors.white },
-  secondary: { bg: colors.green, fg: colors.night },
-  ghost: { bg: 'transparent', fg: colors.blue },
-  danger: { bg: colors.danger, fg: colors.white },
-};
+/** Couleurs d'un bouton selon la marque courante (étape 22) : la couleur principale de l'organisation remplace le bleu. */
+const buttonColors = (c: ThemeColors): Record<ButtonVariant, { bg: string; fg: string }> => ({
+  primary: { bg: c.blue, fg: c.white },
+  secondary: { bg: c.green, fg: c.night },
+  ghost: { bg: 'transparent', fg: c.blue },
+  danger: { bg: c.danger, fg: c.white },
+});
 
 /** Bouton pilule Neomoov. */
 export function Button({ label, variant = 'primary', disabled, style, ...props }: Omit<PressableProps, 'style'> & { label: string; variant?: ButtonVariant; style?: ViewProps['style'] }) {
-  const c = buttonColors[variant];
+  const brand = useBrandColors();
+  const c = buttonColors(brand)[variant];
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
-      style={({ pressed }) => [styles.button, { backgroundColor: c.bg, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 }, variant === 'ghost' && styles.buttonGhost, style]}
+      style={({ pressed }) => [styles.button, { backgroundColor: c.bg, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 }, variant === 'ghost' && [styles.buttonGhost, { borderColor: brand.blue }], style]}
       {...props}
     >
       <Text style={[styles.buttonLabel, { color: c.fg }]}>{label}</Text>

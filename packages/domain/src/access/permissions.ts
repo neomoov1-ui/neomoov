@@ -42,12 +42,14 @@ export const PERMISSIONS = {
   'rides.interrupt': p('rides', 'Interrompre une course en cours'),
   'rides.messages.write': p('rides', 'Écrire au client et au chauffeur d\'une course'),
   'dispatch.run': p('dispatch', 'Déclencher une passe de répartition', { platformOnly: true }),
+  'dispatch.network.share': p('dispatch', 'Mode réseau : partager au réseau Neomoov les courses non pourvues (étape 23)'),
   'drivers.read': p('drivers', 'Chauffeurs et leur fiche'),
   'drivers.activate': p('drivers', 'Activer ou réactiver un chauffeur'),
   'drivers.suspend': p('drivers', 'Suspendre un chauffeur'),
   'drivers.programs.manage': p('drivers', 'Programmes professionnels d\'un chauffeur'),
   'drivers.sanctions.apply': p('drivers', 'Appliquer une sanction à un chauffeur', { sensitive: true }),
   'drivers.notes.write': p('drivers', 'Notes internes sur un chauffeur'),
+  'drivers.invite': p('drivers', 'Inviter un chauffeur à rejoindre l\'organisation (étape 23)'),
   'documents.read': p('drivers', 'Liste des documents des chauffeurs'),
   'documents.content.read': p('drivers', 'Contenu des documents (permis, assurance, antécédents)', { sensitive: true }),
   'documents.review': p('drivers', 'Approuver ou refuser un document'),
@@ -59,6 +61,11 @@ export const PERMISSIONS = {
   'vehicles.read': p('vehicles', 'Véhicules'),
   'vehicles.review': p('vehicles', 'Approuver un véhicule'),
   'vehicles.inspections.record': p('vehicles', 'Enregistrer une inspection'),
+  // Étape 23 : module Flotte (véhicules de l'organisation, affectation, entretien, propriétaire de véhicule).
+  'vehicles.manage': p('vehicles', 'Ajouter et modifier les véhicules de l\'organisation'),
+  'vehicles.assign': p('vehicles', 'Affecter un véhicule à un chauffeur de l\'organisation'),
+  'vehicles.maintenance.manage': p('vehicles', 'Inspections et entretien des véhicules de l\'organisation'),
+  'vehicles.owner.read': p('vehicles', 'Tableau de bord du propriétaire de véhicule : ses véhicules et leurs revenus'),
   'clients.read': p('clients', 'Clients'),
   'clients.notes.write': p('clients', 'Notes internes sur un client'),
   'leads.read': p('clients', 'Prospects'),
@@ -77,6 +84,8 @@ export const PERMISSIONS = {
   'invoices.sev.retry': p('finance', 'Relancer une transmission au SEV'),
   'statements.read': p('finance', 'Relevés et soldes des chauffeurs'),
   'statements.manage': p('finance', 'Générer, émettre, payer, ajuster un relevé', { sensitive: true }),
+  'revenue_share.manage': p('finance', 'Règles de partage des revenus avec les chauffeurs (étape 23)', { sensitive: true }),
+  'payouts.manage': p('finance', 'Compte de versement de l\'organisation et règlement hors plateforme (étape 23)', { sensitive: true }),
   'ledgers.read': p('finance', 'Registres, sommaires, exports de géolocalisation'),
   'ledgers.manage': p('finance', 'Produire les sommaires et remettre la redevance', { sensitive: true }),
   'reports.read': p('reports', 'Rapports d\'activité et exports'),
@@ -98,6 +107,7 @@ export const PERMISSIONS = {
   'settings.edit': p('platform', 'Modifier un réglage', { sensitive: true, platformOnly: true }),
   'staff.manage': p('platform', 'Comptes du personnel de la plateforme', { sensitive: true, platformOnly: true }),
   'api_keys.manage': p('platform', 'Clés de service', { sensitive: true, platformOnly: true }),
+  'support.access': p('platform', 'Accès temporaire du support à une organisation cliente, approuvé par elle et journalisé', { sensitive: true, platformOnly: true }),
   'organizations.read': p('organization', 'Organisation et sous-organisations'),
   'organizations.manage': p('organization', 'Créer et modifier des sous-organisations'),
   'members.read': p('organization', 'Membres de l\'organisation'),
@@ -105,6 +115,12 @@ export const PERMISSIONS = {
   'members.manage': p('organization', 'Changer le rôle d\'un membre, le suspendre ou le retirer', { sensitive: true }),
   'roles.read': p('organization', 'Rôles et catalogue des permissions'),
   'roles.manage': p('organization', 'Créer et modifier des rôles personnalisés', { sensitive: true }),
+  'brand.edit': p('organization', 'Marque de l\'organisation : nom, logo, couleurs, textes, assistance, expéditeur, conditions'),
+  'domains.manage': p('organization', 'Domaines web de l\'organisation (réservation, My Hub)'),
+  'domains.verify': p('organization', 'Marquer un domaine vérifié après contrôle du DNS', { platformOnly: true }),
+  'pilot.zones.read': p('dispatch', 'Neomoov Pilote : exclusions de zones dans les critères des chauffeurs (surveillance de la discrimination indirecte)', { platformOnly: true }),
+  'billing.view': p('organization', 'Abonnement à la plateforme et factures de la plateforme'),
+  'billing.manage': p('organization', 'Gérer l\'abonnement à la plateforme : formule, règlements, relances', { sensitive: true }),
   'driver.app': p('self', 'Espace du chauffeur (ses courses, son dossier, ses revenus)'),
 } as const satisfies Record<string, PermissionDefinition>;
 
@@ -135,7 +151,7 @@ export const LEGACY_ROLE_PERMISSIONS: Readonly<Record<string, readonly Permissio
     'drivers.activate', 'drivers.notes.write', 'drivers.programs.manage', 'drivers.sanctions.apply', 'drivers.suspend', 'fairness.appeals.decide',
     'incidents.create', 'incidents.decide', 'invoices.sev.retry', 'leads.manage', 'pricing.benchmarks.manage', 'pricing.edit', 'privacy.incidents.manage',
     'quality.run', 'queues.retry', 'refunds.create', 'rides.assign', 'rides.cancel', 'rides.create', 'rides.hold', 'rides.interrupt', 'rides.messages.write',
-    'rides.reassign', 'vehicles.inspections.record', 'vehicles.review', 'zones.edit',
+    'rides.reassign', 'vehicles.inspections.record', 'vehicles.review', 'zones.edit', 'pilot.zones.read',
   ],
   finance: [...READ, 'invoices.sev.retry', 'ledgers.manage', 'ledgers.read', 'payments.webhooks.retry', 'refunds.create', 'statements.manage'],
   readonly: READ,
@@ -153,7 +169,9 @@ export interface SystemRole {
   permissions: readonly Permission[];
 }
 
-const ORG_PERMISSIONS = codes((d) => !d.platformOnly && d.module !== 'self');
+/** Permissions qu'une organisation cliente peut détenir (étape 20 : la fiche d'organisation est ouverte à tout membre qui en a au moins une). */
+export const ORGANIZATION_PERMISSIONS: readonly Permission[] = codes((d) => !d.platformOnly && d.module !== 'self');
+const ORG_PERMISSIONS = ORGANIZATION_PERMISSIONS;
 const ORG_READ = READ.filter((c) => !PERMISSIONS[c].platformOnly);
 
 /** Rôles système : ceux de la plateforme reprennent les anciens rôles ; ceux des organisations ignorent les permissions N0. */
@@ -165,10 +183,19 @@ export const SYSTEM_ROLES: readonly SystemRole[] = [
   { code: 'org_owner', name: 'Propriétaire du compte', level: 1, permissions: ORG_PERMISSIONS },
   { code: 'org_admin', name: 'Administrateur', level: 1, permissions: ORG_PERMISSIONS.filter((c) => c !== 'members.manage' && c !== 'roles.manage') },
   { code: 'dispatcher', name: 'Répartiteur', level: 2, permissions: [...ORG_READ, 'rides.create', 'rides.assign', 'rides.reassign', 'rides.hold', 'rides.cancel', 'rides.messages.write', 'incidents.create'] },
-  { code: 'fleet_manager', name: 'Gestionnaire de flotte', level: 2, permissions: ['drivers.read', 'documents.read', 'documents.review', 'vehicles.read', 'vehicles.review', 'vehicles.inspections.record', 'compliance.read', 'quality.read', 'rides.read', 'statements.read'] },
+  {
+    code: 'fleet_manager', name: 'Gestionnaire de flotte', level: 2,
+    permissions: [
+      'drivers.read', 'documents.read', 'documents.review', 'vehicles.read', 'vehicles.review', 'vehicles.inspections.record', 'compliance.read', 'quality.read', 'rides.read', 'statements.read',
+      // Étape 23 : chauffeurs rattachés, véhicules de l'organisation, entretien, rapports de la flotte.
+      'drivers.invite', 'vehicles.manage', 'vehicles.assign', 'vehicles.maintenance.manage', 'reports.read',
+    ],
+  },
   { code: 'accountant', name: 'Comptable', level: 2, permissions: ['dashboard.read', 'invoices.read', 'statements.read', 'ledgers.read', 'reports.read', 'rides.read'] },
   { code: 'agent_member', name: 'Agent (sous-compte d\'un employé)', level: 2, permissions: ['rides.read', 'rides.create', 'clients.read'] },
   { code: 'driver', name: 'Chauffeur', level: 3, permissions: ['driver.app'] },
+  // Étape 23 : propriétaire de véhicule (N3), qui ne conduit pas forcément : lecture de ses véhicules et de leurs revenus.
+  { code: 'vehicle_owner', name: 'Propriétaire de véhicule', level: 3, permissions: ['vehicles.owner.read'] },
 ];
 
 export function systemRole(code: string): SystemRole | null {

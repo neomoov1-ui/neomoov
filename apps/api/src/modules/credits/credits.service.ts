@@ -11,6 +11,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { APP_LOGGER } from '../../common/logger.js';
+import { organizationIdFor } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 
@@ -28,6 +29,8 @@ export interface CreditGrant {
   origin: CreditOrigin;
   reference?: string | null;
   note?: string | null;
+  /** Organisation de la course ou du chauffeur concerné (étape 20) ; le contexte courant a priorité, la base dérive du profil sinon. */
+  organizationId?: string | null;
 }
 
 export interface CreditConsumption {
@@ -63,7 +66,7 @@ export class CreditsService {
     const expiresAt = await this.expiryFrom();
     const [row] = await tx
       .insert(schema.credits)
-      .values({ userId: input.userId, amountCents: input.amountCents, remainingCents: input.amountCents, origin: input.origin, reference: input.reference ?? null, note: input.note ?? null, expiresAt })
+      .values({ userId: input.userId, organizationId: organizationIdFor(input.organizationId), amountCents: input.amountCents, remainingCents: input.amountCents, origin: input.origin, reference: input.reference ?? null, note: input.note ?? null, expiresAt })
       .returning({ id: schema.credits.id });
     return row!.id;
   }

@@ -11,7 +11,8 @@ export const metadata: Metadata = { title: 'My Hub Neomoov', robots: { index: fa
  * Garde de My Hub : sans session du personnel (témoin de profil posé par la passerelle), retour à la connexion. Le
  * témoin de profil n'ouvre que l'interface ; chaque donnée reste autorisée par l'API avec le jeton (rôles vérifiés côté
  * serveur), et une session révoquée renvoie à la connexion au premier appel. Le témoin de renouvellement, limité au
- * chemin `/api`, n'est pas visible ici.
+ * chemin `/api`, n'est pas visible ici. Étape 21 : la session peut aussi être celle d'un membre d'organisation (code
+ * SMS) ; le cadre le conduit alors vers l'espace de son organisation.
  */
 export default async function HubLayout({ children }: { children: React.ReactNode }) {
   const store = await cookies();

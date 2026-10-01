@@ -1,14 +1,14 @@
 /** Paiements (section 7.2, prompt 07) : cartes du client, pourboire, reçu, solde dû ; chauffeur (Connect, prélèvement) ; webhook ; remboursements. */
 import {
-  balanceSchema, connectStatusSchema, paymentMethodViewSchema, paymentViewSchema, refundInputSchema, refundViewSchema, settleInputSchema, settleResultSchema,
-  setupIntentConfirmSchema, setupIntentResponseSchema, tipInputSchema, uuid,
+  balanceSchema, cardSessionConfirmSchema, cardSessionInfoSchema, cardSessionQuerySchema, cardSessionResultSchema, connectStatusSchema, paymentMethodViewSchema, paymentViewSchema,
+  refundInputSchema, refundViewSchema, settleInputSchema, settleResultSchema, setupIntentConfirmSchema, setupIntentResponseSchema, tipInputSchema, uuid,
 } from '@neomoov/domain';
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Req, type RawBodyRequest } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Query, Req, type RawBodyRequest } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { AppError } from '../../common/app-error.js';
-import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
+import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { Can, Audit, Authenticated, CurrentUser, NoAudit, Owns, Public, type UserActor } from '../auth/actor.js';
 import { DriverPaymentsService } from './driver-payments.service.js';
@@ -24,7 +24,7 @@ export class PaymentsController {
 
   @Post('payment-methods/setup-intent')
   @HttpCode(201)
-  @ApiOperation({ summary: 'SetupIntent pour enregistrer une carte (feuille de paiement Stripe, Apple Pay, Google Pay) ; aucune donnée de carte ne passe par l\'API' })
+  @ApiOperation({ summary: 'Enregistrement d\'une carte : SetupIntent (feuille de paiement Stripe, Apple Pay, Google Pay) ou, avec Square, page de saisie `cardFormUrl` (Web Payments SDK) ; aucune donnée de carte ne passe par l\'API' })
   @ZodResponse(201, setupIntentResponseSchema)
   @ApiErrors(401, 403, 429)
   setupIntent(@CurrentUser() user: UserActor) {
@@ -34,10 +34,10 @@ export class PaymentsController {
   @Post('payment-methods/confirm')
   @HttpCode(201)
   @Audit('payment_method.confirmed', 'client_payment_methods')
-  @ApiOperation({ summary: 'Enregistre la carte d\'un SetupIntent confirmé : relue chez Stripe (marque et 4 derniers chiffres seulement)' })
+  @ApiOperation({ summary: 'Enregistre la carte d\'un SetupIntent confirmé (relue chez Stripe) ou d\'un jeton de carte Square (`sourceId`, `verificationToken`) ; marque et 4 derniers chiffres seulement' })
   @ZodBody(setupIntentConfirmSchema)
   @ZodResponse(201, paymentMethodViewSchema)
-  @ApiErrors(400, 401, 403, 409, 429)
+  @ApiErrors(400, 401, 402, 403, 409, 429)
   confirm(@Body(zodPipe(setupIntentConfirmSchema)) body: z.infer<typeof setupIntentConfirmSchema>, @CurrentUser() user: UserActor) {
     return this.payments.confirmSetupIntent(user.userId, body);
   }
@@ -128,12 +128,46 @@ export class DriverPaymentsController {
   @Post('payment-method/confirm')
   @HttpCode(200)
   @Audit('driver.debit_method', 'drivers')
-  @ApiOperation({ summary: 'Enregistre la méthode de prélèvement d\'un SetupIntent confirmé (relue chez Stripe)' })
+  @ApiOperation({ summary: 'Enregistre la méthode de prélèvement d\'un SetupIntent confirmé (relue chez Stripe) ou d\'un jeton de carte Square' })
   @ZodBody(setupIntentConfirmSchema)
   @ZodResponse(200, connectStatusSchema)
-  @ApiErrors(400, 401, 403, 404, 409, 429)
+  @ApiErrors(400, 401, 402, 403, 404, 409, 429)
   confirmPaymentMethod(@Body(zodPipe(setupIntentConfirmSchema)) body: z.infer<typeof setupIntentConfirmSchema>, @CurrentUser() user: UserActor) {
-    return this.drivers.confirmDebitMethod(user.userId, body.setupIntentId);
+    return this.drivers.confirmDebitMethod(user.userId, body);
+  }
+}
+
+/**
+ * Page de saisie de carte du web (`/carte?session=…`, étape 26) : la session est un jeton signé de 15 minutes lié à
+ * l'utilisateur, remis par `setup-intent` (`cardFormUrl`) ; le jeton d'accès de l'utilisateur ne transite jamais par
+ * l'adresse. La confirmation est faite par le serveur web avec le jeton de carte du Web Payments SDK.
+ */
+@ApiTags('payments')
+@Controller('payment-methods/card-session')
+export class CardSessionController {
+  constructor(private readonly payments: PaymentsService) {}
+
+  @Get()
+  @Public()
+  @NoAudit()
+  @ApiOperation({ summary: 'Session de saisie de carte : fournisseur, identifiants publics du Web Payments SDK, lien de retour ; 401 si la session est expirée ou altérée' })
+  @ZodQuery(cardSessionQuerySchema)
+  @ZodResponse(200, cardSessionInfoSchema)
+  @ApiErrors(400, 401, 409, 429)
+  info(@Query(zodPipe(cardSessionQuerySchema)) query: z.infer<typeof cardSessionQuerySchema>) {
+    return this.payments.cardSessionInfo(query.session);
+  }
+
+  @Post('confirm')
+  @Public()
+  @HttpCode(201)
+  @Audit('payment_method.confirmed', 'client_payment_methods')
+  @ApiOperation({ summary: 'Enregistre la carte du jeton de carte (Square) pour l\'utilisateur de la session : carte du client ou méthode de prélèvement du chauffeur' })
+  @ZodBody(cardSessionConfirmSchema)
+  @ZodResponse(201, cardSessionResultSchema)
+  @ApiErrors(400, 401, 402, 403, 404, 409, 429)
+  confirm(@Body(zodPipe(cardSessionConfirmSchema)) body: z.infer<typeof cardSessionConfirmSchema>) {
+    return this.payments.confirmCardSession(body);
   }
 }
 
@@ -157,6 +191,27 @@ export class WebhooksController {
   @ZodResponse(200, z.object({ received: z.literal(true), duplicate: z.boolean() }))
   @ApiErrors(400, 429)
   async stripe(@Req() req: RawBodyRequest<Request>, @Headers('stripe-signature') signature: string | undefined) {
+    if (this.payments.providerName === 'square') throw AppError.notFound('WEBHOOK_PROVIDER_INACTIVE', 'Le fournisseur de paiement actif est Square : point de réception /v1/webhooks/square');
+    return this.receive(req, signature);
+  }
+
+  /**
+   * Webhook Square (étape 26) : signature `x-square-hmacsha256-signature` (HMAC-SHA256 de l'adresse de notification et du
+   * corps brut), événements traduits dans le vocabulaire interne par l'adaptateur, même enregistrement idempotent.
+   */
+  @Post('square')
+  @Public()
+  @NoAudit()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Webhook Square : signature vérifiée sur l\'adresse de notification et le corps brut, un événement n\'est enregistré et traité qu\'une fois' })
+  @ZodResponse(200, z.object({ received: z.literal(true), duplicate: z.boolean() }))
+  @ApiErrors(400, 404, 429)
+  async square(@Req() req: RawBodyRequest<Request>, @Headers('x-square-hmacsha256-signature') signature: string | undefined) {
+    if (this.payments.providerName === 'stripe') throw AppError.notFound('WEBHOOK_PROVIDER_INACTIVE', 'Le fournisseur de paiement actif est Stripe : point de réception /v1/webhooks/stripe');
+    return this.receive(req, signature);
+  }
+
+  private async receive(req: RawBodyRequest<Request>, signature: string | undefined) {
     if (!signature || !req.rawBody) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook absente', 400);
     const event = await this.payments.verifyWebhook(req.rawBody, signature);
     const { duplicate } = await this.payments.ingestWebhook(event);

@@ -15,7 +15,7 @@ import { MANUAL_INCIDENT_TYPES, privacyBreachInputSchema } from '../privacy/brea
 const count = z.number().int().min(0);
 
 /** Types de prospects reçus par l'API publique. */
-export const LEAD_KINDS = ['driver', 'business', 'partner'] as const;
+export const LEAD_KINDS = ['driver', 'business', 'partner', 'training'] as const;
 
 /** Requête de liste : page à partir de 1, recherche libre, filtre d'état. */
 export const adminListQuerySchema = z.object({

@@ -17,6 +17,7 @@ import { STORAGE_PROVIDER, VIRUS_SCANNER, type StorageProvider, type VirusScanne
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
+import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { ReferralsService } from '../credits/referrals.service.js';
@@ -320,7 +321,8 @@ export class DriverProfileService {
       const [vehicle] = await this.db.select({ id: schema.vehicles.id }).from(schema.vehicles).where(and(eq(schema.vehicles.id, fields.vehicleId), eq(schema.vehicles.driverId, driver.id))).limit(1);
       if (!vehicle) throw AppError.notFound('VEHICLE_NOT_FOUND', 'Véhicule introuvable');
     }
-    const key = `drivers/${driver.id}/${fields.type}/${randomUUID()}.${sniffed.extension}`;
+    // Étape 20 : sous le contexte d'une organisation cliente, ses documents sont rangés sous son préfixe de stockage.
+    const key = `${storageKeyPrefix(currentOrgScope()?.organizationId)}drivers/${driver.id}/${fields.type}/${randomUUID()}.${sniffed.extension}`;
     // Étape 14 : analyse antivirus avant tout stockage ; un fichier infecté est refusé et l'essai journalisé.
     const scan = await this.scanner.scan({ body: file.buffer, ...(file.originalname ? { filename: file.originalname } : {}) });
     if (!scan.clean) {
@@ -347,7 +349,8 @@ export class DriverProfileService {
     const [docs, packRequired, payoutRequired, packActive] = await Promise.all([
       knownDocs ?? this.documentsOf(driver),
       this.settings.get<boolean>('drivers.require_active_pack', false),
-      this.settings.get<boolean>('drivers.require_payout_account', false),
+      // Étape 26 : sans Stripe Connect (Square), aucun compte de versement à ouvrir, les relevés sont réglés par virement.
+      this.driverPayments.connectAvailable ? this.settings.get<boolean>('drivers.require_payout_account', false) : Promise.resolve(false),
       knownPackActive ?? this.db.select({ id: schema.packPurchases.id }).from(schema.packPurchases).where(and(eq(schema.packPurchases.driverId, driver.id), eq(schema.packPurchases.status, 'active'))).limit(1).then((rows) => rows.length > 0),
     ]);
     const profileComplete = Boolean(user?.firstName && user.lastName && driver.qualification && driver.gstNumber && driver.qstNumber);
@@ -367,9 +370,9 @@ export class DriverProfileService {
   // Compte de versement (Stripe Connect Express) -------------------------------------------------------------------
 
   /** Compte de versement (Stripe Connect Express), tenu par le module des paiements. */
-  async payoutStatus(userId: string): Promise<{ linked: boolean; onboarded: boolean; provider: string }> {
+  async payoutStatus(userId: string): Promise<{ linked: boolean; onboarded: boolean; provider: string; payoutMode: 'connect' | 'offline' }> {
     const status = await this.driverPayments.status(userId);
-    return { linked: status.linked, onboarded: status.onboarded, provider: status.provider };
+    return { linked: status.linked, onboarded: status.onboarded, provider: status.provider, payoutMode: status.payoutMode };
   }
 
   /** Lien d'inscription Stripe (webview de l'application) ; le compte Express est créé au premier appel. */

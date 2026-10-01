@@ -71,6 +71,8 @@ export const quotes = pgTable('quotes', {
   clientId: uuid('client_id'),
   /** Devis anonymes (réservation web sans compte, agent vocal) : identifiant de session. */
   sessionKey: varchar('session_key', { length: 80 }),
+  /** Organisation du devis (étape 20) : celle de la réservation. */
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   cityCode: varchar('city_code', { length: 30 }).notNull().references(() => cities.code),
   category: vehicleCategoryEnum('category').notNull(),
   originAddress: varchar('origin_address', { length: 300 }).notNull(),

@@ -10,10 +10,11 @@ import { describe, expect, it } from 'vitest';
 import { AdaptersModule } from '../src/adapters/adapters.module.js';
 import { PAYMENT_PROVIDER, SMS_PROVIDER, VOICE_PROVIDER, WHATSAPP_PROVIDER, type PaymentProvider, type SmsProvider, type VoiceProvider, type WhatsAppProvider } from '../src/adapters/types.js';
 import { APP_ENV, loadEnv, type AppEnv } from '../src/config/env.js';
+import { BILLING_PROVIDER, type BillingProvider } from '../src/adapters/billing.types.js';
 
 const PRODUCTION = { NODE_ENV: 'production', DATABASE_URL: 'postgresql://x', JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(32), ENCRYPTION_KEY: 'c'.repeat(32), REDIS_URL: 'redis://localhost:6379', SOCIAL_LOGIN_PROVIDER: 'real',
   // Garde de production (étape 17c) : les simulateurs doivent être déclarés explicitement pour que l'API démarre.
-  ALLOW_MOCK_PROVIDERS: 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus' };
+  ALLOW_MOCK_PROVIDERS: 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing' };
 
 async function providersFor(env: AppEnv) {
   @Global()
@@ -27,6 +28,7 @@ async function providersFor(env: AppEnv) {
     sms: ctx.get<SmsProvider>(SMS_PROVIDER),
     whatsapp: ctx.get<WhatsAppProvider>(WHATSAPP_PROVIDER),
     voice: ctx.get<VoiceProvider>(VOICE_PROVIDER),
+    billing: ctx.get<BillingProvider>(BILLING_PROVIDER),
   };
   await ctx.close();
   return providers;
@@ -37,21 +39,25 @@ const vapiMessage = JSON.stringify({ message: { type: 'tool-calls', call: { cust
 
 describe('webhooks des fournisseurs simulés', () => {
   it('en production, aucun fournisseur simulé n\'accepte la signature de test', async () => {
-    const { payment, sms, whatsapp, voice } = await providersFor(loadEnv(PRODUCTION, { dotenv: false }));
+    const { payment, sms, whatsapp, voice, billing } = await providersFor(loadEnv(PRODUCTION, { dotenv: false }));
     expect(payment.name).toBe('mock');
     await expect(payment.verifyWebhook(stripeEvent, 'mock-signature')).rejects.toThrow(/Signature/);
     expect(sms.verifyStatusWebhook({ url: 'https://api.neomoov.net/v1/webhooks/twilio/inbound', params: { From: '+15145550123' }, signature: 'mock-signature' })).toBe(false);
     expect(whatsapp.verifySignature(Buffer.from('{}'), 'mock-signature')).toBe(false);
     expect(whatsapp.verifyWebhook({ 'hub.mode': 'subscribe', 'hub.verify_token': 'mock-verify', 'hub.challenge': 'defi' })).toBeNull();
     await expect(voice.verifyWebhook(vapiMessage, 'mock-signature')).rejects.toThrow(/Signature/);
+    // Étape 25 : la facturation de la plateforme simulée refuse aussi tout webhook en production.
+    expect(billing.name).toBe('mock');
+    await expect(billing.verifyWebhook(stripeEvent, 'mock-signature')).rejects.toThrow(/Signature/);
   });
 
   it('hors production (tests, développement), la signature de test reste acceptée', async () => {
-    const { payment, sms, whatsapp, voice } = await providersFor(loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://x' }, { dotenv: false }));
+    const { payment, sms, whatsapp, voice, billing } = await providersFor(loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://x' }, { dotenv: false }));
     await expect(payment.verifyWebhook(stripeEvent, 'mock-signature')).resolves.toMatchObject({ id: 'evt_forged' });
     expect(sms.verifyStatusWebhook({ url: 'u', params: {}, signature: 'mock-signature' })).toBe(true);
     expect(whatsapp.verifySignature(Buffer.from('{}'), 'mock-signature')).toBe(true);
     expect(whatsapp.verifyWebhook({ 'hub.mode': 'subscribe', 'hub.verify_token': 'mock-verify', 'hub.challenge': 'defi' })).toBe('defi');
     await expect(voice.verifyWebhook(vapiMessage, 'mock-signature')).resolves.toMatchObject({ type: 'tool-calls' });
+    await expect(billing.verifyWebhook(stripeEvent, 'mock-signature')).resolves.toMatchObject({ id: 'evt_forged' });
   });
 });

@@ -12,6 +12,8 @@ export const clients = pgTable('clients', {
   notes: text('notes'),
   status: varchar('status', { length: 20 }).notNull().default('active'),
   businessAccountId: uuid('business_account_id'),
+  /** Organisation du profil (étape 20) : la racine pour les clients de Neomoov. */
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   subscriptionCode: varchar('subscription_code', { length: 40 }),
   rideCount: cents('ride_count').notNull().default(0),
   /** Solde dû après un échec de capture (5.6) : nouvelles courses refusées tant qu'il n'est pas réglé. */
@@ -31,7 +33,10 @@ export const clients = pgTable('clients', {
 export const clientPaymentMethods = pgTable('client_payment_methods', {
   id: id(),
   clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  /** Référence de la carte chez le fournisseur (`pm_…` chez Stripe, `ccof:…` chez Square, `pm_mock_…` simulée). */
   stripePaymentMethodId: varchar('stripe_payment_method_id', { length: 100 }).notNull(),
+  /** Fournisseur qui tient la carte (étape 26) : seules les cartes du fournisseur actif sont proposées et débitées. */
+  provider: varchar('provider', { length: 20 }).notNull().default('stripe'),
   brand: varchar('brand', { length: 30 }).notNull(),
   last4: varchar('last4', { length: 4 }).notNull(),
   expMonth: cents('exp_month'),
@@ -39,7 +44,11 @@ export const clientPaymentMethods = pgTable('client_payment_methods', {
   isDefault: boolean('is_default').notNull().default(false),
   createdAt: createdAt(),
   deletedAt: tz('deleted_at'),
-}, (t) => [index('client_payment_methods_client_idx').on(t.clientId), uniqueIndex('client_payment_methods_stripe_unique').on(t.stripePaymentMethodId)]);
+}, (t) => [
+  index('client_payment_methods_client_idx').on(t.clientId),
+  uniqueIndex('client_payment_methods_stripe_unique').on(t.stripePaymentMethodId),
+  check('client_payment_methods_provider', sql`${t.provider} IN ('stripe', 'square', 'mock')`),
+]);
 
 export const savedPlaces = pgTable('saved_places', {
   id: id(),

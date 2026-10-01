@@ -16,9 +16,12 @@ export const payments = pgTable('payments', {
   method: paymentMethodEnum('method').notNull(),
   /** Nature (étape 7) : `ride`, `tip` (paiement séparé), frais d'annulation ou d'absence, règlement d'un solde. */
   kind: varchar('kind', { length: 20 }).notNull().default('ride'),
+  /** Référence du paiement chez le fournisseur (PaymentIntent `pi_…` chez Stripe, identifiant de paiement chez Square). */
   stripePaymentIntentId: varchar('stripe_payment_intent_id', { length: 100 }),
   /** Méthode Stripe choisie à la réservation (carte enregistrée) : l'autorisation d'une planifiée est faite à l'attribution. */
   stripePaymentMethodId: varchar('stripe_payment_method_id', { length: 100 }),
+  /** Fournisseur qui tient ce paiement (étape 26) : un remboursement ne passe que par lui. */
+  provider: varchar('provider', { length: 20 }).notNull().default('stripe'),
   /** Clé d'idempotence de l'opération qui a créé ce paiement : un rejeu ne crée jamais de second paiement. */
   idempotencyKey: varchar('idempotency_key', { length: 120 }),
   /** Tentatives de capture (nouvelle tentative, puis ticket et solde dû). */
@@ -41,6 +44,7 @@ export const payments = pgTable('payments', {
   index('payments_failed_idx').on(t.status, t.updatedAt).where(sql`${t.status} = 'failed'`),
   check('payments_amounts_positive', sql`${t.authorizedCents} >= 0 AND ${t.capturedCents} >= 0 AND ${t.tipCents} >= 0`),
   check('payments_kind', sql`${t.kind} IN ('ride', 'tip', 'cancellation_fee', 'no_show_fee', 'balance')`),
+  check('payments_provider', sql`${t.provider} IN ('stripe', 'square', 'mock')`),
 ]);
 
 export const refunds = pgTable('refunds', {
@@ -136,7 +140,7 @@ export const packConsumptions = pgTable('pack_consumptions', {
 export const weeklyStatements = pgTable('weekly_statements', {
   id: id(),
   driverId: uuid('driver_id').notNull().references(() => drivers.id),
-  organizationId: uuid('organization_id'),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   periodStart: date('period_start').notNull(),
   periodEnd: date('period_end').notNull(),
   platformFaresCents: cents('platform_fares_cents').notNull().default(0),
@@ -217,6 +221,8 @@ export const promotionUses = pgTable('promotion_uses', {
 export const credits = pgTable('credits', {
   id: id(),
   userId: uuid('user_id').notNull().references(() => users.id),
+  /** Organisation qui a accordé le crédit (étape 20) ; nulle pour la plateforme. */
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
   amountCents: cents('amount_cents').notNull(),
   remainingCents: cents('remaining_cents').notNull(),
   origin: creditOriginEnum('origin').notNull(),
@@ -224,4 +230,4 @@ export const credits = pgTable('credits', {
   note: text('note'),
   expiresAt: tz('expires_at'),
   createdAt: createdAt(),
-}, (t) => [index('credits_user_idx').on(t.userId).where(sql`${t.remainingCents} > 0`), check('credits_positive', sql`${t.amountCents} > 0 AND ${t.remainingCents} BETWEEN 0 AND ${t.amountCents}`)]);
+}, (t) => [index('credits_user_idx').on(t.userId).where(sql`${t.remainingCents} > 0`), index('credits_org_idx').on(t.organizationId), check('credits_positive', sql`${t.amountCents} > 0 AND ${t.remainingCents} BETWEEN 0 AND ${t.amountCents}`)]);

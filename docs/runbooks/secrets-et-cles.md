@@ -40,6 +40,8 @@ Règles : aucune valeur dans le dépôt, un message, un courriel, un ticket ou u
 | `DATABASE_URL` (mot de passe) | Supabase, projet, « Database », « Reset database password » | Coupure jusqu'au remplacement dans `.env` : préparer la commande avant de réinitialiser. La sauvegarde de la nuit lit le même fichier |
 | `STRIPE_SECRET_KEY` | Stripe, Développeurs, Clés d'API, « Renouveler la clé » (Stripe propose de garder l'ancienne active quelques heures) | Aucune coupure si l'ancienne reste active pendant le remplacement |
 | `STRIPE_WEBHOOK_SECRET` | Stripe, Webhooks, le point `…/v1/webhooks/stripe`, « Renouveler le secret » avec expiration différée de l'ancien | Pendant le chevauchement, Stripe signe avec les deux secrets ; l'API accepte toute signature `v1` valide. Un webhook refusé est renvoyé par Stripe |
+| `SQUARE_ACCESS_TOKEN` | Square Developer, application Neomoov, « Credentials », onglet Production | Préparer la commande : poser le nouveau jeton et redémarrer l'API et le worker dès le remplacement (`square.md`, section 7) |
+| `SQUARE_WEBHOOK_SIGNATURE_KEY` | Square Developer, « Webhooks », l'abonnement `…/v1/webhooks/square`, régénérer la clé | Notifications refusées entre le changement chez Square et le redémarrage, puis renvoyées par Square |
 | `TWILIO_AUTH_TOKEN` | Twilio, Account, « API keys & tokens », jeton secondaire puis « Promote » | Le même jeton a été saisi chez Vapi pour le numéro importé : le mettre à jour aussi chez Vapi |
 | `VAPI_API_KEY` | Vapi, Organization, API Keys | Procédure générale |
 | `VAPI_WEBHOOK_SECRET` | `openssl rand -hex 16`, puis Vapi, assistant, « Server URL Secret » | Les deux côtés doivent changer ensemble : quelques appels peuvent être refusés pendant la minute du changement ; le faire la nuit |

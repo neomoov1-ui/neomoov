@@ -148,6 +148,76 @@
       "when": 1790461090963,
       "tag": "0020_organizations-access",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790779880365,
+      "tag": "0021_organization-isolation",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790783164436,
+      "tag": "0022_brands",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790795503467,
+      "tag": "0023_isolation-corrections",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790813680280,
+      "tag": "0024_isolation-recipients",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790814266133,
+      "tag": "0025_pilot",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790815798588,
+      "tag": "0026_crm",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790852415749,
+      "tag": "0027_support-access-member-mfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790853294607,
+      "tag": "0028_platform-billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790852809213,
+      "tag": "0029_payment-provider",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790853142614,
+      "tag": "0030_fleet",
+      "breakpoints": true
     }
   ]
 }

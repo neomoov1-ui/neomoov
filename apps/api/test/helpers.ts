@@ -128,7 +128,7 @@ export async function addTestCard(app: NestExpressApplication, userId: string): 
   const payments = app.get(PaymentsService);
   try {
     const intent = await payments.setupIntent(userId);
-    return (await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId, makeDefault: true })).id;
+    return (await payments.confirmSetupIntent(userId, { setupIntentId: intent.setupIntentId!, makeDefault: true })).id;
   } catch (error) {
     if ((error as { code?: string }).code === 'CLIENT_PROFILE_REQUIRED') return null;
     throw error;
@@ -289,8 +289,26 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
   // Étape 19 : adhésions et invitations des comptes de test (rôles et organisations créés par un test : retirés par lui).
   await database.delete(schema.memberships).where(or(inArray(schema.memberships.userId, ids), inArray(schema.memberships.invitedByUserId, ids)));
   await database.delete(schema.invitations).where(inArray(schema.invitations.invitedByUserId, ids));
+  // Étape 21 : accès du support demandés ou approuvés par des comptes de test.
+  await database.delete(schema.supportAccessGrants).where(or(inArray(schema.supportAccessGrants.requestedByUserId, ids), inArray(schema.supportAccessGrants.approvedByUserId, ids)));
   await database.delete(schema.users).where(inArray(schema.users.id, ids));
   createdUserIds.clear();
+}
+
+/**
+ * Étape 21 : le jeton d'une invitation n'est plus rendu à la personne qui invite ; il est lu dans le lien de l'avis mis
+ * en file (`organization.invitation`), comme la personne invitée le reçoit par texto ou courriel.
+ */
+export async function invitationToken(app: NestExpressApplication, invitationId: string): Promise<string> {
+  const [row] = await db(app)
+    .select({ data: schema.notifications.data })
+    .from(schema.notifications)
+    .where(and(eq(schema.notifications.template, 'organization.invitation'), sql`${schema.notifications.data}->>'invitationId' = ${invitationId}`))
+    .limit(1);
+  const url = (row?.data as { url?: string } | undefined)?.url;
+  const token = url ? new URL(url).searchParams.get('token') : null;
+  if (!token) throw new Error(`Aucun lien d'invitation pour ${invitationId}`);
+  return token;
 }
 
 export const bearer = (tokens: Pick<TokensView, 'accessToken'>) => ({ Authorization: `Bearer ${tokens.accessToken}` });

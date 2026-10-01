@@ -6,7 +6,7 @@ import { reportError } from '../common/error-reporting.js';
 import { APP_LOGGER, currentCorrelationId, isValidCorrelationId, newCorrelationId, runWithCorrelation } from '../common/logger.js';
 import { REDIS } from './redis.module.js';
 
-export const QUEUE_NAMES = ['heartbeat', 'notifications', 'invoicing', 'settlements', 'exports', 'agents', 'privacy', 'scheduling', 'payments', 'packs', 'compliance', 'retention'] as const;
+export const QUEUE_NAMES = ['heartbeat', 'notifications', 'invoicing', 'settlements', 'exports', 'agents', 'privacy', 'scheduling', 'payments', 'packs', 'compliance', 'retention', 'crm', 'billing', 'fleet'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
 export interface QueueStats {

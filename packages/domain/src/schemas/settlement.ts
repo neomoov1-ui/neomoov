@@ -114,3 +114,22 @@ export const adminBalanceSchema = z.object({
   lastStatementId: uuid.nullable(),
 });
 export type AdminBalance = z.infer<typeof adminBalanceSchema>;
+
+/**
+ * Versement à faire hors plateforme (étape 26, Square sans Connect) : relevé émis au net positif, pas encore réglé. La
+ * référence est à reprendre comme libellé du virement puis dans `settle-offline`.
+ */
+export const offlinePayoutSchema = z.object({
+  statementId: uuid,
+  driverId: uuid,
+  driverPublicNumber: z.string(),
+  driverName: z.string().nullable(),
+  interacEmail: z.string().nullable(),
+  periodStart: localDateString,
+  periodEnd: localDateString,
+  amountCents: cents,
+  reference: z.string(),
+  status: z.enum(STATEMENT_STATUSES),
+  issuedAt: isoDate.nullable(),
+});
+export type OfflinePayout = z.infer<typeof offlinePayoutSchema>;

@@ -37,6 +37,8 @@ export { SettlementJobsService } from './modules/settlement/settlement-jobs.serv
 export { NotificationsModule } from './modules/notifications/notifications.module.js';
 export { ComplianceModule } from './modules/compliance/compliance.module.js';
 export { ComplianceJobsService } from './modules/compliance/compliance-jobs.service.js';
+export { FleetModule } from './modules/fleet/fleet.module.js';
+export { FleetJobsService } from './modules/fleet/fleet-jobs.service.js';
 export { RetentionModule } from './modules/retention/retention.module.js';
 export { RetentionJobsService } from './modules/retention/retention-jobs.service.js';
 export { NotificationJobsService } from './modules/notifications/notification-jobs.service.js';
@@ -54,3 +56,17 @@ export { InvoicingModule } from './modules/invoicing/invoicing.module.js';
 export { InvoicingService } from './modules/invoicing/invoicing.service.js';
 export { SevService } from './modules/invoicing/sev.service.js';
 export { InvoiceJobsService } from './modules/invoicing/invoice-jobs.service.js';
+// Neomoov Pilote (étape 24) : chargé aussi par le worker, qui porte la répartition avec Redis.
+export { PilotModule } from './modules/pilot/pilot.module.js';
+export { PilotService } from './modules/pilot/pilot.service.js';
+export { CrmModule } from './modules/crm/crm.module.js';
+export { CrmSyncService, type CrmEntityType, type CrmSyncOutcome } from './modules/crm/crm-sync.service.js';
+export { CrmJobsService } from './modules/crm/crm-jobs.service.js';
+export { HubSpotCrmProvider, type HubSpotSetupReport } from './adapters/real/hubspot.real.js';
+export * from './adapters/real/hubspot-model.js';
+// Facturation de la plateforme (étape 25) : module, service (vue de l'organisation pour la route /v1/org à la fusion), tâche quotidienne, adaptateur.
+export { PlatformBillingModule } from './modules/platform-billing/platform-billing.module.js';
+export { PlatformBillingService } from './modules/platform-billing/platform-billing.service.js';
+export { BillingJobsService } from './modules/platform-billing/billing-jobs.service.js';
+export * from './adapters/billing.types.js';
+export { StripeBillingProvider } from './adapters/real/stripe-billing.real.js';

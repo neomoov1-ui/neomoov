@@ -2,6 +2,9 @@
  * Personnel de My Hub (rôles admin, operator, finance, readonly) : courriel et mot de passe argon2id, puis second
  * facteur TOTP obligatoire (inscription au premier accès, codes de secours), verrouillage progressif après cinq échecs.
  * Un membre du personnel connecté par code SMS (comme client) n'obtient jamais ses rôles du personnel (voir AuthService).
+ * Étape 21 : le même second facteur (secret TOTP, codes de secours, verrouillage) sert aux membres des organisations
+ * clientes connectés par code SMS (`member`) : jetons de passage distincts, session sans mot de passe ni rôle du
+ * personnel, `amr` = premier facteur et `mfa`.
  */
 import { schema } from '@neomoov/db';
 import type { StaffCreate, UserRole } from '@neomoov/domain';
@@ -15,7 +18,7 @@ import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { hasStaffRole } from './actor.js';
+import { hasStaffRole, isStaffRole, type UserActor } from './actor.js';
 import { TokensService } from './tokens.service.js';
 import { UsersService, type UserRow } from '../users/users.service.js';
 
@@ -23,6 +26,15 @@ type CredentialsRow = typeof schema.staffCredentials.$inferSelect;
 
 /** Un code TOTP accepté ne sert qu'une fois : trois pas de 30 secondes, la fenêtre de tolérance (RFC 6238), pas un réglage métier. */
 const TOTP_REPLAY_TTL_SECONDS = 90;
+
+/** Second facteur du personnel (après le mot de passe) ou d'un membre d'organisation (après le code SMS). */
+export type MfaKind = 'staff' | 'member';
+const PURPOSES = {
+  staff: { verify: 'mfa_verify', enroll: 'mfa_enroll' },
+  member: { verify: 'member_mfa_verify', enroll: 'member_mfa_enroll' },
+} as const;
+/** Méthodes d'un premier facteur reprises dans la session d'un membre (jamais `pwd`, `mfa` ni `backup`). */
+const FIRST_FACTORS = new Set(['otp', 'apple', 'google']);
 
 export interface StaffLoginResult {
   status: 'mfa_required' | 'mfa_enrollment_required';
@@ -61,7 +73,8 @@ export class StaffAuthService {
     const user = await this.users.findByEmail(email);
     const roles = user ? await this.users.rolesOf(user.id) : [];
     const credentials = user && hasStaffRole(roles) ? await this.credentialsOf(user.id) : null;
-    if (!user || !credentials || user.status !== 'active') {
+    // Étape 21 : un second facteur de membre d'organisation n'a pas de mot de passe ; il n'ouvre jamais de session du personnel.
+    if (!user || !credentials?.passwordHash || user.status !== 'active') {
       await verifyPassword(password, await dummyPasswordHash());
       throw AppError.unauthorized('INVALID_CREDENTIALS', 'Courriel ou mot de passe incorrect');
     }
@@ -102,21 +115,30 @@ export class StaffAuthService {
   }
 
   /** Inscription du second facteur : secret et QR, à confirmer par un premier code. */
-  async enroll(mfaToken: string): Promise<{ secret: string; otpauthUri: string; qrSvg: string }> {
-    const { subject: userId } = await this.tokens.verifyTransientToken('mfa_enroll', mfaToken);
+  async enroll(mfaToken: string, kind: MfaKind = 'staff'): Promise<{ secret: string; otpauthUri: string; qrSvg: string }> {
+    const { subject: userId } = await this.tokens.verifyTransientToken(PURPOSES[kind].enroll, mfaToken);
     const user = this.users.requireUsable(await this.users.findById(userId));
     const secret = generateTotpSecret();
-    await this.db.update(schema.staffCredentials).set({ totpPendingSecretEncrypted: encryptString(secret, this.env.ENCRYPTION_KEY!) }).where(eq(schema.staffCredentials.userId, userId));
+    const pending = encryptString(secret, this.env.ENCRYPTION_KEY!);
+    if (kind === 'member') {
+      // Membre d'organisation : la ligne naît ici, sans mot de passe.
+      await this.db.insert(schema.staffCredentials).values({ userId, passwordHash: null, totpPendingSecretEncrypted: pending })
+        .onConflictDoUpdate({ target: schema.staffCredentials.userId, set: { totpPendingSecretEncrypted: pending } });
+    } else {
+      await this.db.update(schema.staffCredentials).set({ totpPendingSecretEncrypted: pending }).where(eq(schema.staffCredentials.userId, userId));
+    }
     const uri = otpauthUri(this.env.MFA_ISSUER, user.email ?? user.phone, secret);
     const qrSvg = await QRCode.toString(uri, { type: 'svg', margin: 1, width: 240 });
     return { secret, otpauthUri: uri, qrSvg };
   }
 
   /** Confirme l'inscription avec un code valide : active le TOTP, remet dix codes de secours et ouvre la session. */
-  async confirmEnrollment(mfaToken: string, code: string, ctx: SessionContext) {
-    const { subject: userId, jti } = await this.tokens.verifyTransientToken('mfa_enroll', mfaToken);
+  async confirmEnrollment(mfaToken: string, code: string, ctx: SessionContext, kind: MfaKind = 'staff') {
+    const { subject: userId, jti, data } = await this.tokens.verifyTransientToken(PURPOSES[kind].enroll, mfaToken);
     const credentials = await this.credentialsOf(userId);
     if (!credentials?.totpPendingSecretEncrypted) throw new AppError('MFA_ENROLLMENT_NOT_STARTED', 'Commencez par demander le QR d\'inscription', 400);
+    // Un membre déjà inscrit ne remplace pas son second facteur par un ancien jeton d'inscription.
+    if (kind === 'member' && credentials.totpEnabledAt) throw AppError.conflict('MFA_ALREADY_ENROLLED', 'Second facteur déjà inscrit : utilisez votre code');
     this.assertNotLocked(credentials);
     const secret = decryptString(credentials.totpPendingSecretEncrypted, this.env.ENCRYPTION_KEY!);
     if (verifyTotp(secret, code) === null) {
@@ -129,12 +151,12 @@ export class StaffAuthService {
       .set({ totpSecretEncrypted: credentials.totpPendingSecretEncrypted, totpPendingSecretEncrypted: null, totpEnabledAt: new Date(), backupCodeHashes: backupCodes.map((c) => sha256Hex(c)) })
       .where(eq(schema.staffCredentials.userId, userId));
     await this.consumeTransient(jti);
-    return { backupCodes, ...(await this.openSession(userId, ctx)) };
+    return { backupCodes, ...(await this.openSession(userId, ctx, ['pwd', 'mfa'], kind === 'member' ? memberOf(data) : null)) };
   }
 
   /** Deuxième étape : code TOTP (un même code ne sert qu'une fois). */
-  async verifyCode(mfaToken: string, code: string, ctx: SessionContext) {
-    const { subject: userId, jti } = await this.tokens.verifyTransientToken('mfa_verify', mfaToken);
+  async verifyCode(mfaToken: string, code: string, ctx: SessionContext, kind: MfaKind = 'staff') {
+    const { subject: userId, jti, data } = await this.tokens.verifyTransientToken(PURPOSES[kind].verify, mfaToken);
     const credentials = await this.credentialsOf(userId);
     if (!credentials?.totpSecretEncrypted) throw new AppError('MFA_NOT_ENROLLED', 'Second facteur non inscrit', 400);
     this.assertNotLocked(credentials);
@@ -144,12 +166,12 @@ export class StaffAuthService {
       throw new AppError('MFA_CODE_INVALID', 'Code incorrect ou déjà utilisé', 400);
     }
     await this.consumeTransient(jti);
-    return this.openSession(userId, ctx);
+    return this.openSession(userId, ctx, ['pwd', 'mfa'], kind === 'member' ? memberOf(data) : null);
   }
 
   /** Deuxième étape avec un code de secours, consommé. */
-  async verifyBackupCode(mfaToken: string, backupCode: string, ctx: SessionContext) {
-    const { subject: userId, jti } = await this.tokens.verifyTransientToken('mfa_verify', mfaToken);
+  async verifyBackupCode(mfaToken: string, backupCode: string, ctx: SessionContext, kind: MfaKind = 'staff') {
+    const { subject: userId, jti, data } = await this.tokens.verifyTransientToken(PURPOSES[kind].verify, mfaToken);
     const credentials = await this.credentialsOf(userId);
     if (credentials) this.assertNotLocked(credentials);
     const hashes = (credentials?.backupCodeHashes as string[] | null) ?? [];
@@ -160,7 +182,7 @@ export class StaffAuthService {
     }
     await this.db.update(schema.staffCredentials).set({ backupCodeHashes: hashes.filter((h) => h !== hash) }).where(eq(schema.staffCredentials.userId, userId));
     await this.consumeTransient(jti);
-    return this.openSession(userId, ctx, ['pwd', 'mfa', 'backup']);
+    return this.openSession(userId, ctx, ['pwd', 'mfa', 'backup'], kind === 'member' ? memberOf(data) : null);
   }
 
   private async consumeTransient(jti: string): Promise<void> {
@@ -168,9 +190,31 @@ export class StaffAuthService {
     if (!(await this.store.claimOnce(`transient:${jti}`, ttl + 60))) throw AppError.unauthorized('INVALID_TRANSIENT_TOKEN', 'Jeton de passage déjà utilisé');
   }
 
-  private async openSession(userId: string, ctx: SessionContext, amr: string[] = ['pwd', 'mfa']) {
+  /**
+   * Second facteur d'un membre d'organisation (étape 21), proposé dès qu'une permission sensible est nécessaire : jeton
+   * de passage pour vérifier son code TOTP, ou pour l'inscrire s'il n'en a pas. Le jeton porte la session à remplacer et
+   * les méthodes du premier facteur.
+   */
+  async startMember(actor: UserActor): Promise<StaffLoginResult> {
+    this.users.requireUsable(await this.users.findById(actor.userId));
+    const credentials = await this.credentialsOf(actor.userId);
+    if (credentials) this.assertNotLocked(credentials);
+    // Un membre du personnel inscrit son second facteur par sa propre connexion (mot de passe) : jamais par le code SMS,
+    // qui laisserait le détenteur du téléphone choisir le TOTP de son compte du personnel.
+    if (credentials?.passwordHash && !credentials.totpEnabledAt) throw AppError.conflict('MFA_STAFF_ENROLLMENT_REQUIRED', 'Inscrivez d\'abord votre second facteur par la connexion du personnel');
+    const ttl = await this.settings.number('auth.mfa_token_ttl_seconds', 300);
+    const enrolled = Boolean(credentials?.totpEnabledAt);
+    const firstFactor = actor.amr.filter((m) => FIRST_FACTORS.has(m));
+    const mfaToken = await this.tokens.issueTransientToken(enrolled ? 'member_mfa_verify' : 'member_mfa_enroll', actor.userId, { sid: actor.sessionId, amr: firstFactor }, ttl);
+    return { status: enrolled ? 'mfa_required' : 'mfa_enrollment_required', mfaToken };
+  }
+
+  private async openSession(userId: string, ctx: SessionContext, amr: string[] = ['pwd', 'mfa'], member: MemberSession | null = null) {
     const user = this.users.requireUsable(await this.users.findById(userId));
-    const roles = await this.users.rolesOf(userId);
+    // Membre d'organisation : jamais de rôle du personnel ni de `pwd` ; la session d'avant (code SMS seul) est remplacée.
+    const allRoles = await this.users.rolesOf(userId);
+    const roles = member ? allRoles.filter((r) => !isStaffRole(r)) : allRoles;
+    if (member) amr = [...new Set([...member.firstFactor, ...amr.filter((m) => m !== 'pwd')])];
     // Remise à zéro seulement si aucun verrou n'a été posé entre-temps (essais parallèles) : sinon 423, pas de session.
     const reset = await this.db
       .update(schema.staffCredentials)
@@ -183,13 +227,14 @@ export class StaffAuthService {
     }
     const session = await this.tokens.createSession({ userId, deviceId: null, ip: ctx.ip, userAgent: ctx.userAgent, amr });
     const access = await this.tokens.issueAccessToken({ userId, sessionId: session.sessionId, primaryRole: user.primaryRole, roles, amr });
+    if (member?.previousSessionId) await this.tokens.revokeSession(member.previousSessionId);
     return {
       tokenType: 'Bearer' as const,
       accessToken: access.token,
       expiresIn: access.expiresIn,
       refreshToken: session.refreshToken,
       created: false,
-      user: await this.users.meViewOf(user),
+      user: await this.users.meViewOf(user, roles),
     };
   }
 
@@ -248,6 +293,17 @@ export class StaffAuthService {
       .where(eq(schema.staffCredentials.userId, userId));
     await this.tokens.revokeAllForUser(userId);
   }
+}
+
+interface MemberSession {
+  previousSessionId: string | null;
+  firstFactor: string[];
+}
+
+/** Session d'avant et premier facteur, portés par le jeton de passage d'un membre. */
+function memberOf(data: Record<string, unknown>): MemberSession {
+  const amr = Array.isArray(data['amr']) ? (data['amr'] as unknown[]).filter((m): m is string => typeof m === 'string' && FIRST_FACTORS.has(m)) : [];
+  return { previousSessionId: typeof data['sid'] === 'string' ? data['sid'] : null, firstFactor: amr.length ? amr : ['otp'] };
 }
 
 export interface SessionContext {
