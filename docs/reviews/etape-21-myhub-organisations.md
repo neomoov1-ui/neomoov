@@ -22,7 +22,7 @@ Revue de fin de mission, 1er octobre 2026. Branche `etape-21-myhub-organisations
 - Sans base : `vitest run test/org-hub.test.ts test/org-scope.test.ts` : 6 tests verts (traitements après validation, réglage du jeton d'invitation, résolution de l'organisation).
 - Sous le verrou `agent-f`, premier passage de `org-hub.e2e` : 5 verts sur 6 (152 s) ; le sixième (modules de la formule) corrigé dans le test.
 - Sous le verrou, un seul `vitest run --no-file-parallelism` sur `org-hub.e2e`, `organizations.e2e`, `isolation-routes.e2e`, `staff.e2e`, `authorization.e2e` : 26 verts sur 27 en 693 s ; l'échec restant venait du test (parent sans formule restreinte), corrigé.
-- Dernier passage sous le verrou de `org-hub.e2e`, `org-hub.test` et `org-scope.test` : voir le rapport final de l'agent (résultat exact).
+- Dernier passage sous le verrou, un seul `vitest run --no-file-parallelism` sur `org-hub.e2e` (6), `org-hub.test` (2) et `org-scope.test` (4), code et tests définitifs (refus `MFA_STAFF_ENROLLMENT_REQUIRED` compris) : 12 tests verts en 257 s.
 - `pnpm --filter @neomoov/api-client test` : 5 fichiers, 29 tests verts ; `pnpm --filter @neomoov/web exec vitest run` : 3 fichiers, 9 tests verts.
 - Types verts : `domain`, `db`, `api` (code et tests), `api-client`, `web`, `worker`.
 - Migration 0022 appliquée sur la base de développement sous le verrou (table, colonne facultative, permission vérifiées par requête).
