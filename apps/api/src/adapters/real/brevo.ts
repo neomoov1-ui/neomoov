@@ -55,7 +55,7 @@ export class BrevoNewsletterPublisher implements SocialPublisher {
       response = await this.fetchImpl(`${API}${path}`, {
         method: init.method ?? 'GET',
         headers: { 'api-key': this.options.apiKey, accept: 'application/json', ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}) },
-        body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+        ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
         signal: AbortSignal.timeout(30_000),
       });
     } catch (error) {

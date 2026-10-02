@@ -65,6 +65,7 @@ Aucune ligne visible sous contexte (sécurité activée, aucune politique pour l
 | `user_roles` | Anciens rôles et personnel de la plateforme (lu sous contexte par `platform_staff_user_ids`) |
 | `crm_records` | Correspondance avec le CRM de la plateforme (HubSpot, étape 25) |
 | `webhook_events` | File technique des événements des fournisseurs |
+| `content_items`, `content_comments`, `seo_tasks` | Marketing automatisé de la plateforme (phase 1 « entreprise autonome ») : calendrier de contenu des réseaux et du site de Neomoov, commentaires reçus, tâches de référencement ; aucune donnée d'organisation cliente |
 
 ## Organisation des lignes créées
 

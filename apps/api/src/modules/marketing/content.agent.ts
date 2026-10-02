@@ -101,7 +101,7 @@ export class ContentAgent {
       ].join('\n'),
     }]);
     const prepared = this.prepare(output, spaces, max, options);
-    const scheduled = assignSlots(prepared, weekStart, parseSlots(rawSlots), tz, now);
+    const scheduled = assignSlots(prepared.map((p) => ({ space: p.draft.space })), weekStart, parseSlots(rawSlots), tz, now);
     const rows = await this.db
       .insert(schema.contentItems)
       .values(prepared.map((p, index) => ({

@@ -22,6 +22,9 @@ import { SeoService, type SeoProposal } from './seo.service.js';
 export const SEO = 'seo';
 
 const OPEN_STATUSES = ['proposed', 'approved', 'applied'];
+/** Une tâche liée à une page (balises, lien) est unique par page ; une création l'est par mot-clé. */
+const PAGE_BOUND = new Set(['fix_title', 'fix_description', 'internal_link']);
+const taskKey = (action: string, ref: string | null, keyword: string | null) => (PAGE_BOUND.has(action) ? `${action}|${ref ?? ''}` : `${action}|${ref ?? ''}|${(keyword ?? '').toLowerCase()}`);
 
 @Injectable()
 export class SeoAgent {
@@ -71,8 +74,8 @@ export class SeoAgent {
     }]);
     const candidates = this.merge(output, findings, pages, maxTasks);
     const existing = await this.db.select({ action: schema.seoTasks.action, targetRef: schema.seoTasks.targetRef, keyword: schema.seoTasks.keyword }).from(schema.seoTasks).where(and(inArray(schema.seoTasks.status, OPEN_STATUSES)));
-    const open = new Set(existing.map((e) => `${e.action}|${e.targetRef ?? ''}|${(e.keyword ?? '').toLowerCase()}`));
-    const fresh = candidates.filter((c) => !open.has(`${c.action}|${c.targetRef ?? ''}|${(c.keyword ?? '').toLowerCase()}`));
+    const open = new Set(existing.map((e) => taskKey(e.action, e.targetRef, e.keyword)));
+    const fresh = candidates.filter((c) => !open.has(taskKey(c.action, c.targetRef, c.keyword)));
     if (!fresh.length) return { created: 0, applied: 0, findings: findings.length, summary: output.summary.slice(0, 1_000) };
     const rows = await this.db
       .insert(schema.seoTasks)
@@ -97,7 +100,7 @@ export class SeoAgent {
     const byId = new Map(pages.map((p) => [p.id, p]));
     const tasks: Array<{ action: SeoFinding['action']; targetKind: SeoFinding['targetKind']; targetRef: string | null; targetTitle: string | null; targetUrl: string | null; keyword: string | null; justification: string; proposal: SeoProposal }> = [];
     const seen = new Set<string>();
-    const key = (action: string, ref: string | null, keyword: string | null) => `${action}|${ref ?? ''}|${(keyword ?? '').toLowerCase()}`;
+    const key = taskKey;
     const bounded = (value: string | null | undefined, max: number) => (value?.trim() ? value.trim().slice(0, max) : null);
     for (const task of output.tasks) {
       const page = task.targetRef ? byId.get(task.targetRef) : undefined;

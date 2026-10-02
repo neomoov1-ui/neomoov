@@ -11,7 +11,7 @@ const fr = {
     clients: 'Clients', leads: 'Prospects', tariffs: 'Tarifs', zones: 'Zones', offers: 'Packs et promotions', statements: 'Relevés', invoices: 'Factures',
     incidents: 'Incidents', dataRequests: 'Demandes de droits', agents: 'Agents IA', reports: 'Rapports', settings: 'Paramètres', staff: 'Équipe', audit: 'Journal d\'audit',
     quality: 'Qualité des chauffeurs', fairness: 'Équité (demandes des chauffeurs)', compliance: 'Conformité et conservation', queues: 'Files de tâches',
-    ledgers: 'Registres et exports', metrics: 'Métriques', apiKeys: 'Clés de service', organizations: 'Organisations et accès', supportAccess: 'Accès du support',
+    ledgers: 'Registres et exports', metrics: 'Métriques', apiKeys: 'Clés de service', organizations: 'Organisations et accès', supportAccess: 'Accès du support', marketing: 'Marketing',
   },
   shell: { signedInAs: 'Connecté : {{name}}', logout: 'Se déconnecter', menu: 'Menu', skip: 'Aller au contenu', live: 'Temps réel actif', polling: 'Actualisation périodique', readOnly: 'Lecture seule' },
   login: {
@@ -288,6 +288,19 @@ const fr = {
     channels: { push: 'Push', sms: 'Texto', email: 'Courriel', whatsapp: 'WhatsApp', in_app: 'Dans l\'application' },
     targetMet: 'Cible atteinte', targetMissed: 'Cible dépassée',
   },
+  marketing: {
+    title: 'Marketing', subtitle: 'Calendrier de contenu des dix espaces et de l\'infolettre produit chaque vendredi par l\'agent contenu, diffusion aux créneaux par l\'agent de diffusion, mesures à J+1 et J+7, plan de référencement du lundi. Un contenu sensible attend toujours une personne.',
+    tabs: { calendar: 'Calendrier', seo: 'Référencement', spaces: 'Espaces' },
+    week: 'Semaine du', previousWeek: 'Semaine précédente', nextWeek: 'Semaine suivante', plan: 'Produire le calendrier', planNext: 'Produire la semaine suivante', planned: '{{created}} contenus produits, {{autoApproved}} programmés automatiquement.', replayed: 'Semaine déjà produite : rien de nouveau.',
+    allSpaces: 'Tous les espaces', empty: 'Aucun contenu pour cette semaine. Lancez l\'agent contenu ou attendez le vendredi.', slot: 'Créneau', format: 'Format', space: 'Espace', status: 'État',
+    sensitive: 'Sensible', blocked: 'Bloqué', issues: 'Écarts', approve: 'Approuver', reject: 'Refuser', rejectReason: 'Motif du refus', publishNow: 'Publier maintenant', edit: 'Modifier', preview: 'Aperçu', media: 'Visuel', noMedia: 'Aucun média', mediaPending: 'Visuel à produire', mediaHtml: 'Gabarit prêt (rendu différé)',
+    metrics: 'Mesures', reach: 'Portée', interactions: 'Interactions', clicks: 'Clics', measuredAt: 'Mesuré le', notMeasured: 'Pas encore mesuré', comments: 'Commentaires', noComments: 'Aucun commentaire.', reply: 'Réponse', externalLink: 'Voir sur le réseau', attempts: 'Tentatives', error: 'Erreur',
+    editTitle: 'Modifier le contenu', fieldTitle: 'Titre', fieldBody: 'Texte', fieldCaption: 'Légende', fieldHashtags: 'Mots-clics (séparés par des espaces)', fieldCta: 'Appel à l\'action', fieldHeadline: 'Phrase du visuel', editHint: 'Un texte modifié après approbation repasse en brouillon : les règles sont réappliquées.',
+    cta: { reserve: 'Réserver', academy: 'Academy', preregister: 'Devenir chauffeur', none: 'Aucun' },
+    seoTitle: 'Tâches de référencement', seoPlan: 'Produire le plan de la semaine', seoPlanned: '{{created}} tâches proposées, {{applied}} appliquées.', seoEmpty: 'Aucune tâche.', action: 'Action', target: 'Page visée', keyword: 'Mot-clé', justification: 'Justification', proposal: 'Proposition', apply: 'Approuver et appliquer', before: 'Avant', after: 'Après', impressions: 'impressions', position: 'position', seoHint: 'Approuver corrige la balise ou crée un brouillon sur le site (jamais publié par la plateforme) ; un lien interne reste à poser à la main.',
+    spacesTitle: 'Espaces et connecteurs', connector: 'Connecteur', configured: 'Configuré', notConfigured: 'Non configuré', slots: 'Créneaux', formats: 'Formats', day: 'J', spacesHint: 'Le calendrier ne couvre que les espaces dont le connecteur est configuré. Clés et droits à demander : docs/marketing/connecteurs.md.',
+    saved: 'Enregistré.', decided: 'Décision enregistrée.',
+  },
 };
 
 const en: typeof fr = {
@@ -299,7 +312,7 @@ const en: typeof fr = {
     clients: 'Customers', leads: 'Leads', tariffs: 'Rates', zones: 'Zones', offers: 'Packs and promotions', statements: 'Statements', invoices: 'Invoices',
     incidents: 'Incidents', dataRequests: 'Privacy requests', agents: 'AI agents', reports: 'Reports', settings: 'Settings', staff: 'Team', audit: 'Audit log',
     quality: 'Driver quality', fairness: 'Fairness (driver requests)', compliance: 'Compliance and retention', queues: 'Job queues',
-    ledgers: 'Ledgers and exports', metrics: 'Metrics', apiKeys: 'Service keys', organizations: 'Organizations and access', supportAccess: 'Support access',
+    ledgers: 'Ledgers and exports', metrics: 'Metrics', apiKeys: 'Service keys', organizations: 'Organizations and access', supportAccess: 'Support access', marketing: 'Marketing',
   },
   shell: { signedInAs: 'Signed in: {{name}}', logout: 'Sign out', menu: 'Menu', skip: 'Skip to content', live: 'Live updates on', polling: 'Periodic refresh', readOnly: 'Read only' },
   login: {
@@ -576,6 +589,19 @@ const en: typeof fr = {
     channels: { push: 'Push', sms: 'Text message', email: 'Email', whatsapp: 'WhatsApp', in_app: 'In the app' },
     targetMet: 'Target met', targetMissed: 'Target missed',
   },
+  marketing: {
+    title: 'Marketing', subtitle: 'Content calendar for the ten spaces and the newsletter, produced every Friday by the content agent, published at its slots by the publishing agent, measured at D+1 and D+7, SEO plan on Mondays. Sensitive content always waits for a person.',
+    tabs: { calendar: 'Calendar', seo: 'SEO', spaces: 'Spaces' },
+    week: 'Week of', previousWeek: 'Previous week', nextWeek: 'Next week', plan: 'Produce the calendar', planNext: 'Produce next week', planned: '{{created}} items produced, {{autoApproved}} scheduled automatically.', replayed: 'Week already produced: nothing new.',
+    allSpaces: 'All spaces', empty: 'No content for this week. Run the content agent or wait for Friday.', slot: 'Slot', format: 'Format', space: 'Space', status: 'Status',
+    sensitive: 'Sensitive', blocked: 'Blocked', issues: 'Issues', approve: 'Approve', reject: 'Reject', rejectReason: 'Rejection reason', publishNow: 'Publish now', edit: 'Edit', preview: 'Preview', media: 'Visual', noMedia: 'No media', mediaPending: 'Visual to produce', mediaHtml: 'Template ready (rendering deferred)',
+    metrics: 'Metrics', reach: 'Reach', interactions: 'Interactions', clicks: 'Clicks', measuredAt: 'Measured on', notMeasured: 'Not measured yet', comments: 'Comments', noComments: 'No comments.', reply: 'Reply', externalLink: 'Open on the network', attempts: 'Attempts', error: 'Error',
+    editTitle: 'Edit content', fieldTitle: 'Title', fieldBody: 'Text', fieldCaption: 'Caption', fieldHashtags: 'Hashtags (space separated)', fieldCta: 'Call to action', fieldHeadline: 'Visual headline', editHint: 'Text changed after approval goes back to draft: the rules are applied again.',
+    cta: { reserve: 'Book', academy: 'Academy', preregister: 'Become a driver', none: 'None' },
+    seoTitle: 'SEO tasks', seoPlan: 'Produce this week\'s plan', seoPlanned: '{{created}} tasks proposed, {{applied}} applied.', seoEmpty: 'No tasks.', action: 'Action', target: 'Target page', keyword: 'Keyword', justification: 'Rationale', proposal: 'Proposal', apply: 'Approve and apply', before: 'Before', after: 'After', impressions: 'impressions', position: 'position', seoHint: 'Approving fixes the tag or creates a draft on the site (never published by the platform); an internal link remains manual.',
+    spacesTitle: 'Spaces and connectors', connector: 'Connector', configured: 'Configured', notConfigured: 'Not configured', slots: 'Slots', formats: 'Formats', day: 'D', spacesHint: 'The calendar only covers spaces whose connector is configured. Keys and permissions to request: docs/marketing/connecteurs.md.',
+    saved: 'Saved.', decided: 'Decision recorded.',
+  },
 };
 
 const enumFr = {
@@ -614,6 +640,13 @@ const enumFr = {
   rideEvent: { client_confirms: 'Réservation confirmée', quote_expires: 'Devis expiré', offers_sent: 'Offres envoyées', new_wave: 'Nouvelle vague d\x27offres', no_driver_found: 'Aucun chauffeur trouvé', driver_accepts: 'Chauffeur attribué', driver_departs: 'Chauffeur en route', driver_arrives: 'Chauffeur arrivé', ride_starts: 'Course commencée', client_no_show: 'Client absent', ride_ends: 'Course terminée', incident: 'Incident', client_rates: 'Évaluation du client', client_disputes: 'Contestation', client_cancels: 'Annulée par le client', driver_cancels: 'Annulée par le chauffeur', reassign: 'Réattribution', sos: 'SOS', dispatch_started: 'Répartition lancée', dispatch_wave: 'Vague de répartition', dispatch_held: 'Répartition en attente', dispatch_released: 'Répartition relancée', no_candidates: 'Aucun candidat disponible', offer_sent: 'Offre envoyée', offer_accepted: 'Offre acceptée', offer_declined: 'Offre refusée', offer_expired: 'Offre expirée', offer_countered: 'Contre-proposition', offer_window_closed: 'Fenêtre d\x27offres close', no_movement_reassign: 'Retrait (aucun déplacement)', negotiation_opened: 'Négociation ouverte', negotiation_agreed: 'Prix négocié convenu', negotiation_fallback: 'Retour au prix affiché', scheduled_reminder: 'Rappel envoyé au chauffeur', scheduled_dispatch_due: 'Répartition planifiée due', scheduled_operator_alert: 'Alerte à l\x27opérateur', vehicle_mismatch_reported: 'Véhicule non conforme signalé', favourite_unavailable: 'Favori indisponible' },
   offerState: { sent: 'Envoyée', accepted: 'Acceptée', declined: 'Refusée', expired: 'Expirée', withdrawn: 'Retirée' },
   actor: { client: 'Client', driver: 'Chauffeur', operator: 'Opérateur', system: 'Système', agent: 'Agent IA', passenger: 'Passager' },
+  contentSpace: { site_blog: 'neomoov.net (blogue)', academy: 'Academy', google_business: 'Fiche Google', facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', tiktok: 'TikTok', youtube: 'YouTube', x: 'X', snapchat: 'Snapchat', newsletter: 'Infolettre' },
+  contentFormat: { post: 'Publication', article: 'Article', reel: 'Reel', story: 'Story', video: 'Vidéo', short: 'Vidéo courte', newsletter: 'Infolettre' },
+  contentStatus: { draft: 'Brouillon', approved: 'Approuvé', scheduled: 'Programmé', published: 'Publié', failed: 'En échec', measured: 'Mesuré', rejected: 'Refusé' },
+  mediaStatus: { none: 'Sans média', pending: 'À produire', html: 'Gabarit prêt', ready: 'Prêt', failed: 'En échec' },
+  seoAction: { new_page: 'Nouvelle page', new_article: 'Nouvel article', fix_title: 'Corriger le titre', fix_description: 'Corriger la description', faq_question: 'Question de FAQ', internal_link: 'Lien interne' },
+  seoStatus: { proposed: 'Proposée', approved: 'Approuvée (à faire à la main)', applied: 'Appliquée', rejected: 'Refusée', failed: 'En échec', measured: 'Mesurée' },
+  commentOutcome: { replied: 'Répondu', forwarded: 'Transmis à la relation client', escalated: 'Transmis à l\'équipe', ignored: 'Ignoré' },
 };
 
 const enumEn: typeof enumFr = {
@@ -652,6 +685,13 @@ const enumEn: typeof enumFr = {
   rideEvent: { client_confirms: 'Booking confirmed', quote_expires: 'Quote expired', offers_sent: 'Offers sent', new_wave: 'New offer wave', no_driver_found: 'No driver found', driver_accepts: 'Driver assigned', driver_departs: 'Driver on the way', driver_arrives: 'Driver arrived', ride_starts: 'Ride started', client_no_show: 'Customer no-show', ride_ends: 'Ride ended', incident: 'Incident', client_rates: 'Customer rating', client_disputes: 'Dispute', client_cancels: 'Cancelled by customer', driver_cancels: 'Cancelled by driver', reassign: 'Reassignment', sos: 'SOS', dispatch_started: 'Dispatch started', dispatch_wave: 'Dispatch wave', dispatch_held: 'Dispatch on hold', dispatch_released: 'Dispatch resumed', no_candidates: 'No candidate available', offer_sent: 'Offer sent', offer_accepted: 'Offer accepted', offer_declined: 'Offer declined', offer_expired: 'Offer expired', offer_countered: 'Counter-offer', offer_window_closed: 'Offer window closed', no_movement_reassign: 'Removed (no movement)', negotiation_opened: 'Negotiation opened', negotiation_agreed: 'Negotiated price agreed', negotiation_fallback: 'Back to displayed price', scheduled_reminder: 'Reminder sent to driver', scheduled_dispatch_due: 'Scheduled dispatch due', scheduled_operator_alert: 'Operator alert', vehicle_mismatch_reported: 'Vehicle mismatch reported', favourite_unavailable: 'Favourite unavailable' },
   offerState: { sent: 'Sent', accepted: 'Accepted', declined: 'Declined', expired: 'Expired', withdrawn: 'Withdrawn' },
   actor: { client: 'Customer', driver: 'Driver', operator: 'Operator', system: 'System', agent: 'AI agent', passenger: 'Passenger' },
+  contentSpace: { site_blog: 'neomoov.net (blog)', academy: 'Academy', google_business: 'Google Business Profile', facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', tiktok: 'TikTok', youtube: 'YouTube', x: 'X', snapchat: 'Snapchat', newsletter: 'Newsletter' },
+  contentFormat: { post: 'Post', article: 'Article', reel: 'Reel', story: 'Story', video: 'Video', short: 'Short video', newsletter: 'Newsletter' },
+  contentStatus: { draft: 'Draft', approved: 'Approved', scheduled: 'Scheduled', published: 'Published', failed: 'Failed', measured: 'Measured', rejected: 'Rejected' },
+  mediaStatus: { none: 'No media', pending: 'To produce', html: 'Template ready', ready: 'Ready', failed: 'Failed' },
+  seoAction: { new_page: 'New page', new_article: 'New article', fix_title: 'Fix title', fix_description: 'Fix description', faq_question: 'FAQ question', internal_link: 'Internal link' },
+  seoStatus: { proposed: 'Proposed', approved: 'Approved (manual follow-up)', applied: 'Applied', rejected: 'Rejected', failed: 'Failed', measured: 'Measured' },
+  commentOutcome: { replied: 'Replied', forwarded: 'Forwarded to customer relations', escalated: 'Forwarded to the team', ignored: 'Ignored' },
 };
 
 export const hubTexts = { 'fr-CA': fr, en };

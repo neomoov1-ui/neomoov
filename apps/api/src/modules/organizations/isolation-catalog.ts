@@ -30,6 +30,10 @@ export const PLATFORM_ONLY_TABLES: Readonly<Record<string, string>> = {
   staff_notes: 'Notes internes du personnel de la plateforme sur les fiches ; des notes par organisation demanderont une politique par entité.',
   user_roles: 'Anciens rôles (client, chauffeur, personnel de la plateforme) ; les droits des organisations passent par memberships et roles.',
   webhook_events: 'Événements reçus des fournisseurs (Stripe) : file technique de la plateforme.',
+  // Phase 1 « entreprise autonome » (2 octobre 2026) : marketing de la plateforme (réseaux et site de Neomoov).
+  content_items: 'Calendrier de contenu des réseaux et du site de Neomoov (agents content et publishing) : aucune donnée d\'organisation cliente.',
+  content_comments: 'Commentaires reçus sur les publications de Neomoov et réponses automatiques de l\'agent de diffusion.',
+  seo_tasks: 'Tâches de référencement de neomoov.net (agent seo) : pages du site de la plateforme.',
 };
 
 /** Vrai si la table est, par choix, réservée à la plateforme. */

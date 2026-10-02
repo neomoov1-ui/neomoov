@@ -112,7 +112,7 @@ export class ContentService {
       this.settings.get<Record<string, unknown>>('marketing.cta_urls', {}),
     ]);
     const strings = (value: unknown): string[] => (Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []);
-    const urls: ContentCheckOptions['ctaUrls'] = {};
+    const urls: Partial<Record<CtaTarget, string>> = {};
     for (const key of ['reserve', 'academy', 'preregister'] as const) {
       const value = ctaUrls[key];
       if (typeof value === 'string' && value) urls[key] = value;
@@ -135,7 +135,9 @@ export class ContentService {
       ...(hashtags ? { hashtags } : {}), ...(input.cta !== undefined ? { cta: input.cta } : {}), ...(input.visualHeadline !== undefined ? { visualHeadline: input.visualHeadline } : {}),
     };
     const issues = checkContent(ContentService.draftOf(next), await this.checkOptions());
-    const sensitive = isSensitive(row.sensitive, issues);
+    // Le signalement de l'agent reste ; une sensibilité qui ne venait que des règles est recalculée sur le texte modifié.
+    const previousIssues = Array.isArray(row.issues) ? (row.issues as ContentIssue[]) : [];
+    const sensitive = isSensitive(row.sensitive && !isSensitive(false, previousIssues), issues);
     const textChanged = ['title', 'body', 'caption', 'hashtags', 'cta', 'visualHeadline'].some((k) => (input as Record<string, unknown>)[k] !== undefined);
     const [updated] = await this.db
       .update(schema.contentItems)

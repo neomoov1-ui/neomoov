@@ -7,6 +7,7 @@ import { PilotModule } from '@neomoov/api';
 import { CrmJobsService, CrmModule } from '@neomoov/api';
 import { BillingJobsService, PlatformBillingModule } from '@neomoov/api';
 import { FleetJobsService, FleetModule } from '@neomoov/api';
+import { MarketingJobsService, MarketingModule } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, Optional, type OnModuleInit } from '@nestjs/common';
 import { writeFile } from 'node:fs/promises';
 import type { Logger } from 'pino';
@@ -292,13 +293,26 @@ export class FleetWorker implements OnModuleInit {
   }
 }
 
+/** Marketing automatisé (phase 1 « entreprise autonome ») : avec Redis, le worker porte la file `marketing` (passe toutes les 5 minutes, médias). Sans Redis, c'est l'API. */
+@Injectable()
+export class MarketingWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: MarketingJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') this.jobs.register({ everyMs: 300_000 });
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule, PilotModule, CrmModule, PlatformBillingModule, FleetModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker, NotificationsWorker, ComplianceWorker, RetentionWorker, AgentsWorker, CrmWorker, BillingWorker, FleetWorker],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule, PilotModule, CrmModule, PlatformBillingModule, FleetModule, MarketingModule],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker, NotificationsWorker, ComplianceWorker, RetentionWorker, AgentsWorker, CrmWorker, BillingWorker, FleetWorker, MarketingWorker],
     };
   }
 }

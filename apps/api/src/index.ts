@@ -70,3 +70,9 @@ export { PlatformBillingService } from './modules/platform-billing/platform-bill
 export { BillingJobsService } from './modules/platform-billing/billing-jobs.service.js';
 export * from './adapters/billing.types.js';
 export { StripeBillingProvider } from './adapters/real/stripe-billing.real.js';
+// Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : module, agents, diffusion et file `marketing` (portée par le worker avec Redis).
+export { MarketingModule } from './modules/marketing/marketing.module.js';
+export { MarketingJobsService } from './modules/marketing/marketing-jobs.service.js';
+export { ContentAgent } from './modules/marketing/content.agent.js';
+export { PublishingService } from './modules/marketing/publishing.service.js';
+export { SeoAgent } from './modules/marketing/seo.agent.js';

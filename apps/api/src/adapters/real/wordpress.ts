@@ -98,7 +98,7 @@ export class WordPressConnector implements SocialPublisher, SiteConnector {
 
   private async request<T>(path: string, init: { method?: string; body?: unknown; raw?: { body: Buffer; contentType: string; filename: string } } = {}): Promise<{ data: T; headers: Headers }> {
     const headers: Record<string, string> = { authorization: this.authorization, accept: 'application/json' };
-    let body: BodyInit | undefined;
+    let body: string | Uint8Array | undefined;
     if (init.raw) {
       headers['content-type'] = init.raw.contentType;
       headers['content-disposition'] = `attachment; filename="${init.raw.filename.replace(/[^\w.-]/g, '_')}"`;
@@ -109,7 +109,7 @@ export class WordPressConnector implements SocialPublisher, SiteConnector {
     }
     let response: Response;
     try {
-      response = await this.fetchImpl(`${this.baseUrl}/wp-json${path}`, { method: init.method ?? 'GET', headers, body, signal: AbortSignal.timeout(30_000) });
+      response = await this.fetchImpl(`${this.baseUrl}/wp-json${path}`, { method: init.method ?? 'GET', headers, ...(body !== undefined ? { body } : {}), signal: AbortSignal.timeout(30_000) });
     } catch (error) {
       throw new AppError('SITE_PROVIDER_ERROR', `WordPress injoignable : ${error instanceof Error ? error.message : String(error)}`, 502);
     }
