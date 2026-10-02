@@ -59,7 +59,7 @@ function nmsa_legacy_conflict($uid) {
 function nmsa_order_ok($o, $record) {
     $lines=$o['line_items']??array(); $line=$lines[0]??array();
     if (($o['reference_id']??'')!==$record['reference'] || ($o['location_id']??'')!==$record['location']
-        || count($lines)!==1 || ($line['name']??'')!=='CAP CHAUFFEUR' || (string)($line['quantity']??'')!=='1'
+        || count($lines)!==1 || !in_array(($line['name']??''),array('Neomoov Chauffeur Pro','CAP'.' CHAUFFEUR'),true) || (string)($line['quantity']??'')!=='1'
         || !empty($line['catalog_object_id']) || !nmsa_money_is($line['base_price_money']??null,9900)
         || !nmsa_money_is($o['total_money']??null,11383) || !nmsa_money_is($o['total_tax_money']??null,1483)
         || (int)($o['total_discount_money']['amount']??0)!==0 || (int)($o['total_tip_money']['amount']??0)!==0
@@ -73,7 +73,7 @@ function nmsa_order_ok($o, $record) {
 function nmsa_payload($reference, $key, $location) {
     return array('idempotency_key'=>$key,'order'=>array(
         'location_id'=>$location,'reference_id'=>$reference,
-        'line_items'=>array(array('uid'=>'nma-course','name'=>'CAP CHAUFFEUR','quantity'=>'1','base_price_money'=>array('amount'=>9900,'currency'=>'CAD'))),
+        'line_items'=>array(array('uid'=>'nma-course','name'=>'Neomoov Chauffeur Pro','quantity'=>'1','base_price_money'=>array('amount'=>9900,'currency'=>'CAD'))),
         'taxes'=>array(
             array('uid'=>'nma-tps','name'=>'TPS','percentage'=>'5','type'=>'ADDITIVE','scope'=>'ORDER'),
             array('uid'=>'nma-tvq','name'=>'TVQ','percentage'=>'9.975','type'=>'ADDITIVE','scope'=>'ORDER')),
@@ -193,7 +193,7 @@ add_shortcode('nma_square_api_checkout',function(){
         echo '<form class="nmsa-checkout" method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="nmsa_create"><input type="hidden" name="terms_hash" value="'.esc_attr($snapshot['sha256']).'">';wp_nonce_field('nmsa_create');
         $config=nmsa_config();echo '<input type="hidden" name="terms_version" value="'.esc_attr($config['terms_version']).'"><p>Durée d’accès : '.esc_html($config['duration_months']).' mois calendaires à compter de l’activation. Remboursement possible dans les 14 jours selon les conditions. '.esc_html($config['review_delay']).'</p>';if($config['environment']==='sandbox')echo '<p class="message"><strong>Recette Sandbox : aucun paiement réel, aucun accès réel et aucun email envoyé.</strong></p>';
         $existing=get_user_meta(get_current_user_id(),'nmsa_checkout',true);$buyer=is_array($existing)?($existing['buyer']??array()):array();
-        echo '<p>CAP CHAUFFEUR : 99,00 $ CA + TPS 4,95 $ + TVQ 9,88 $ = <strong>113,83 $ CA</strong>. Paiement unique.</p><p>'.($config['environment']==='sandbox'?'Courriel du compte utilisé pour ce test, sans envoi de contrat : ':'Votre contrat sera envoyé au courriel de ce compte : ').'<strong>'.esc_html($buyer['email']??wp_get_current_user()->user_email).'</strong>. Vérifiez vos informations avant de payer ; une commande déjà créée nécessite une correction par le support.</p>';
+        echo '<p>Neomoov Chauffeur Pro : 99,00 $ CA + TPS 4,95 $ + TVQ 9,88 $ = <strong>113,83 $ CA</strong>. Paiement unique.</p><p>'.($config['environment']==='sandbox'?'Courriel du compte utilisé pour ce test, sans envoi de contrat : ':'Votre contrat sera envoyé au courriel de ce compte : ').'<strong>'.esc_html($buyer['email']??wp_get_current_user()->user_email).'</strong>. Vérifiez vos informations avant de payer ; une commande déjà créée nécessite une correction par le support.</p>';
         foreach(array('name'=>'Nom complet de l’acheteur','address_line_1'=>'Adresse de facturation','address_line_2'=>'Appartement / bureau (facultatif)','city'=>'Ville','postal_code'=>'Code postal')as$key=>$label)echo '<label class="field">'.esc_html($label).'<input type="text" name="buyer_'.esc_attr($key).'" value="'.esc_attr($buyer[$key]??'').'" maxlength="'.($key==='postal_code'?'10':($key==='city'?'100':($key==='name'?'160':'180'))).'" '.($key==='address_line_2'?'':'required').'></label>';
         echo '<label class="field">Pays de facturation <select name="billing_country" required><option value="">Choisir</option><option value="CA">Canada</option><option value="OTHER">Autre</option></select></label><label class="field">Province de facturation <select name="billing_province" required><option value="">Choisir</option><option value="QC">Québec</option><option value="OTHER">Autre</option></select></label><label class="check-row"><input type="checkbox" name="accept_terms" required><span>Je confirme mon adresse de facturation au Québec et accepte les <a href="'.esc_url(nmsa_config()['terms']).'">conditions de vente</a>.</span></label><p>L’accès est activé sous 24 h après confirmation du paiement, y compris si une vérification de facturation est nécessaire. Si vous avez déjà payé, utilisez la vérification ci-dessous.</p><button class="btn">Payer 113,83 $ CA sur Square</button></form>';
     }else echo '<p>Nouvelles ventes Square API fermées ou accès déjà actif.</p>';

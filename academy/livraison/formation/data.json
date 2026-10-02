@@ -35,7 +35,7 @@
     {
       "id": "debuter-quebec",
       "title": "Débuter au Québec : dossier de vérifications officielles",
-      "intro": "CAP CHAUFFEUR est une formation complémentaire. Cette fiche organise vos démarches ; elle ne délivre aucune autorisation et ne remplace ni formation obligatoire ni inspection.",
+      "intro": "Neomoov Chauffeur Pro est une formation complémentaire. Cette fiche organise vos démarches ; elle ne délivre aucune autorisation et ne remplace ni formation obligatoire ni inspection.",
       "steps": [
         "Décrivez votre activité : taxi, système de transport, service projeté, propriétaire ou locataire, territoire et lieux de prise en charge.",
         "Consultez la SAAQ pour le parcours chauffeur : https://saaq.gouv.qc.ca/transport-personnes/transport-remunere-personne-automobile/chauffeur . Notez ce qui s'applique à votre situation, la date et les pièces demandées.",
@@ -143,11 +143,11 @@
         },
         {
           "title": "Devenir et rester chauffeur qualifié",
-          "text": "Selon la SAAQ, un chauffeur qualifié doit notamment : détenir un permis de conduire de classe 5 ou supérieure depuis au moins 12 mois, obtenir le permis de chauffeur autorisé, comprendre, parler et lire le français, avoir terminé une formation et réussi l'examen d'un centre reconnu, et fournir un certificat de vérification des antécédents judiciaires d'un service de police municipal ou de la Sûreté du Québec, délivré depuis moins de 3 mois. Des sanctions récentes ou certaines conditions au permis peuvent bloquer le dossier.\n\nCAP CHAUFFEUR ne remplace pas cette formation obligatoire : il vous apprend à exercer mieux, une fois en règle.\n\nEn service, gardez dans le véhicule les documents demandés par la SAAQ : permis de chauffeur autorisé, attestation du véhicule autorisé, copie du contrat de location ou de travail, attestations de formation et, si vous en avez un, certificat de conformité du taximètre. Vous devez pouvoir les présenter sur demande."
+          "text": "Selon la SAAQ, un chauffeur qualifié doit notamment : détenir un permis de conduire de classe 5 ou supérieure depuis au moins 12 mois, obtenir le permis de chauffeur autorisé, comprendre, parler et lire le français, avoir terminé une formation et réussi l'examen d'un centre reconnu, et fournir un certificat de vérification des antécédents judiciaires d'un service de police municipal ou de la Sûreté du Québec, délivré depuis moins de 3 mois. Des sanctions récentes ou certaines conditions au permis peuvent bloquer le dossier.\n\nNeomoov Chauffeur Pro ne remplace pas cette formation obligatoire : il vous apprend à exercer mieux, une fois en règle.\n\nEn service, gardez dans le véhicule les documents demandés par la SAAQ : permis de chauffeur autorisé, attestation du véhicule autorisé, copie du contrat de location ou de travail, attestations de formation et, si vous en avez un, certificat de conformité du taximètre. Vous devez pouvoir les présenter sur demande."
         },
         {
           "title": "La vérification avant chaque mise en service",
-          "text": "C'est l'obligation la plus souvent oubliée. Avant chaque nouvelle mise en service, la SAAQ demande au chauffeur de vérifier : le liquide de frein et le frein à main, les phares, feux et klaxon, les pneus et valves, les essuie-glaces et le liquide lave-glace, les rétroviseurs, la batterie pour un véhicule électrique et, pour un véhicule adapté, la rampe ou plateforme et les ancrages. Vous devez consigner vos observations dans un rapport de vérification sommaire et le conserver dans le véhicule.\n\nFaites-en une routine de cinq minutes, toujours dans le même ordre : un tour du véhicule (pneus, feux, rétroviseurs, carrosserie), puis l'habitacle (frein à main, klaxon, essuie-glaces, lave-glace, voyants), puis le rapport. Une anomalie qui touche la sécurité se règle avant de prendre des clients.\n\nL'application Neomoov Chauffeur Pro, incluse avec la formation, vous propose une fiche de vérification datée, à remplir sur votre téléphone puis à imprimer ou à enregistrer en PDF."
+          "text": "C'est l'obligation la plus souvent oubliée. Avant chaque nouvelle mise en service, la SAAQ demande au chauffeur de vérifier : le liquide de frein et le frein à main, les phares, feux et klaxon, les pneus et valves, les essuie-glaces et le liquide lave-glace, les rétroviseurs, la batterie pour un véhicule électrique et, pour un véhicule adapté, la rampe ou plateforme et les ancrages. Vous devez consigner vos observations dans un rapport de vérification sommaire et le conserver dans le véhicule.\n\nFaites-en une routine de cinq minutes, toujours dans le même ordre : un tour du véhicule (pneus, feux, rétroviseurs, carrosserie), puis l'habitacle (frein à main, klaxon, essuie-glaces, lave-glace, voyants), puis le rapport. Une anomalie qui touche la sécurité se règle avant de prendre des clients.\n\nL'application Neomoov Booster, incluse avec la formation, vous propose une fiche de vérification datée, à remplir sur votre téléphone puis à imprimer ou à enregistrer en PDF."
         },
         {
           "title": "Taxes et facturation : en règle dès la première course",
@@ -238,7 +238,7 @@
       "sections": [
         {
           "title": "Mesurer la journée réelle, pas le temps de connexion",
-          "text": "Votre journée comprend la préparation, l'approche, l'attente, la course, le repositionnement, la recharge ou le plein et l'administration. Le temps affiché par une application n'en montre qu'une partie. Notez l'heure de début et de fin, retirez vos pauses personnelles, et ne comptez jamais deux fois la même heure si deux applications sont ouvertes en même temps.\n\nFaites de même pour les kilomètres : relevez le compteur au départ et au retour. Les kilomètres sans passager usent votre véhicule autant que les autres. Le bilan de journée de Neomoov Chauffeur Pro fait ce calcul pour vous."
+          "text": "Votre journée comprend la préparation, l'approche, l'attente, la course, le repositionnement, la recharge ou le plein et l'administration. Le temps affiché par une application n'en montre qu'une partie. Notez l'heure de début et de fin, retirez vos pauses personnelles, et ne comptez jamais deux fois la même heure si deux applications sont ouvertes en même temps.\n\nFaites de même pour les kilomètres : relevez le compteur au départ et au retour. Les kilomètres sans passager usent votre véhicule autant que les autres. Le bilan de journée de Neomoov Booster fait ce calcul pour vous."
         },
         {
           "title": "Choisir une course avant de l'accepter",
@@ -349,7 +349,7 @@
         },
         {
           "title": "Un tableau de bord pour toutes vos activités",
-          "text": "Si vous roulez pour plusieurs sources (taxi, plateformes, clientèle directe), tenez une ligne par source, puis consolidez la semaine : heures, kilomètres, recettes, coûts, solde. Vous verrez vite quelle source, quelle plage horaire et quel secteur vous rapportent vraiment.\n\nNeomoov Chauffeur Pro, l'application incluse avec la formation, calcule votre recette par heure et par kilomètre et conserve vos bilans ; elle réunira progressivement tous vos suivis. Un simple tableur fonctionne aussi, à condition de le remplir chaque jour à l'arrêt."
+          "text": "Si vous roulez pour plusieurs sources (taxi, plateformes, clientèle directe), tenez une ligne par source, puis consolidez la semaine : heures, kilomètres, recettes, coûts, solde. Vous verrez vite quelle source, quelle plage horaire et quel secteur vous rapportent vraiment.\n\nNeomoov Booster, l'application incluse avec la formation, calcule votre recette par heure et par kilomètre et conserve vos bilans ; elle réunira progressivement tous vos suivis. Un simple tableur fonctionne aussi, à condition de le remplir chaque jour à l'arrêt."
         }
       ],
       "exercise": "Semaine type : recettes chauffeur 1 350 $ (frais d'opérateur déjà retenus, pourboires inclus), 45 h de travail total, 1 800 km. Coûts de la semaine : énergie 90 $, assurance 85 $, location 210 $, entretien et pneus 40 $, téléphone 15 $, perte de valeur estimée 0 $ (véhicule loué). Calculez la recette par heure, la recette par km, le coût au km et le solde après coûts.",
@@ -709,7 +709,7 @@
         },
         {
           "title": "Rejoindre Neomoov",
-          "text": "Neomoov est une plateforme de transport premium 100 % électrique à Montréal, conçue autour de ce que les clients et les chauffeurs reprochent au marché : prix confirmé avant la réservation, réservations à l'avance, chauffeurs et véhicules vérifiés.\n\nNeomoov sélectionne ses chauffeurs. Les profils recherchés : un dossier en règle (chauffeur qualifié, assurance, inscriptions fiscales), un véhicule 100 % électrique admissible et un niveau de service à la hauteur de ce module. L'attestation de suivi CAP CHAUFFEUR est un atout dans votre candidature : elle montre que vous connaissez les standards attendus. La préinscription se fait sur reserver.neomoov.net/chauffeurs."
+          "text": "Neomoov est une plateforme de transport premium 100 % électrique à Montréal, conçue autour de ce que les clients et les chauffeurs reprochent au marché : prix confirmé avant la réservation, réservations à l'avance, chauffeurs et véhicules vérifiés.\n\nNeomoov sélectionne ses chauffeurs. Les profils recherchés : un dossier en règle (chauffeur qualifié, assurance, inscriptions fiscales), un véhicule 100 % électrique admissible et un niveau de service à la hauteur de ce module. L'attestation de suivi Neomoov Chauffeur Pro est un atout dans votre candidature : elle montre que vous connaissez les standards attendus. La préinscription se fait sur reserver.neomoov.net/chauffeurs."
         },
         {
           "title": "Votre plan d'action sur 30 jours",
@@ -763,7 +763,7 @@
           "q": "Quel élément est un atout pour une candidature chez Neomoov ?",
           "choices": [
             "Un véhicule à essence récent",
-            "L'attestation de suivi CAP CHAUFFEUR",
+            "L'attestation de suivi Neomoov Chauffeur Pro",
             "Un grand nombre de plateformes"
           ],
           "answer": 1,

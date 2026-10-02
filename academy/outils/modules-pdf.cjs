@@ -1,4 +1,4 @@
-// Retranscription texte des 7 modules CAP CHAUFFEUR : une page HTML imprimable par module et un guide complet,
+// Retranscription texte des 7 modules Neomoov Chauffeur Pro : une page HTML imprimable par module et un guide complet,
 // convertis en PDF par Edge sans interface. Source : livraison/formation/data.json (comme le site).
 // Les PDF sont réservés aux acheteurs (licence individuelle) : ne pas les publier sur une adresse publique.
 // Usage : node academy/outils/modules-pdf.cjs   (sortie : academy/livraison/formation/pdf/)
@@ -44,7 +44,7 @@ h2{font-size:13.5pt;margin:16pt 0 6pt;break-after:avoid}.lead{font-size:11.5pt;c
 .sources{font-size:9pt}.sources a{color:#0a2431}.small{font-size:8.5pt;color:#506671}.module{break-before:page}.module:first-of-type{break-before:auto}
 footer{margin-top:16pt;border-top:1px solid #ccd7dc;padding-top:6pt;font-size:8pt;color:#506671}.toc li{margin:4pt 0}`;
 
-const licence = 'Document réservé à l’acheteur de CAP CHAUFFEUR (licence individuelle) : usage personnel, pas de revente, de publication ni de diffusion à une équipe. Formation complémentaire : aucun permis, aucune certification, aucun revenu garanti.';
+const licence = 'Document réservé à l’acheteur de Neomoov Chauffeur Pro (licence individuelle) : usage personnel, pas de revente, de publication ni de diffusion à une équipe. Formation complémentaire : aucun permis, aucune certification, aucun revenu garanti.';
 
 function moduleHtml(l, n) {
   return `<section class="module"><p class="eyebrow">Module ${n} sur ${data.lessons.length}</p><h1>${esc(titre(l))}</h1><p class="lead">${esc(l.intro)}</p>
@@ -57,7 +57,7 @@ ${l.sections.map((s) => `<h2>${esc(s.title)}</h2>${rich(s.text)}`).join('\n')}
 
 function page(title, body) {
   return `<!doctype html><html lang="fr-CA"><head><meta charset="utf-8"><title>${esc(title)}</title><style>${css}</style></head><body>
-<header><div class="brand">neomoov<span>ACADEMY</span></div><p class="small">CAP CHAUFFEUR · Édition écrite du 1er octobre 2026</p></header>
+<header><div class="brand">neomoov<span>ACADEMY</span></div><p class="small">Neomoov Chauffeur Pro · Édition écrite du 1er octobre 2026</p></header>
 ${body}<footer>${esc(licence)} © 2026 Neomoov Academy, marque de GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC., Montréal.</footer></body></html>`;
 }
 
@@ -68,17 +68,17 @@ function toPdf(htmlFile, pdfFile) {
 fs.mkdirSync(path.join(out, 'html'), { recursive: true });
 const made = [];
 data.lessons.forEach((l, i) => {
-  const base = `CAP-CHAUFFEUR-module-${i + 1}-${l.id}`;
+  const base = `Neomoov-Chauffeur-Pro-module-${i + 1}-${l.id}`;
   const html = path.join(out, 'html', base + '.html');
-  fs.writeFileSync(html, page(`Module ${i + 1} — ${titre(l)} | CAP CHAUFFEUR`, moduleHtml(l, i + 1)));
+  fs.writeFileSync(html, page(`Module ${i + 1} — ${titre(l)} | Neomoov Chauffeur Pro`, moduleHtml(l, i + 1)));
   const pdf = path.join(out, base + '.pdf');
   toPdf(html, pdf);
   made.push(pdf);
 });
-const toc = `<p class="eyebrow">Guide complet</p><h1>CAP CHAUFFEUR : les 7 modules</h1><p class="lead">Retranscription texte de la formation : chaque module, son exercice corrigé, ses questions de quiz et ses sources officielles.</p><ol class="toc">${data.lessons.map((l) => `<li>${esc(titre(l))}</li>`).join('')}</ol>`;
-const guideHtml = path.join(out, 'html', 'CAP-CHAUFFEUR-guide-complet.html');
-fs.writeFileSync(guideHtml, page('CAP CHAUFFEUR — guide complet', toc + data.lessons.map((l, i) => moduleHtml(l, i + 1)).join('\n')));
-const guide = path.join(out, 'CAP-CHAUFFEUR-guide-complet.pdf');
+const toc = `<p class="eyebrow">Guide complet</p><h1>Neomoov Chauffeur Pro : les 7 modules</h1><p class="lead">Retranscription texte de la formation : chaque module, son exercice corrigé, ses questions de quiz et ses sources officielles.</p><ol class="toc">${data.lessons.map((l) => `<li>${esc(titre(l))}</li>`).join('')}</ol>`;
+const guideHtml = path.join(out, 'html', 'Neomoov-Chauffeur-Pro-guide-complet.html');
+fs.writeFileSync(guideHtml, page('Neomoov Chauffeur Pro — guide complet', toc + data.lessons.map((l, i) => moduleHtml(l, i + 1)).join('\n')));
+const guide = path.join(out, 'Neomoov-Chauffeur-Pro-guide-complet.pdf');
 toPdf(guideHtml, guide);
 made.push(guide);
 for (const f of made) {

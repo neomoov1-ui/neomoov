@@ -21,7 +21,7 @@
     },
     {
       "title": "Rejoindre Neomoov",
-      "text": "Neomoov est une plateforme de transport premium 100 % électrique à Montréal, conçue autour de ce que les clients et les chauffeurs reprochent au marché : prix confirmé avant la réservation, réservations à l'avance, chauffeurs et véhicules vérifiés.\n\nNeomoov sélectionne ses chauffeurs. Les profils recherchés : un dossier en règle (chauffeur qualifié, assurance, inscriptions fiscales), un véhicule 100 % électrique admissible et un niveau de service à la hauteur de ce module. L'attestation de suivi CAP CHAUFFEUR est un atout dans votre candidature : elle montre que vous connaissez les standards attendus. La préinscription se fait sur reserver.neomoov.net/chauffeurs."
+      "text": "Neomoov est une plateforme de transport premium 100 % électrique à Montréal, conçue autour de ce que les clients et les chauffeurs reprochent au marché : prix confirmé avant la réservation, réservations à l'avance, chauffeurs et véhicules vérifiés.\n\nNeomoov sélectionne ses chauffeurs. Les profils recherchés : un dossier en règle (chauffeur qualifié, assurance, inscriptions fiscales), un véhicule 100 % électrique admissible et un niveau de service à la hauteur de ce module. L'attestation de suivi Neomoov Chauffeur Pro est un atout dans votre candidature : elle montre que vous connaissez les standards attendus. La préinscription se fait sur reserver.neomoov.net/chauffeurs."
     },
     {
       "title": "Votre plan d'action sur 30 jours",
@@ -35,7 +35,7 @@
     {"q":"Avant de prendre des réservations en direct, que devez-vous vérifier ?","choices":["Rien, c'est ma clientèle","Autorisations, assurance, facturation et taxes, règles des plateformes","Seulement le prix demandé"],"answer":1,"explain":"La clientèle directe est une activité de transport à part entière, avec ses obligations."},
     {"q":"Peut-on conserver les coordonnées d'un client pour lui envoyer des offres ?","choices":["Oui, sans condition","Oui, avec son accord, en sécurité, et en les supprimant à sa demande","Jamais"],"answer":1,"explain":"Les coordonnées sont des renseignements personnels protégés par la Loi 25."},
     {"q":"Après un seul samedi excellent avec un nouveau chargeur, que conclure ?","choices":["Le chargeur a fait monter les revenus","Rien de définitif : il faut comparer des journées semblables","Il faut acheter un second chargeur"],"answer":1,"explain":"Une coïncidence n'est pas une preuve ; comparez plusieurs journées comparables."},
-    {"q":"Quel élément est un atout pour une candidature chez Neomoov ?","choices":["Un véhicule à essence récent","L'attestation de suivi CAP CHAUFFEUR","Un grand nombre de plateformes"],"answer":1,"explain":"Neomoov recherche des chauffeurs en règle, en véhicule 100 % électrique admissible, qui connaissent ses standards de service."}
+    {"q":"Quel élément est un atout pour une candidature chez Neomoov ?","choices":["Un véhicule à essence récent","L'attestation de suivi Neomoov Chauffeur Pro","Un grand nombre de plateformes"],"answer":1,"explain":"Neomoov recherche des chauffeurs en règle, en véhicule 100 % électrique admissible, qui connaissent ses standards de service."}
   ],
   "sources": [
     {"label": "Commission des transports du Québec — Transport rémunéré de personnes par automobile", "url": "https://www.ctq.gouv.qc.ca/"},

@@ -1,5 +1,5 @@
 <?php
-/** CAP CHAUFFEUR : modules, quiz, progression, attestation de suivi vérifiable et fiche de vérification avant départ. */
+/** Neomoov Chauffeur Pro : modules, quiz, progression, attestation de suivi vérifiable et fiche de vérification avant départ. */
 if (!defined('ABSPATH')) { exit; }
 
 /* Texte des modules : paragraphes séparés par une ligne vide, listes en lignes commençant par « - ». */
@@ -34,14 +34,14 @@ function nma_date($iso){
     $d=(int)wp_date('j',$t);return ($d===1?'1er':$d).' '.$months[(int)wp_date('n',$t)-1].' '.wp_date('Y',$t);
 }
 
-/* Conditions de vente du 1er octobre 2026 : dès que la page 1909 porte cette version, l'étiquette de version
+/* Conditions de vente du 2 octobre 2026 (noms Neomoov Chauffeur Pro et Neomoov Booster) : dès que la page 1909 porte cette version, l'étiquette de version
    du parcours Square API la suit, une seule fois. Les achats déjà conclus gardent leur copie figée. */
 add_action('init',function(){
-    if(get_option('nma_terms_20261001_done'))return;
-    $p=get_post(1909);if(!$p||strpos((string)$p->post_content,'Version du 1er octobre 2026')===false)return;
+    if(get_option('nma_terms_20261002_done'))return;
+    $p=get_post(1909);if(!$p||strpos((string)$p->post_content,'Version du 2 octobre 2026')===false)return;
     $o=nma_opts();
-    if(($o['square_api_terms_version']??'')!==''&&$o['square_api_terms_version']!=='2026-10-01'){$o['square_api_terms_version']='2026-10-01';update_option('nma_settings',$o);}
-    add_option('nma_terms_20261001_done',gmdate('c'),'','yes');
+    if(($o['square_api_terms_version']??'')!==''&&$o['square_api_terms_version']!=='2026-10-02'){$o['square_api_terms_version']='2026-10-02';update_option('nma_settings',$o);}
+    add_option('nma_terms_20261002_done',gmdate('c'),'','yes');
 });
 
 /* Actions POST appelées par nma_post() pour un membre connecté. */
@@ -73,7 +73,7 @@ function nma_formation_post($act,$uid){
     return '';
 }
 
-/* Attestation : délivrée une seule fois, nom figé, code CAP-XXXX-XXXX vérifiable publiquement. */
+/* Attestation : délivrée une seule fois, nom figé, code NCP-XXXX-XXXX vérifiable publiquement. */
 function nma_attestation_get($uid){$a=get_user_meta($uid,'nma_attestation',true);return is_array($a)&&!empty($a['code'])?$a:null;}
 function nma_attestation_issue($uid,$name){
     $existing=nma_attestation_get($uid);if($existing)return $existing;
@@ -83,7 +83,7 @@ function nma_attestation_issue($uid,$name){
     try{
         wp_cache_delete($uid,'user_meta');$existing=nma_attestation_get($uid);if($existing)return $existing;
         $alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        do{$code='CAP-';for($i=0;$i<8;$i++){$code.=$alphabet[random_int(0,31)];if($i===3)$code.='-';}}while(nma_attestation_find($code));
+        do{$code='NCP-';for($i=0;$i<8;$i++){$code.=$alphabet[random_int(0,31)];if($i===3)$code.='-';}}while(nma_attestation_find($code));
         $completed='';foreach(nma_quiz_results($uid) as $r){if(is_array($r)&&!empty($r['passed_at'])&&$r['passed_at']>$completed)$completed=$r['passed_at'];}
         $a=array('code'=>$code,'name'=>$name,'completed_at'=>$completed?:gmdate('c'),'issued_at'=>gmdate('c'),'edition'=>'2026-10-01','modules'=>$total);
         update_user_meta($uid,'nma_attestation',$a);update_user_meta($uid,'nma_attestation_code',$code);
@@ -92,8 +92,8 @@ function nma_attestation_issue($uid,$name){
 }
 function nma_attestation_find($code){
     $c=strtoupper(preg_replace('/[^A-Za-z0-9]/','',(string)$code));
-    if(!preg_match('/^CAP([A-Z0-9]{4})([A-Z0-9]{4})$/D',$c,$m))return null;
-    $c='CAP-'.$m[1].'-'.$m[2];
+    if(!preg_match('/^(CAP|NCP)([A-Z0-9]{4})([A-Z0-9]{4})$/D',$c,$m))return null;
+    $c=$m[1].'-'.$m[2].'-'.$m[3];
     $ids=get_users(array('meta_key'=>'nma_attestation_code','meta_value'=>$c,'number'=>2,'fields'=>'ID'));
     if(count($ids)!==1)return null;
     $a=nma_attestation_get((int)$ids[0]);
@@ -107,15 +107,15 @@ add_action('rest_api_init',function(){register_rest_route('neomoov-academy/v1','
     $a=nma_attestation_find($r['code']);
     if(!nma_attestation_valid($a))return new WP_REST_Response(array('valid'=>false),200);
     $t=strtotime((string)$a['completed_at']);
-    return new WP_REST_Response(array('valid'=>true,'code'=>$a['code'],'name'=>nma_public_name($a['name']),'program'=>'CAP CHAUFFEUR','modules'=>(int)($a['modules']??7),'completed_on'=>$t?wp_date('Y-m-d',$t):'','verify_url'=>nma_url('attestation/?code='.rawurlencode($a['code']))),200);
+    return new WP_REST_Response(array('valid'=>true,'code'=>$a['code'],'name'=>nma_public_name($a['name']),'program'=>'Neomoov Chauffeur Pro','modules'=>(int)($a['modules']??7),'completed_on'=>$t?wp_date('Y-m-d',$t):'','verify_url'=>nma_url('attestation/?code='.rawurlencode($a['code']))),200);
 }));});
 
-function nma_attestation_scope(){return '<p class="small">L’attestation de suivi confirme que son titulaire a terminé les 7 modules de CAP CHAUFFEUR, formation complémentaire de Neomoov Academy, et réussi leurs quiz (au moins 4 bonnes réponses sur 5 par module). Elle ne constitue ni un permis, ni une certification, ni une équivalence de la formation obligatoire au Québec.</p>';}
-function nma_attestation_verify_form(){echo '<form method="get" action="'.esc_url(nma_url('attestation/')).'" class="panel no-print"><label class="field">Code de l’attestation<input name="code" required maxlength="20" placeholder="CAP-XXXX-XXXX" autocomplete="off" autocapitalize="characters"></label><div class="actions"><button class="btn">Vérifier l’attestation</button></div></form>';}
-function nma_join_neomoov(){return '<div class="panel join no-print"><p class="eyebrow">ROULER AVEC NEOMOOV</p><h2>Vous roulez en 100 % électrique ?</h2><p>Neomoov, plateforme de transport premium 100 % électrique à Montréal, sélectionne ses chauffeurs : dossier en règle, véhicule électrique admissible et service conforme aux standards de CAP CHAUFFEUR. L’attestation de suivi est un atout dans votre candidature, sans garantie d’admission, de courses ni de revenus.</p><a class="btn" href="https://reserver.neomoov.net/chauffeurs">Me préinscrire comme chauffeur Neomoov</a></div>';}
+function nma_attestation_scope(){return '<p class="small">L’attestation de suivi confirme que son titulaire a terminé les 7 modules de Neomoov Chauffeur Pro, formation complémentaire de Neomoov Academy, et réussi leurs quiz (au moins 4 bonnes réponses sur 5 par module). Elle ne constitue ni un permis, ni une certification, ni une équivalence de la formation obligatoire au Québec.</p>';}
+function nma_attestation_verify_form(){echo '<form method="get" action="'.esc_url(nma_url('attestation/')).'" class="panel no-print"><label class="field">Code de l’attestation<input name="code" required maxlength="20" placeholder="NCP-XXXX-XXXX" autocomplete="off" autocapitalize="characters"></label><div class="actions"><button class="btn">Vérifier l’attestation</button></div></form>';}
+function nma_join_neomoov(){return '<div class="panel join no-print"><p class="eyebrow">ROULER AVEC NEOMOOV</p><h2>Vous roulez en 100 % électrique ?</h2><p>Neomoov, plateforme de transport premium 100 % électrique à Montréal, sélectionne ses chauffeurs : dossier en règle, véhicule électrique admissible et service conforme aux standards de Neomoov Chauffeur Pro. L’attestation de suivi est un atout dans votre candidature, sans garantie d’admission, de courses ni de revenus.</p><a class="btn" href="https://reserver.neomoov.net/chauffeurs">Me préinscrire comme chauffeur Neomoov</a></div>';}
 function nma_certificate($a,$specimen=false){
     $url=nma_url('attestation/?code='.rawurlencode($a['code']));
-    echo '<div class="certificate">'.($specimen?'<p class="specimen">SPÉCIMEN : aperçu administrateur, aucune attestation délivrée</p>':'').'<p class="eyebrow">NEOMOOV ACADEMY · CAP CHAUFFEUR</p><h1>Attestation de suivi</h1><p>Neomoov Academy atteste que</p><p class="certificate-name">'.nma_e($a['name']).'</p><p>a terminé les 7 modules de la formation complémentaire <b>CAP CHAUFFEUR</b> et réussi leurs quiz le '.nma_e(nma_date($a['completed_at'])).'.</p><ol class="certificate-modules">';
+    echo '<div class="certificate">'.($specimen?'<p class="specimen">SPÉCIMEN : aperçu administrateur, aucune attestation délivrée</p>':'').'<p class="eyebrow">NEOMOOV ACADEMY · Neomoov Chauffeur Pro</p><h1>Attestation de suivi</h1><p>Neomoov Academy atteste que</p><p class="certificate-name">'.nma_e($a['name']).'</p><p>a terminé les 7 modules de la formation complémentaire <b>Neomoov Chauffeur Pro</b> et réussi leurs quiz le '.nma_e(nma_date($a['completed_at'])).'.</p><ol class="certificate-modules">';
     foreach(nma_lessons() as $l)echo '<li>'.nma_e(nma_lesson_title($l)).'</li>';
     echo '</ol><p>Code de vérification : <b>'.nma_e($a['code']).'</b><br>À vérifier sur '.nma_e(preg_replace('#^https?://#','',nma_url('attestation/'))).'</p>'.nma_attestation_scope().'<p class="small">Délivrée le '.nma_e(nma_date($a['issued_at'])).' par Neomoov Academy, marque de GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC., Montréal.</p></div><div class="actions no-print"><button type="button" class="btn" onclick="window.print()">Imprimer / Enregistrer en PDF</button>'.($specimen?'':'<a class="text-link" href="'.esc_url($url).'">Voir la page de vérification publique</a>').'</div>';
 }
@@ -124,18 +124,18 @@ function nma_attestation_page(){
     echo '<section class="wrap section narrow">';
     if($code!==''){
         $a=nma_attestation_find($code);echo '<p class="eyebrow">VÉRIFICATION D’UNE ATTESTATION</p>';
-        if(nma_attestation_valid($a))echo '<h1>Attestation valide.</h1><div class="panel"><p><b>'.nma_e(nma_public_name($a['name'])).'</b> a terminé les 7 modules de CAP CHAUFFEUR et réussi leurs quiz le '.nma_e(nma_date($a['completed_at'])).'.</p><p>Code vérifié : <b>'.nma_e($a['code']).'</b></p></div>';
-        else echo '<h1>Aucune attestation valide pour ce code.</h1><p>Vérifiez la saisie, au format CAP-XXXX-XXXX. Pour toute question : contact@neomoov.net.</p>';
+        if(nma_attestation_valid($a))echo '<h1>Attestation valide.</h1><div class="panel"><p><b>'.nma_e(nma_public_name($a['name'])).'</b> a terminé les 7 modules de Neomoov Chauffeur Pro et réussi leurs quiz le '.nma_e(nma_date($a['completed_at'])).'.</p><p>Code vérifié : <b>'.nma_e($a['code']).'</b></p></div>';
+        else echo '<h1>Aucune attestation valide pour ce code.</h1><p>Vérifiez la saisie, au format NCP-XXXX-XXXX. Pour toute question : contact@neomoov.net.</p>';
         echo nma_attestation_scope();nma_attestation_verify_form();echo '</section>';return;
     }
     if(!is_user_logged_in()){
-        echo '<p class="eyebrow">ATTESTATION DE SUIVI</p><h1>Vérifier une attestation CAP CHAUFFEUR.</h1><p>Saisissez le code inscrit sur l’attestation présentée par le chauffeur.</p>';nma_attestation_verify_form();
+        echo '<p class="eyebrow">ATTESTATION DE SUIVI</p><h1>Vérifier une attestation Neomoov Chauffeur Pro.</h1><p>Saisissez le code inscrit sur l’attestation présentée par le chauffeur.</p>';nma_attestation_verify_form();
         echo nma_attestation_scope().'<p>Vous suivez la formation ? <a class="text-link" href="'.esc_url(wp_login_url(nma_url('attestation/'))).'">Connectez-vous pour obtenir votre attestation</a></p></section>';return;
     }
     $uid=get_current_user_id();$a=nma_attestation_get($uid);list($done,$total)=nma_progress($uid);
     if($a){nma_certificate($a);echo nma_join_neomoov();}
     elseif(!nma_has_access($uid)){
-        if(current_user_can('manage_options'))nma_certificate(array('code'=>'CAP-XXXX-XXXX','name'=>'Prénom Nom','completed_at'=>gmdate('c'),'issued_at'=>gmdate('c')),true);
+        if(current_user_can('manage_options'))nma_certificate(array('code'=>'NCP-XXXX-XXXX','name'=>'Prénom Nom','completed_at'=>gmdate('c'),'issued_at'=>gmdate('c')),true);
         else{echo '<p class="eyebrow">ATTESTATION DE SUIVI</p><h1>L’attestation est réservée aux membres de la formation.</h1><p><a class="btn" href="'.esc_url(nma_url('membre/')).'">Revenir à mon espace</a></p>';nma_attestation_verify_form();}
     }elseif($done<$total){
         $left=$total-$done;echo '<p class="eyebrow">ATTESTATION DE SUIVI</p><h1>Encore '.$left.' module'.($left>1?'s':'').' à réussir.</h1><p>Votre progression : '.$done.' / '.$total.' modules réussis. Réussissez le quiz de chaque module pour obtenir votre attestation.</p><a class="btn" href="'.esc_url(nma_url('formation/')).'">Continuer la formation</a>'.nma_attestation_scope();

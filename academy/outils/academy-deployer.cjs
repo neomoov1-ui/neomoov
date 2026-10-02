@@ -5,7 +5,7 @@ const fs = require('fs');
 const wp = require('C:/Users/PC/OneDrive/Desktop/sauvegarde Octobre 2026/Téléchargement/jarvis-starter-kit/jarvis-starter-kit/livrables/sites-web/neomoov-site-wordpress/outils/wp.js');
 const [fichier, sauvegarde] = process.argv.slice(2);
 const sansOuverture = (s) => s.replace(/^﻿/, '').replace(/^<\?php\s*/, '');
-const ROUTES = ['', 'rentabilite/', 'service/', 'demarrer/', 'entreprise/', 'inscription/', 'membre/', 'formation/', 'chauffeur-pro/', 'attestation/', 'attestation/?code=CAP-AAAA-AAAA', 'ressources/', 'passagers/', 'confidentialite/'];
+const ROUTES = ['', 'rentabilite/', 'service/', 'demarrer/', 'entreprise/', 'inscription/', 'membre/', 'formation/', 'booster/', 'attestation/', 'attestation/?code=NCP-AAAA-AAAA', 'ressources/', 'passagers/', 'confidentialite/'];
 
 async function controler() {
   const s = (await wp.api('GET', '/code-snippets/v1/snippets/6')).json;
