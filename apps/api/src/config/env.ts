@@ -182,6 +182,21 @@ export const envSchema = z.object({
    * toujours par texto ou courriel). Ignoré en production.
    */
   INVITATION_TOKEN_IN_RESPONSE: z.enum(['on', 'off']).optional(),
+  // --- Boîte de réception unifiée (phase 1 « entreprise autonome », 2 octobre 2026) ---
+  /** Secret partagé du relais entrant Brevo (`POST /v1/webhooks/email`, en-tête `x-inbound-secret` ou paramètre `secret`) ; absent : relais refusé. */
+  EMAIL_INBOUND_SECRET: optionalString,
+  /** Lecture IMAP de la boîte contact@ (repli du relais entrant) : simulée (tests) ou réelle (`imapflow`). */
+  MAILBOX_PROVIDER: providerMode,
+  MAILBOX_HOST: optionalString,
+  MAILBOX_PORT: z.coerce.number().int().min(1).max(65_535).default(993),
+  MAILBOX_USER: optionalString,
+  MAILBOX_PASSWORD: optionalString,
+  MAILBOX_FOLDER: z.string().default('INBOX'),
+  /** Messages et commentaires des réseaux Meta (Messenger, Facebook, Instagram) : simulé ou réel (API Graph, même application que WhatsApp). */
+  SOCIAL_PROVIDER: providerMode,
+  META_PAGE_ID: optionalString,
+  META_PAGE_TOKEN: optionalString,
+  META_INSTAGRAM_ID: optionalString,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

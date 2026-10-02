@@ -8,6 +8,7 @@ import { CrmJobsService, CrmModule } from '@neomoov/api';
 import { BillingJobsService, PlatformBillingModule } from '@neomoov/api';
 import { FleetJobsService, FleetModule } from '@neomoov/api';
 import { BoosterJobsService, BoosterModule } from '@neomoov/api';
+import { InboxJobsService, InboxModule } from '@neomoov/api';
 import { type DynamicModule, Inject, Injectable, Module, Optional, type OnModuleInit } from '@nestjs/common';
 import { writeFile } from 'node:fs/promises';
 import type { Logger } from 'pino';
@@ -306,13 +307,29 @@ export class BoosterWorker implements OnModuleInit {
   }
 }
 
+/**
+ * Boîte unifiée (phase 1 autonome) : avec Redis, le worker porte la file `inbox` (lecture IMAP de contact@ et rattrapage
+ * des réseaux Meta à la période `inbox.mailbox_poll_seconds`, rappels différés des appels manqués). Sans Redis, c'est l'API.
+ */
+@Injectable()
+export class InboxWorker implements OnModuleInit {
+  constructor(
+    private readonly jobs: InboxJobsService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    if (this.queues.mode === 'redis') void this.jobs.register();
+  }
+}
+
 @Module({})
 export class WorkerModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule, PilotModule, CrmModule, PlatformBillingModule, FleetModule, BoosterModule],
-      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker, NotificationsWorker, ComplianceWorker, RetentionWorker, AgentsWorker, CrmWorker, BillingWorker, FleetWorker, BoosterWorker],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, PrivacyModule, PricingModule, RidesModule, PaymentsModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, ComplianceModule, RetentionModule, AgentsModule, PilotModule, CrmModule, PlatformBillingModule, FleetModule, BoosterModule, InboxModule],
+      providers: [HeartbeatService, PrivacyWorker, SchedulingWorker, DispatchWorker, PaymentsWorker, PacksWorker, SettlementWorker, LedgersWorker, InvoicingWorker, NotificationsWorker, ComplianceWorker, RetentionWorker, AgentsWorker, CrmWorker, BillingWorker, FleetWorker, BoosterWorker, InboxWorker],
     };
   }
 }

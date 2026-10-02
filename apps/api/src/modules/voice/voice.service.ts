@@ -11,6 +11,7 @@ import { and, desc, eq, inArray, or } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { MAPS_PROVIDER, type MapsProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
+import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -59,6 +60,7 @@ export class VoiceService {
     private readonly rides: RidesService,
     private readonly outbox: NotificationsOutbox,
     private readonly settings: SettingsService,
+    private readonly events: DomainEventsService,
   ) {}
 
   private get db() {
@@ -215,7 +217,11 @@ export class VoiceService {
     return { ok: true, publicNumber: ride.publicNumber, feeCents: result.feeCents, fee: money(result.feeCents, caller.language) };
   }
 
-  /** Journal de l'appel : exécution de l'agent `voice_call_center` (numéro masqué, résumé, durée, coût). */
+  /**
+   * Journal de l'appel : exécution de l'agent `voice_call_center` (numéro masqué, résumé, durée, coût). Journalisé une
+   * première fois, l'appel est annoncé à la boîte unifiée (`voice.call_ended`) : sans réservation ni transfert, la personne
+   * est rappelée (conversation `voice`, texto, tâche de rappel).
+   */
   private async logCall(message: VapiMessage): Promise<void> {
     const callId = message.call?.id ?? null;
     if (callId) {
@@ -223,11 +229,16 @@ export class VoiceService {
       if (already) return;
     }
     const durationMs = typeof message.durationSeconds === 'number' ? Math.round(message.durationSeconds * 1000) : null;
-    await this.db.insert(schema.agentRuns).values({
+    const [inserted] = await this.db.insert(schema.agentRuns).values({
       agentCode: 'voice_call_center', trigger: 'call', triggerRef: callId,
       input: { caller: maskPhone(message.call?.customer?.number ?? null) },
       output: { summary: message.summary ?? null, endedReason: message.endedReason ?? null },
       costMicros: typeof message.cost === 'number' ? Math.round(message.cost * 1_000_000) : 0, durationMs, status: 'succeeded', finishedAt: new Date(),
+    }).onConflictDoNothing().returning({ id: schema.agentRuns.id });
+    if (!inserted) return;
+    this.events.emit('voice.call_ended', {
+      callId, phone: message.call?.customer?.number ?? null, endedReason: message.endedReason ?? null, summary: message.summary ?? null,
+      durationSeconds: typeof message.durationSeconds === 'number' ? message.durationSeconds : null, endedAt: new Date(),
     });
   }
 }

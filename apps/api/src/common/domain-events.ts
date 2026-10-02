@@ -61,9 +61,16 @@ export interface DomainEvents {
   'notification.queued': { ids: string[]; templates: string[] };
   /**
    * Message entrant d'un client hors de l'application (WhatsApp, agent vocal, réservation web) ou dans l'application
-   * (assistance) : l'agent relation client le prend en charge. `externalId` rend le traitement idempotent.
+   * (assistance) : l'agent relation client le prend en charge. `externalId` rend le traitement idempotent. Boîte unifiée
+   * (phase 1 autonome) : courriel (`address`, `subject`) et réseaux sociaux (`address` : identifiant de la personne,
+   * `network`, `kind` commentaire, `threadRef` : référence de réponse), métadonnées (pièces jointes listées, publication).
    */
-  'conversation.inbound': { channel: 'whatsapp' | 'sms' | 'voice' | 'web' | 'app'; externalId: string; userId: string | null; phone: string | null; text: string; language: 'fr' | 'en' | null; rideId: string | null; receivedAt: Date };
+  'conversation.inbound': {
+    channel: 'whatsapp' | 'sms' | 'voice' | 'web' | 'app' | 'email' | 'social'; externalId: string; userId: string | null; phone: string | null; text: string; language: 'fr' | 'en' | null; rideId: string | null; receivedAt: Date;
+    address?: string | null; network?: string | null; kind?: 'message' | 'comment' | 'missed_call' | 'voicemail' | 'automated'; subject?: string | null; threadRef?: string | null; displayName?: string | null; metadata?: Record<string, unknown> | null;
+  };
+  /** Boîte unifiée : rapport de fin d'appel du centre vocal journalisé une première fois (appels manqués et messages vocaux). */
+  'voice.call_ended': { callId: string | null; phone: string | null; endedReason: string | null; summary: string | null; durationSeconds: number | null; endedAt: Date };
   /** Règlement (étape 9) : relevé hebdomadaire émis. */
   'statement.issued': { statementId: string; driverId: string; periodStart: string; netCents: number };
   /** Remboursement enregistré (carte ou crédit, garantie modèle comprise) : la facturation émet la note de crédit (étape 9). */

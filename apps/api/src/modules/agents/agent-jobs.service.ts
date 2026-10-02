@@ -75,8 +75,12 @@ export class AgentJobsService implements OnModuleInit {
   async process(name: string, data: unknown): Promise<void> {
     switch (name) {
       case 'conversation': {
-        const p = data as DomainEvents['conversation.inbound'];
-        await this.customerRelations.handleInbound({ channel: p.channel, externalId: p.externalId, userId: p.userId, phone: p.phone, text: p.text, language: (p.language ?? null) as Language | null, rideId: p.rideId });
+        // Boîte unifiée : champs du courriel et des réseaux transmis tels quels ; `resumed` : reprise après les heures silencieuses.
+        const p = data as DomainEvents['conversation.inbound'] & { resumed?: boolean };
+        await this.customerRelations.handleInbound({
+          channel: p.channel, externalId: p.externalId, userId: p.userId, phone: p.phone, text: p.text, language: (p.language ?? null) as Language | null, rideId: p.rideId,
+          address: p.address ?? null, network: p.network ?? null, kind: p.kind ?? 'message', subject: p.subject ?? null, threadRef: p.threadRef ?? null, displayName: p.displayName ?? null, metadata: p.metadata ?? null,
+        }, { resumed: p.resumed === true });
         return;
       }
       case 'document':

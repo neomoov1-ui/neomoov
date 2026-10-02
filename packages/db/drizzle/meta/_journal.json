@@ -232,6 +232,13 @@
       "when": 1790945508301,
       "tag": "0032_booster",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790973356960,
+      "tag": "0033_inbox-channels",
+      "breakpoints": true
     }
   ]
 }

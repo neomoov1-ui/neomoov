@@ -73,3 +73,6 @@ export { PlatformBillingService } from './modules/platform-billing/platform-bill
 export { BillingJobsService } from './modules/platform-billing/billing-jobs.service.js';
 export * from './adapters/billing.types.js';
 export { StripeBillingProvider } from './adapters/real/stripe-billing.real.js';
+// Boîte de réception unifiée (phase 1 autonome, 2 octobre 2026) : file inbox (IMAP, rattrapage Meta, rappels des appels manqués).
+export { InboxModule } from './modules/inbox/inbox.module.js';
+export { InboxJobsService } from './modules/inbox/inbox-jobs.service.js';

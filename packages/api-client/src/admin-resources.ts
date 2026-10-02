@@ -18,6 +18,7 @@ import type { InvitationCreate, InvitationCreated, MembershipUpdate, MembershipV
 import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeView, PrivacyBreachInput, PrivacyBreachView, StaffCreate } from '@neomoov/domain';
 import type { PilotZoneExclusionsView } from '@neomoov/domain';
 import type { AdminInspectionListQuery, AdminInspectionView, AdminPerformanceLogView, MissingInspectionView, PerformanceListQuery, PerformanceRecapQuery, PerformanceRecapView, VehicleInspectionView } from '@neomoov/domain';
+import type { InboxItemView, InboxListQuery, InboxRelayInput, InboxSummaryView } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -164,6 +165,12 @@ export function adminResource(t: Transport) {
     conversations: (query: ListQuery = {}) => t.get<Page<ConversationView>>('/admin/conversations', { query }),
     conversation: (conversationId: string) => t.get<ConversationView>(`/admin/conversations/${id(conversationId)}`),
     replyConversation: (conversationId: string, body: ConversationReplyInput) => t.post<ConversationView>(`/admin/conversations/${id(conversationId)}/messages`, body),
+    /** Boîte de réception unifiée (phase 1 autonome) : liste filtrée, compteurs, détail, relais manuel d'un réseau sans connecteur, réponse marquée relayée. */
+    inbox: (query: Partial<InboxListQuery> = {}) => t.get<Page<InboxItemView>>('/admin/inbox', { query }),
+    inboxSummary: () => t.get<InboxSummaryView>('/admin/inbox/summary'),
+    inboxConversation: (conversationId: string) => t.get<ConversationView>(`/admin/inbox/${id(conversationId)}`),
+    inboxRelay: (body: InboxRelayInput) => t.post<ConversationView>('/admin/inbox/relay', body),
+    inboxMarkRelayed: (messageId: string) => t.post<ConversationView>(`/admin/inbox/messages/${id(messageId)}/relayed`),
     tariffs: () => t.get<PricingRuleView[]>('/admin/tariffs'),
     addTariff: (body: PricingRuleInput) => t.post<PricingRuleView>('/admin/tariffs', body),
     zones: () => t.get<ZoneGeometry[]>('/admin/zones'),

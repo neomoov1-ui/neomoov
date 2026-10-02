@@ -23,7 +23,7 @@ export class ResendEmailProvider implements EmailProvider {
     return { name: this.name, configured: true };
   }
 
-  async send(input: { to: string; from?: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }> {
+  async send(input: { to: string; from?: string; replyTo?: string; subject: string; html: string; text?: string; headers?: Record<string, string>; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }> {
     const res = await this.fetchImpl(API, {
       method: 'POST',
       headers: {
@@ -33,6 +33,9 @@ export class ResendEmailProvider implements EmailProvider {
       body: JSON.stringify({
         // Expéditeur de la marque (étape 22) : son domaine doit être authentifié chez Resend, sinon `EMAIL_FROM`.
         from: input.from ?? this.from, to: [input.to], subject: input.subject, html: input.html, ...(input.text ? { text: input.text } : {}),
+        // Boîte unifiée : réponse dans le fil du courriel reçu (In-Reply-To, References) et adresse de réponse (contact@).
+        ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+        ...(input.headers && Object.keys(input.headers).length ? { headers: input.headers } : {}),
         ...(input.attachments?.length ? { attachments: input.attachments.map((a) => ({ filename: a.filename, content: a.content.toString('base64'), content_type: a.contentType })) } : {}),
       }),
     });

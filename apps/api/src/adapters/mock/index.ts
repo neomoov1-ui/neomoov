@@ -6,11 +6,13 @@ import { createHash, randomBytes } from 'node:crypto';
 import { AppError } from '../../common/app-error.js';
 import { haversineMeters } from '../../common/geo.js';
 import { addUsage, EMPTY_USAGE, type LlmUsage } from '@neomoov/domain';
+import { parseMetaWebhook } from '../meta-webhook.js';
 import {
   LlmError,
-  type AutocompleteSuggestion, type CardDetails, type EmailProvider, type GeoPoint, type GeocodeResult, type LlmMessage, type LlmProvider, type LlmStructuredRequest, type LlmStructuredResult,
-  type LlmToolsRequest, type LlmToolsResult, type MapsProvider, type PaymentAuthorization, type PaymentCapabilities, type PaymentProvider, type SetupIntentResult, type WebhookEvent,
-  type PushProvider, type RouteRequest, type RouteResult, type SevDocument, type SevProvider, type SevReceipt, type ScanResult, type SmsDeliveryStatus, type SmsProvider, type StorageProvider, type VirusScanner, type VoiceProvider, type WhatsAppProvider,
+  type AutocompleteSuggestion, type CardDetails, type EmailProvider, type GeoPoint, type GeocodeResult, type InboundEmail, type LlmMessage, type LlmProvider, type LlmStructuredRequest, type LlmStructuredResult,
+  type LlmToolsRequest, type LlmToolsResult, type MailboxProvider, type MapsProvider, type PaymentAuthorization, type PaymentCapabilities, type PaymentProvider, type SetupIntentResult, type WebhookEvent,
+  type PushProvider, type RouteRequest, type RouteResult, type SevDocument, type SevProvider, type SevReceipt, type ScanResult, type SmsDeliveryStatus, type SmsProvider, type SocialInboundComment, type SocialInboundMessage, type SocialProvider,
+  type StorageProvider, type VirusScanner, type VoiceProvider, type WhatsAppProvider,
 } from '../types.js';
 
 let counter = 0;
@@ -296,10 +298,63 @@ export class MockSmsProvider implements SmsProvider {
 
 export class MockEmailProvider implements EmailProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ to: string; from: string | null; subject: string; html: string; attachments: string[]; messageId: string }> = [];
-  async send(input: { to: string; from?: string; subject: string; html: string; attachments?: Array<{ filename: string }> }) {
+  readonly sent: Array<{ to: string; from: string | null; replyTo: string | null; subject: string; html: string; text: string | null; headers: Record<string, string>; attachments: string[]; messageId: string }> = [];
+  async send(input: { to: string; from?: string; replyTo?: string; subject: string; html: string; text?: string; headers?: Record<string, string>; attachments?: Array<{ filename: string }> }) {
     const messageId = nextId('email_mock');
-    this.sent.push({ to: input.to, from: input.from ?? null, subject: input.subject, html: input.html, attachments: (input.attachments ?? []).map((a) => a.filename), messageId });
+    this.sent.push({
+      to: input.to, from: input.from ?? null, replyTo: input.replyTo ?? null, subject: input.subject, html: input.html, text: input.text ?? null, headers: input.headers ?? {},
+      attachments: (input.attachments ?? []).map((a) => a.filename), messageId,
+    });
+    return { messageId };
+  }
+}
+
+/** Boîte aux lettres simulée (boîte unifiée) : les tests y déposent des courriels ; chaque lecture les rend une seule fois. */
+export class MockMailboxProvider implements MailboxProvider {
+  readonly name = 'mock';
+  readonly unseen: InboundEmail[] = [];
+  readonly fetched: InboundEmail[] = [];
+  async fetchUnseen(limit = 50): Promise<InboundEmail[]> {
+    const batch = this.unseen.splice(0, limit);
+    this.fetched.push(...batch);
+    return batch;
+  }
+}
+
+/**
+ * Réseaux sociaux simulés (boîte unifiée) : webhooks lus dans le format de Meta (même lecteur que le connecteur réel),
+ * signature de test, réponses gardées en mémoire ; `inbound` et `comments` alimentent les lectures de rattrapage.
+ */
+export class MockSocialProvider implements SocialProvider {
+  readonly name = 'mock';
+  readonly sent: Array<{ network: string; threadId: string; text: string; messageId: string }> = [];
+  readonly commentReplies: Array<{ network: string; commentId: string; text: string; messageId: string }> = [];
+  readonly inbound: SocialInboundMessage[] = [];
+  readonly comments: SocialInboundComment[] = [];
+  constructor(private readonly webhookOptions: MockWebhookOptions = {}) {}
+  verifyWebhook(query: Record<string, string | undefined>) {
+    return this.webhookOptions.acceptTestSignatures !== false && query['hub.verify_token'] === 'mock-verify' ? (query['hub.challenge'] ?? null) : null;
+  }
+  verifySignature(_rawBody: string | Buffer, header: string | undefined) {
+    return testSignatureAccepted(this.webhookOptions, header);
+  }
+  parseWebhook(body: unknown) {
+    return parseMetaWebhook(body, ['mock-page', 'mock-instagram']);
+  }
+  async listInbound(since: Date) {
+    return this.inbound.filter((m) => m.receivedAt > since);
+  }
+  async listComments(since: Date) {
+    return this.comments.filter((c) => c.receivedAt > since);
+  }
+  async reply(input: { network: 'messenger' | 'instagram'; threadId: string; text: string }) {
+    const messageId = nextId('social_mock');
+    this.sent.push({ ...input, messageId });
+    return { messageId };
+  }
+  async replyComment(input: { network: 'facebook' | 'instagram'; commentId: string; text: string }) {
+    const messageId = nextId('comment_mock');
+    this.commentReplies.push({ ...input, messageId });
     return { messageId };
   }
 }

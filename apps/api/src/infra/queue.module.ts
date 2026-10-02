@@ -6,7 +6,7 @@ import { reportError } from '../common/error-reporting.js';
 import { APP_LOGGER, currentCorrelationId, isValidCorrelationId, newCorrelationId, runWithCorrelation } from '../common/logger.js';
 import { REDIS } from './redis.module.js';
 
-export const QUEUE_NAMES = ['heartbeat', 'notifications', 'invoicing', 'settlements', 'exports', 'agents', 'privacy', 'scheduling', 'payments', 'packs', 'compliance', 'retention', 'crm', 'billing', 'fleet', 'dispatch', 'booster'] as const;
+export const QUEUE_NAMES = ['heartbeat', 'notifications', 'invoicing', 'settlements', 'exports', 'agents', 'privacy', 'scheduling', 'payments', 'packs', 'compliance', 'retention', 'crm', 'billing', 'fleet', 'dispatch', 'booster', 'inbox'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
 export interface QueueStats {
@@ -117,12 +117,23 @@ export class QueueService implements OnModuleDestroy {
       return;
     }
     const job: MemoryJob = { name: jobName, data };
+    // Tâche différée (`delay`, boîte unifiée : reprise après les heures silencieuses, rappel d'un appel manqué) : en
+    // mémoire, un minuteur sans persistance (développement seulement) qui ne retient pas le processus.
+    if (options?.delay && options.delay > 0) {
+      this.timers.push(setTimeout(() => void this.runMemory(name, handler, job), options.delay).unref() as NodeJS.Timeout);
+      return;
+    }
+    await this.runMemory(name, handler, job);
+  }
+
+  private async runMemory(name: QueueName, handler: Processor, job: MemoryJob): Promise<void> {
+    const stats = this.memoryStat(name);
     try {
       await handler(job as never, 'memory');
       stats.done += 1;
     } catch (error) {
       stats.failed += 1;
-      this.logger?.error({ err: error, queue: name, job: jobName }, 'Tâche en échec (mode mémoire)');
+      this.logger?.error({ err: error, queue: name, job: job.name }, 'Tâche en échec (mode mémoire)');
     }
   }
 
@@ -197,7 +208,10 @@ export class QueueService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    for (const t of this.timers) clearInterval(t);
+    for (const t of this.timers) {
+      clearInterval(t);
+      clearTimeout(t);
+    }
     await Promise.all(this.workers.map((w) => w.close()));
     await Promise.all([...this.queues.values()].map((q) => q.close()));
   }

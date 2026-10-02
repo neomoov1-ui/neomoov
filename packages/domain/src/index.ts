@@ -54,3 +54,7 @@ export * from './schemas/platform-billing.js';
 export * from './booster/inspection.js';
 export * from './booster/performance.js';
 export * from './booster/alerts.js';
+// Boîte de réception unifiée (phase 1 autonome, 2 octobre 2026) : courriels, heures silencieuses, appels manqués.
+export * from './inbox/email.js';
+export * from './inbox/quiet-hours.js';
+export * from './inbox/calls.js';
