@@ -122,6 +122,9 @@ export const PERMISSIONS = {
   'billing.view': p('organization', 'Abonnement à la plateforme et factures de la plateforme'),
   'billing.manage': p('organization', 'Gérer l\'abonnement à la plateforme : formule, règlements, relances', { sensitive: true }),
   'driver.app': p('self', 'Espace du chauffeur (ses courses, son dossier, ses revenus)'),
+  // Phase 1 « entreprise autonome » (2 octobre 2026) : marketing automatisé de la plateforme (calendrier, référencement, mesures).
+  'marketing.read': p('agents', 'Marketing : calendrier de contenu, tâches de référencement, mesures et connecteurs', { platformOnly: true }),
+  'marketing.manage': p('agents', 'Marketing : approuver, modifier, publier un contenu ; appliquer une tâche de référencement ; lancer les agents', { platformOnly: true }),
 } as const satisfies Record<string, PermissionDefinition>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -142,7 +145,7 @@ const STAFF_PERMISSIONS = codes((d) => d.module !== 'self');
 const READ: Permission[] = [
   'agents.read', 'agents.runs.read', 'audit.read', 'clients.read', 'compliance.read', 'dashboard.read', 'documents.read', 'drivers.read', 'incidents.read',
   'invoices.read', 'leads.read', 'metrics.read', 'offers.read', 'pricing.read', 'privacy.requests.read', 'quality.read', 'queues.read', 'reports.read',
-  'retention.read', 'rides.read', 'settings.read', 'statements.read', 'vehicles.read',
+  'retention.read', 'rides.read', 'settings.read', 'statements.read', 'vehicles.read', 'marketing.read',
 ];
 export const LEGACY_ROLE_PERMISSIONS: Readonly<Record<string, readonly Permission[]>> = {
   admin: STAFF_PERMISSIONS,
@@ -151,7 +154,7 @@ export const LEGACY_ROLE_PERMISSIONS: Readonly<Record<string, readonly Permissio
     'drivers.activate', 'drivers.notes.write', 'drivers.programs.manage', 'drivers.sanctions.apply', 'drivers.suspend', 'fairness.appeals.decide',
     'incidents.create', 'incidents.decide', 'invoices.sev.retry', 'leads.manage', 'pricing.benchmarks.manage', 'pricing.edit', 'privacy.incidents.manage',
     'quality.run', 'queues.retry', 'refunds.create', 'rides.assign', 'rides.cancel', 'rides.create', 'rides.hold', 'rides.interrupt', 'rides.messages.write',
-    'rides.reassign', 'vehicles.inspections.record', 'vehicles.review', 'zones.edit', 'pilot.zones.read',
+    'rides.reassign', 'vehicles.inspections.record', 'vehicles.review', 'zones.edit', 'pilot.zones.read', 'marketing.manage',
   ],
   finance: [...READ, 'invoices.sev.retry', 'ledgers.manage', 'ledgers.read', 'payments.webhooks.retry', 'refunds.create', 'statements.manage'],
   readonly: READ,

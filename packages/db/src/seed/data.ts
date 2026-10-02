@@ -271,6 +271,34 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'billing.suspended_days', value: 45, description: 'Organisation suspendue après 45 jours d\'impayé, jamais pendant une course (reportée au lendemain)' },
   { key: 'billing.payment_terms_days', value: 0, description: 'Échéance d\'une facture de la plateforme après son émission (0 : payable à réception, prélèvement automatique)' },
   { key: 'billing.run_hour', value: 5, description: 'Heure de Montréal de la passe quotidienne de la facturation de la plateforme (renouvellements, relances, suspensions)' },
+  // Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : calendrier de contenu, diffusion, mesures, référencement.
+  { key: 'marketing.content_day', value: 5, description: 'Jour de la semaine (1 = lundi) où l\'agent contenu produit le calendrier de la semaine suivante (vendredi)' },
+  { key: 'marketing.content_hour', value: 9, description: 'Heure de Montréal à partir de laquelle le calendrier de contenu est produit' },
+  { key: 'marketing.items_per_space', value: { min: 2, max: 5 }, description: 'Contenus demandés à l\'agent contenu pour chaque espace, par semaine' },
+  {
+    key: 'marketing.slots',
+    value: {
+      site_blog: [{ day: 2, time: '10:00' }, { day: 4, time: '10:00' }], academy: [{ day: 3, time: '10:00' }, { day: 5, time: '10:00' }], google_business: [{ day: 1, time: '11:00' }, { day: 4, time: '11:00' }],
+      facebook: [{ day: 1, time: '12:00' }, { day: 3, time: '12:00' }, { day: 5, time: '17:00' }], instagram: [{ day: 2, time: '12:00' }, { day: 4, time: '12:00' }, { day: 6, time: '11:00' }],
+      linkedin: [{ day: 2, time: '08:30' }, { day: 4, time: '08:30' }], tiktok: [{ day: 3, time: '18:00' }, { day: 6, time: '18:00' }], youtube: [{ day: 5, time: '16:00' }],
+      x: [{ day: 1, time: '09:00' }, { day: 3, time: '09:00' }, { day: 5, time: '09:00' }], snapchat: [{ day: 5, time: '19:00' }, { day: 7, time: '19:00' }], newsletter: [{ day: 4, time: '10:00' }],
+    },
+    description: 'Créneaux de publication par espace (jour 1 = lundi, heure de Montréal) ; au-delà, les jours libres de la semaine puis la semaine suivante',
+  },
+  { key: 'marketing.measure_days', value: [1, 7], description: 'Mesures d\'une publication (portée, interactions, clics) à J+1 puis J+7' },
+  { key: 'marketing.publish_max_attempts', value: 3, description: 'Tentatives de publication avant l\'état « en échec » définitif (relais humain)' },
+  { key: 'marketing.comments_window_days', value: 7, description: 'Fenêtre de relecture des commentaires des publications (jours après la publication)' },
+  { key: 'marketing.allowed_prices', value: ['48,20 $', '113,83 $'], description: 'Prix décidés par le fondateur, seuls montants admis dans un contenu public (forfait aéroport Neo Premium, formation Neomoov Chauffeur Pro)' },
+  { key: 'marketing.allowed_phones', value: ['+1 367 763-9063'], description: 'Numéros publics de l\'entreprise admis dans un contenu (WhatsApp Business)' },
+  { key: 'marketing.cta_urls', value: { reserve: 'https://neomoov.net/reserver', academy: 'https://neomoov.net/academy', preregister: 'https://neomoov.net/devenir-chauffeur' }, description: 'Adresses des appels à l\'action des contenus' },
+  { key: 'marketing.service_hours', value: { fr: 'Nous roulons 7 jours sur 7 ; réservez au moins 2 heures à l\'avance sur neomoov.net/reserver, le prix tout compris est affiché avant de confirmer.', en: 'We operate 7 days a week; book at least 2 hours ahead at neomoov.net/reserver, the all-inclusive price is shown before you confirm.' }, description: 'Réponse automatique aux commentaires qui demandent les horaires' },
+  { key: 'marketing.editorial_lines_override', value: '', description: 'Lignes éditoriales de l\'agent contenu ; vide : le fichier docs/marketing/lignes-editoriales.md du dépôt' },
+  { key: 'seo.weekday', value: 1, description: 'Jour de la semaine (1 = lundi) de la passe de l\'agent référencement' },
+  { key: 'seo.hour', value: 6, description: 'Heure de Montréal à partir de laquelle la passe de référencement tourne' },
+  { key: 'seo.keywords', value: ['chauffeur privé Montréal', 'transport aéroport Montréal prix fixe', 'navette aéroport Montréal', 'chauffeur électrique Montréal', 'formation chauffeur taxi Montréal'], description: 'Mots-clés cibles du référencement (ordre de priorité)' },
+  { key: 'seo.max_tasks_per_run', value: 10, description: 'Tâches de référencement créées au plus par passe' },
+  { key: 'seo.measure_days', value: 28, description: 'Mesure après application d\'une tâche de référencement (Search Console), en jours' },
+  { key: 'seo.stats_window_days', value: 28, description: 'Fenêtre des statistiques de la Search Console lues par l\'agent référencement, en jours' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.
@@ -281,6 +309,10 @@ export const AGENTS = [
   { code: 'analytics', name: 'Analyse et rapports', mode: 'auto', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'analytics.v1', tools: ['queryMetrics'], thresholds: {} },
   { code: 'quality', name: 'Qualité des chauffeurs (sanctions graduées)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: ['proposeSanction'], thresholds: { finalSuspension: 'human' } },
   { code: 'voice_call_center', name: 'Centre d\'appels vocal (Vapi)', mode: 'auto', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: ['quote', 'createRide', 'rideStatus', 'cancelRide', 'transferToHuman'], thresholds: { transferOnDistress: true } },
+  // Phase 1 « entreprise autonome » (2 octobre 2026) : direction marketing automatisée (contenu, diffusion, référencement).
+  { code: 'content', name: 'Marketing : contenu (calendrier hebdomadaire des dix espaces)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'content.v1', tools: ['queryMetrics'], thresholds: {} },
+  { code: 'publishing', name: 'Marketing : diffusion (publication, mesures, commentaires simples)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: [], thresholds: {} },
+  { code: 'seo', name: 'Marketing : référencement (plan hebdomadaire)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'seo.v1', tools: [], thresholds: {} },
 ] as const;
 
 export const FEATURE_FLAGS = [

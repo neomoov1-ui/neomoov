@@ -50,3 +50,6 @@ export * from './access/support-access.js';
 // Facturation de la plateforme (étape 25) : formules, factures, relances, et schémas de l'API.
 export * from './platform-billing/billing.js';
 export * from './schemas/platform-billing.js';
+// Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : espaces, règles des contenus, calendrier, commentaires, référencement, et schémas de l'API.
+export * from './marketing/index.js';
+export * from './schemas/marketing.js';

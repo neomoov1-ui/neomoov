@@ -48,16 +48,18 @@ describe('configuration', () => {
     const ready = { ...secrets, REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real' };
     // Revue finale : aucun retour silencieux aux simulateurs en production ; chaque simulation est déclarée.
     expect(() => loadEnv(ready, { dotenv: false })).toThrow(/fournisseurs simulés non déclarés.*SMS_PROVIDER/);
-    const all = 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing';
+    // Phase 1 « entreprise autonome » : le marketing (onze espaces, site, voix, Search Console) est un fournisseur de plus (alias `marketing`).
+    const all = 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing,marketing';
     expect(loadEnv({ ...ready, ALLOW_MOCK_PROVIDERS: all }, { dotenv: false }).SOCIAL_LOGIN_PROVIDER).toBe('real');
     expect(() => loadEnv({ ...ready, ALLOW_MOCK_PROVIDERS: 'payment,sev' }, { dotenv: false })).toThrow(/storage/);
-    const real = { ...ready, SMS_PROVIDER: 'real', EMAIL_PROVIDER: 'real', PUSH_PROVIDER: 'real', MAPS_PROVIDER: 'real', STORAGE_PROVIDER: 'real', LLM_PROVIDER: 'real', VIRUS_SCANNER_PROVIDER: 'real', CRM_PROVIDER: 'real', BILLING_PROVIDER: 'real' };
+    expect(() => loadEnv({ ...ready, ALLOW_MOCK_PROVIDERS: 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing' }, { dotenv: false })).toThrow(/MARKETING_PROVIDER/);
+    const real = { ...ready, SMS_PROVIDER: 'real', EMAIL_PROVIDER: 'real', PUSH_PROVIDER: 'real', MAPS_PROVIDER: 'real', STORAGE_PROVIDER: 'real', LLM_PROVIDER: 'real', VIRUS_SCANNER_PROVIDER: 'real', CRM_PROVIDER: 'real', BILLING_PROVIDER: 'real', MARKETING_PROVIDER: 'real' };
     expect(loadEnv({ ...real, ALLOW_MOCK_PROVIDERS: 'payment, SEV ,whatsapp,voice' }, { dotenv: false }).PAYMENT_PROVIDER).toBe('mock');
   });
 
   it('revue du 2 octobre 2026 (sécurité 12) : secrets JWT et clé de chiffrement de 32 caractères au moins en production, pas de minimum ailleurs', () => {
     expect(MIN_SECRET_LENGTH).toBe(32);
-    const ready = { ...base, NODE_ENV: 'production', REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real', ALLOW_MOCK_PROVIDERS: 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing' };
+    const ready = { ...base, NODE_ENV: 'production', REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real', ALLOW_MOCK_PROVIDERS: 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing,marketing' };
     const long = { JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(40), ENCRYPTION_KEY: 'c'.repeat(64) };
     expect(loadEnv({ ...ready, ...long }, { dotenv: false }).ENCRYPTION_KEY).toBe('c'.repeat(64));
     expect(() => loadEnv({ ...ready, ...long, JWT_ACCESS_SECRET: 'a'.repeat(31) }, { dotenv: false })).toThrow(/JWT_ACCESS_SECRET : 32 caractères au moins/);
