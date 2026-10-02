@@ -400,9 +400,9 @@ export class MockWhatsAppProvider implements WhatsAppProvider {
 
 export class MockVoiceProvider implements VoiceProvider {
   readonly name = 'mock';
-  readonly calls: Array<{ to: string; assistantId: string; metadata?: Record<string, string>; variables?: Record<string, string> }> = [];
+  readonly calls: Array<{ to: string; assistantId: string; phoneNumberId?: string; metadata?: Record<string, string>; variables?: Record<string, string> }> = [];
   constructor(private readonly webhookOptions: MockWebhookOptions = {}) {}
-  async startOutboundCall(input: { to: string; assistantId: string; metadata?: Record<string, string>; variables?: Record<string, string> }) {
+  async startOutboundCall(input: { to: string; assistantId: string; phoneNumberId?: string; metadata?: Record<string, string>; variables?: Record<string, string> }) {
     this.calls.push(input);
     return { callId: nextId('call_mock') };
   }
@@ -598,3 +598,4 @@ export class MockStorageProvider implements StorageProvider {
 
 export * from './crm.mock.js';
 export * from './billing.mock.js';
+export * from './sales.mock.js';

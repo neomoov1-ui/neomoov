@@ -36,6 +36,8 @@ const ENTITY_OPTIONS: HubSpotPropertyOption[] = [
 const CONSENT_SOURCE_OPTIONS: HubSpotPropertyOption[] = [
   { label: 'Formulaire (consentement daté)', value: 'form' },
   { label: 'Contrat (compte d\'affaires, organisation)', value: 'contract' },
+  // Phase 1 « entreprise autonome » : prospection B2B sur adresse professionnelle publiée (Loi anti-pourriel, consentement tacite).
+  { label: 'Prospection B2B (adresse professionnelle publiée)', value: 'b2b' },
 ];
 
 /** Propriétés communes aux trois objets : identifiant Neomoov (unique), entité, source, consentement daté et son origine. */
@@ -73,7 +75,7 @@ export const HUBSPOT_PROPERTIES: Record<HubSpotObjectType, HubSpotPropertyDefini
     { name: 'neomoov_legal_name', label: 'Raison sociale', description: 'Dénomination légale de l\'organisation.', type: 'string', fieldType: 'text' },
     {
       name: 'neomoov_account_type', label: 'Type de compte Neomoov', description: 'Compte d\'affaires (clients entreprises) ou organisation de la plateforme (marque blanche, flotte, compagnie).', type: 'enumeration', fieldType: 'select',
-      options: [{ label: 'Compte d\'affaires', value: 'business_account' }, { label: 'Organisation (marque blanche, flotte, compagnie)', value: 'organization' }],
+      options: [{ label: 'Compte d\'affaires', value: 'business_account' }, { label: 'Organisation (marque blanche, flotte, compagnie)', value: 'organization' }, { label: 'Prospect d\'affaires (prospection B2B)', value: 'prospect' }],
     },
     {
       name: 'neomoov_organization_type', label: 'Type d\'organisation', description: 'Nature de l\'organisation dans la plateforme.', type: 'enumeration', fieldType: 'select',

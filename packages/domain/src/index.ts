@@ -58,3 +58,6 @@ export * from './booster/alerts.js';
 export * from './inbox/email.js';
 export * from './inbox/quiet-hours.js';
 export * from './inbox/calls.js';
+// Phase 1 « entreprise autonome » (2 octobre 2026) : direction commerciale (prospection B2B, appels sortants, relances, devis).
+export * from './sales/sales.js';
+export * from './schemas/sales.js';

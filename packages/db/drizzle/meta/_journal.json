@@ -239,6 +239,13 @@
       "when": 1790973356960,
       "tag": "0033_inbox-channels",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790975100562,
+      "tag": "0034_sales",
+      "breakpoints": true
     }
   ]
 }

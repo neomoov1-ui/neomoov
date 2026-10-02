@@ -291,6 +291,23 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'inbox.email_from', value: 'Neomoov <contact@neomoov.net>', description: 'Boîte unifiée : expéditeur des réponses par courriel (boîte contact@, lue par le relais entrant), sur le domaine authentifié chez le fournisseur' },
   { key: 'inbox.callback_reminder_minutes', value: 60, description: 'Boîte unifiée : un appel manqué non traité après ce délai rappelle le personnel (tâche de rappel différée)' },
   { key: 'inbox.mailbox_poll_seconds', value: 120, description: 'Boîte unifiée : période de lecture de la boîte contact@ par IMAP (repli du relais entrant Brevo), quand MAILBOX_PROVIDER=real' },
+  // Direction commerciale automatisée (phase 1 « entreprise autonome », 2 octobre 2026) : prospection B2B, appels sortants, relances, grille entreprise. Valeurs proposées, à valider par le fondateur.
+  { key: 'sales.prospecting_days', value: [1, 2, 3, 4, 5], description: 'Jours de la passe de prospection B2B (1 = lundi … 5 = vendredi)' },
+  { key: 'sales.prospecting_hour', value: 9, description: 'Heure de Montréal à partir de laquelle la passe quotidienne de prospection s\'exécute' },
+  { key: 'sales.daily_new_prospects', value: 20, description: 'Plafond de nouveaux prospects créés par jour à partir des sources ouvertes (Google Places)' },
+  { key: 'sales.sources', value: { places: { categories: ['hôtel', 'agence de voyages', 'salle de réception', 'clinique privée', 'école privée', 'siège social'], zones: ['Montréal, QC', 'Laval, QC', 'Longueuil, QC'] }, csv: true, webLeads: true }, description: 'Sources de la prospection : catégories et zones cherchées dans Google Places (adaptateur simulé sans clé), fichiers CSV importés par My Hub, formulaires entreprise et partenaire du site' },
+  { key: 'sales.lost_cooldown_days', value: 180, description: 'Repos après un refus : aucune nouvelle relance d\'un prospect perdu avant 6 mois' },
+  { key: 'sales.call_hours', value: { days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00' }, description: 'Heures de bureau des appels sortants (jours ouvrables, heure de Montréal)' },
+  { key: 'sales.max_calls_per_tick', value: 5, description: 'Appels sortants lancés au plus par passe de la file des ventes (toutes les 5 minutes)' },
+  { key: 'sales.call_retries', value: 2, description: 'Nouvelles tentatives d\'appel après une messagerie ou une absence de réponse (le jour ouvrable suivant)' },
+  { key: 'sales.record_calls', value: false, description: 'Enregistrement des appels sortants : seulement avec annonce par l\'assistant (consentement journalisé)' },
+  { key: 'sales.followup_days', value: [3, 10, 30], description: 'Relances après le premier contact sans réponse : J+3, J+10, J+30, puis clôture' },
+  { key: 'sales.followups_hour', value: 8, description: 'Heure de Montréal de la passe quotidienne des relances' },
+  { key: 'sales.candidate_followup_after_days', value: 3, description: 'Candidature de chauffeur incomplète (documents manquants) relancée après ce délai' },
+  { key: 'sales.meeting_duration_minutes', value: 30, description: 'Durée d\'un rendez-vous commercial posé dans l\'agenda du fondateur' },
+  { key: 'sales.meeting_calendar_email', value: '', description: 'Courriel du fondateur invité aux rendez-vous commerciaux (vide : seulement l\'agenda configuré)' },
+  { key: 'sales.business_grid', value: { tiers: [{ minMonthlyRides: 1, discountBps: 0 }, { minMonthlyRides: 20, discountBps: 500 }, { minMonthlyRides: 50, discountBps: 1000 }], maxDiscountBps: 1000, paymentTermsDays: 30, maxPaymentTermsDays: 30, validityDays: 30, minMonthlyRides: 1 }, description: 'Grille entreprise PROPOSÉE (à valider) : remise sur le prix affiché par volume mensuel (0 %, 5 % dès 20 courses, 10 % dès 50), plafond 10 %, facture mensuelle à 30 jours, devis valable 30 jours ; au-delà : approbation humaine' },
+  { key: 'sales.sequence_by_segment', value: { hotel: 'b2b_hotel', event: 'b2b_event', agency: 'b2b_hotel' }, description: 'Séquence approuvée (docs/sales/sequences.md) par segment ; les autres segments reçoivent b2b_standard' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.
@@ -304,6 +321,10 @@ export const AGENTS = [
   // Neomoov Booster (phase 1, agent G) : lecteurs d'images sans outil ; la « décision » est toujours celle du chauffeur, qui confirme ou corrige.
   { code: 'vehicle_inspection', name: 'Booster : analyse des photos de la vérification sommaire', mode: 'approval', model: 'claude-opus-5-5', effort: 'medium', systemPromptKey: 'vehicle_inspection.v1', tools: [], thresholds: { confirmation: 'driver' } },
   { code: 'performance_reading', name: 'Booster : lecture des captures d\'écran du rapport de performance', mode: 'approval', model: 'claude-opus-5-5', effort: 'medium', systemPromptKey: 'performance_reading.v1', tools: [], thresholds: { confirmation: 'driver' } },
+  // Direction commerciale automatisée (phase 1 « entreprise autonome », 2 octobre 2026) : mode approbation au départ, passage en automatique après quatre semaines sans erreur.
+  { code: 'b2b_prospecting', name: 'Prospection B2B (sources, qualification, séquences)', mode: 'approval', model: 'claude-opus-5-5', effort: 'medium', systemPromptKey: 'b2b_prospecting.v1', tools: ['searchProspects', 'listLeadProspects', 'createProspect', 'qualifyProspect', 'startSequence', 'markDoNotContact'], thresholds: {} },
+  { code: 'outbound_calls', name: 'Appels sortants commerciaux (Vapi) et exécution des demandes', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: 'outbound_calls.v1', tools: ['scheduleCall', 'scheduleMeeting', 'createBusinessQuote', 'openBusinessAccount', 'markDoNotContact', 'proposeSalesDecision'], thresholds: {} },
+  { code: 'followups', name: 'Relances (prospects, devis, candidatures)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: 'followups.v1', tools: ['sendFollowup', 'markDoNotContact'], thresholds: {} },
 ] as const;
 
 export const FEATURE_FLAGS = [

@@ -19,3 +19,4 @@ export * from './crm.js';
 export * from './platform-billing.js';
 export * from './fleet.js';
 export * from './booster.js';
+export * from './sales.js';

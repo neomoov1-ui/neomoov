@@ -30,6 +30,11 @@ export const PLATFORM_ONLY_TABLES: Readonly<Record<string, string>> = {
   staff_notes: 'Notes internes du personnel de la plateforme sur les fiches ; des notes par organisation demanderont une politique par entité.',
   user_roles: 'Anciens rôles (client, chauffeur, personnel de la plateforme) ; les droits des organisations passent par memberships et roles.',
   webhook_events: 'Événements reçus des fournisseurs (Stripe) : file technique de la plateforme.',
+  // Direction commerciale (phase 1 « entreprise autonome », 2 octobre 2026) : prospection B2B de la plateforme, jamais d'une organisation cliente.
+  prospects: 'Prospects d\'affaires de la plateforme (prospection B2B, phase 1 « entreprise autonome ») : organisations démarchées par Neomoov, jamais par une organisation cliente.',
+  prospect_touches: 'Fil des contacts des prospects de la plateforme (courriels, WhatsApp, appels, rendez-vous, notes).',
+  followups: 'Relances planifiées par la plateforme (prospects, devis entreprise, candidatures de chauffeurs).',
+  outbound_calls: 'Appels sortants commerciaux de la plateforme (assistant Vapi commercial, résultats, coûts).',
 };
 
 /** Vrai si la table est, par choix, réservée à la plateforme. */

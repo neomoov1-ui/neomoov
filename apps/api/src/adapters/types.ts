@@ -273,10 +273,53 @@ export interface WhatsAppProvider {
 
 export interface VoiceProvider {
   readonly name: string;
-  /** Appel sortant ; `variables` remplit les `{{variables}}` du premier message et du prompt de l'assistant (Vapi : `assistantOverrides.variableValues`). */
-  startOutboundCall(input: { to: string; assistantId: string; metadata?: Record<string, string>; variables?: Record<string, string> }): Promise<{ callId: string }>;
+  /** Appel sortant ; `variables` remplit les `{{variables}}` du premier message et du prompt de l'assistant (Vapi : `assistantOverrides.variableValues`) ; `phoneNumberId` : numéro sortant propre à un usage (ligne commerciale, phase 1 « entreprise autonome »), sinon le numéro par défaut. */
+  startOutboundCall(input: { to: string; assistantId: string; phoneNumberId?: string; metadata?: Record<string, string>; variables?: Record<string, string> }): Promise<{ callId: string }>;
   verifyWebhook(rawBody: string | Buffer, signature: string): Promise<{ type: string; payload: unknown }>;
 }
+
+// --- Direction commerciale (phase 1 « entreprise autonome », 2 octobre 2026) ------------------------------------------------
+
+/** Établissement trouvé dans une source ouverte (Google Places) : données publiques d'une organisation, jamais d'une personne. */
+export interface PlaceCandidate {
+  placeId: string;
+  name: string;
+  formattedAddress: string | null;
+  /** Ville seulement (la rue n'est pas gardée sur la fiche du prospect). */
+  city: string | null;
+  phone: string | null;
+  website: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  types: string[];
+  /** `OPERATIONAL`, `CLOSED_TEMPORARILY`, `CLOSED_PERMANENTLY` (Google), ou null. */
+  businessStatus: string | null;
+}
+
+/** Recherche d'établissements par catégorie et zone (Google Places, texte libre), simulée sans clé. */
+export interface PlacesProvider {
+  readonly name: string;
+  searchText(input: { query: string; maxResults?: number; language?: string; region?: string }): Promise<PlaceCandidate[]>;
+}
+
+export interface CalendarEventInput {
+  title: string;
+  description: string;
+  startsAt: Date;
+  endsAt: Date;
+  /** Invités (courriels professionnels) ; l'agenda configuré reçoit toujours l'événement. */
+  attendees?: Array<{ email: string; name?: string }>;
+  timeZone?: string;
+}
+
+/** Agenda du fondateur (Google Calendar, API réelle quand les clés sont là ; simulé sinon). */
+export interface CalendarProvider {
+  readonly name: string;
+  createEvent(input: CalendarEventInput): Promise<{ eventId: string; htmlLink: string | null }>;
+}
+
+export const PLACES_PROVIDER = Symbol('PLACES_PROVIDER');
+export const CALENDAR_PROVIDER = Symbol('CALENDAR_PROVIDER');
 
 /**
  * Document transmis au système d'enregistrement des ventes (SEV, section 5.13) : facture d'une course, facture de frais
@@ -451,9 +494,9 @@ export const SOCIAL_PROVIDER = Symbol('SOCIAL_PROVIDER');
 /** Consentement attaché à toute donnée envoyée au CRM (Loi 25) : sans consentement donné, rien ne part. */
 export interface CrmConsent {
   given: boolean;
-  /** Date du consentement (formulaire) ou du contrat (compte d'affaires, organisation). */
+  /** Date du consentement (formulaire), du contrat (compte d'affaires, organisation) ou de la prospection B2B (adresse professionnelle publiée). */
   at: Date | null;
-  source: 'form' | 'contract';
+  source: 'form' | 'contract' | 'b2b';
 }
 
 /** Refus commun aux adaptateurs, simulé comme réel : aucune donnée ne part sans consentement. */
@@ -494,7 +537,7 @@ export interface CrmCompanyInput {
   externalId?: string | null;
   name: string;
   legalName?: string | null;
-  accountType: 'business_account' | 'organization';
+  accountType: 'business_account' | 'organization' | 'prospect';
   organizationType?: string | null;
   planCode?: string | null;
   entity: string;

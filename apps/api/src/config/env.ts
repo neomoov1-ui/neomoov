@@ -127,6 +127,15 @@ export const envSchema = z.object({
   VAPI_API_KEY: optionalString,
   VAPI_WEBHOOK_SECRET: optionalString,
   VAPI_PHONE_NUMBER_ID: optionalString,
+  /** Direction commerciale (phase 1 « entreprise autonome ») : assistant Vapi commercial et numéro sortant dédié aux appels de prospection. */
+  VAPI_SALES_ASSISTANT_ID: optionalString,
+  VAPI_SALES_PHONE_NUMBER_ID: optionalString,
+  /** Agenda du fondateur : simulé, ou Google Calendar réel (client OAuth « application installée », jeton de rafraîchissement, agenda visé). */
+  CALENDAR_PROVIDER: providerMode,
+  GOOGLE_CALENDAR_CLIENT_ID: optionalString,
+  GOOGLE_CALENDAR_CLIENT_SECRET: optionalString,
+  GOOGLE_CALENDAR_REFRESH_TOKEN: optionalString,
+  GOOGLE_CALENDAR_ID: optionalString,
   ANTHROPIC_API_KEY: optionalString,
   /** Repli côté serveur de l'API Claude (`fallbacks: "default"`) quand le modèle d'un agent décline ; `off` le coupe. */
   LLM_SERVER_FALLBACK: z.enum(['on', 'off']).default('on'),
@@ -206,11 +215,12 @@ export function invitationTokenInResponse(env: Pick<AppEnv, 'INVITATION_TOKEN_IN
   return env.NODE_ENV !== 'production' && env.INVITATION_TOKEN_IN_RESPONSE === 'on';
 }
 
-type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER' | 'CRM_PROVIDER' | 'BILLING_PROVIDER';
+type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER' | 'CRM_PROVIDER' | 'BILLING_PROVIDER' | 'CALENDAR_PROVIDER';
 /** Nom court de chaque fournisseur dans `ALLOW_MOCK_PROVIDERS`. */
 const PROVIDER_ALIASES: Record<ProviderKey, string> = {
   PAYMENT_PROVIDER: 'payment', MAPS_PROVIDER: 'maps', SMS_PROVIDER: 'sms', EMAIL_PROVIDER: 'email', PUSH_PROVIDER: 'push', WHATSAPP_PROVIDER: 'whatsapp',
   VOICE_PROVIDER: 'voice', LLM_PROVIDER: 'llm', SEV_PROVIDER: 'sev', STORAGE_PROVIDER: 'storage', VIRUS_SCANNER_PROVIDER: 'antivirus', CRM_PROVIDER: 'crm', BILLING_PROVIDER: 'billing',
+  CALENDAR_PROVIDER: 'calendar',
 };
 const MOCKABLE_PROVIDERS = (Object.keys(PROVIDER_ALIASES) as ProviderKey[]).map((key) => [PROVIDER_ALIASES[key], key] as const);
 

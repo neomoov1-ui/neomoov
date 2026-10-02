@@ -10,11 +10,13 @@
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import { squareConfig, type AppEnv } from '../../config/env.js';
-import type { CrmProvider, EmailProvider, LlmProvider, MailboxProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, SocialProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
+import type { CalendarProvider, CrmProvider, EmailProvider, LlmProvider, MailboxProvider, MapsProvider, PaymentProvider, PlacesProvider, PushProvider, SevProvider, SmsProvider, SocialProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
 import { AnthropicLlmProvider } from './anthropic.js';
 import { ClamAvScanner } from './clamav.js';
 import { ExpoPushProvider } from './expo-push.js';
+import { GoogleCalendarProvider } from './google-calendar.js';
 import { GoogleMapsProvider } from './google-maps.js';
+import { GooglePlacesProvider } from './google-places.js';
 import { HubSpotCrmProvider } from './hubspot.real.js';
 import { ImapMailboxProvider } from './imap-mailbox.js';
 import { MetaSocialProvider } from './meta-social.js';
@@ -82,6 +84,16 @@ function build<T>(factory: new (name: string, service: string, variable: string)
 export const realMaps = (env: AppEnv): MapsProvider => {
   requireKey('cartes (Google Maps Platform)', 'GOOGLE_MAPS_SERVER_KEY', env);
   return new GoogleMapsProvider(env.GOOGLE_MAPS_SERVER_KEY!);
+};
+/** Prospection B2B (phase 1 « entreprise autonome ») : Google Places avec la clé serveur des cartes (même choix `MAPS_PROVIDER`). */
+export const realPlaces = (env: AppEnv): PlacesProvider => {
+  requireKey('établissements (Google Places)', 'GOOGLE_MAPS_SERVER_KEY', env);
+  return new GooglePlacesProvider(env.GOOGLE_MAPS_SERVER_KEY!);
+};
+/** Agenda du fondateur : Google Calendar par client OAuth et jeton de rafraîchissement (`GOOGLE_CALENDAR_*`). */
+export const realCalendar = (env: AppEnv): CalendarProvider => {
+  for (const variable of ['GOOGLE_CALENDAR_CLIENT_ID', 'GOOGLE_CALENDAR_CLIENT_SECRET', 'GOOGLE_CALENDAR_REFRESH_TOKEN'] as const) requireKey('agenda (Google Calendar)', variable, env);
+  return new GoogleCalendarProvider({ clientId: env.GOOGLE_CALENDAR_CLIENT_ID!, clientSecret: env.GOOGLE_CALENDAR_CLIENT_SECRET!, refreshToken: env.GOOGLE_CALENDAR_REFRESH_TOKEN!, calendarId: env.GOOGLE_CALENDAR_ID ?? 'primary' });
 };
 /** Paiements : Stripe (`real` ou `stripe`), ou Square (`square`, étape 26) avec les valeurs de son environnement effectif. */
 export const realPayment = (env: AppEnv): PaymentProvider => {

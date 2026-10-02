@@ -19,6 +19,10 @@ import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeVi
 import type { PilotZoneExclusionsView } from '@neomoov/domain';
 import type { AdminInspectionListQuery, AdminInspectionView, AdminPerformanceLogView, MissingInspectionView, PerformanceListQuery, PerformanceRecapQuery, PerformanceRecapView, VehicleInspectionView } from '@neomoov/domain';
 import type { InboxItemView, InboxListQuery, InboxRelayInput, InboxSummaryView } from '@neomoov/domain';
+import type {
+  FollowupView, OutboundCallView, ProspectCreateInput, ProspectDetailView, ProspectImportInput, ProspectImportResult, ProspectListQuery, ProspectUpdate, ProspectView, SalesActionResult, SalesAgentCode,
+  SalesDoNotContactInput, SalesOpenAccountInput, SalesQuoteRequest, SalesRunResult,
+} from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -215,6 +219,20 @@ export function adminResource(t: Transport) {
     updateMembership: (membershipId: string, body: MembershipUpdate) => t.patch<MembershipView>(`/admin/memberships/${id(membershipId)}`, body),
     removeMembership: (membershipId: string) => t.delete<void>(`/admin/memberships/${id(membershipId)}`),
     excludeRating: (ratingId: string, reason: string) => t.post<{ id: string; excludedAt: string; driverRating: { average: number; count: number } | null }>(`/admin/ratings/${id(ratingId)}/exclude`, { reason }),
+    /** Ventes (phase 1 « entreprise autonome ») : prospects B2B, fiche, import CSV, actions, relances, appels sortants, passes à la demande. */
+    salesProspects: (query: Partial<ProspectListQuery> = {}) => t.get<Page<ProspectView>>('/admin/sales/prospects', { query }),
+    salesProspect: (prospectId: string) => t.get<ProspectDetailView>(`/admin/sales/prospects/${id(prospectId)}`),
+    createSalesProspect: (body: ProspectCreateInput) => t.post<ProspectView>('/admin/sales/prospects', body),
+    importSalesProspects: (body: ProspectImportInput) => t.post<ProspectImportResult>('/admin/sales/prospects/import', body),
+    updateSalesProspect: (prospectId: string, body: ProspectUpdate) => t.patch<ProspectView>(`/admin/sales/prospects/${id(prospectId)}`, body),
+    salesCallNow: (prospectId: string, scriptKey = 'b2b_intro') => t.post<SalesActionResult>(`/admin/sales/prospects/${id(prospectId)}/call`, { scriptKey }),
+    salesFollowupNow: (prospectId: string) => t.post<SalesActionResult>(`/admin/sales/prospects/${id(prospectId)}/followup`, {}),
+    salesQuote: (prospectId: string, body: SalesQuoteRequest) => t.post<SalesActionResult>(`/admin/sales/prospects/${id(prospectId)}/quote`, body),
+    salesOpenAccount: (prospectId: string, body: SalesOpenAccountInput = {}) => t.post<SalesActionResult>(`/admin/sales/prospects/${id(prospectId)}/account`, body),
+    salesDoNotContact: (prospectId: string, body: SalesDoNotContactInput) => t.post<ProspectView>(`/admin/sales/prospects/${id(prospectId)}/do-not-contact`, body),
+    salesFollowups: (query: ListQuery & { targetType?: string } = {}) => t.get<Page<FollowupView>>('/admin/sales/followups', { query }),
+    salesCalls: (query: ListQuery & { prospectId?: string } = {}) => t.get<Page<OutboundCallView>>('/admin/sales/calls', { query }),
+    runSalesAgent: (code: SalesAgentCode) => t.post<SalesRunResult>(`/admin/sales/agents/${id(code)}/run`, {}),
     audit: (query: AuditFilters & { limit?: number; cursor?: string } = {}) => t.get<{ items: AuditEntryView[]; nextCursor: string | null }>('/admin/audit', { query }),
     /** Chemin de l'export CSV filtré du journal d'audit (administrateur), avec sa chaîne de requête. */
     auditExportPath: (filters: AuditFilters = {}) => {

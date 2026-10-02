@@ -76,3 +76,8 @@ export { StripeBillingProvider } from './adapters/real/stripe-billing.real.js';
 // Boîte de réception unifiée (phase 1 autonome, 2 octobre 2026) : file inbox (IMAP, rattrapage Meta, rappels des appels manqués).
 export { InboxModule } from './modules/inbox/inbox.module.js';
 export { InboxJobsService } from './modules/inbox/inbox-jobs.service.js';
+// Direction commerciale (phase 1 « entreprise autonome », 2 octobre 2026) : module, passe de la file `sales` (worker avec Redis), adaptateurs réels.
+export { SalesModule } from './modules/sales/sales.module.js';
+export { SalesJobsService } from './modules/sales/sales-jobs.service.js';
+export { GooglePlacesProvider } from './adapters/real/google-places.js';
+export { GoogleCalendarProvider } from './adapters/real/google-calendar.js';

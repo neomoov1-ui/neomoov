@@ -18,7 +18,7 @@ const NAV: Array<{ group: string; items: Array<{ key: string; href: string; admi
   { group: 'operations', items: [{ key: 'dashboard', href: '/hub' }, { key: 'rides', href: '/hub/courses' }, { key: 'newRide', href: '/hub/courses/nouvelle' }] },
   // Neomoov Booster (phase 1, agent G) : inspections (vérification sommaire) et performance des chauffeurs.
   { group: 'drivers', items: [{ key: 'drivers', href: '/hub/chauffeurs' }, { key: 'documents', href: '/hub/documents' }, { key: 'vehicles', href: '/hub/vehicules' }, { key: 'inspections', href: '/hub/booster/inspections' }, { key: 'performance', href: '/hub/booster/performance' }] },
-  { group: 'clients', items: [{ key: 'clients', href: '/hub/clients' }, { key: 'leads', href: '/hub/prospects' }] },
+  { group: 'clients', items: [{ key: 'clients', href: '/hub/clients' }, { key: 'leads', href: '/hub/prospects' }, { key: 'sales', href: '/hub/ventes' }] },
   { group: 'offer', items: [{ key: 'tariffs', href: '/hub/tarifs' }, { key: 'zones', href: '/hub/zones' }, { key: 'offers', href: '/hub/offres' }] },
   { group: 'finance', items: [{ key: 'statements', href: '/hub/releves' }, { key: 'invoices', href: '/hub/factures' }, { key: 'ledgers', href: '/hub/registres' }] },
   { group: 'safety', items: [{ key: 'incidents', href: '/hub/incidents' }, { key: 'quality', href: '/hub/qualite' }, { key: 'fairness', href: '/hub/equite' }, { key: 'compliance', href: '/hub/conformite' }, { key: 'dataRequests', href: '/hub/demandes' }] },

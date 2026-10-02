@@ -43,6 +43,7 @@ import { PlatformBillingModule } from './modules/platform-billing/platform-billi
 import { FleetModule } from './modules/fleet/fleet.module.js';
 import { BoosterModule } from './modules/booster/booster.module.js';
 import { InboxModule } from './modules/inbox/inbox.module.js';
+import { SalesModule } from './modules/sales/sales.module.js';
 
 /** Module racine de l'API. Les modules métier s'ajoutent ici étape par étape (section 11.1). */
 @Module({})
@@ -50,7 +51,7 @@ export class AppModule {
   static forRoot(env: AppEnv, logger: Logger): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, ComplianceModule, RetentionModule, FairnessModule, OrganizationsModule, AgentsModule, BrandingModule, PilotModule, CrmModule, PlatformBillingModule, FleetModule, BoosterModule, InboxModule],
+      imports: [CoreModule.forRoot(env, logger), DbModule, RedisModule, QueueModule, HttpMetricsModule, AdaptersModule, SettingsModule, DomainEventsModule, UsersModule, AuthModule, AuditModule, HealthModule, MeModule, PrivacyModule, PricingModule, RidesModule, ClientModule, DriversModule, AdminModule, PublicModule, PaymentsModule, CreditsModule, FavoritesModule, GuaranteeModule, SettlementModule, LedgersModule, InvoicingModule, NotificationsModule, MessagingModule, VoiceModule, ComplianceModule, RetentionModule, FairnessModule, OrganizationsModule, AgentsModule, BrandingModule, PilotModule, CrmModule, PlatformBillingModule, FleetModule, BoosterModule, InboxModule, SalesModule],
     };
   }
 }

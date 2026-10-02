@@ -120,6 +120,11 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('alert.pilot_zone_exclusion', 'staff', ['email']),
   // Boîte unifiée (phase 1 autonome) : appel manqué toujours sans suite après le délai de rappel.
   rule('alert.callback_due', 'staff', ['email']),
+  // Direction commerciale (phase 1 « entreprise autonome ») : relance d'un candidat chauffeur au dossier incomplet, alertes au
+  // personnel (rendez-vous pris par l'agent commercial, appel sortant à reprendre par une personne).
+  rule('sales.candidate_reminder', 'driver', ['push', 'sms']),
+  rule('alert.sales_meeting', 'staff', ['email']),
+  rule('alert.sales_followup_required', 'staff', ['email']),
 ];
 
 const BY_TEMPLATE = new Map(NOTIFICATION_MATRIX.map((r) => [r.template, r]));

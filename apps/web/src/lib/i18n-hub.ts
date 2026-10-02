@@ -13,6 +13,7 @@ const fr = {
     quality: 'Qualité des chauffeurs', fairness: 'Équité (demandes des chauffeurs)', compliance: 'Conformité et conservation', queues: 'Files de tâches',
     ledgers: 'Registres et exports', metrics: 'Métriques', apiKeys: 'Clés de service', organizations: 'Organisations et accès', supportAccess: 'Accès du support',
     inspections: 'Inspections', performance: 'Performance des chauffeurs',
+    sales: 'Ventes',
   },
   shell: { signedInAs: 'Connecté : {{name}}', logout: 'Se déconnecter', menu: 'Menu', skip: 'Aller au contenu', live: 'Temps réel actif', polling: 'Actualisation périodique', readOnly: 'Lecture seule' },
   login: {
@@ -98,6 +99,21 @@ const fr = {
   },
   clients: { title: 'Clients', name: 'Nom', phone: 'Téléphone', email: 'Courriel', rides: 'Courses', since: 'Client depuis' },
   leads: { title: 'Prospects', kind: 'Type', contact: 'Coordonnées', city: 'Ville', message: 'Message', source: 'Source', received: 'Reçu le', attestation: 'Attestation Chauffeur Pro', verify: 'Vérifier', valid: 'Attestation valide', invalid: 'Aucune attestation valide pour ce code', exam: 'examen final réussi', checkError: 'Vérification impossible, réessayez' },
+  sales: {
+    title: 'Ventes', subtitle: 'Prospection B2B automatisée : prospects d\'affaires, séquences, appels sortants, relances, devis et comptes entreprise. Jamais un particulier ; retrait respecté sans exception.',
+    organization: 'Organisation', segment: 'Segment', stage: 'Étape', source: 'Source', score: 'Score', minScore: 'Score minimal', contact: 'Contact', city: 'Ville', nextAction: 'Prochaine action', updated: 'Mis à jour',
+    import: 'Importer un fichier CSV', importHint: 'Colonnes (en-tête obligatoire, séparateur virgule ou point-virgule) : organisation, segment, contact, role, courriel, telephone, whatsapp, site, ville, langue, base. Courriel professionnel ou téléphone requis ; les messageries grand public sont refusées.',
+    importPaste: 'Contenu du fichier', importRun: 'Importer', importResult: '{{imported}} créé(s), {{updated}} complété(s), {{skipped}} refusé(s)', importSkipped: 'Ligne {{row}} : {{reason}}',
+    runProspecting: 'Lancer la prospection', runFollowups: 'Lancer les relances', runCalls: 'Lancer les appels échus', runDone: 'Passe terminée : {{summary}}',
+    detail: 'Fiche du prospect', timeline: 'Fil des contacts', calls: 'Appels sortants', followups: 'Relances', quote: 'Dernier devis', noTimeline: 'Aucun contact pour l\'instant.',
+    callNow: 'Appeler maintenant', followupNow: 'Relancer', sendQuote: 'Devis', openAccount: 'Ouvrir le compte', doNotContact: 'Ne plus contacter', changeStage: 'Changer l\'étape',
+    quoteTitle: 'Devis entreprise', expectedMonthlyRides: 'Courses par mois (estimation)', requestedDiscount: 'Remise demandée (%)', paymentTerms: 'Délai de paiement (jours)', notes: 'Notes', quoteSent: 'Devis envoyé.',
+    accountTitle: 'Ouvrir le compte entreprise', ownerEmail: 'Courriel du propriétaire (professionnel)', organizationName: 'Nom de l\'organisation', accountOpened: 'Compte ouvert, propriétaire invité.',
+    dncTitle: 'Ne plus contacter', dncReason: 'Motif du retrait', dncDone: 'Prospect retiré : plus aucun envoi ni appel.', callStarted: 'Appel lancé.', followupSent: 'Relance envoyée.',
+    discount: 'Remise', validUntil: 'Valable jusqu\'au', inGrid: 'Dans la grille', outOfGrid: 'Hors grille', consent: 'Base légale', consentAt: 'Consentement le', unsubscribed: 'Retrait le', hubspot: 'HubSpot',
+    whatsapp: 'WhatsApp d\'affaires', language: 'Langue', website: 'Site', sequence: 'Séquence', firstContact: 'Premier contact', result: 'Résultat', scheduledAt: 'Planifié le', duration: 'Durée', cost: 'Coût',
+    dueAt: 'Échéance', attempt: 'Relance', target: 'Cible', reason: 'Motif', actionDone: 'Action enregistrée.',
+  },
   tariffs: {
     title: 'Tarifs', subtitle: 'Grille par catégorie avec date d\'entrée en vigueur : la ligne la plus récente déjà en vigueur fait foi. Montants en dollars.',
     category: 'Catégorie', base: 'Prise en charge', perKm: 'Par km', perMinute: 'Par minute', minimum: 'Minimum', validFrom: 'En vigueur le', validTo: 'Jusqu\'au', current: 'En vigueur', upcoming: 'À venir', past: 'Remplacé',
@@ -331,6 +347,7 @@ const en: typeof fr = {
     quality: 'Driver quality', fairness: 'Fairness (driver requests)', compliance: 'Compliance and retention', queues: 'Job queues',
     ledgers: 'Ledgers and exports', metrics: 'Metrics', apiKeys: 'Service keys', organizations: 'Organizations and access', supportAccess: 'Support access',
     inspections: 'Inspections', performance: 'Driver performance',
+    sales: 'Sales',
   },
   shell: { signedInAs: 'Signed in: {{name}}', logout: 'Sign out', menu: 'Menu', skip: 'Skip to content', live: 'Live updates on', polling: 'Periodic refresh', readOnly: 'Read only' },
   login: {
@@ -415,6 +432,21 @@ const en: typeof fr = {
   },
   clients: { title: 'Customers', name: 'Name', phone: 'Phone', email: 'Email', rides: 'Rides', since: 'Customer since' },
   leads: { title: 'Leads', kind: 'Type', contact: 'Contact', city: 'City', message: 'Message', source: 'Source', received: 'Received on', attestation: 'Chauffeur Pro certificate', verify: 'Verify', valid: 'Valid certificate', invalid: 'No valid certificate for this code', exam: 'final exam passed', checkError: 'Check failed, try again' },
+  sales: {
+    title: 'Sales', subtitle: 'Automated B2B prospecting: business prospects, sequences, outbound calls, follow-ups, quotes and business accounts. Never an individual; opt-outs honoured without exception.',
+    organization: 'Organization', segment: 'Segment', stage: 'Stage', source: 'Source', score: 'Score', minScore: 'Minimum score', contact: 'Contact', city: 'City', nextAction: 'Next action', updated: 'Updated',
+    import: 'Import a CSV file', importHint: 'Columns (header required, comma or semicolon separated): organisation, segment, contact, role, courriel, telephone, whatsapp, site, ville, langue, base. Business email or phone required; consumer mailboxes are refused.',
+    importPaste: 'File contents', importRun: 'Import', importResult: '{{imported}} created, {{updated}} completed, {{skipped}} refused', importSkipped: 'Row {{row}}: {{reason}}',
+    runProspecting: 'Run prospecting', runFollowups: 'Run follow-ups', runCalls: 'Launch due calls', runDone: 'Pass finished: {{summary}}',
+    detail: 'Prospect record', timeline: 'Contact history', calls: 'Outbound calls', followups: 'Follow-ups', quote: 'Last quote', noTimeline: 'No contact yet.',
+    callNow: 'Call now', followupNow: 'Follow up', sendQuote: 'Quote', openAccount: 'Open account', doNotContact: 'Do not contact', changeStage: 'Change stage',
+    quoteTitle: 'Business quote', expectedMonthlyRides: 'Rides per month (estimate)', requestedDiscount: 'Requested discount (%)', paymentTerms: 'Payment terms (days)', notes: 'Notes', quoteSent: 'Quote sent.',
+    accountTitle: 'Open the business account', ownerEmail: 'Owner email (business)', organizationName: 'Organization name', accountOpened: 'Account opened, owner invited.',
+    dncTitle: 'Do not contact', dncReason: 'Reason for the opt-out', dncDone: 'Prospect removed: no more messages or calls.', callStarted: 'Call started.', followupSent: 'Follow-up sent.',
+    discount: 'Discount', validUntil: 'Valid until', inGrid: 'Within the grid', outOfGrid: 'Outside the grid', consent: 'Legal basis', consentAt: 'Consent on', unsubscribed: 'Opted out on', hubspot: 'HubSpot',
+    whatsapp: 'Business WhatsApp', language: 'Language', website: 'Website', sequence: 'Sequence', firstContact: 'First contact', result: 'Result', scheduledAt: 'Scheduled', duration: 'Duration', cost: 'Cost',
+    dueAt: 'Due', attempt: 'Follow-up', target: 'Target', reason: 'Reason', actionDone: 'Action recorded.',
+  },
   tariffs: {
     title: 'Rates', subtitle: 'Rate table per category with an effective date: the most recent row already in effect applies. Amounts in dollars.',
     category: 'Category', base: 'Base fare', perKm: 'Per km', perMinute: 'Per minute', minimum: 'Minimum', validFrom: 'Effective', validTo: 'Until', current: 'In effect', upcoming: 'Upcoming', past: 'Replaced',
@@ -676,6 +708,16 @@ const enumFr = {
   rideEvent: { client_confirms: 'Réservation confirmée', quote_expires: 'Devis expiré', offers_sent: 'Offres envoyées', new_wave: 'Nouvelle vague d\x27offres', no_driver_found: 'Aucun chauffeur trouvé', driver_accepts: 'Chauffeur attribué', driver_departs: 'Chauffeur en route', driver_arrives: 'Chauffeur arrivé', ride_starts: 'Course commencée', client_no_show: 'Client absent', ride_ends: 'Course terminée', incident: 'Incident', client_rates: 'Évaluation du client', client_disputes: 'Contestation', client_cancels: 'Annulée par le client', driver_cancels: 'Annulée par le chauffeur', reassign: 'Réattribution', sos: 'SOS', dispatch_started: 'Répartition lancée', dispatch_wave: 'Vague de répartition', dispatch_held: 'Répartition en attente', dispatch_released: 'Répartition relancée', no_candidates: 'Aucun candidat disponible', offer_sent: 'Offre envoyée', offer_accepted: 'Offre acceptée', offer_declined: 'Offre refusée', offer_expired: 'Offre expirée', offer_countered: 'Contre-proposition', offer_window_closed: 'Fenêtre d\x27offres close', no_movement_reassign: 'Retrait (aucun déplacement)', negotiation_opened: 'Négociation ouverte', negotiation_agreed: 'Prix négocié convenu', negotiation_fallback: 'Retour au prix affiché', scheduled_reminder: 'Rappel envoyé au chauffeur', scheduled_dispatch_due: 'Répartition planifiée due', scheduled_operator_alert: 'Alerte à l\x27opérateur', vehicle_mismatch_reported: 'Véhicule non conforme signalé', favourite_unavailable: 'Favori indisponible' },
   offerState: { sent: 'Envoyée', accepted: 'Acceptée', declined: 'Refusée', expired: 'Expirée', withdrawn: 'Retirée' },
   actor: { client: 'Client', driver: 'Chauffeur', operator: 'Opérateur', system: 'Système', agent: 'Agent IA', passenger: 'Passager' },
+  // Ventes (phase 1 « entreprise autonome »).
+  prospectStage: { new: 'Nouveau', qualified: 'Qualifié', contacted: 'Contacté', replied: 'A répondu', meeting: 'Rendez-vous', quote: 'Devis envoyé', won: 'Compte ouvert', lost: 'Perdu', do_not_contact: 'Ne plus contacter' },
+  prospectSegment: { hotel: 'Hôtel', business: 'Entreprise', agency: 'Agence', event: 'Événement', clinic: 'Clinique', school: 'École', other: 'Autre' },
+  prospectSource: { google_places: 'Google Places', csv_import: 'Fichier CSV', web_lead: 'Formulaire du site', manual: 'Saisie manuelle' },
+  consentBasis: { published_address: 'Adresse professionnelle publiée', form: 'Formulaire (consentement)', existing_relationship: 'Relation d\'affaires', referral: 'Recommandation', none: 'Aucune' },
+  touchChannel: { email: 'Courriel', whatsapp: 'WhatsApp', sms: 'Texto', call: 'Appel', meeting: 'Rendez-vous', note: 'Note' },
+  callStatus: { scheduled: 'Planifié', calling: 'En cours', completed: 'Terminé', failed: 'Échec', cancelled: 'Annulé' },
+  callResult: { meeting: 'Rendez-vous', callback: 'Rappel', not_interested: 'Pas intéressé', voicemail: 'Messagerie', no_answer: 'Sans réponse', do_not_contact: 'Ne plus contacter', failed: 'Échec' },
+  followupStatus: { scheduled: 'Planifiée', sent: 'Envoyée', replied: 'Réponse reçue', closed: 'Close', cancelled: 'Annulée' },
+  followupTarget: { prospect: 'Prospect', quote: 'Devis', driver_candidate: 'Candidat chauffeur', web_booking: 'Réservation web' },
 };
 
 const enumEn: typeof enumFr = {
@@ -717,6 +759,15 @@ const enumEn: typeof enumFr = {
   rideEvent: { client_confirms: 'Booking confirmed', quote_expires: 'Quote expired', offers_sent: 'Offers sent', new_wave: 'New offer wave', no_driver_found: 'No driver found', driver_accepts: 'Driver assigned', driver_departs: 'Driver on the way', driver_arrives: 'Driver arrived', ride_starts: 'Ride started', client_no_show: 'Customer no-show', ride_ends: 'Ride ended', incident: 'Incident', client_rates: 'Customer rating', client_disputes: 'Dispute', client_cancels: 'Cancelled by customer', driver_cancels: 'Cancelled by driver', reassign: 'Reassignment', sos: 'SOS', dispatch_started: 'Dispatch started', dispatch_wave: 'Dispatch wave', dispatch_held: 'Dispatch on hold', dispatch_released: 'Dispatch resumed', no_candidates: 'No candidate available', offer_sent: 'Offer sent', offer_accepted: 'Offer accepted', offer_declined: 'Offer declined', offer_expired: 'Offer expired', offer_countered: 'Counter-offer', offer_window_closed: 'Offer window closed', no_movement_reassign: 'Removed (no movement)', negotiation_opened: 'Negotiation opened', negotiation_agreed: 'Negotiated price agreed', negotiation_fallback: 'Back to displayed price', scheduled_reminder: 'Reminder sent to driver', scheduled_dispatch_due: 'Scheduled dispatch due', scheduled_operator_alert: 'Operator alert', vehicle_mismatch_reported: 'Vehicle mismatch reported', favourite_unavailable: 'Favourite unavailable' },
   offerState: { sent: 'Sent', accepted: 'Accepted', declined: 'Declined', expired: 'Expired', withdrawn: 'Withdrawn' },
   actor: { client: 'Customer', driver: 'Driver', operator: 'Operator', system: 'System', agent: 'AI agent', passenger: 'Passenger' },
+  prospectStage: { new: 'New', qualified: 'Qualified', contacted: 'Contacted', replied: 'Replied', meeting: 'Meeting', quote: 'Quote sent', won: 'Account opened', lost: 'Lost', do_not_contact: 'Do not contact' },
+  prospectSegment: { hotel: 'Hotel', business: 'Business', agency: 'Agency', event: 'Event', clinic: 'Clinic', school: 'School', other: 'Other' },
+  prospectSource: { google_places: 'Google Places', csv_import: 'CSV file', web_lead: 'Website form', manual: 'Manual entry' },
+  consentBasis: { published_address: 'Published business address', form: 'Form (consent)', existing_relationship: 'Business relationship', referral: 'Referral', none: 'None' },
+  touchChannel: { email: 'Email', whatsapp: 'WhatsApp', sms: 'Text message', call: 'Call', meeting: 'Meeting', note: 'Note' },
+  callStatus: { scheduled: 'Scheduled', calling: 'In progress', completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled' },
+  callResult: { meeting: 'Meeting', callback: 'Callback', not_interested: 'Not interested', voicemail: 'Voicemail', no_answer: 'No answer', do_not_contact: 'Do not contact', failed: 'Failed' },
+  followupStatus: { scheduled: 'Scheduled', sent: 'Sent', replied: 'Replied', closed: 'Closed', cancelled: 'Cancelled' },
+  followupTarget: { prospect: 'Prospect', quote: 'Quote', driver_candidate: 'Driver candidate', web_booking: 'Web booking' },
 };
 
 export const hubTexts = { 'fr-CA': fr, en };

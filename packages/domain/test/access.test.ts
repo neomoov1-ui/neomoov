@@ -17,9 +17,10 @@ describe('catalogue des permissions (étape 19)', () => {
   });
 
   it('anciens rôles : mêmes accès qu\'avant la bascule (tailles dérivées des routes)', () => {
-    expect(LEGACY_ROLE_PERMISSIONS['operator']).toHaveLength(57);
-    expect(LEGACY_ROLE_PERMISSIONS['finance']).toHaveLength(29);
-    expect(LEGACY_ROLE_PERMISSIONS['readonly']).toHaveLength(23);
+    // Phase 1 « entreprise autonome » : `sales.read` dans la lecture commune, `sales.manage` pour l'opérateur.
+    expect(LEGACY_ROLE_PERMISSIONS['operator']).toHaveLength(59);
+    expect(LEGACY_ROLE_PERMISSIONS['finance']).toHaveLength(30);
+    expect(LEGACY_ROLE_PERMISSIONS['readonly']).toHaveLength(24);
     expect(LEGACY_ROLE_PERMISSIONS['agent']).toEqual(['agents.run', 'agents.runs.read', 'agents.tools']);
     for (const role of ['operator', 'finance', 'readonly']) for (const code of LEGACY_ROLE_PERMISSIONS[role]!) expect(LEGACY_ROLE_PERMISSIONS['admin']).toContain(code);
     expect(legacyPermissions(['readonly', 'inconnu']).has('rides.read')).toBe(true);

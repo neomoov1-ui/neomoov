@@ -7,6 +7,7 @@
  * dernière erreur de chaque fiche, pour les mises à jour directes et les reprises.
  */
 import { schema } from '@neomoov/db';
+import { dealStageForProspect, type ProspectStage } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, gte, isNotNull, lt, ne, notExists, notInArray, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -16,7 +17,7 @@ import { APP_LOGGER } from '../../common/logger.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 
-export const CRM_ENTITY_TYPES = ['lead', 'business_account', 'organization'] as const;
+export const CRM_ENTITY_TYPES = ['lead', 'business_account', 'organization', 'prospect'] as const;
 export type CrmEntityType = (typeof CRM_ENTITY_TYPES)[number];
 export type CrmObjectType = 'contact' | 'company' | 'deal' | 'note';
 export type CrmRecordStatus = 'pending' | 'synced' | 'error' | 'skipped';
@@ -47,6 +48,8 @@ const LEAD_DEAL_LABEL: Record<CrmLeadKind, string> = { driver: 'Candidature chau
 const personName = (first: string | null, last: string | null) => [first, last].filter(Boolean).join(' ') || 'Sans nom';
 /** Objet qui porte l'état de l'entité dans `crm_records` (le premier créé). */
 const primaryObject = (entityType: CrmEntityType): CrmObjectType => (entityType === 'lead' ? 'contact' : 'company');
+/** Prospection B2B : un prospect écarté par le CRM pour l'un de ces motifs n'est jamais repris par la passe. */
+export type CrmSkipReason = 'no_consent' | 'discarded' | 'platform' | 'closed' | 'unsubscribed';
 
 @Injectable()
 export class CrmSyncService {
@@ -85,9 +88,69 @@ export class CrmSyncService {
         return this.syncBusinessAccount(entityId, now);
       case 'organization':
         return this.syncOrganization(entityId, now);
+      case 'prospect':
+        return this.syncProspect(entityId, now);
       default:
         throw new AppError('CRM_UNKNOWN_ENTITY', `Entité inconnue : ${String(entityType)}`, 500);
     }
+  }
+
+  /**
+   * Prospect d'affaires (phase 1 « entreprise autonome ») : entreprise, contact professionnel (s'il y en a un) et transaction
+   * « Ventes B2B » à l'étape du prospect. Base légale : formulaire daté (`form`) ou prospection B2B sur adresse publiée
+   * (`b2b`) ; sans base, ou après un retrait, rien ne part.
+   */
+  private async syncProspect(id: string, now: Date): Promise<CrmSyncOutcome> {
+    const [prospect] = await this.db.select().from(schema.prospects).where(eq(schema.prospects.id, id)).limit(1);
+    if (!prospect) throw AppError.notFound('PROSPECT_NOT_FOUND', 'Prospect introuvable');
+    if (prospect.consentBasis === 'none') return this.skip('prospect', id, 'no_consent', now);
+    const consent: CrmConsent = { given: true, at: prospect.consentAt ?? prospect.createdAt, source: prospect.consentBasis === 'form' ? 'form' : 'b2b' };
+    const known = await this.externalIds('prospect', id);
+    const platformId = `prospect:${id}`;
+    if (prospect.unsubscribedAt) {
+      // Retrait : rien de nouveau ne part ; une transaction déjà connue passe « perdue » pour que personne ne relance chez HubSpot.
+      if (!known.deal) return this.skip('prospect', id, 'unsubscribed', now);
+      const lost = await this.crm.upsertDeal({ platformId, externalId: known.deal, name: `Prospect : ${prospect.organizationName}`, pipeline: 'b2b', stage: 'lost', contactExternalId: known.contact ?? null, companyExternalId: known.company ?? null, entity: ENTITY, source: prospect.source, consent });
+      await this.record('prospect', id, 'deal', { externalId: lost.id, status: 'synced', now });
+      return { entityType: 'prospect', entityId: id, status: 'synced', objects: { deal: lost.id } };
+    }
+    const company = await this.crm.upsertCompany({ platformId, externalId: known.company ?? null, name: prospect.organizationName, legalName: prospect.legalName, accountType: 'prospect', organizationType: prospect.segment, entity: ENTITY, source: prospect.source, consent });
+    await this.record('prospect', id, 'company', { externalId: company.id, status: 'synced', now });
+    const objects: CrmSyncOutcome['objects'] = { company: company.id };
+    if (prospect.email || prospect.phone) {
+      const [firstName, ...rest] = (prospect.contactName ?? '').trim().split(/\s+/).filter(Boolean);
+      const contact = await this.crm.upsertContact({
+        platformId, externalId: known.contact ?? null, email: prospect.email, phone: prospect.phone, firstName: firstName ?? null, lastName: rest.join(' ') || null,
+        language: prospect.language === 'en' ? 'en' : 'fr', city: prospect.city, entity: ENTITY, source: prospect.source, consent, leadKind: 'business', affiliationProgram: 'business',
+      });
+      await this.record('prospect', id, 'contact', { externalId: contact.id, status: 'synced', now });
+      objects.contact = contact.id;
+    }
+    const deal = await this.crm.upsertDeal({
+      platformId, externalId: known.deal ?? null, name: `Prospect : ${prospect.organizationName}`, pipeline: 'b2b', stage: dealStageForProspect(prospect.stage as ProspectStage),
+      contactExternalId: objects.contact ?? null, companyExternalId: company.id, entity: ENTITY, source: prospect.source, consent,
+    });
+    await this.record('prospect', id, 'deal', { externalId: deal.id, status: 'synced', now });
+    objects.deal = deal.id;
+    // La fiche garde l'identifiant HubSpot du contact (sinon de l'entreprise), affiché dans My Hub.
+    await this.db.update(schema.prospects).set({ hubspotId: objects.contact ?? company.id }).where(eq(schema.prospects.id, id));
+    return { entityType: 'prospect', entityId: id, status: 'synced', objects };
+  }
+
+  /** Note sur la fiche d'un prospect déjà synchronisé (appel, relance, devis) ; sans fiche connue, la synchronisation d'abord. */
+  async noteProspect(prospectId: string, body: string, occurredAt = new Date()): Promise<{ id: string } | null> {
+    let known = await this.externalIds('prospect', prospectId);
+    if (!known.company && !known.contact) {
+      const outcome = await this.sync('prospect', prospectId, occurredAt);
+      if (outcome.status !== 'synced') return null;
+      known = await this.externalIds('prospect', prospectId);
+    }
+    const [prospect] = await this.db.select({ consentBasis: schema.prospects.consentBasis, consentAt: schema.prospects.consentAt, createdAt: schema.prospects.createdAt }).from(schema.prospects).where(eq(schema.prospects.id, prospectId)).limit(1);
+    if (!prospect || prospect.consentBasis === 'none') return null;
+    return this.crm.addNote({
+      body: body.slice(0, 2000), occurredAt, contactExternalId: known.contact ?? null, companyExternalId: known.company ?? null, dealExternalId: known.deal ?? null,
+      consent: { given: true, at: prospect.consentAt ?? prospect.createdAt, source: prospect.consentBasis === 'form' ? 'form' : 'b2b' },
+    });
   }
 
   /** Prospect : contact, transaction dans le parcours du formulaire, note avec le message libre (une seule fois). */

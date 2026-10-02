@@ -21,7 +21,6 @@ import { ConversationsService } from './conversations.service.js';
 
 type ApprovalRow = typeof schema.approvals.$inferSelect;
 
-const ACTIONS: readonly string[] = ['refund', 'issueCredit', 'proposeDecision', 'flagAnomaly', 'proposeSanction'];
 /** Modes interdits par agent en V1 : le recrutement n'est jamais automatique (validation humaine obligatoire). */
 const LOCKED_MODES: Record<string, readonly string[]> = { [RECRUITMENT]: ['auto'] };
 
@@ -89,7 +88,7 @@ export class AgentApprovalsService {
     this.audit.record({ action: `admin.approval_${input.decision}`, entity: 'approvals', entityId: id, after: { decision: input.decision, note, proposedAction: row.proposedAction } });
 
     if (input.decision === 'approved') {
-      if (!ACTIONS.includes(row.proposedAction)) {
+      if (!this.tools.isAction(row.proposedAction)) {
         [row] = await this.db.update(schema.approvals).set({ executionError: `Action inconnue : ${row.proposedAction}` }).where(eq(schema.approvals.id, id)).returning();
       } else {
         try {

@@ -36,12 +36,24 @@ import { FieldCipher } from '../../common/field-cipher.js';
 export const TOOL_NAMES = [
   'lookupRide', 'lookupClient', 'lookupDriver', 'issueCredit', 'refund', 'openIncident', 'escalateToHuman', 'sendMessage',
   'extractDocumentFields', 'compareIdentity', 'proposeDecision', 'listStatementLines', 'flagAnomaly', 'queryMetrics', 'proposeSanction',
+  // Direction commerciale (phase 1 « entreprise autonome », 2 octobre 2026) : outils fournis par le module des ventes (`register`).
+  'searchProspects', 'listLeadProspects', 'createProspect', 'qualifyProspect', 'startSequence', 'scheduleCall', 'scheduleMeeting', 'createBusinessQuote',
+  'openBusinessAccount', 'markDoNotContact', 'proposeSalesDecision', 'sendFollowup',
 ] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 export type ToolResult = ToolResultView;
 
-/** Action proposée dans la file d'approbation (nom de l'outil qui l'a proposée). */
-export type ApprovalAction = 'refund' | 'issueCredit' | 'proposeDecision' | 'flagAnomaly' | 'proposeSanction';
+/** Action proposée dans la file d'approbation (nom de l'outil qui l'a proposée) ; les actions des ventes sont enregistrées par leur module. */
+export type ApprovalAction = 'refund' | 'issueCredit' | 'proposeDecision' | 'flagAnomaly' | 'proposeSanction' | (string & {});
+
+/** Outil fourni par un autre module (ventes) : description vue par le modèle, schéma d'entrée, exécution. */
+export interface ToolSpec {
+  description: string;
+  schema: z.ZodObject;
+  run: (ctx: AgentRunContext, input: never) => Promise<ToolResult>;
+}
+/** Exécution d'une action approuvée (ou décidée en mode automatique) fournie par un autre module. */
+export type ActionHandler = (data: Record<string, unknown>, meta: ActionMeta) => Promise<Record<string, unknown>>;
 
 export interface ActionMeta {
   approvalId: string | null;
@@ -73,9 +85,9 @@ const sanctionActionSchema = z.object({ driverId: uuid, type: z.enum(['warning',
 /** Préfixe du motif des sanctions de l'agent qualité : leur échéance rend le chauffeur actif (passe quotidienne). */
 export const QUALITY_SANCTION_PREFIX = 'Qualité : ';
 
-const done = (data: unknown, message: string): ToolResult => ({ ok: true, status: 'done', approvalId: null, data, message });
-const refused = (message: string, data: unknown = null): ToolResult => ({ ok: false, status: 'refused', approvalId: null, data, message });
-const notFound = (message: string): ToolResult => ({ ok: false, status: 'not_found', approvalId: null, data: null, message });
+export const done = (data: unknown, message: string): ToolResult => ({ ok: true, status: 'done', approvalId: null, data, message });
+export const refused = (message: string, data: unknown = null): ToolResult => ({ ok: false, status: 'refused', approvalId: null, data, message });
+export const notFound = (message: string): ToolResult => ({ ok: false, status: 'not_found', approvalId: null, data: null, message });
 const money = (cents: number, language: string) => new Intl.NumberFormat(language === 'en' ? 'en-CA' : 'fr-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
 const numberThreshold = (thresholds: Record<string, unknown>, key: string): number => (typeof thresholds[key] === 'number' ? (thresholds[key] as number) : 0);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -84,7 +96,9 @@ const FINISHED = ['completed', 'rated', 'disputed'];
 
 @Injectable()
 export class AgentToolsService {
-  private readonly specs: Record<ToolName, { description: string; schema: z.ZodObject; run: (ctx: AgentRunContext, input: never) => Promise<ToolResult> }>;
+  /** Outils de ce service, puis ceux enregistrés par d'autres modules (ventes) ; un outil absent est refusé au modèle. */
+  private readonly specs: Partial<Record<ToolName, ToolSpec>>;
+  private readonly actions = new Map<string, ActionHandler>();
 
   constructor(
     @Inject(DB) private readonly database: Database,
@@ -125,6 +139,26 @@ export class AgentToolsService {
     return this.database.db;
   }
 
+  /** Enregistre un outil fourni par un autre module (ventes) : mêmes règles (déclaration par l'agent, Zod, journal). */
+  register(name: ToolName, spec: ToolSpec): void {
+    this.specs[name] = spec;
+  }
+
+  /** Enregistre l'exécution d'une action approuvable fournie par un autre module (rejouée par la file d'approbation). */
+  registerAction(name: string, handler: ActionHandler): void {
+    this.actions.set(name, handler);
+  }
+
+  /** Vrai si la file d'approbation sait exécuter cette action. */
+  isAction(name: string): boolean {
+    return ['refund', 'issueCredit', 'proposeDecision', 'flagAnomaly', 'proposeSanction'].includes(name) || this.actions.has(name);
+  }
+
+  /** Proposition dans la file d'approbation, pour un outil d'un autre module ; renvoie l'identifiant de l'approbation. */
+  propose(ctx: AgentRunContext, action: ApprovalAction, data: Record<string, unknown>, justification: string): Promise<string> {
+    return this.createApproval(ctx, action, data, justification);
+  }
+
   /**
    * Appelle un outil pour une exécution d'agent : outil déclaré par l'agent, entrée validée, erreur métier traduite en
    * résultat (jamais d'exception vers le modèle), appel journalisé (entrée et résultat minimisés, durée, approbation).
@@ -135,6 +169,8 @@ export class AgentToolsService {
     let result: ToolResult;
     if (!ctx.agent.tools.includes(name)) {
       result = refused(`Outil ${name} non déclaré pour cet agent`);
+    } else if (!spec) {
+      result = refused(`Outil ${name} indisponible dans ce processus`);
     } else {
       const parsed = spec.schema.safeParse(rawInput);
       if (!parsed.success) {
@@ -158,10 +194,10 @@ export class AgentToolsService {
 
   /** Outils présentés au modèle (boucle d'outils) : seulement ceux que l'agent déclare ; le modèle ne voit pas l'approbation. */
   llmTools(ctx: AgentRunContext, names: ToolName[]): LlmTool[] {
-    return names.filter((n) => ctx.agent.tools.includes(n)).map((name) => ({
+    return names.filter((n) => ctx.agent.tools.includes(n) && this.specs[n]).map((name) => ({
       name,
-      description: this.specs[name].description,
-      inputSchema: this.specs[name].schema,
+      description: this.specs[name]!.description,
+      inputSchema: this.specs[name]!.schema,
       run: async (input: Record<string, unknown>) => {
         try {
           const r = await this.call(ctx, name, input);
@@ -408,6 +444,11 @@ export class AgentToolsService {
       case 'flagAnomaly':
         // Une anomalie approuvée est confirmée : la correction du relevé (ajustement) reste une décision de la comptabilité.
         return { acknowledged: true, statementId: data['statementId'] ?? null };
+      default: {
+        const handler = this.actions.get(action);
+        if (!handler) throw new AppError('ACTION_UNKNOWN', `Action inconnue : ${action}`, 422);
+        return handler(data, meta);
+      }
     }
   }
 

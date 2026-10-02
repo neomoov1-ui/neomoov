@@ -66,6 +66,7 @@ Aucune ligne visible sous contexte (sécurité activée, aucune politique pour l
 | `user_roles` | Anciens rôles et personnel de la plateforme (lu sous contexte par `platform_staff_user_ids`) |
 | `crm_records` | Correspondance avec le CRM de la plateforme (HubSpot, étape 25) |
 | `webhook_events` | File technique des événements des fournisseurs |
+| `prospects`, `prospect_touches`, `followups`, `outbound_calls` | Direction commerciale de la plateforme (phase 1 « entreprise autonome », migration 0032) : prospection B2B, fil des contacts, relances et appels sortants faits par Neomoov, jamais par une organisation cliente |
 
 ## Organisation des lignes créées
 
