@@ -79,6 +79,20 @@ export type StatementSettleOffline = z.infer<typeof statementSettleOfflineSchema
 
 export const offlineSettlementViewSchema = z.object({ method: z.enum(OFFLINE_SETTLEMENT_METHODS), reference: z.string(), note: z.string().nullable(), byUserId: uuid });
 
+/**
+ * Réconciliation d'un relevé « unknown » (prestataire sans réponse : délai, réseau ; revue du 2 octobre 2026, constat 7).
+ * `replay` : la même demande est rejouée avec la même clé d'idempotence (le prestataire rend le résultat déjà obtenu, ou
+ * exécute une seule fois) ; `executed` : les finances ont vu le mouvement chez le prestataire, sa référence fait foi ;
+ * `not_executed` : rien n'a été exécuté, le relevé redevient « en échec » et la prochaine tentative change de clé.
+ */
+export const statementReconcileSchema = z.object({
+  outcome: z.enum(['replay', 'executed', 'not_executed']),
+  /** Référence du mouvement chez le prestataire (transfert ou paiement), exigée pour `executed`. */
+  reference: z.string().trim().min(2).max(120).optional(),
+  note: z.string().trim().max(500).optional(),
+}).refine((r) => r.outcome !== 'executed' || Boolean(r.reference), { message: 'La référence du mouvement chez le prestataire est requise', path: ['reference'] });
+export type StatementReconcile = z.infer<typeof statementReconcileSchema>;
+
 export const adminStatementDetailSchema = z.object({
   id: uuid,
   driverId: uuid,

@@ -5,10 +5,10 @@
 import { z } from 'zod';
 import { CANCELLATION_REASONS, PAYMENT_METHODS, RIDE_STATES, VEHICLE_CATEGORIES } from '../enums.js';
 import { cents, isoDate, phoneE164, uuid } from './common.js';
-import { coordinatesSchema, placeSchema } from './quotes.js';
+import { coordinatesSchema, PAYMENT_CHOICES, placeSchema } from './quotes.js';
 
-export const PAYMENT_CHOICES = ['prepaid', 'pay_driver_after'] as const;
-export type PaymentChoice = (typeof PAYMENT_CHOICES)[number];
+// Choix de paiement définis avec les devis (le devis en dépend) ; toujours exposés ici pour les schémas des courses.
+export { PAYMENT_CHOICES, type PaymentChoice } from './quotes.js';
 
 export const DRIVER_STATUS_REQUESTS = ['online', 'offline', 'paused'] as const;
 export type DriverStatusRequest = (typeof DRIVER_STATUS_REQUESTS)[number];

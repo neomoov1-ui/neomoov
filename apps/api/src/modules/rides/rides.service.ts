@@ -27,6 +27,7 @@ import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { hasStaffRole, type UserActor } from '../auth/actor.js';
 import { AuditService } from '../audit/audit.service.js';
+import { CreditsService } from '../credits/credits.service.js';
 import { refreshDriverRating } from '../drivers/driver-rating.js';
 import { PaymentsService, type RideAuthorization } from '../payments/payments.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
@@ -96,6 +97,7 @@ export class RidesService {
     private readonly promotions: PromotionsService,
     private readonly safety: SafetyHoldService,
     private readonly context: RideContextService,
+    private readonly credits: CreditsService,
   ) {}
 
   private get db() {
@@ -396,6 +398,13 @@ export class RidesService {
     const [org] = await tx.select({ id: schema.organizations.id }).from(schema.organizations).where(eq(schema.organizations.code, 'neomoov')).limit(1);
     const [city] = await tx.select({ timeZone: schema.cities.timeZone }).from(schema.cities).where(eq(schema.cities.code, quote.cityCode)).limit(1);
     const [numberRow] = await tx.execute<{ n: string }>(sql`SELECT next_ride_public_number(${city?.timeZone ?? 'America/Toronto'}) AS n`);
+    // Crédits (revue du 2 octobre 2026) : jamais sur une course payée au chauffeur (constat 2, décision) ni sans compte
+    // client ; sinon le montant déduit par le devis est réservé ici même, dans la même transaction (constat 3), et un
+    // compte qui ne le couvre plus (autre course réservée entre-temps) donne 409 `CREDITS_INSUFFICIENT`.
+    const [creditHolder] = fields.clientId && fields.paymentChoice === 'prepaid' && quote.creditsAppliedCents > 0
+      ? await tx.select({ userId: schema.clients.userId }).from(schema.clients).where(eq(schema.clients.id, fields.clientId)).limit(1)
+      : [];
+    const creditsAppliedCents = creditHolder ? quote.creditsAppliedCents : 0;
     const [inserted] = await tx
       .insert(schema.rides)
       .values({
@@ -421,7 +430,7 @@ export class RidesService {
         qstCents: quote.qstCents,
         tollsCents: quote.tollsCents,
         promotionDiscountCents: quote.promotionDiscountCents,
-        creditsAppliedCents: quote.creditsAppliedCents,
+        creditsAppliedCents,
         distanceMeters: quote.distanceMeters,
         durationSeconds: quote.durationSeconds,
         // Étape 20 : l'organisation du contexte (réservation d'une organisation cliente), sinon la plateforme.
@@ -432,7 +441,8 @@ export class RidesService {
         ...((quote.options as { pet?: boolean } | null)?.pet ? { preferences: { ...((fields.preferences ?? {}) as Record<string, unknown>), pet: true } } : {}),
       })
       .returning({ id: schema.rides.id });
-    await tx.insert(schema.rideEvents).values({ rideId: inserted!.id, type: 'client_confirms', fromState: 'quoted', toState: 'requested', actorUserId: actor.userId, actorKind: actor.kind, data: { quoteId: quote.id, type: fields.type }, occurredAt: now });
+    if (creditHolder && creditsAppliedCents > 0) await this.credits.reserveForRide(tx, { rideId: inserted!.id, userId: creditHolder.userId, amountCents: creditsAppliedCents, at: now });
+    await tx.insert(schema.rideEvents).values({ rideId: inserted!.id, type: 'client_confirms', fromState: 'quoted', toState: 'requested', actorUserId: actor.userId, actorKind: actor.kind, data: { quoteId: quote.id, type: fields.type, creditsAppliedCents }, occurredAt: now });
     return (await selectRide(tx as unknown as Database['db'], inserted!.id))!;
   }
 

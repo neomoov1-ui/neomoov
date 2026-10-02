@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CreditsModule } from '../credits/credits.module.js';
 import { OrgScopeModule } from '../organizations/org-scope.module.js';
 import { PaymentsModule } from '../payments/payments.module.js';
 import { PricingModule } from '../pricing/pricing.module.js';
@@ -23,7 +24,7 @@ import { SocketAuthService } from './socket-auth.service.js';
 
 /** Courses, présence, réservation planifiée et temps réel (étape 5), répartition automatique et négociation (étape 6). */
 @Module({
-  imports: [PricingModule, PaymentsModule, OrgScopeModule],
+  imports: [PricingModule, PaymentsModule, OrgScopeModule, CreditsModule],
   controllers: [RidesController, QuoteVehiclesController, PublicRidesController, DriverController, AdminRidesController],
   providers: [PilotHook, NotificationsOutbox, RideContextService, CancellationWatchService, SafetyHoldService, PackLifecycleService, ApproachNotifierService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, SocketAuthService, RealtimeService, ClientGateway, DriverGateway, AdminGateway],
   exports: [PilotHook, NotificationsOutbox, SafetyHoldService, PackLifecycleService, StuckRidesService, PresenceService, RidesService, ScheduledService, DispatchService, RealtimeService],

@@ -124,6 +124,11 @@ Avec Square, `capabilities.connect` est faux :
 - `POST /v1/admin/statements/{id}/settle-offline` (existant) clôture le relevé avec le moyen et la référence. My Hub, Relevés : carte « Versements à faire hors plateforme » et bouton d'export.
 - Relevés négatifs : prélèvement sur la carte de prélèvement du chauffeur (page de saisie), comme avec Stripe.
 
+### Clés d'idempotence et règlements sans réponse (revue du 2 octobre 2026)
+
+- Versement d'un relevé chauffeur : clé `statement:<id>:payout` ; relevé d'organisation : `organization-statement:<id>:payout` (stables par relevé). Prélèvement : `statement:<id>:charge:<n>`, `n` ne comptant que les tentatives tranchées (succès ou refus définitif). Pourboire : `tip:<course>` puis `tip:<course>:<n>` après `n` refus définitifs (ligne `payments` du pourboire en `failed`, `attempts`). Après un délai ou une panne, la même clé est toujours rejouée : jamais de second mouvement.
+- Sans réponse du prestataire (délai, réseau, 502), le relevé passe `unknown` (tentative non comptée, finances alertées par `alert.settlement_unknown`) : ni `/pay` (`409 STATEMENT_OUTCOME_UNKNOWN`) ni la reprise du lundi ne le retentent. Les finances réconcilient par `POST /v1/admin/statements/{id}/reconcile` (ou `/v1/admin/organization-statements/{id}/reconcile`) : `replay` rejoue la même demande avec la même clé (dans la fenêtre d'idempotence du prestataire, 24 heures chez Stripe : le résultat déjà obtenu est rendu, sinon une seule exécution) ; `executed` constate le mouvement vu dans le tableau de bord (référence obligatoire, relevé réglé) ; `not_executed` remet le relevé en échec (reprise du lundi, clé suivante).
+
 ### Limites
 
 - Apple Pay et Google Pay par Square : non branchés (plus tard).

@@ -337,6 +337,11 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Alerte : règlement en échec', body: (d, l) => `Le règlement d'un relevé a échoué (${money(d['netCents'], l)}).` },
     en: { title: 'Alert: settlement failed', body: (d, l) => `A statement settlement failed (${money(d['netCents'], l)}).` },
   },
+  // Revue du 2 octobre 2026 (constat 7) : prestataire sans réponse ; rien n'est retenté avant la réconciliation par les finances.
+  'alert.settlement_unknown': {
+    fr: { title: 'Alerte : règlement sans réponse du prestataire', body: (d, l) => `Le règlement d'un relevé (${money(d['netCents'], l)}) est resté sans réponse du prestataire de paiement : réconciliez-le dans My Hub avant toute nouvelle tentative.` },
+    en: { title: 'Alert: settlement outcome unknown', body: (d, l) => `A statement settlement (${money(d['netCents'], l)}) got no answer from the payment provider: reconcile it in My Hub before any retry.` },
+  },
   // Agents IA (étape 13) : réponse de l'assistance au client (texte rédigé par l'agent ou accusé de réception), rapport au
   // fondateur, alertes de l'exploitation (conversation escaladée, plafond de dépense atteint).
   'agent.reply': {

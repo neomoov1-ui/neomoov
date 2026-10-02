@@ -40,6 +40,10 @@ export const ridePreferencesSchema = z.object({
 });
 export type RidePreferences = z.infer<typeof ridePreferencesSchema>;
 
+/** Choix de paiement d'une course (D35) : prépaiement dans l'application, ou paiement au chauffeur à la fin. Défini ici (les schémas des courses importent ce fichier). */
+export const PAYMENT_CHOICES = ['prepaid', 'pay_driver_after'] as const;
+export type PaymentChoice = (typeof PAYMENT_CHOICES)[number];
+
 export const rideOptionsSchema = z.object({
   flex: z.boolean().default(false),
   priority: z.boolean().default(false),
@@ -63,6 +67,12 @@ export const quoteRequestSchema = z.object({
   /** Heure de prise en charge demandée (au moins 2 heures après la demande, D32) ; absente : course immédiate, si le drapeau l'autorise. */
   requestedAt: isoDate.optional(),
   options: rideOptionsSchema.prefault({}),
+  /**
+   * Choix de paiement prévu (revue du 2 octobre 2026, constat 2) : les crédits du compte ne s'appliquent qu'à une course
+   * prépayée ; pour `pay_driver_after`, le devis n'en déduit aucun (reste à payer = total). Absent : calculé comme une
+   * course prépayée.
+   */
+  paymentChoice: z.enum(PAYMENT_CHOICES).optional(),
 }).refine((q) => q.stops.length === 0 || !q.options.flex, { message: 'L\'offre Flex n\'est pas compatible avec des arrêts', path: ['options', 'flex'] });
 export type QuoteRequest = z.infer<typeof quoteRequestSchema>;
 
@@ -100,6 +110,11 @@ export const quoteSchema = z.object({
   totalCents: cents,
   creditsAppliedCents: cents,
   amountDueCents: cents,
+  /**
+   * Les crédits déduits (`creditsAppliedCents`) ne valent que pour une course prépayée : payée au chauffeur, la course
+   * est due en entier (`totalCents`) et les crédits restent au compte. Toujours vrai en V1 (décision du 2 octobre 2026).
+   */
+  creditsPrepaidOnly: z.boolean(),
   maxConsentedCents: cents,
   flatRateCode: z.string().nullable(),
   ignoredOptions: z.array(z.string()),

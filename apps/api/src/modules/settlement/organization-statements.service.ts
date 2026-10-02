@@ -10,7 +10,7 @@
  * la transaction restreinte de la route (les relevés d'une autre organisation sont introuvables : 404).
  */
 import { schema } from '@neomoov/db';
-import type { OrganizationStatementView, StatementPeriod, StatementSettleOffline } from '@neomoov/domain';
+import type { OrganizationStatementView, StatementPeriod, StatementReconcile, StatementSettleOffline } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -20,6 +20,8 @@ import { APP_LOGGER } from '../../common/logger.js';
 import { withoutOrgScope } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService, type AuditEntry } from '../audit/audit.service.js';
+import { NotificationsOutbox } from '../rides/notifications-outbox.js';
+import { isDefinitiveRefusal } from './settlement-payouts.service.js';
 
 type Row = typeof schema.organizationStatements.$inferSelect;
 
@@ -29,6 +31,8 @@ export interface OrganizationPayReport {
   failed: number;
   /** Organisations sans compte Connect en service : relevé laissé à régler hors plateforme. */
   offline: number;
+  /** Transferts sans réponse du prestataire (revue du 2 octobre 2026, constat 7) : réconciliation requise avant toute nouvelle tentative. */
+  unknown: number;
 }
 
 @Injectable()
@@ -38,6 +42,7 @@ export class OrganizationStatementsService {
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
     @Inject(APP_LOGGER) private readonly logger: Logger,
     private readonly audit: AuditService,
+    private readonly outbox: NotificationsOutbox,
   ) {}
 
   private get db() {
@@ -46,12 +51,12 @@ export class OrganizationStatementsService {
 
   /**
    * Relevés d'organisation d'une période, à partir des relevés de chauffeurs émis (jamais un brouillon) : créés ou mis à
-   * jour tant qu'ils ne sont pas réglés, puis versés. Rejouable : un relevé réglé ne change plus, un transfert porte une
-   * clé d'idempotence par relevé et par essai.
+   * jour tant qu'ils ne sont pas réglés, puis versés. Rejouable : un relevé réglé (ou sans réponse du prestataire) ne
+   * change plus, un transfert porte une clé d'idempotence stable par relevé (revue du 2 octobre 2026, constat 7).
    */
   async issueAndPay(period: Pick<StatementPeriod, 'startDate' | 'endDate'>, now = new Date()): Promise<OrganizationPayReport> {
     return withoutOrgScope(async () => {
-      const report: OrganizationPayReport = { issued: 0, paid: 0, failed: 0, offline: 0 };
+      const report: OrganizationPayReport = { issued: 0, paid: 0, failed: 0, offline: 0, unknown: 0 };
       const shares = await this.db.execute<{ organization_id: string; statement_id: string; driver_id: string; share: number }>(sql`
         SELECT ws.organization_id, ws.id AS statement_id, ws.driver_id, sum(sl.amount_cents)::int AS share
         FROM weekly_statements ws
@@ -95,7 +100,7 @@ export class OrganizationStatementsService {
    */
   async retryFailed(now = new Date()): Promise<OrganizationPayReport> {
     return withoutOrgScope(async () => {
-      const report: OrganizationPayReport = { issued: 0, paid: 0, failed: 0, offline: 0 };
+      const report: OrganizationPayReport = { issued: 0, paid: 0, failed: 0, offline: 0, unknown: 0 };
       const pending = await this.db
         .select()
         .from(schema.organizationStatements)
@@ -107,32 +112,69 @@ export class OrganizationStatementsService {
     });
   }
 
-  /** Versement d'un relevé d'organisation par Stripe Connect (simulé en test) ; sans compte en service : hors plateforme. */
-  private async pay(statement: Row, now: Date): Promise<'paid' | 'failed' | 'offline'> {
+  /**
+   * Versement d'un relevé d'organisation par Stripe Connect (simulé en test) ; sans compte en service : hors plateforme.
+   * Clé d'idempotence stable par relevé : rejouée après un délai ou une panne, elle ne verse jamais deux fois. Sans
+   * réponse du prestataire, le relevé passe `unknown` (tentative non comptée) et n'est plus retenté avant `reconcile`.
+   */
+  private async pay(statement: Row, now: Date, options: { reconcile?: boolean } = {}): Promise<'paid' | 'failed' | 'offline' | 'unknown'> {
+    const payable = options.reconcile ? ['issued', 'failed', 'unknown'] : ['issued', 'failed'];
     const [org] = await this.db.select({ accountRef: schema.organizations.stripeAccountId, onboarded: schema.organizations.stripeAccountOnboarded }).from(schema.organizations).where(eq(schema.organizations.id, statement.organizationId)).limit(1);
     if (statement.shareCents === 0) {
-      await this.db.update(schema.organizationStatements).set({ status: 'paid', settledAt: now }).where(and(eq(schema.organizationStatements.id, statement.id), inArray(schema.organizationStatements.status, ['issued', 'failed'])));
+      await this.db.update(schema.organizationStatements).set({ status: 'paid', settledAt: now }).where(and(eq(schema.organizationStatements.id, statement.id), inArray(schema.organizationStatements.status, payable)));
       return 'paid';
     }
     if (!org?.accountRef || !org.onboarded) return 'offline';
     const attempts = statement.attempts + 1;
     try {
       const { transferId } = await this.provider.transfer({
-        accountRef: org.accountRef, amountCents: statement.shareCents, idempotencyKey: `organization-statement:${statement.id}:payout:${attempts}`,
+        accountRef: org.accountRef, amountCents: statement.shareCents, idempotencyKey: `organization-statement:${statement.id}:payout`,
         description: `Part de l'organisation, relevé Neomoov ${statement.periodStart} au ${statement.periodEnd}`,
       });
       await this.db
         .update(schema.organizationStatements)
         .set({ status: 'paid', stripeTransferId: transferId, attempts, failureCode: null, settledAt: now })
-        .where(and(eq(schema.organizationStatements.id, statement.id), inArray(schema.organizationStatements.status, ['issued', 'failed'])));
+        .where(and(eq(schema.organizationStatements.id, statement.id), inArray(schema.organizationStatements.status, payable)));
       this.journal({ action: 'organization_statement.paid', entity: 'organization_statements', entityId: statement.id, after: { shareCents: statement.shareCents, transferId } }, statement.organizationId);
       return 'paid';
     } catch (error) {
-      this.logger.error({ err: error, organizationStatementId: statement.id }, 'Versement à l\'organisation refusé');
-      await this.db.update(schema.organizationStatements).set({ status: 'failed', attempts, failureCode: 'transfer_failed' }).where(eq(schema.organizationStatements.id, statement.id));
-      this.journal({ action: 'organization_statement.payout_failed', entity: 'organization_statements', entityId: statement.id, after: { shareCents: statement.shareCents, attempts } }, statement.organizationId);
-      return 'failed';
+      if (isDefinitiveRefusal(error)) {
+        this.logger.error({ err: error, organizationStatementId: statement.id }, 'Versement à l\'organisation refusé');
+        await this.db.update(schema.organizationStatements).set({ status: 'failed', attempts, failureCode: 'transfer_failed' }).where(and(eq(schema.organizationStatements.id, statement.id), inArray(schema.organizationStatements.status, payable)));
+        this.journal({ action: 'organization_statement.payout_failed', entity: 'organization_statements', entityId: statement.id, after: { shareCents: statement.shareCents, attempts } }, statement.organizationId);
+        return 'failed';
+      }
+      // Délai, réseau, panne : le transfert a peut-être eu lieu. Rien n'est retenté avant la réconciliation (constat 7).
+      this.logger.error({ err: error, organizationStatementId: statement.id }, 'Versement à l\'organisation sans réponse du prestataire : réconciliation requise');
+      await this.db.update(schema.organizationStatements).set({ status: 'unknown', failureCode: 'transfer_unknown' }).where(and(eq(schema.organizationStatements.id, statement.id), inArray(schema.organizationStatements.status, payable)));
+      this.journal({ action: 'organization_statement.payout_unknown', entity: 'organization_statements', entityId: statement.id, after: { shareCents: statement.shareCents, attempts: statement.attempts } }, statement.organizationId);
+      await this.outbox.queueForStaff('alert.settlement_unknown', { organizationStatementId: statement.id, netCents: statement.shareCents, reason: 'transfer_unknown' });
+      return 'unknown';
     }
+  }
+
+  /**
+   * Réconciliation d'un relevé d'organisation `unknown` par les finances de la plateforme (constat 7) : `replay` rejoue le
+   * transfert avec la même clé (résultat déjà obtenu chez le prestataire, ou exécution unique) ; `executed` constate le
+   * transfert (référence) ; `not_executed` remet le relevé en échec pour la reprise du lundi.
+   */
+  async reconcile(id: string, input: StatementReconcile, actor: { userId: string }, now = new Date()): Promise<OrganizationStatementView> {
+    return withoutOrgScope(async () => {
+      const [row] = await this.db.select().from(schema.organizationStatements).where(eq(schema.organizationStatements.id, id)).limit(1);
+      if (!row) throw AppError.notFound('ORGANIZATION_STATEMENT_NOT_FOUND', 'Relevé d\'organisation introuvable');
+      if (row.status !== 'unknown') throw AppError.conflict('ORGANIZATION_STATEMENT_NOT_UNKNOWN', 'Seul un relevé sans réponse du prestataire se réconcilie', { status: row.status });
+      if (input.outcome === 'replay') {
+        await this.pay(row, now, { reconcile: true });
+        return this.detail(id);
+      }
+      const executed = input.outcome === 'executed';
+      await this.db
+        .update(schema.organizationStatements)
+        .set({ status: executed ? 'paid' : 'failed', attempts: row.attempts + 1, failureCode: executed ? null : 'not_executed', ...(executed ? { stripeTransferId: input.reference!, settledAt: now } : {}) })
+        .where(and(eq(schema.organizationStatements.id, id), eq(schema.organizationStatements.status, 'unknown')));
+      this.journal({ action: 'organization_statement.reconciled', entity: 'organization_statements', entityId: id, after: { outcome: input.outcome, reference: input.reference ?? null, note: input.note ?? null, shareCents: row.shareCents, byUserId: actor.userId } }, row.organizationId);
+      return this.detail(id);
+    });
   }
 
   /** Journal d'audit d'une action de la plateforme pour une organisation : visible dans le journal de celle-ci. */

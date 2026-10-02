@@ -93,7 +93,8 @@ export const PACK_PURCHASE_STATUSES = ['active', 'exhausted', 'expired', 'cancel
 export const PACK_BILLING_STATUSES = ['to_bill', 'billed', 'free'] as const;
 export type PackBillingStatus = (typeof PACK_BILLING_STATUSES)[number];
 
-export const STATEMENT_STATUSES = ['draft', 'issued', 'paid', 'charged', 'failed'] as const;
+/** `unknown` (revue du 2 octobre 2026, constat 7) : le prestataire n'a pas répondu (délai, réseau) ; aucune nouvelle tentative avant réconciliation. */
+export const STATEMENT_STATUSES = ['draft', 'issued', 'paid', 'charged', 'failed', 'unknown'] as const;
 export type StatementStatus = (typeof STATEMENT_STATUSES)[number];
 
 export const PROMOTION_TYPES = ['percent', 'fixed', 'free_ride', 'nth_ride'] as const;

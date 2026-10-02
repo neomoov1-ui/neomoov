@@ -242,7 +242,8 @@ export type RevenueShareRuleView = z.infer<typeof revenueShareRuleSchema>;
 
 // --- Relevés et versements de l'organisation ---
 
-export const ORGANIZATION_STATEMENT_STATUSES = ['issued', 'paid', 'failed', 'settled_offline'] as const;
+/** `unknown` : le transfert n'a pas eu de réponse du prestataire (délai, réseau) ; réconcilié avant toute nouvelle tentative (revue du 2 octobre 2026). */
+export const ORGANIZATION_STATEMENT_STATUSES = ['issued', 'paid', 'failed', 'settled_offline', 'unknown'] as const;
 
 export const organizationStatementLineSchema = z.object({ driverId: uuid, driverName: z.string().nullable(), driverPublicNumber: z.string(), statementId: uuid, shareCents: cents });
 

@@ -98,8 +98,8 @@ export class SettlementJobsService implements OnModuleInit {
     );
   }
 
-  private logOrganizations(report: { issued: number; paid: number; failed: number; offline: number }): void {
-    if (report.issued || report.paid || report.failed) this.logger.info(report, 'règlement hebdomadaire des organisations');
+  private logOrganizations(report: { issued: number; paid: number; failed: number; offline: number; unknown: number }): void {
+    if (report.issued || report.paid || report.failed || report.unknown) this.logger.info(report, 'règlement hebdomadaire des organisations');
   }
 
   /** Moments de la passe (réglages) : génération du vendredi, reprise du lundi, période de la semaine écoulée. */

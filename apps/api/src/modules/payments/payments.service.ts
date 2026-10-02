@@ -531,7 +531,12 @@ export class PaymentsService {
 
   // --- Pourboire ---
 
-  /** Pourboire après la course : paiement séparé hors session sur la carte de la course (ou la carte par défaut). */
+  /**
+   * Pourboire après la course : paiement séparé hors session sur la carte de la course (ou la carte par défaut). Clé
+   * d'idempotence du fournisseur qui ne change qu'après un refus définitif, compté sur la ligne `tip` (revue du
+   * 2 octobre 2026, constat 11) : après un délai ou une panne, la même clé est rejouée (le fournisseur rend le résultat
+   * déjà obtenu, jamais un second débit) ; après un refus de carte, une nouvelle tentative (autre carte) reste possible.
+   */
   async tip(rideId: string, userId: string, amountCents: number): Promise<PaymentView> {
     const ride = await this.rideOf(rideId);
     const client = await this.clientOf(userId);
@@ -543,18 +548,31 @@ export class PaymentsService {
     if (existing && existing.status === 'captured') return this.paymentView(existing);
     const ridePayment = await this.ridePayment(rideId);
     const method = ridePayment?.stripePaymentMethodId ? { stripePaymentMethodId: ridePayment.stripePaymentMethodId, method: ridePayment.method } : await this.methodForClient(client.id).then((m) => ({ stripePaymentMethodId: m.stripePaymentMethodId, method: 'card_app' as const }));
+    // `attempts` de la ligne `tip` : refus définitifs déjà essuyés ; la première clé reste `tip:<course>` (lignes existantes).
+    const refusals = existing?.attempts ?? 0;
     const charge = await this.provider.chargeOffSession({
-      amountCents, customerRef: await this.customerFor(userId), paymentMethodRef: method.stripePaymentMethodId, idempotencyKey: `tip:${rideId}`,
+      amountCents, customerRef: await this.customerFor(userId), paymentMethodRef: method.stripePaymentMethodId, idempotencyKey: refusals ? `tip:${rideId}:${refusals}` : `tip:${rideId}`,
       description: `Pourboire, course ${ride.publicNumber}`, metadata: { ride_id: rideId, kind: 'tip' },
     });
-    if (charge.status !== 'captured') this.declined(charge);
+    if (charge.status !== 'captured') {
+      const failureCode = charge.failureCode ?? charge.status;
+      await this.db
+        .insert(schema.payments)
+        .values({ rideId, clientId: client.id, method: method.method, kind: 'tip', idempotencyKey: `tip:${rideId}`, stripePaymentMethodId: method.stripePaymentMethodId, provider: this.provider.name, status: 'failed', attempts: refusals + 1, failureCode })
+        .onConflictDoUpdate({ target: schema.payments.idempotencyKey, targetWhere: sql`${schema.payments.idempotencyKey} IS NOT NULL`, set: { status: 'failed', attempts: refusals + 1, failureCode, stripePaymentMethodId: method.stripePaymentMethodId } });
+      await this.journal(rideId, 'tip_declined', { amountCents, code: failureCode, attempts: refusals + 1 });
+      this.declined(charge);
+    }
     const [row] = await this.db
       .insert(schema.payments)
       .values({
         rideId, clientId: client.id, method: method.method, kind: 'tip', idempotencyKey: `tip:${rideId}`, stripePaymentIntentId: charge.intentId, stripePaymentMethodId: method.stripePaymentMethodId,
         provider: this.provider.name, authorizedCents: amountCents, capturedCents: amountCents, tipCents: amountCents, status: 'captured', capturedAt: new Date(),
       })
-      .onConflictDoUpdate({ target: schema.payments.idempotencyKey, targetWhere: sql`${schema.payments.idempotencyKey} IS NOT NULL`, set: { status: 'captured', capturedCents: amountCents, tipCents: amountCents, stripePaymentIntentId: charge.intentId } })
+      .onConflictDoUpdate({
+        target: schema.payments.idempotencyKey, targetWhere: sql`${schema.payments.idempotencyKey} IS NOT NULL`,
+        set: { status: 'captured', authorizedCents: amountCents, capturedCents: amountCents, tipCents: amountCents, stripePaymentIntentId: charge.intentId, stripePaymentMethodId: method.stripePaymentMethodId, failureCode: null, capturedAt: new Date() },
+      })
       .returning();
     await this.db.update(schema.rides).set({ tipCents: amountCents }).where(eq(schema.rides.id, rideId));
     await this.journal(rideId, 'tip_captured', { amountCents });

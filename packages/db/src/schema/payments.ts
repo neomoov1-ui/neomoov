@@ -69,14 +69,24 @@ export const refunds = pgTable('refunds', {
   check('refunds_mode', sql`${t.mode} IN ('refund', 'credit')`),
 ]);
 
-/** Crédits consommés par une course (5.9) : décrément de `credits.remaining_cents` tracé, une ligne par crédit et par course. */
+/**
+ * Crédits d'une course (5.9) : décrément de `credits.remaining_cents` tracé, une ligne par crédit et par course. Revue du
+ * 2 octobre 2026 (constat 3) : le montant est réservé à la réservation (`reserved`, déjà retiré du reste du crédit),
+ * confirmé à la fin de course (`consumed`) ou rendu au crédit à l'annulation (`released`).
+ */
 export const creditUses = pgTable('credit_uses', {
   id: id(),
   creditId: uuid('credit_id').notNull().references(() => credits.id),
   rideId: uuid('ride_id').notNull().references(() => rides.id),
   amountCents: cents('amount_cents').notNull(),
+  status: varchar('status', { length: 10 }).notNull().default('consumed'),
   usedAt: createdAt(),
-}, (t) => [uniqueIndex('credit_uses_credit_ride_unique').on(t.creditId, t.rideId), index('credit_uses_ride_idx').on(t.rideId), check('credit_uses_positive', sql`${t.amountCents} > 0`)]);
+}, (t) => [
+  uniqueIndex('credit_uses_credit_ride_unique').on(t.creditId, t.rideId),
+  index('credit_uses_ride_idx').on(t.rideId),
+  check('credit_uses_positive', sql`${t.amountCents} > 0`),
+  check('credit_uses_status', sql`${t.status} IN ('reserved', 'consumed', 'released')`),
+]);
 
 /**
  * Événements reçus des fournisseurs de paiement (webhook Stripe) : l'identifiant de l'événement est la clé primaire,

@@ -40,7 +40,7 @@ const fr = {
     account: 'Compte de versement', connect: 'Versements automatiques par Stripe Connect', offline: 'Règlement hors plateforme (virement, Interac) tant que Stripe Connect n\'est pas en service',
     openAccount: 'Ouvrir le compte de versement', simulated: 'Parcours simulé (Stripe non branché).', organizationStatements: 'Relevés de l\'organisation', period: 'Semaine', status: 'État',
     total: 'Part', drivers: 'Chauffeurs', settle: 'Constater le règlement', method: 'Moyen', reference: 'Référence', export: 'Exporter les virements (CSV)', none: 'Aucun relevé pour le moment.',
-    statuses: { issued: 'à verser', paid: 'versé', failed: 'en échec', settled_offline: 'réglé hors plateforme' },
+    statuses: { issued: 'à verser', paid: 'versé', failed: 'en échec', settled_offline: 'réglé hors plateforme', unknown: 'sans réponse du prestataire' },
     methods: { interac: 'Interac', bank_transfer: 'Virement', cash: 'Espèces', cheque: 'Chèque', other: 'Autre' },
   },
   reports: {
@@ -87,7 +87,7 @@ const en: typeof fr = {
     account: 'Payout account', connect: 'Automatic payouts through Stripe Connect', offline: 'Off-platform settlement (bank transfer, Interac) until Stripe Connect is live',
     openAccount: 'Open the payout account', simulated: 'Simulated flow (Stripe not connected).', organizationStatements: 'Organization statements', period: 'Week', status: 'Status',
     total: 'Share', drivers: 'Drivers', settle: 'Record settlement', method: 'Method', reference: 'Reference', export: 'Export payouts (CSV)', none: 'No statement yet.',
-    statuses: { issued: 'to pay', paid: 'paid', failed: 'failed', settled_offline: 'settled off-platform' },
+    statuses: { issued: 'to pay', paid: 'paid', failed: 'failed', settled_offline: 'settled off-platform', unknown: 'no answer from the provider' },
     methods: { interac: 'Interac', bank_transfer: 'Bank transfer', cash: 'Cash', cheque: 'Cheque', other: 'Other' },
   },
   reports: {

@@ -297,10 +297,12 @@ describe('règlement hebdomadaire (intégration)', () => {
     expect((await request(server()).post(`/v1/admin/statements/${smallDraft.id}/pay`).set(bearer(staff.tokens)).expect(200)).body).toMatchObject({ status: 'charged', attempts: 1 });
   });
 
-  it("prélèvement en erreur (Stripe indisponible) : relevé en échec, repris le lundi, jamais laissé « émis »", async ({ skip }) => {
+  it("prélèvement en erreur (Stripe indisponible) : relevé « unknown », jamais laissé « émis » ni repris sans réconciliation, prélevé au rejeu avec la même clé", async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     // Revue 17.B : une exception du prélèvement laissait le relevé « issued » ; ni la reprise du lundi (relevés
     // « failed ») ni la passe du vendredi suivant (autre période) ne le reprenaient : dette jamais prélevée.
+    // Revue du 2 octobre 2026 (constat 7) : une panne ne tranche rien (le prélèvement a peut-être eu lieu) ; le relevé
+    // passe « unknown », la reprise du lundi ne le retente pas, la réconciliation rejoue la même clé.
     const driver = await createDriver(app, 'neo_premium', { acceptsScheduled: false });
     await pack(driver, 'elite', '2026-06-30T13:00:00Z');
     await db(app).update(schema.drivers).set({ stripeDebitPaymentMethodId: 'pm_test_debit_ok' }).where(eq(schema.drivers.id, driver.driverId));
@@ -311,17 +313,21 @@ describe('règlement hebdomadaire (intégration)', () => {
     const provider = app.get<MockPaymentProvider>(PAYMENT_PROVIDER);
     const outage = vi.spyOn(provider, 'chargeOffSession').mockRejectedValueOnce(new AppError('PAYMENT_PROVIDER_ERROR', 'Stripe indisponible (panne simulée)', 502));
     try {
-      const failed = await payouts().settle(draft.id!, friday);
-      expect(failed).toMatchObject({ status: 'failed', attempts: 1, failureCode: 'charge_failed' });
+      const unknown = await payouts().settle(draft.id!, friday);
+      expect(unknown).toMatchObject({ status: 'unknown', attempts: 0, failureCode: 'charge_unknown' });
     } finally {
       outage.mockRestore();
     }
     const [balance] = await db(app).select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driver.driverId));
-    expect(balance).toMatchObject({ balanceCents: draft.netCents });
+    expect(balance).toMatchObject({ balanceCents: 0 });
     await db(app).update(schema.weeklyStatements).set({ updatedAt: friday }).where(eq(schema.weeklyStatements.id, draft.id!));
-    expect(await payouts().retryFailed(new Date('2026-07-13T11:00:00Z'))).toBeGreaterThanOrEqual(1);
+    await payouts().retryFailed(new Date('2026-07-13T11:00:00Z'));
     const [after] = await db(app).select({ status: schema.weeklyStatements.status }).from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, draft.id!));
-    expect(after!.status).toBe('charged');
+    expect(after!.status).toBe('unknown');
+    const reconciled = await payouts().reconcile(draft.id!, { outcome: 'replay' }, { userId: staff.userId }, new Date('2026-07-13T12:00:00Z'));
+    expect(reconciled).toMatchObject({ status: 'charged', attempts: 1, failureCode: null });
+    const keys = provider.calls.filter((c) => c.method === 'chargeOffSession' && (c.args[0] as { metadata?: { statement_id?: string } }).metadata?.statement_id === draft.id).map((c) => (c.args[0] as { idempotencyKey: string }).idempotencyKey);
+    expect(keys).toEqual([`statement:${draft.id}:charge:1`, `statement:${draft.id}:charge:1`]);
   });
 
   it('passe du vendredi 6 h : relevés de la semaine précédente générés, émis et réglés ; rien la veille ni deux fois', async ({ skip }) => {
