@@ -3,6 +3,7 @@ import { adminResource, publicResource, staffAuthResource } from './admin-resour
 import { brandingResource } from './branding-resources.js';
 import { invoicingResource } from './invoicing-resources.js';
 import { ledgersResource } from './ledger-resources.js';
+import { marketingResource } from './marketing-resources.js';
 import { memberMfaResource, orgResource, supportAccessResource } from './org-resources.js';
 import { authResource, configResource, driverResource, meResource, paymentsResource, placesResource, quotesResource, ridesResource } from './resources.js';
 import type { HealthReport } from './types.js';
@@ -143,6 +144,8 @@ export class ApiClient {
   readonly supportAccess = supportAccessResource(this);
   /** Étape 21 : second facteur TOTP d'un membre d'organisation connecté par code SMS. */
   readonly memberMfa = memberMfaResource(this);
+  /** Phase 1 « entreprise autonome » : marketing automatisé (calendrier de contenu, référencement, connecteurs). */
+  readonly marketing = marketingResource(this);
 
   /** Santé de l'API : base, Redis, files (`GET /v1/health`). */
   readonly health = {

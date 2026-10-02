@@ -81,3 +81,9 @@ export { SalesModule } from './modules/sales/sales.module.js';
 export { SalesJobsService } from './modules/sales/sales-jobs.service.js';
 export { GooglePlacesProvider } from './adapters/real/google-places.js';
 export { GoogleCalendarProvider } from './adapters/real/google-calendar.js';
+// Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : module, agents, diffusion et file `marketing` (portée par le worker avec Redis).
+export { MarketingModule } from './modules/marketing/marketing.module.js';
+export { MarketingJobsService } from './modules/marketing/marketing-jobs.service.js';
+export { ContentAgent } from './modules/marketing/content.agent.js';
+export { PublishingService } from './modules/marketing/publishing.service.js';
+export { SeoAgent } from './modules/marketing/seo.agent.js';

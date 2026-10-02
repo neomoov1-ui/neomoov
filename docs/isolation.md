@@ -67,6 +67,7 @@ Aucune ligne visible sous contexte (sécurité activée, aucune politique pour l
 | `crm_records` | Correspondance avec le CRM de la plateforme (HubSpot, étape 25) |
 | `webhook_events` | File technique des événements des fournisseurs |
 | `prospects`, `prospect_touches`, `followups`, `outbound_calls` | Direction commerciale de la plateforme (phase 1 « entreprise autonome », migration 0032) : prospection B2B, fil des contacts, relances et appels sortants faits par Neomoov, jamais par une organisation cliente |
+| `content_items`, `content_comments`, `seo_tasks` | Marketing automatisé de la plateforme (phase 1 « entreprise autonome ») : calendrier de contenu des réseaux et du site de Neomoov, commentaires reçus, tâches de référencement ; aucune donnée d'organisation cliente |
 
 ## Organisation des lignes créées
 

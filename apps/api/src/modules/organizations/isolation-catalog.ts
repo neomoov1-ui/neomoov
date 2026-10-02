@@ -35,6 +35,10 @@ export const PLATFORM_ONLY_TABLES: Readonly<Record<string, string>> = {
   prospect_touches: 'Fil des contacts des prospects de la plateforme (courriels, WhatsApp, appels, rendez-vous, notes).',
   followups: 'Relances planifiées par la plateforme (prospects, devis entreprise, candidatures de chauffeurs).',
   outbound_calls: 'Appels sortants commerciaux de la plateforme (assistant Vapi commercial, résultats, coûts).',
+  // Phase 1 « entreprise autonome » (2 octobre 2026) : marketing de la plateforme (réseaux et site de Neomoov).
+  content_items: 'Calendrier de contenu des réseaux et du site de Neomoov (agents content et publishing) : aucune donnée d\'organisation cliente.',
+  content_comments: 'Commentaires reçus sur les publications de Neomoov et réponses automatiques de l\'agent de diffusion.',
+  seo_tasks: 'Tâches de référencement de neomoov.net (agent seo) : pages du site de la plateforme.',
 };
 
 /** Vrai si la table est, par choix, réservée à la plateforme. */

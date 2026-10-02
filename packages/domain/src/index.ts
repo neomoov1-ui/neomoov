@@ -61,3 +61,6 @@ export * from './inbox/calls.js';
 // Phase 1 « entreprise autonome » (2 octobre 2026) : direction commerciale (prospection B2B, appels sortants, relances, devis).
 export * from './sales/sales.js';
 export * from './schemas/sales.js';
+// Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : espaces, règles des contenus, calendrier, commentaires, référencement, et schémas de l'API.
+export * from './marketing/index.js';
+export * from './schemas/marketing.js';

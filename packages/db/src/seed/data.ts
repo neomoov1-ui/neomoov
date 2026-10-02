@@ -308,6 +308,34 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'sales.meeting_calendar_email', value: '', description: 'Courriel du fondateur invité aux rendez-vous commerciaux (vide : seulement l\'agenda configuré)' },
   { key: 'sales.business_grid', value: { tiers: [{ minMonthlyRides: 1, discountBps: 0 }, { minMonthlyRides: 20, discountBps: 500 }, { minMonthlyRides: 50, discountBps: 1000 }], maxDiscountBps: 1000, paymentTermsDays: 30, maxPaymentTermsDays: 30, validityDays: 30, minMonthlyRides: 1 }, description: 'Grille entreprise PROPOSÉE (à valider) : remise sur le prix affiché par volume mensuel (0 %, 5 % dès 20 courses, 10 % dès 50), plafond 10 %, facture mensuelle à 30 jours, devis valable 30 jours ; au-delà : approbation humaine' },
   { key: 'sales.sequence_by_segment', value: { hotel: 'b2b_hotel', event: 'b2b_event', agency: 'b2b_hotel' }, description: 'Séquence approuvée (docs/sales/sequences.md) par segment ; les autres segments reçoivent b2b_standard' },
+  // Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : calendrier de contenu, diffusion, mesures, référencement.
+  { key: 'marketing.content_day', value: 5, description: 'Jour de la semaine (1 = lundi) où l\'agent contenu produit le calendrier de la semaine suivante (vendredi)' },
+  { key: 'marketing.content_hour', value: 9, description: 'Heure de Montréal à partir de laquelle le calendrier de contenu est produit' },
+  { key: 'marketing.items_per_space', value: { min: 2, max: 5 }, description: 'Contenus demandés à l\'agent contenu pour chaque espace, par semaine' },
+  {
+    key: 'marketing.slots',
+    value: {
+      site_blog: [{ day: 2, time: '10:00' }, { day: 4, time: '10:00' }], academy: [{ day: 3, time: '10:00' }, { day: 5, time: '10:00' }], google_business: [{ day: 1, time: '11:00' }, { day: 4, time: '11:00' }],
+      facebook: [{ day: 1, time: '12:00' }, { day: 3, time: '12:00' }, { day: 5, time: '17:00' }], instagram: [{ day: 2, time: '12:00' }, { day: 4, time: '12:00' }, { day: 6, time: '11:00' }],
+      linkedin: [{ day: 2, time: '08:30' }, { day: 4, time: '08:30' }], tiktok: [{ day: 3, time: '18:00' }, { day: 6, time: '18:00' }], youtube: [{ day: 5, time: '16:00' }],
+      x: [{ day: 1, time: '09:00' }, { day: 3, time: '09:00' }, { day: 5, time: '09:00' }], snapchat: [{ day: 5, time: '19:00' }, { day: 7, time: '19:00' }], newsletter: [{ day: 4, time: '10:00' }],
+    },
+    description: 'Créneaux de publication par espace (jour 1 = lundi, heure de Montréal) ; au-delà, les jours libres de la semaine puis la semaine suivante',
+  },
+  { key: 'marketing.measure_days', value: [1, 7], description: 'Mesures d\'une publication (portée, interactions, clics) à J+1 puis J+7' },
+  { key: 'marketing.publish_max_attempts', value: 3, description: 'Tentatives de publication avant l\'état « en échec » définitif (relais humain)' },
+  { key: 'marketing.comments_window_days', value: 7, description: 'Fenêtre de relecture des commentaires des publications (jours après la publication)' },
+  { key: 'marketing.allowed_prices', value: ['48,20 $', '113,83 $'], description: 'Prix décidés par le fondateur, seuls montants admis dans un contenu public (forfait aéroport Neo Premium, formation Neomoov Chauffeur Pro)' },
+  { key: 'marketing.allowed_phones', value: ['+1 367 763-9063'], description: 'Numéros publics de l\'entreprise admis dans un contenu (WhatsApp Business)' },
+  { key: 'marketing.cta_urls', value: { reserve: 'https://neomoov.net/reserver', academy: 'https://neomoov.net/academy', preregister: 'https://neomoov.net/devenir-chauffeur' }, description: 'Adresses des appels à l\'action des contenus' },
+  { key: 'marketing.service_hours', value: { fr: 'Nous roulons 7 jours sur 7 ; réservez au moins 2 heures à l\'avance sur neomoov.net/reserver, le prix tout compris est affiché avant de confirmer.', en: 'We operate 7 days a week; book at least 2 hours ahead at neomoov.net/reserver, the all-inclusive price is shown before you confirm.' }, description: 'Réponse automatique aux commentaires qui demandent les horaires' },
+  { key: 'marketing.editorial_lines_override', value: '', description: 'Lignes éditoriales de l\'agent contenu ; vide : le fichier docs/marketing/lignes-editoriales.md du dépôt' },
+  { key: 'seo.weekday', value: 1, description: 'Jour de la semaine (1 = lundi) de la passe de l\'agent référencement' },
+  { key: 'seo.hour', value: 6, description: 'Heure de Montréal à partir de laquelle la passe de référencement tourne' },
+  { key: 'seo.keywords', value: ['chauffeur privé Montréal', 'transport aéroport Montréal prix fixe', 'navette aéroport Montréal', 'chauffeur électrique Montréal', 'formation chauffeur taxi Montréal'], description: 'Mots-clés cibles du référencement (ordre de priorité)' },
+  { key: 'seo.max_tasks_per_run', value: 10, description: 'Tâches de référencement créées au plus par passe' },
+  { key: 'seo.measure_days', value: 28, description: 'Mesure après application d\'une tâche de référencement (Search Console), en jours' },
+  { key: 'seo.stats_window_days', value: 28, description: 'Fenêtre des statistiques de la Search Console lues par l\'agent référencement, en jours' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.
@@ -325,6 +353,10 @@ export const AGENTS = [
   { code: 'b2b_prospecting', name: 'Prospection B2B (sources, qualification, séquences)', mode: 'approval', model: 'claude-opus-5-5', effort: 'medium', systemPromptKey: 'b2b_prospecting.v1', tools: ['searchProspects', 'listLeadProspects', 'createProspect', 'qualifyProspect', 'startSequence', 'markDoNotContact'], thresholds: {} },
   { code: 'outbound_calls', name: 'Appels sortants commerciaux (Vapi) et exécution des demandes', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: 'outbound_calls.v1', tools: ['scheduleCall', 'scheduleMeeting', 'createBusinessQuote', 'openBusinessAccount', 'markDoNotContact', 'proposeSalesDecision'], thresholds: {} },
   { code: 'followups', name: 'Relances (prospects, devis, candidatures)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: 'followups.v1', tools: ['sendFollowup', 'markDoNotContact'], thresholds: {} },
+  // Phase 1 « entreprise autonome » (2 octobre 2026) : direction marketing automatisée (contenu, diffusion, référencement).
+  { code: 'content', name: 'Marketing : contenu (calendrier hebdomadaire des dix espaces)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'content.v1', tools: ['queryMetrics'], thresholds: {} },
+  { code: 'publishing', name: 'Marketing : diffusion (publication, mesures, commentaires simples)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: [], thresholds: {} },
+  { code: 'seo', name: 'Marketing : référencement (plan hebdomadaire)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'seo.v1', tools: [], thresholds: {} },
 ] as const;
 
 export const FEATURE_FLAGS = [

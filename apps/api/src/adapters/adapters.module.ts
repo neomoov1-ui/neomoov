@@ -10,6 +10,9 @@ import {
   type CalendarProvider, type CrmProvider, type EmailProvider, type LlmProvider, type MailboxProvider, type MapsProvider, type PaymentProvider, type PlacesProvider, type PushProvider, type SevProvider, type SmsProvider, type SocialProvider, type StorageProvider, type VirusScanner, type VoiceProvider, type WhatsAppProvider,
 } from './types.js';
 import { BILLING_PROVIDER, type BillingProvider } from './billing.types.js';
+import { SEARCH_CONSOLE_PROVIDER, SITE_CONNECTOR, SOCIAL_PUBLISHERS, TTS_PROVIDER, type SearchConsoleProvider, type SiteConnector, type SocialPublishers, type TtsProvider } from './marketing.types.js';
+import { MockSearchConsoleProvider, MockSiteConnector, MockTtsProvider, mockSocialPublishers } from './mock/marketing.mock.js';
+import { realSearchConsole, realSiteConnector, realSocialPublishers, realTts } from './real/marketing.js';
 
 type Mode = 'mock' | 'real';
 const choose = <T>(token: symbol, key: keyof AppEnv, mock: (env: AppEnv) => T, real: (env: AppEnv) => T): Provider => ({
@@ -44,7 +47,12 @@ const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 
     // Direction commerciale (phase 1 « entreprise autonome ») : établissements par Google Places (même clé et même choix que les cartes), agenda du fondateur.
     choose<PlacesProvider>(PLACES_PROVIDER, 'MAPS_PROVIDER', () => new MockPlacesProvider(), realPlaces),
     choose<CalendarProvider>(CALENDAR_PROVIDER, 'CALENDAR_PROVIDER', () => new MockCalendarProvider(), realCalendar),
+    // Marketing automatisé (phase 1 « entreprise autonome ») : un seul interrupteur pour les onze espaces, le site, la voix et la Search Console.
+    choose<SocialPublishers>(SOCIAL_PUBLISHERS, 'MARKETING_PROVIDER', () => mockSocialPublishers(), realSocialPublishers),
+    choose<SiteConnector>(SITE_CONNECTOR, 'MARKETING_PROVIDER', () => new MockSiteConnector(), realSiteConnector),
+    choose<TtsProvider>(TTS_PROVIDER, 'MARKETING_PROVIDER', () => new MockTtsProvider(), realTts),
+    choose<SearchConsoleProvider>(SEARCH_CONSOLE_PROVIDER, 'MARKETING_PROVIDER', () => new MockSearchConsoleProvider(), realSearchConsole),
   ],
-  exports: [MAPS_PROVIDER, PAYMENT_PROVIDER, SMS_PROVIDER, EMAIL_PROVIDER, PUSH_PROVIDER, WHATSAPP_PROVIDER, VOICE_PROVIDER, SEV_PROVIDER, LLM_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, CRM_PROVIDER, BILLING_PROVIDER, MAILBOX_PROVIDER, SOCIAL_PROVIDER, PLACES_PROVIDER, CALENDAR_PROVIDER],
+  exports: [MAPS_PROVIDER, PAYMENT_PROVIDER, SMS_PROVIDER, EMAIL_PROVIDER, PUSH_PROVIDER, WHATSAPP_PROVIDER, VOICE_PROVIDER, SEV_PROVIDER, LLM_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, CRM_PROVIDER, BILLING_PROVIDER, MAILBOX_PROVIDER, SOCIAL_PROVIDER, PLACES_PROVIDER, CALENDAR_PROVIDER, SOCIAL_PUBLISHERS, SITE_CONNECTOR, TTS_PROVIDER, SEARCH_CONSOLE_PROVIDER],
 })
 export class AdaptersModule {}

@@ -206,6 +206,58 @@ export const envSchema = z.object({
   META_PAGE_ID: optionalString,
   META_PAGE_TOKEN: optionalString,
   META_INSTAGRAM_ID: optionalString,
+
+  /**
+   * Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : `mock` (onze espaces, site, voix et Search
+   * Console simulés) ou `real` (WordPress, Brevo et Meta quand leurs clés sont présentes ; les autres espaces refusent
+   * clairement tant que leur connecteur n'est pas livré). Voir docs/marketing/connecteurs.md.
+   */
+  MARKETING_PROVIDER: providerMode,
+  WORDPRESS_URL: z.string().url().optional(),
+  WORDPRESS_USER: optionalString,
+  /** Mot de passe d'application WordPress (Utilisateurs, Profil, Mots de passe d'application) : secret. */
+  WORDPRESS_APP_PASSWORD: optionalString,
+  /** Identifiants (slug) des catégories des articles du blogue et de l'Academy ; vide : sans catégorie. */
+  WORDPRESS_BLOG_CATEGORY: optionalString,
+  WORDPRESS_ACADEMY_CATEGORY: optionalString,
+  /** Champs des balises de référencement : `neomoov` (outil du site) ou `yoast`. */
+  WORDPRESS_SEO_META: z.enum(['neomoov', 'yoast']).default('neomoov'),
+  BREVO_NEWSLETTER_LIST_ID: z.coerce.number().int().positive().optional(),
+  BREVO_SENDER_EMAIL: optionalString,
+  BREVO_SENDER_NAME: optionalString,
+  META_IG_USER_ID: optionalString,
+  META_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default('v21.0'),
+  SEARCH_CONSOLE_SITE_URL: optionalString,
+  SEARCH_CONSOLE_CLIENT_EMAIL: optionalString,
+  SEARCH_CONSOLE_PRIVATE_KEY: optionalString,
+  /** Voix de synthèse : `piper` (binaire et modèle sur le serveur) ou `azure` ; vide : Piper si PIPER_BIN est donné, sinon Azure. */
+  TTS_ENGINE: z.enum(['piper', 'azure']).optional(),
+  PIPER_BIN: optionalString,
+  PIPER_MODEL: optionalString,
+  PIPER_MODEL_EN: optionalString,
+  AZURE_SPEECH_KEY: optionalString,
+  AZURE_SPEECH_REGION: optionalString,
+  /** Rendu des visuels de marque (HTML vers PNG) par un navigateur sans interface (Chromium, Chrome ou Edge) ; vide : rendu différé. */
+  BROWSER_BIN: optionalString,
+  /** Montage des vidéos courtes ; vide : ffmpeg du PATH, sinon montage différé. */
+  FFMPEG_BIN: optionalString,
+  // Connecteurs prévus, non livrés (variables réservées) : LinkedIn, TikTok, YouTube, X, Fiche Google, Snapchat.
+  LINKEDIN_ACCESS_TOKEN: optionalString,
+  LINKEDIN_ORGANIZATION_ID: optionalString,
+  TIKTOK_ACCESS_TOKEN: optionalString,
+  YOUTUBE_CLIENT_ID: optionalString,
+  YOUTUBE_CLIENT_SECRET: optionalString,
+  YOUTUBE_REFRESH_TOKEN: optionalString,
+  X_API_KEY: optionalString,
+  X_API_SECRET: optionalString,
+  X_ACCESS_TOKEN: optionalString,
+  X_ACCESS_SECRET: optionalString,
+  GBP_CLIENT_ID: optionalString,
+  GBP_CLIENT_SECRET: optionalString,
+  GBP_REFRESH_TOKEN: optionalString,
+  GBP_LOCATION_ID: optionalString,
+  SNAPCHAT_ACCESS_TOKEN: optionalString,
+  SNAPCHAT_PROFILE_ID: optionalString,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -215,12 +267,13 @@ export function invitationTokenInResponse(env: Pick<AppEnv, 'INVITATION_TOKEN_IN
   return env.NODE_ENV !== 'production' && env.INVITATION_TOKEN_IN_RESPONSE === 'on';
 }
 
-type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER' | 'CRM_PROVIDER' | 'BILLING_PROVIDER' | 'CALENDAR_PROVIDER';
+type ProviderKey = 'PAYMENT_PROVIDER' | 'MAPS_PROVIDER' | 'SMS_PROVIDER' | 'EMAIL_PROVIDER' | 'PUSH_PROVIDER' | 'WHATSAPP_PROVIDER' | 'VOICE_PROVIDER' | 'LLM_PROVIDER' | 'SEV_PROVIDER' | 'STORAGE_PROVIDER' | 'VIRUS_SCANNER_PROVIDER' | 'CRM_PROVIDER' | 'BILLING_PROVIDER' | 'CALENDAR_PROVIDER' | 'MARKETING_PROVIDER';
 /** Nom court de chaque fournisseur dans `ALLOW_MOCK_PROVIDERS`. */
 const PROVIDER_ALIASES: Record<ProviderKey, string> = {
   PAYMENT_PROVIDER: 'payment', MAPS_PROVIDER: 'maps', SMS_PROVIDER: 'sms', EMAIL_PROVIDER: 'email', PUSH_PROVIDER: 'push', WHATSAPP_PROVIDER: 'whatsapp',
   VOICE_PROVIDER: 'voice', LLM_PROVIDER: 'llm', SEV_PROVIDER: 'sev', STORAGE_PROVIDER: 'storage', VIRUS_SCANNER_PROVIDER: 'antivirus', CRM_PROVIDER: 'crm', BILLING_PROVIDER: 'billing',
   CALENDAR_PROVIDER: 'calendar',
+  MARKETING_PROVIDER: 'marketing',
 };
 const MOCKABLE_PROVIDERS = (Object.keys(PROVIDER_ALIASES) as ProviderKey[]).map((key) => [PROVIDER_ALIASES[key], key] as const);
 

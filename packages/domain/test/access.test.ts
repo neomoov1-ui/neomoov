@@ -17,7 +17,7 @@ describe('catalogue des permissions (étape 19)', () => {
   });
 
   it('anciens rôles : mêmes accès qu\'avant la bascule (tailles dérivées des routes)', () => {
-    // Phase 1 « entreprise autonome » : `sales.read` dans la lecture commune, `sales.manage` pour l'opérateur.
+    // Phase 1 « entreprise autonome » (2 octobre 2026) : `sales.read` et `marketing.read` dans la lecture commune, `sales.manage` et `marketing.manage` pour l'opérateur (exploitation).
     expect(LEGACY_ROLE_PERMISSIONS['operator']).toHaveLength(59);
     expect(LEGACY_ROLE_PERMISSIONS['finance']).toHaveLength(30);
     expect(LEGACY_ROLE_PERMISSIONS['readonly']).toHaveLength(24);

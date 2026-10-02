@@ -599,3 +599,4 @@ export class MockStorageProvider implements StorageProvider {
 export * from './crm.mock.js';
 export * from './billing.mock.js';
 export * from './sales.mock.js';
+export * from './marketing.mock.js';
