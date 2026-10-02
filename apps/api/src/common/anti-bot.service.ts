@@ -1,7 +1,8 @@
 /**
  * Protection anti-robots des formulaires publics (prompt 12) : Cloudflare Turnstile quand la clé secrète est fournie
  * (`TURNSTILE_SECRET_KEY`). Sans clé : en production, tout jeton est refusé ; en développement et en test, tout jeton est
- * accepté sauf « fail » (pour exercer le refus).
+ * accepté sauf « fail » (pour exercer le refus). Les tests n'appellent jamais Cloudflare, même si la clé est dans
+ * l'environnement de développement partagé (2 octobre 2026 : clé posée pour la production, tests publics en échec).
  */
 import { Inject, Injectable } from '@nestjs/common';
 import type { Logger } from 'pino';
@@ -19,7 +20,7 @@ export class AntiBotService {
 
   async verify(token: string, ip: string | null): Promise<boolean> {
     const secret = this.env.TURNSTILE_SECRET_KEY;
-    if (!secret) return this.env.NODE_ENV !== 'production' && token !== 'fail';
+    if (!secret || this.env.NODE_ENV === 'test') return this.env.NODE_ENV !== 'production' && token !== 'fail';
     try {
       const body = new URLSearchParams({ secret, response: token, ...(ip ? { remoteip: ip } : {}) });
       const res = await fetch(VERIFY_URL, { method: 'POST', body, signal: AbortSignal.timeout(5000) });
