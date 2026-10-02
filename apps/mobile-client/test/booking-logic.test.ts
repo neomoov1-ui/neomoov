@@ -24,7 +24,7 @@ function quote(category: QuoteView['category'], total: number, eta: QuoteView['e
       { code: 'qst', label: 'TVQ', amountCents: 274 },
     ],
     fareCents: 2455, serviceFeeCents: 200, regulatoryFeeCents: 90, tollsCents: 0, promotionCode: null, promotionDiscountCents: 0, alignmentDiscountCents: 0,
-    subtotalCents: 2745, gstCents: 137, qstCents: 274, totalCents: total, creditsAppliedCents: 0, amountDueCents: total, maxConsentedCents: total, flatRateCode: null,
+    subtotalCents: 2745, gstCents: 137, qstCents: 274, totalCents: total, creditsAppliedCents: 0, creditsPrepaidOnly: true, amountDueCents: total, maxConsentedCents: total, flatRateCode: null,
     ignoredOptions: [], estimated: false, eta, requestedAt: null, validUntil: '2026-09-26T12:00:00.000Z', fingerprint: 'x',
   };
 }

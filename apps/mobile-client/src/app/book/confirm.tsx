@@ -15,8 +15,11 @@ import { keys, queryClient, useAppConfig, usePreferences } from '@/lib/queries';
 
 const DEFAULT_PREFERENCES: RidePreferences = { conversation: 'indifferent', music: 'indifferent', temperature: 'neutral', luggageHelp: false };
 
-/** Erreurs qui appellent un nouveau devis : prix expiré, ou paiement par carte fermé depuis le devis (modes relus). */
-const REQUOTE_CODES = new Set(['QUOTE_EXPIRED', 'CARD_PAYMENTS_UNAVAILABLE']);
+/**
+ * Erreurs qui appellent un nouveau devis : prix expiré, paiement par carte fermé depuis le devis (modes relus), ou crédits
+ * réservés par une autre course entre le devis et la confirmation (revue du 2 octobre 2026, constat 3).
+ */
+const REQUOTE_CODES = new Set(['QUOTE_EXPIRED', 'CARD_PAYMENTS_UNAVAILABLE', 'CREDITS_INSUFFICIENT']);
 
 /**
  * Réservation, écran 3 sur 3 : commodités et demandes spéciales (message D45, préférences pré-remplies depuis le profil),
@@ -89,7 +92,8 @@ export default function ConfirmScreen() {
       if (REQUOTE_CODES.has(errorCode(e) ?? '') && draft.origin && draft.destination) {
         // Prix expiré ou carte fermée : nouveau devis, même catégorie ; le client revoit le prix et les modes de paiement
         // avant de confirmer.
-        const quotes = await api.quotes.create({ origin: draft.origin, destination: draft.destination, stops: draft.stops, requestedAt: draft.pickupAt, options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage, pet: draft.options.pet } }).catch(() => null);
+        // Le mode de paiement choisi accompagne le nouveau devis : payée au chauffeur, la course ne déduit aucun crédit.
+        const quotes = await api.quotes.create({ origin: draft.origin, destination: draft.destination, stops: draft.stops, requestedAt: draft.pickupAt, options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage, pet: draft.options.pet }, ...(paymentChoice ? { paymentChoice } : {}) }).catch(() => null);
         if (quotes) {
           draft.update({ quotes });
           draft.renewKey();
@@ -135,6 +139,7 @@ export default function ConfirmScreen() {
           />
           <Choices value={paymentMethod} onChange={(method) => draft.update({ paymentMethod: method })} options={methods.map((m) => ({ value: m, label: t(`confirm.methods.${m}`) }))} />
           {paymentChoice === 'prepaid' ? <Notice tone="warning">{t('confirm.prepaidBeta')}</Notice> : null}
+          {paymentChoice === 'pay_driver_after' && quote.creditsAppliedCents > 0 ? <Notice tone="info">{t('confirm.creditsNotApplied', { amount: formatMoney(quote.totalCents, language) })}</Notice> : null}
         </>
       )}
 
