@@ -147,7 +147,7 @@
         },
         {
           "title": "La vérification sommaire avant la première utilisation de la journée",
-          "text": "C'est l'obligation la plus souvent oubliée. L'article 55 de la Loi concernant le transport rémunéré de personnes par automobile impose au chauffeur qualifié une vérification sommaire de l'automobile avant sa première utilisation de la journée pour le transport rémunéré de personnes. Selon la SAAQ, cette vérification porte sur : le liquide de frein et le frein à main, les phares, feux et klaxon, les pneus et valves, les essuie-glaces et le liquide lave-glace, les rétroviseurs, la batterie pour un véhicule électrique et, pour un véhicule adapté, la rampe ou plateforme et les ancrages. Vous devez consigner vos observations dans un rapport de vérification sommaire et le conserver dans le véhicule.\n\nFaites-en une routine de cinq minutes au début de chaque journée de travail, toujours dans le même ordre : un tour du véhicule (pneus, feux, rétroviseurs, carrosserie), puis l'habitacle (frein à main, klaxon, essuie-glaces, lave-glace, voyants), puis le rapport. Une anomalie qui touche la sécurité se règle avant de prendre des clients.\n\nL'application Neomoov Booster, incluse avec la formation, vous propose une fiche de vérification datée, à remplir sur votre téléphone puis à imprimer ou à enregistrer en PDF."
+          "text": "C'est l'obligation la plus souvent oubliée. L'article 55 de la Loi concernant le transport rémunéré de personnes par automobile impose au chauffeur qualifié une vérification sommaire de l'automobile avant sa première utilisation de la journée pour le transport rémunéré de personnes. Les éléments à vérifier sont fixés par l'article 65 du Règlement sur le transport rémunéré de personnes par automobile ; selon la SAAQ, ils comprennent : le liquide de frein et le frein à main, les phares, feux et klaxon, les pneus et valves, les essuie-glaces et le liquide lave-glace, les rétroviseurs, la batterie pour un véhicule électrique et, pour un véhicule adapté, la rampe ou plateforme et les ancrages. Vous devez consigner vos observations dans un rapport de vérification sommaire, conservé dans le véhicule. L'article 66 du Règlement en fixe le contenu : date et heure, numéro de plaque, numéro de l'accessoire apposé sur l'automobile, nom du chauffeur qualifié et numéro de permis de chauffeur, défectuosités constatées ou mention de leur absence, motif de tout voyant allumé au tableau de bord, lecture de l'odomètre, et mention que tous les éléments prévus à l'article 65 ont été vérifiés ; pour un véhicule électrique, l'état de charge de la batterie.\n\nFaites-en une routine de cinq minutes au début de chaque journée de travail, toujours dans le même ordre : un tour du véhicule (pneus, feux, rétroviseurs, carrosserie), puis l'habitacle (frein à main, klaxon, essuie-glaces, lave-glace, voyants), puis le rapport. Une anomalie qui touche la sécurité se règle avant de prendre des clients.\n\nL'application Neomoov Booster, incluse avec la formation, vous propose un rapport de vérification sommaire reprenant les renseignements de l'article 66, à remplir sur votre téléphone puis à imprimer ou à enregistrer en PDF."
         },
         {
           "title": "Taxes et facturation : en règle dès la première course",
@@ -216,6 +216,10 @@
         {
           "label": "Loi concernant le transport rémunéré de personnes par automobile (RLRQ, c. T-11.2), article 55 : vérification sommaire",
           "url": "https://www.legisquebec.gouv.qc.ca/fr/document/lc/T-11.2"
+        },
+        {
+          "label": "Règlement sur le transport rémunéré de personnes par automobile (RLRQ, c. T-11.2, r. 1), articles 65 et 66 : éléments à vérifier et contenu du rapport",
+          "url": "https://www.legisquebec.gouv.qc.ca/fr/document/rc/T-11.2,%20r.%201"
         },
         {
           "label": "SAAQ — Chauffeur qualifié (conditions, vérification avant départ, documents)",
