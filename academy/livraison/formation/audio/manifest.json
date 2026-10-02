@@ -1,0 +1,405 @@
+[
+  {
+    "module": 1,
+    "id": "entreprise-conformite",
+    "title": "Votre entreprise de chauffeur : cadre, conformité et vérification du véhicule",
+    "parts": [
+      {
+        "file": "01.txt",
+        "kind": "intro",
+        "title": "Votre entreprise de chauffeur : cadre, conformité et vérification du véhicule",
+        "chars": 527
+      },
+      {
+        "file": "02.txt",
+        "kind": "section",
+        "title": "Vous êtes une entreprise, pas un passager de la plateforme",
+        "chars": 806
+      },
+      {
+        "file": "03.txt",
+        "kind": "section",
+        "title": "Qui fixe les règles",
+        "chars": 727
+      },
+      {
+        "file": "04.txt",
+        "kind": "section",
+        "title": "Devenir et rester chauffeur qualifié",
+        "chars": 1009
+      },
+      {
+        "file": "05.txt",
+        "kind": "section",
+        "title": "La vérification sommaire avant la première utilisation de la journée",
+        "chars": 1887
+      },
+      {
+        "file": "06.txt",
+        "kind": "section",
+        "title": "Taxes et facturation : en règle dès la première course",
+        "chars": 868
+      },
+      {
+        "file": "07.txt",
+        "kind": "section",
+        "title": "Séparer le professionnel du personnel",
+        "chars": 799
+      },
+      {
+        "file": "08.txt",
+        "kind": "exercise",
+        "title": "Exercice",
+        "chars": 937
+      },
+      {
+        "file": "09.txt",
+        "kind": "outro",
+        "title": "Quiz et attestation",
+        "chars": 265
+      }
+    ]
+  },
+  {
+    "module": 2,
+    "id": "journee-prise-en-charge",
+    "title": "Votre journée et chaque prise en charge",
+    "parts": [
+      {
+        "file": "01.txt",
+        "kind": "intro",
+        "title": "Votre journée et chaque prise en charge",
+        "chars": 541
+      },
+      {
+        "file": "02.txt",
+        "kind": "section",
+        "title": "Mesurer la journée réelle, pas le temps de connexion",
+        "chars": 637
+      },
+      {
+        "file": "03.txt",
+        "kind": "section",
+        "title": "Choisir une course avant de l'accepter",
+        "chars": 618
+      },
+      {
+        "file": "04.txt",
+        "kind": "section",
+        "title": "Réussir la rencontre",
+        "chars": 687
+      },
+      {
+        "file": "05.txt",
+        "kind": "section",
+        "title": "L'aéroport et les gares",
+        "chars": 855
+      },
+      {
+        "file": "06.txt",
+        "kind": "section",
+        "title": "L'hiver québécois",
+        "chars": 612
+      },
+      {
+        "file": "07.txt",
+        "kind": "section",
+        "title": "La fatigue n'est pas un détail",
+        "chars": 512
+      },
+      {
+        "file": "08.txt",
+        "kind": "exercise",
+        "title": "Exercice",
+        "chars": 762
+      },
+      {
+        "file": "09.txt",
+        "kind": "outro",
+        "title": "Quiz et attestation",
+        "chars": 265
+      }
+    ]
+  },
+  {
+    "module": 3,
+    "id": "rentabilite-vehicule",
+    "title": "Votre rentabilité réelle et le choix du véhicule",
+    "parts": [
+      {
+        "file": "01.txt",
+        "kind": "intro",
+        "title": "Votre rentabilité réelle et le choix du véhicule",
+        "chars": 524
+      },
+      {
+        "file": "02.txt",
+        "kind": "section",
+        "title": "Prix client, recette, versement : trois montants différents",
+        "chars": 703
+      },
+      {
+        "file": "03.txt",
+        "kind": "section",
+        "title": "Tous vos coûts, y compris ceux qu'on oublie",
+        "chars": 620
+      },
+      {
+        "file": "04.txt",
+        "kind": "section",
+        "title": "Les indicateurs qui disent la vérité",
+        "chars": 729
+      },
+      {
+        "file": "05.txt",
+        "kind": "section",
+        "title": "Électrique ou essence : la recommandation du fondateur",
+        "chars": 1034
+      },
+      {
+        "file": "06.txt",
+        "kind": "section",
+        "title": "Un tableau de bord pour toutes vos activités",
+        "chars": 581
+      },
+      {
+        "file": "07.txt",
+        "kind": "exercise",
+        "title": "Exercice",
+        "chars": 897
+      },
+      {
+        "file": "08.txt",
+        "kind": "outro",
+        "title": "Quiz et attestation",
+        "chars": 265
+      }
+    ]
+  },
+  {
+    "module": 4,
+    "id": "experience-client-kit",
+    "title": "L'expérience client et le kit du bon chauffeur",
+    "parts": [
+      {
+        "file": "01.txt",
+        "kind": "intro",
+        "title": "L'expérience client et le kit du bon chauffeur",
+        "chars": 475
+      },
+      {
+        "file": "02.txt",
+        "kind": "section",
+        "title": "Avant la session : l'habitacle que le client découvre",
+        "chars": 727
+      },
+      {
+        "file": "03.txt",
+        "kind": "section",
+        "title": "Le kit du bon chauffeur",
+        "chars": 1204
+      },
+      {
+        "file": "04.txt",
+        "kind": "section",
+        "title": "L'accueil et la conduite",
+        "chars": 799
+      },
+      {
+        "file": "05.txt",
+        "kind": "section",
+        "title": "Accessibilité et clientèles particulières",
+        "chars": 1017
+      },
+      {
+        "file": "06.txt",
+        "kind": "section",
+        "title": "Fin de course et objets oubliés",
+        "chars": 520
+      },
+      {
+        "file": "07.txt",
+        "kind": "exercise",
+        "title": "Exercice",
+        "chars": 747
+      },
+      {
+        "file": "08.txt",
+        "kind": "outro",
+        "title": "Quiz et attestation",
+        "chars": 265
+      }
+    ]
+  },
+  {
+    "module": 5,
+    "id": "risques-incidents",
+    "title": "Prévenir les risques et gérer les incidents",
+    "parts": [
+      {
+        "file": "01.txt",
+        "kind": "intro",
+        "title": "Prévenir les risques et gérer les incidents",
+        "chars": 471
+      },
+      {
+        "file": "02.txt",
+        "kind": "section",
+        "title": "Se reconnaître mutuellement avant de partir",
+        "chars": 624
+      },
+      {
+        "file": "03.txt",
+        "kind": "section",
+        "title": "La nuit et les lieux isolés",
+        "chars": 571
+      },
+      {
+        "file": "04.txt",
+        "kind": "section",
+        "title": "Désamorcer une tension",
+        "chars": 591
+      },
+      {
+        "file": "05.txt",
+        "kind": "section",
+        "title": "Après un incident : un dossier qui vous protège",
+        "chars": 730
+      },
+      {
+        "file": "06.txt",
+        "kind": "section",
+        "title": "Caméra de bord : utile, mais encadrée",
+        "chars": 745
+      },
+      {
+        "file": "07.txt",
+        "kind": "exercise",
+        "title": "Exercice",
+        "chars": 760
+      },
+      {
+        "file": "08.txt",
+        "kind": "outro",
+        "title": "Quiz et attestation",
+        "chars": 265
+      }
+    ]
+  },
+  {
+    "module": 6,
+    "id": "outils-paiements-litiges",
+    "title": "Outils numériques, paiements et litiges",
+    "parts": [
+      {
+        "file": "01.txt",
+        "kind": "intro",
+        "title": "Outils numériques, paiements et litiges",
+        "chars": 510
+      },
+      {
+        "file": "02.txt",
+        "kind": "section",
+        "title": "Naviguer sans perdre son permis",
+        "chars": 854
+      },
+      {
+        "file": "03.txt",
+        "kind": "section",
+        "title": "Communiquer sans exposer ses coordonnées",
+        "chars": 621
+      },
+      {
+        "file": "04.txt",
+        "kind": "section",
+        "title": "Paiements, pourboires et reçus",
+        "chars": 633
+      },
+      {
+        "file": "05.txt",
+        "kind": "section",
+        "title": "Suivre chaque dollar",
+        "chars": 536
+      },
+      {
+        "file": "06.txt",
+        "kind": "section",
+        "title": "Contester efficacement",
+        "chars": 751
+      },
+      {
+        "file": "07.txt",
+        "kind": "exercise",
+        "title": "Exercice",
+        "chars": 766
+      },
+      {
+        "file": "08.txt",
+        "kind": "outro",
+        "title": "Quiz et attestation",
+        "chars": 265
+      }
+    ]
+  },
+  {
+    "module": 7,
+    "id": "activite-durable-fidelisation",
+    "title": "Une activité durable et une clientèle fidèle",
+    "parts": [
+      {
+        "file": "01.txt",
+        "kind": "intro",
+        "title": "Une activité durable et une clientèle fidèle",
+        "chars": 483
+      },
+      {
+        "file": "02.txt",
+        "kind": "section",
+        "title": "Choisir ses segments",
+        "chars": 957
+      },
+      {
+        "file": "03.txt",
+        "kind": "section",
+        "title": "Une clientèle directe, dans les règles",
+        "chars": 665
+      },
+      {
+        "file": "04.txt",
+        "kind": "section",
+        "title": "Fidéliser par la fiabilité",
+        "chars": 613
+      },
+      {
+        "file": "05.txt",
+        "kind": "section",
+        "title": "Durer dans le métier",
+        "chars": 453
+      },
+      {
+        "file": "06.txt",
+        "kind": "section",
+        "title": "Rejoindre Neomoov",
+        "chars": 713
+      },
+      {
+        "file": "07.txt",
+        "kind": "section",
+        "title": "Votre plan d'action sur 30 jours",
+        "chars": 771
+      },
+      {
+        "file": "08.txt",
+        "kind": "exercise",
+        "title": "Exercice",
+        "chars": 761
+      },
+      {
+        "file": "09.txt",
+        "kind": "outro",
+        "title": "Quiz et attestation",
+        "chars": 265
+      }
+    ]
+  }
+]
