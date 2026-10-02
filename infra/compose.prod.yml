@@ -18,6 +18,11 @@ x-app: &app
   <<: *base
   env_file:
     - ../.env
+  # Résolveurs publics pour les noms externes (pooler Supabase, fournisseurs) : le résolveur de l'hébergeur a rendu des
+  # EAI_AGAIN passagers le 2 octobre 2026 ; les noms des services (api, redis, clamav) restent résolus par Docker.
+  dns:
+    - 8.8.8.8
+    - 1.1.1.1
 
 services:
   caddy:
