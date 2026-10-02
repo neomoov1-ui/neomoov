@@ -1,17 +1,17 @@
 # Neomoov Academy
 
-Formation des chauffeurs de l'écosystème Neomoov. Premier produit : **CAP CHAUFFEUR**, formation écrite vendue par
+Formation des chauffeurs de l'écosystème Neomoov. Premier produit : **Neomoov Chauffeur Pro** (nommé Neomoov Chauffeur Pro jusqu’au 2 octobre 2026 ; les identifiants techniques `cap_chauffeur` et l’adresse des conditions de vente sont conservés), formation écrite vendue par
 Neomoov (marque de GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.) aux chauffeurs taxi et VTC, futurs chauffeurs,
 exploitants et futurs investisseurs de Montréal.
 
 | | |
 |---|---|
-| En ligne | https://neomoov.net/academy/ (quatorze routes, dont `/academy/chauffeur-pro/` et `/academy/attestation/`) ; conditions : https://neomoov.net/conditions-cap-chauffeur/ |
-| Offre | 99 $ + TPS 4,95 $ + TVQ 9,88 $ = 113,83 $ ; 7 modules écrits avec exercices corrigés, quiz (5 questions, 4 bonnes réponses pour valider) et sources officielles ; attestation de suivi vérifiable par code ; 8 fiches pratiques (gratuites) ; application Neomoov Chauffeur Pro (version web, ex-compagnon web) ; accès 12 mois ; activation sous 24 h ; remboursement sur 14 jours |
-| Hébergement | WordPress de neomoov.net chez LWS : extrait Code Snippets **n° 6** « Neomoov Academy CAP CHAUFFEUR » (application PHP autonome, routes `/academy/…`) |
+| En ligne | https://neomoov.net/academy/ (quatorze routes, dont `/academy/booster/` et `/academy/attestation/`) ; conditions : https://neomoov.net/conditions-cap-chauffeur/ |
+| Offre | 99 $ + TPS 4,95 $ + TVQ 9,88 $ = 113,83 $ ; 7 modules écrits avec exercices corrigés, quiz (5 questions, 4 bonnes réponses pour valider) et sources officielles ; attestation de suivi vérifiable par code ; 8 fiches pratiques (gratuites) ; application Neomoov Booster (version web, ex-compagnon web) ; accès 12 mois ; activation sous 24 h ; remboursement sur 14 jours |
+| Hébergement | WordPress de neomoov.net chez LWS : extrait Code Snippets **n° 6** « Neomoov Academy — Neomoov Chauffeur Pro » (application PHP autonome, routes `/academy/…`) |
 | Paiement | Square API en production (compte Groupe NSK inc., CAD), webhook `https://neomoov.net/wp-json/neomoov-academy/v1/square-api` (distinct du webhook de la plateforme) |
 | Courriels | WordPress (contrat, activation) ; Brevo (listes 3 à 6, 28 modèles, quatre scénarios **inactifs**) |
-| État | Pages en ligne et contrôlées ; vente ouverte mais jamais testée de bout en bout en réel ; vidéos non produites (scripts à réécrire pour les nouveaux modules) ; Neomoov Chauffeur Pro en version web seulement |
+| État | Pages en ligne et contrôlées ; vente ouverte mais jamais testée de bout en bout en réel ; vidéos non produites (scripts à réécrire pour les nouveaux modules) ; Neomoov Booster en version web seulement |
 
 ## Contenu de ce dossier
 

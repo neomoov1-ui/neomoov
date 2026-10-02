@@ -1,10 +1,10 @@
-# Conditions de vente — CAP CHAUFFEUR
+# Conditions de vente — Neomoov Chauffeur Pro
 
-Version du 1er octobre 2026 · Édition écrite · Paiement unique
+Version du 2 octobre 2026 · Édition écrite · Paiement unique
 
 ## 1. Vendeur et contact
 
-Le vendeur de la formation CAP CHAUFFEUR est **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.**, qui exploite la marque **Neomoov**. La formation est présentée sous la marque Neomoov Academy.
+Le vendeur de la formation Neomoov Chauffeur Pro est **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.**, qui exploite la marque **Neomoov**. La formation est présentée sous la marque Neomoov Academy.
 
 **Numéro d’entreprise du Québec (NEQ) : 1181499600.**
 
@@ -16,7 +16,7 @@ Adresse : **204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8,
 
 ## 2. Contenu de l’achat
 
-CAP CHAUFFEUR est une formation pratique complémentaire en français. L’achat porte sur sa **première édition écrite**, comprenant sept modules et huit fiches pratiques, avec exercices, exemples et corrections, un quiz par module, une attestation de suivi vérifiable et l’application Neomoov Chauffeur Pro en version web.
+Neomoov Chauffeur Pro est une formation pratique complémentaire en français. L’achat porte sur sa **première édition écrite**, comprenant sept modules et huit fiches pratiques, avec exercices, exemples et corrections, un quiz par module, une attestation de suivi vérifiable et l’application Neomoov Booster en version web.
 
 ### Les sept modules
 
@@ -45,7 +45,7 @@ Chaque module se termine par un quiz de cinq questions, corrigé en ligne, qui p
 
 La consultation s’effectue dans l’espace membre. Les ressources proposées à l’impression ou au téléchargement peuvent être conservées pour l’usage personnel prévu ci-dessous. Certaines fiches peuvent aussi être proposées gratuitement : elles ne sont pas toutes présentées comme exclusives aux membres payants.
 
-**La série vidéo n’est pas comprise dans cet achat.** Des scripts ont été préparés, mais ils ne constituent pas des vidéos disponibles. L’application Neomoov Chauffeur Pro est fournie en version web ; ses versions Play Store et App Store, une licence d’équipe et un accompagnement individuel continu ne font pas partie de cette offre. Cette première édition écrite n’est pas annoncée comme un programme de 21 heures.
+**La série vidéo n’est pas comprise dans cet achat.** Des scripts ont été préparés, mais ils ne constituent pas des vidéos disponibles. L’application Neomoov Booster est fournie en version web ; ses versions Play Store et App Store, une licence d’équipe et un accompagnement individuel continu ne font pas partie de cette offre. Cette première édition écrite n’est pas annoncée comme un programme de 21 heures.
 
 ## 3. Prix et taxes
 
@@ -53,7 +53,7 @@ Le prix est de **99,00 $ CA avant taxes**, en un paiement unique. Pour une vente
 
 | Détail | Montant |
 |---|---:|
-| CAP CHAUFFEUR — édition écrite | 99,00 $ CA |
+| Neomoov Chauffeur Pro — édition écrite | 99,00 $ CA |
 | TPS — 5 % | 4,95 $ CA |
 | TVQ — 9,975 % | 9,88 $ CA |
 | **Total à payer au Québec** | **113,83 $ CA** |
@@ -108,7 +108,7 @@ En cas d’utilisation non autorisée identifiée, Neomoov explique le problème
 
 ## 9. Périmètre de la formation
 
-CAP CHAUFFEUR complète la préparation du chauffeur. Il ne remplace aucun permis, formation obligatoire, assurance, inspection ni vérification auprès d’un organisme ou d’un opérateur compétent. Aucun revenu, volume de courses, pourboire, note client ou rendement d’investissement n’est garanti.
+Neomoov Chauffeur Pro complète la préparation du chauffeur. Il ne remplace aucun permis, formation obligatoire, assurance, inspection ni vérification auprès d’un organisme ou d’un opérateur compétent. Aucun revenu, volume de courses, pourboire, note client ou rendement d’investissement n’est garanti.
 
 Les conseils portant sur la propreté, l’organisation et le confort ne constituent pas un diagnostic mécanique ou une certification de sécurité, y compris lorsqu’ils s’appuient sur des photos et un questionnaire.
 
