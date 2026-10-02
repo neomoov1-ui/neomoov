@@ -73,7 +73,7 @@ export const organizationStatements = pgTable('organization_statements', {
 }, (t) => [
   uniqueIndex('organization_statements_period_unique').on(t.organizationId, t.periodStart),
   index('organization_statements_status_idx').on(t.status, t.periodStart),
-  check('organization_statements_status', sql`${t.status} IN ('issued', 'paid', 'failed', 'settled_offline')`),
+  check('organization_statements_status', sql`${t.status} IN ('issued', 'paid', 'failed', 'settled_offline', 'unknown')`),
   check('organization_statements_share', sql`${t.shareCents} >= 0`),
   check('organization_statements_period', sql`${t.periodEnd} = ${t.periodStart} + 6`),
 ]);

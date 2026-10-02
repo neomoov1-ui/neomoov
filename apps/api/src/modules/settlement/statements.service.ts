@@ -153,7 +153,10 @@ export class StatementsService {
     return result;
   }
 
-  /** Chauffeurs qui ont une course ou un pack non réglé jusqu'à la fin de la période. */
+  /**
+   * Chauffeurs qui ont une course ou un pack non réglé jusqu'à la fin de la période, ou un loyer de flotte dû sur la
+   * période (règle `rent` en vigueur, revue du 2 octobre 2026, constat 6 : le loyer est dû même sans course).
+   */
   private async candidateDrivers(period: StatementPeriod): Promise<string[]> {
     const end = shift(period.endDate, 1);
     const from = shift(period.startDate, -LOOKBACK_DAYS);
@@ -177,7 +180,13 @@ export class StatementsService {
         )
       UNION
       SELECT DISTINCT p.driver_id FROM pack_purchases p
-      WHERE p.billing = 'to_bill' AND p.statement_id IS NULL AND p.activated_at < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})`);
+      WHERE p.billing = 'to_bill' AND p.statement_id IS NULL AND p.activated_at < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})
+      UNION
+      SELECT DISTINCT d.id AS driver_id FROM revenue_share_rules rr
+      JOIN drivers d ON d.organization_id = rr.organization_id AND (rr.driver_id IS NULL OR rr.driver_id = d.id)
+      WHERE rr.mode = 'rent' AND rr.effective_from <= ${period.endDate}::date AND (rr.effective_to IS NULL OR rr.effective_to >= ${period.startDate}::date)
+        AND d.status NOT IN ('pending', 'offboarded')
+        AND NOT EXISTS (SELECT 1 FROM weekly_statements ws WHERE ws.driver_id = d.id AND ws.period_start = ${period.startDate}::date AND ws.status <> 'draft')`);
     return rows.map((r) => r.driver_id);
   }
 

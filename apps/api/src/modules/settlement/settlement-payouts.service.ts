@@ -1,15 +1,18 @@
 /**
  * Versements et prélèvements des relevés (section 5.6 et 5.8, prompt 09 tâche 3). Net positif : transfert Stripe
  * Connect ; net négatif : prélèvement hors session sur la méthode enregistrée par le chauffeur ; une clé d'idempotence
- * par relevé (et par tentative de prélèvement). Échec : relevé `failed`, nouvelle tentative le lundi, puis suspension
- * automatique (solde négatif au-delà du seuil après la reprise, ou impayé depuis plus de 7 jours) ; réactivation
- * automatique dès que le solde est régularisé. `driver_balances` reflète les relevés non réglés.
+ * par relevé, qui ne change qu'après un refus définitif du prestataire (revue du 2 octobre 2026, constat 7). Sans
+ * réponse du prestataire (délai, réseau, panne), le relevé passe `unknown` : rien n'est retenté automatiquement tant que
+ * les finances n'ont pas réconcilié (`reconcile` : rejeu avec la même clé, mouvement constaté, ou rien d'exécuté).
+ * Refus : relevé `failed`, nouvelle tentative le lundi, puis suspension automatique (dette au-delà du seuil après la
+ * reprise, ou impayé depuis plus de 7 jours) ; réactivation automatique dès que le solde est régularisé.
+ * `driver_balances` reflète les relevés non réglés.
  * Étape 26 : avec un fournisseur sans versements par la plateforme (Square, aucun équivalent de Connect), un relevé
  * positif reste « émis », à verser hors plateforme : il figure dans l'export des virements à faire
  * (`GET /v1/admin/payouts/offline`, CSV), puis les finances le clôturent par `settle-offline` avec la référence du virement.
  */
 import { schema } from '@neomoov/db';
-import { evaluateSuspension, type AdminBalance, type AdminStatementDetail, type OfflinePayout, type StatementSettleOffline } from '@neomoov/domain';
+import { evaluateSuspension, type AdminBalance, type AdminStatementDetail, type OfflinePayout, type StatementReconcile, type StatementSettleOffline } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, gt, inArray, isNotNull, lt, ne, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -36,6 +39,13 @@ export function offlinePayoutReference(periodStart: string, driverPublicNumber: 
   return `NM-${periodStart.replace(/-/g, '')}-${driverPublicNumber}`;
 }
 
+/** Refus définitif du prestataire (carte refusée, 402) : la tentative est tranchée. Tout autre échec (délai, réseau, panne) laisse l'issue inconnue. */
+export function isDefinitiveRefusal(error: unknown): boolean {
+  return error instanceof AppError && error.status === 402;
+}
+
+type SettlementOutcome = { status: 'paid' | 'charged' | 'failed' | 'unknown'; transferRef?: string; chargeRef?: string; failureCode?: string };
+
 @Injectable()
 export class SettlementPayoutsService {
   constructor(
@@ -56,13 +66,19 @@ export class SettlementPayoutsService {
 
   /**
    * Règlement d'un relevé émis (ou nouvel essai d'un relevé en échec). Rejoué, il ne verse ni ne prélève jamais deux
-   * fois : le statut est relu sous verrou et Stripe reçoit la même clé pour le même versement.
+   * fois : le statut est relu sous verrou et le prestataire reçoit la même clé pour le même mouvement. Clé du
+   * versement : `statement:<id>:payout`, stable ; clé du prélèvement : `statement:<id>:charge:<n>`, où `n` ne compte
+   * que les tentatives tranchées (succès ou refus définitif) : une issue inconnue n'en compte pas, la même clé est
+   * rejouée à la réconciliation. Un relevé `unknown` n'est réglé que par `reconcile` (`options.reconcile`).
    */
-  async settle(id: string, now = new Date()): Promise<AdminStatementDetail> {
+  async settle(id: string, now = new Date(), options: { reconcile?: boolean } = {}): Promise<AdminStatementDetail> {
     const [row] = await this.db.select().from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, id)).limit(1);
     if (!row) throw AppError.notFound('STATEMENT_NOT_FOUND', 'Relevé introuvable');
     if (row.status === 'draft') throw AppError.conflict('STATEMENT_NOT_ISSUED', 'Émettez le relevé avant de le régler');
     if (row.status === 'paid' || row.status === 'charged') return this.statements.detail(id);
+    if (row.status === 'unknown' && !options.reconcile) {
+      throw AppError.conflict('STATEMENT_OUTCOME_UNKNOWN', 'Le dernier règlement de ce relevé est resté sans réponse du prestataire : réconciliez-le avant toute nouvelle tentative', { failureCode: row.failureCode });
+    }
     const [driver] = await this.db.select().from(schema.drivers).where(eq(schema.drivers.id, row.driverId)).limit(1);
     if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Chauffeur introuvable');
     if (row.netCents > 0 && !this.provider.capabilities.connect) {
@@ -72,7 +88,7 @@ export class SettlementPayoutsService {
       return this.statements.detail(id);
     }
     const attempts = row.attempts + 1;
-    let outcome: { status: 'paid' | 'charged' | 'failed'; transferRef?: string; chargeRef?: string; failureCode?: string };
+    let outcome: SettlementOutcome;
     if (row.netCents === 0) outcome = { status: 'paid' };
     else if (row.netCents > 0) {
       if (!driver.stripeConnectAccountId || !driver.stripeConnectOnboarded) outcome = { status: 'failed', failureCode: 'payout_account_missing' };
@@ -83,14 +99,12 @@ export class SettlementPayoutsService {
           });
           outcome = { status: 'paid', transferRef: transferId };
         } catch (error) {
-          this.logger.error({ err: error, statementId: id }, 'Versement du relevé refusé');
-          outcome = { status: 'failed', failureCode: 'transfer_failed' };
+          outcome = this.outcomeOfError(error, id, 'transfer');
         }
       }
     } else if (!driver.stripeDebitPaymentMethodId) outcome = { status: 'failed', failureCode: 'debit_method_missing' };
     else {
-      // Une erreur du fournisseur (réseau, panne) donne un relevé en échec, repris le lundi : laissé « émis », il n'était
-      // plus jamais prélevé ni compté dans le solde du chauffeur (revue 17.B).
+      // Un refus du fournisseur donne un relevé en échec, repris le lundi (revue 17.B) ; sans réponse, un relevé `unknown`.
       try {
         const charge = await this.provider.chargeOffSession({
           amountCents: -row.netCents, customerRef: await this.payments.customerFor(driver.userId), paymentMethodRef: driver.stripeDebitPaymentMethodId,
@@ -98,22 +112,27 @@ export class SettlementPayoutsService {
         });
         outcome = charge.status === 'captured' || charge.status === 'authorized' ? { status: 'charged', chargeRef: charge.intentId } : { status: 'failed', failureCode: charge.failureCode ?? charge.status };
       } catch (error) {
-        this.logger.error({ err: error, statementId: id }, 'Prélèvement du relevé en erreur');
-        outcome = { status: 'failed', failureCode: 'charge_failed' };
+        outcome = this.outcomeOfError(error, id, 'charge');
       }
     }
-    const settled = outcome.status !== 'failed';
+    const settled = outcome.status === 'paid' || outcome.status === 'charged';
+    const unknown = outcome.status === 'unknown';
+    // Une issue inconnue ne compte pas de tentative : la réconciliation rejoue la même clé.
+    const counted = unknown ? row.attempts : attempts;
     // Seul un relevé encore à régler change d'état : deux règlements simultanés n'écrivent qu'une fois.
     const changed = await this.db
       .update(schema.weeklyStatements)
       .set({
-        status: outcome.status, attempts, failureCode: outcome.failureCode ?? null, ...(settled ? { settledAt: now } : {}),
+        status: outcome.status, attempts: counted, failureCode: outcome.failureCode ?? null, ...(settled ? { settledAt: now } : {}),
         ...(outcome.transferRef ? { stripeTransferId: outcome.transferRef } : {}), ...(outcome.chargeRef ? { stripeChargeId: outcome.chargeRef } : {}),
       })
-      .where(and(eq(schema.weeklyStatements.id, id), inArray(schema.weeklyStatements.status, ['issued', 'failed'])))
+      .where(and(eq(schema.weeklyStatements.id, id), inArray(schema.weeklyStatements.status, options.reconcile ? ['issued', 'failed', 'unknown'] : ['issued', 'failed'])))
       .returning({ id: schema.weeklyStatements.id });
-    this.audit.record({ action: settled ? 'statement.settled' : 'statement.settlement_failed', entity: 'weekly_statements', entityId: id, after: { status: outcome.status, netCents: row.netCents, attempts, failureCode: outcome.failureCode ?? null } });
-    if (!settled) {
+    this.audit.record({ action: settled ? 'statement.settled' : unknown ? 'statement.settlement_unknown' : 'statement.settlement_failed', entity: 'weekly_statements', entityId: id, after: { status: outcome.status, netCents: row.netCents, attempts: counted, failureCode: outcome.failureCode ?? null, reconcile: Boolean(options.reconcile) } });
+    if (unknown) {
+      // Les finances tranchent (My Hub, `reconcile`) ; ni le chauffeur ni la reprise du lundi ne retentent quoi que ce soit.
+      await this.outbox.queueForStaff('alert.settlement_unknown', { statementId: id, netCents: row.netCents, reason: outcome.failureCode ?? null });
+    } else if (!settled) {
       await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.settlement_failed', data: { statementId: id, netCents: row.netCents, reason: outcome.failureCode ?? null } });
       // Revue finale : l'exploitation est prévenue de chaque règlement en échec (courriel), pas seulement le chauffeur.
       await this.outbox.queueForStaff('alert.settlement_failed', { statementId: id, netCents: row.netCents, reason: outcome.failureCode ?? null, attempts });
@@ -121,6 +140,46 @@ export class SettlementPayoutsService {
       // Versement réussi : le chauffeur est prévenu une seule fois (état changé par ce règlement).
       await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.paid', data: { statementId: id, netCents: row.netCents } });
     }
+    await this.refreshBalance(row.driverId, now);
+    return this.statements.detail(id);
+  }
+
+  /** Issue d'une exception du prestataire : refus définitif (relevé en échec, nouvelle clé au prochain essai) ou issue inconnue (relevé `unknown`, même clé rejouée). */
+  private outcomeOfError(error: unknown, statementId: string, movement: 'transfer' | 'charge'): SettlementOutcome {
+    if (isDefinitiveRefusal(error)) {
+      this.logger.error({ err: error, statementId }, movement === 'transfer' ? 'Versement du relevé refusé' : 'Prélèvement du relevé refusé');
+      const code = (error as AppError).details as { code?: string } | undefined;
+      return { status: 'failed', failureCode: code?.code ?? `${movement}_failed` };
+    }
+    this.logger.error({ err: error, statementId }, movement === 'transfer' ? 'Versement du relevé sans réponse du prestataire : réconciliation requise' : 'Prélèvement du relevé sans réponse du prestataire : réconciliation requise');
+    return { status: 'unknown', failureCode: `${movement}_unknown` };
+  }
+
+  /**
+   * Réconciliation d'un relevé `unknown` par les finances, après lecture chez le prestataire (constat 7) : `replay`
+   * rejoue la même demande avec la même clé (le prestataire rend le résultat déjà obtenu, ou exécute une seule fois ;
+   * à faire dans sa fenêtre d'idempotence, 24 heures chez Stripe) ; `executed` constate le mouvement (sa référence fait
+   * foi) ; `not_executed` remet le relevé en échec, et la prochaine tentative change de clé.
+   */
+  async reconcile(id: string, input: StatementReconcile, actor: { userId: string }, now = new Date()): Promise<AdminStatementDetail> {
+    const [row] = await this.db.select().from(schema.weeklyStatements).where(eq(schema.weeklyStatements.id, id)).limit(1);
+    if (!row) throw AppError.notFound('STATEMENT_NOT_FOUND', 'Relevé introuvable');
+    if (row.status !== 'unknown') throw AppError.conflict('STATEMENT_NOT_UNKNOWN', 'Seul un relevé sans réponse du prestataire se réconcilie', { status: row.status });
+    if (input.outcome === 'replay') return this.settle(id, now, { reconcile: true });
+    const executed = input.outcome === 'executed';
+    const status = executed ? (row.netCents < 0 ? 'charged' : 'paid') : 'failed';
+    const changed = await this.db
+      .update(schema.weeklyStatements)
+      .set({
+        status, attempts: row.attempts + 1, failureCode: executed ? null : 'not_executed',
+        ...(executed ? { settledAt: now, ...(row.netCents < 0 ? { stripeChargeId: input.reference! } : { stripeTransferId: input.reference! }) } : {}),
+      })
+      .where(and(eq(schema.weeklyStatements.id, id), eq(schema.weeklyStatements.status, 'unknown')))
+      .returning({ id: schema.weeklyStatements.id });
+    if (!changed.length) return this.statements.detail(id);
+    this.audit.record({ action: 'statement.reconciled', entity: 'weekly_statements', entityId: id, before: { status: 'unknown', failureCode: row.failureCode }, after: { status, outcome: input.outcome, reference: input.reference ?? null, note: input.note ?? null, netCents: row.netCents, byUserId: actor.userId } });
+    const [driver] = await this.db.select({ userId: schema.drivers.userId }).from(schema.drivers).where(eq(schema.drivers.id, row.driverId)).limit(1);
+    if (driver && executed && row.netCents > 0) await this.outbox.queue({ recipientUserId: driver.userId, template: 'statement.paid', data: { statementId: id, netCents: row.netCents } });
     await this.refreshBalance(row.driverId, now);
     return this.statements.detail(id);
   }
@@ -172,8 +231,10 @@ export class SettlementPayoutsService {
   }
 
   /**
-   * Solde du chauffeur : somme des relevés non réglés (en échec). Suspension automatique quand la règle du domaine le
-   * dit, après la nouvelle tentative (seuil dépassé) ou au-delà du délai (impayé) ; réactivation dès le solde régularisé.
+   * Solde du chauffeur : somme des relevés non réglés (en échec ; un relevé `unknown` n'y entre pas tant que les finances
+   * n'ont pas tranché). Suspension automatique quand la règle du domaine le dit, jugée sur la dette seule (revue du
+   * 2 octobre 2026, constat 12 : un versement en échec dû au chauffeur ne compense pas ce qu'il doit), après la nouvelle
+   * tentative (seuil dépassé) ou au-delà du délai (impayé) ; réactivation dès le solde régularisé.
    */
   async refreshBalance(driverId: string, now = new Date()): Promise<void> {
     const unpaid = await this.db
@@ -182,10 +243,11 @@ export class SettlementPayoutsService {
       .where(and(eq(schema.weeklyStatements.driverId, driverId), eq(schema.weeklyStatements.status, 'failed')));
     const balanceCents = unpaid.reduce((s, r) => s + r.netCents, 0);
     const owed = unpaid.filter((r) => r.netCents < 0);
+    const debtCents = owed.reduce((s, r) => s + r.netCents, 0);
     const unpaidSince = owed.length ? new Date(Math.min(...owed.map((r) => (r.issuedAt ?? now).getTime()))) : null;
     const [current] = await this.db.select().from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driverId)).limit(1);
     const [threshold, graceDays] = await Promise.all([this.settings.number('settlement.negative_balance_threshold_cents', 15_000), this.settings.number('settlement.unpaid_grace_days', 7)]);
-    const verdict = evaluateSuspension({ balanceCents, unpaidSince }, now, { negativeBalanceThresholdCents: threshold, unpaidGraceDays: graceDays });
+    const verdict = evaluateSuspension({ balanceCents: debtCents, unpaidSince }, now, { negativeBalanceThresholdCents: threshold, unpaidGraceDays: graceDays });
     const retried = owed.some((r) => r.attempts >= 2);
     const suspend = verdict.suspend && (verdict.reason === 'overdue' || retried);
     const wasSuspended = Boolean(current?.suspendedForBalanceAt);

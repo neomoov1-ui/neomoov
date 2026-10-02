@@ -5,7 +5,8 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  adminBalanceSchema, adminStatementDetailSchema, offlinePayoutSchema, statementAdjustSchema, statementGenerateSchema, statementGenerationSchema, statementSettleOfflineSchema, uuid,
+  adminBalanceSchema, adminStatementDetailSchema, offlinePayoutSchema, organizationStatementSchema, statementAdjustSchema, statementGenerateSchema, statementGenerationSchema, statementReconcileSchema,
+  statementSettleOfflineSchema, uuid,
 } from '@neomoov/domain';
 import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Res, StreamableFile } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
@@ -17,6 +18,7 @@ import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { Can, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
+import { OrganizationStatementsService } from './organization-statements.service.js';
 import { SettlementJobsService } from './settlement-jobs.service.js';
 import { SettlementPayoutsService } from './settlement-payouts.service.js';
 import { StatementsService } from './statements.service.js';
@@ -29,6 +31,7 @@ export class AdminSettlementController {
     private readonly statements: StatementsService,
     private readonly payouts: SettlementPayoutsService,
     private readonly jobs: SettlementJobsService,
+    private readonly organizationStatements: OrganizationStatementsService,
     @Inject(DB) private readonly database: Database,
   ) {}
 
@@ -82,6 +85,28 @@ export class AdminSettlementController {
   @ApiErrors(400, 401, 403, 404, 409, 429)
   settleOffline(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(statementSettleOfflineSchema)) body: z.infer<typeof statementSettleOfflineSchema>, @CurrentUser() user: UserActor) {
     return this.payouts.settleOffline(id, user, body);
+  }
+
+  @Post('statements/:id/reconcile')
+  @Can('statements.manage')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Réconcilie un relevé resté sans réponse du prestataire (délai, réseau) : rejeu avec la même clé d\'idempotence, mouvement constaté chez le prestataire (référence), ou rien d\'exécuté (relevé en échec)' })
+  @ZodBody(statementReconcileSchema)
+  @ZodResponse(200, adminStatementDetailSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  reconcile(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(statementReconcileSchema)) body: z.infer<typeof statementReconcileSchema>, @CurrentUser() user: UserActor) {
+    return this.payouts.reconcile(id, body, user);
+  }
+
+  @Post('organization-statements/:id/reconcile')
+  @Can('statements.manage')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Réconcilie un relevé d\'organisation resté sans réponse du prestataire : rejeu avec la même clé, transfert constaté (référence), ou rien d\'exécuté' })
+  @ZodBody(statementReconcileSchema)
+  @ZodResponse(200, organizationStatementSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  reconcileOrganization(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(statementReconcileSchema)) body: z.infer<typeof statementReconcileSchema>, @CurrentUser() user: UserActor) {
+    return this.organizationStatements.reconcile(id, body, user);
   }
 
   @Post('statements/:id/adjust')

@@ -10,7 +10,7 @@ import {
   type PaymentMethod, type QuoteRequest, type QuoteView, type QuotesResponse, type SimulateQuote, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, getTableColumns, gt, gte, inArray, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, gte, inArray, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { MAPS_PROVIDER, type GeoPoint, type MapsProvider, type RouteResult } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
@@ -22,6 +22,7 @@ import { SettingsService } from '../../common/settings.service.js';
 import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
+import { CreditsService } from '../credits/credits.service.js';
 import { lineLabel } from './labels.js';
 import { DEFAULT_CITY, PricingRulesService } from './pricing-rules.service.js';
 import { PromotionsService } from './promotions.service.js';
@@ -79,6 +80,7 @@ export class QuotesService {
     private readonly audit: AuditService,
     private readonly promotions: PromotionsService,
     private readonly circuits: CircuitBreakers,
+    private readonly credits: CreditsService,
   ) {}
 
   private get db() {
@@ -117,7 +119,9 @@ export class QuotesService {
     const [route, client] = await Promise.all([this.routeFor(origin, destination, stops, pickupAt, overrides), this.clientOf(actor.userId)]);
     const promotionCandidates = await this.promotions.candidates(input.options.promoCode, client?.id ?? null);
     const clientCompletedRides = overrides.clientCompletedRides ?? client?.rideCount ?? 0;
-    const creditsAvailableCents = overrides.creditsAvailableCents ?? (actor.userId ? await this.creditsOf(actor.userId) : 0);
+    // Crédits (revue du 2 octobre 2026, constat 2) : aucun sur une course payée au chauffeur ; sinon les crédits du compte,
+    // net des réservations des courses déjà réservées (constat 3).
+    const creditsAvailableCents = input.paymentChoice === 'pay_driver_after' ? 0 : (overrides.creditsAvailableCents ?? (actor.userId ? await this.credits.availableCents(actor.userId, now) : 0));
     const [marginPpm, maxAgeDays, validitySeconds, belowCents] = await Promise.all([
       this.settings.number('pricing.benchmark_margin_ppm', 50_000),
       this.settings.number('pricing.benchmark_max_age_days', 14),
@@ -316,14 +320,6 @@ export class QuotesService {
     return row ?? null;
   }
 
-  private async creditsOf(userId: string): Promise<number> {
-    const [row] = await this.db
-      .select({ total: sql<number>`coalesce(sum(${schema.credits.remainingCents}), 0)::int` })
-      .from(schema.credits)
-      .where(and(eq(schema.credits.userId, userId), ne(schema.credits.origin, 'driver_pack'), gt(schema.credits.remainingCents, 0), or(isNull(schema.credits.expiresAt), gt(schema.credits.expiresAt, new Date()))));
-    return row?.total ?? 0;
-  }
-
   /**
    * Chauffeur favori demandé (5.10, D37) : il doit être un favori du client, lu dans les deux tables comme le fait la
    * répartition, sinon 400. Disponible : actif et acceptant les réservations (en ligne pour une course immédiate).
@@ -417,6 +413,7 @@ export class QuotesService {
       totalCents: quote.totalCents,
       creditsAppliedCents: quote.creditsAppliedCents,
       amountDueCents: quote.amountDueCents,
+      creditsPrepaidOnly: true,
       maxConsentedCents: quote.maxConsentedCents,
       flatRateCode: quote.flatRateCode,
       ignoredOptions: quote.ignoredOptions,
@@ -466,6 +463,7 @@ export class QuotesService {
       totalCents: q.totalCents,
       creditsAppliedCents: q.creditsAppliedCents,
       amountDueCents: q.amountDueCents,
+      creditsPrepaidOnly: true,
       maxConsentedCents: q.maxConsentedCents,
       flatRateCode: q.flatRateCode,
       ignoredOptions: q.ignoredOptions as string[],

@@ -118,7 +118,7 @@ function OrganizationStatements() {
   const fleet = useFleetOrg();
   const statements = useQuery({ queryKey: ['fleet', fleet.organizationId, 'organization-statements'], queryFn: () => fleetApi.organizationStatements(fleet.organizationId), enabled: fleet.can('statements.read') });
   const [settling, setSettling] = useState<OrganizationStatementView | null>(null);
-  const tone = { issued: 'warning', paid: 'success', failed: 'danger', settled_offline: 'info' } as const;
+  const tone = { issued: 'warning', paid: 'success', failed: 'danger', settled_offline: 'info', unknown: 'danger' } as const;
   const columns: Column<OrganizationStatementView>[] = [
     { key: 'period', header: t('fleet.statements.period'), cell: (s) => `${formatDate(s.periodStart, lang)} → ${formatDate(s.periodEnd, lang)}` },
     { key: 'status', header: t('fleet.statements.status'), cell: (s) => <Badge tone={tone[s.status]}>{t(`fleet.statements.statuses.${s.status}`)}</Badge> },
