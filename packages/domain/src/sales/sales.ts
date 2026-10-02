@@ -129,9 +129,17 @@ export function followupDueAt(firstContactAt: Date, followupDays: readonly numbe
  * lues par `parseBusinessHours` de la Charte d'équité (`BusinessHours` : jours, minute de début incluse, minute de fin exclue).
  */
 
+/** Un formateur par fuseau : sa construction coûte cher et `nextBusinessSlot` l'appelle à chaque minute parcourue. */
+const LOCAL_FORMATTERS = new Map<string, Intl.DateTimeFormat>();
+
 /** Jour de la semaine et minutes écoulées dans la journée, à l'heure locale du fuseau. */
 export function localDayMinutes(instant: Date, timeZone: string): { weekday: number; minutes: number } {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(instant);
+  let formatter = LOCAL_FORMATTERS.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', { timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    LOCAL_FORMATTERS.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(instant);
   const get = (t: string): string => parts.find((p) => p.type === t)!.value;
   return { weekday: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday')), minutes: Number(get('hour')) * 60 + Number(get('minute')) };
 }

@@ -104,10 +104,16 @@ export class CrmSyncService {
     const [prospect] = await this.db.select().from(schema.prospects).where(eq(schema.prospects.id, id)).limit(1);
     if (!prospect) throw AppError.notFound('PROSPECT_NOT_FOUND', 'Prospect introuvable');
     if (prospect.consentBasis === 'none') return this.skip('prospect', id, 'no_consent', now);
-    if (prospect.unsubscribedAt) return this.skip('prospect', id, 'unsubscribed', now);
     const consent: CrmConsent = { given: true, at: prospect.consentAt ?? prospect.createdAt, source: prospect.consentBasis === 'form' ? 'form' : 'b2b' };
     const known = await this.externalIds('prospect', id);
     const platformId = `prospect:${id}`;
+    if (prospect.unsubscribedAt) {
+      // Retrait : rien de nouveau ne part ; une transaction déjà connue passe « perdue » pour que personne ne relance chez HubSpot.
+      if (!known.deal) return this.skip('prospect', id, 'unsubscribed', now);
+      const lost = await this.crm.upsertDeal({ platformId, externalId: known.deal, name: `Prospect : ${prospect.organizationName}`, pipeline: 'b2b', stage: 'lost', contactExternalId: known.contact ?? null, companyExternalId: known.company ?? null, entity: ENTITY, source: prospect.source, consent });
+      await this.record('prospect', id, 'deal', { externalId: lost.id, status: 'synced', now });
+      return { entityType: 'prospect', entityId: id, status: 'synced', objects: { deal: lost.id } };
+    }
     const company = await this.crm.upsertCompany({ platformId, externalId: known.company ?? null, name: prospect.organizationName, legalName: prospect.legalName, accountType: 'prospect', organizationType: prospect.segment, entity: ENTITY, source: prospect.source, consent });
     await this.record('prospect', id, 'company', { externalId: company.id, status: 'synced', now });
     const objects: CrmSyncOutcome['objects'] = { company: company.id };

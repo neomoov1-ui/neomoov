@@ -82,6 +82,8 @@ describe('ventes : heures de bureau des appels (America/Toronto)', () => {
     expect(nextBusinessSlot(new Date('2026-10-10T16:00:00Z'), TZ, DEFAULT_BUSINESS_HOURS)).toEqual(new Date('2026-10-12T13:00:00Z'));
     // Mardi 6 h 00 à Montréal, avec des secondes : le même jour à 9 h.
     expect(nextBusinessSlot(new Date('2026-10-06T10:00:30Z'), TZ, DEFAULT_BUSINESS_HOURS)).toEqual(new Date('2026-10-06T13:00:00Z'));
+    // Aucun jour ouvrable déclaré : la recherche s'arrête après 8 jours au lieu de tourner sans fin.
+    expect(nextBusinessSlot(new Date('2026-10-06T21:00:00Z'), TZ, { days: [], startMinute: 540, endMinute: 1020 })).toEqual(new Date('2026-10-14T21:00:00Z'));
   });
 });
 
