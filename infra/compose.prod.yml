@@ -5,15 +5,19 @@
 #   Piloté par infra/deploy.sh ; variables : IMAGE_PREFIX (neomoov, ou ghcr.io/neomoov1-ui/neomoov), IMAGE_TAG (local, ou un sha).
 name: neomoov
 
-x-app: &app
+x-base: &base
   restart: unless-stopped
-  env_file:
-    - ../.env
   logging:
     driver: json-file
     options:
       max-size: "20m"
       max-file: "5"
+
+# L'API et le worker reçoivent tout le fichier .env ; le web reçoit seulement ses variables (constat web 8 de la revue du 2 octobre 2026).
+x-app: &app
+  <<: *base
+  env_file:
+    - ../.env
 
 services:
   caddy:
@@ -83,7 +87,7 @@ services:
         condition: service_healthy
 
   web:
-    <<: *app
+    <<: *base
     image: ${IMAGE_PREFIX:-neomoov}-web:${IMAGE_TAG:-local}
     build:
       context: ..
@@ -100,6 +104,14 @@ services:
       PORT: "3000"
       # Appels internes vers l'API par le réseau Docker : vraie adresse IP du client transmise, pas de limite de débit partagée.
       API_INTERNAL_URL: http://api:4000
+      # Seules variables lues par le serveur web (grep process.env dans apps/web) : aucune clé de l'API ni de la base ici.
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.neomoov.net}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${NEXT_PUBLIC_SENTRY_ENVIRONMENT:-}
+      NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-}
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+      BOOKING_FRAME_ANCESTORS: ${BOOKING_FRAME_ANCESTORS:-}
+      NEOMOOV_PUBLIC_API_KEY: ${NEOMOOV_PUBLIC_API_KEY:-}
     deploy:
       resources:
         limits:

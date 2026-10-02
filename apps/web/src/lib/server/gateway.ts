@@ -35,7 +35,8 @@ interface Tokens {
 /** Pose les témoins de session à partir des jetons renvoyés par l'API. */
 export function setSession(res: NextResponse, tokens: Tokens): void {
   const base = { httpOnly: true, secure, sameSite: 'strict' as const, path: '/' };
-  res.cookies.set(ACCESS_COOKIE, tokens.accessToken, { ...base, maxAge: tokens.expiresIn ?? 900 });
+  // Le témoin d'accès expire 30 s avant le jeton : une requête partie juste avant l'échéance n'arrive jamais avec un jeton déjà périmé.
+  res.cookies.set(ACCESS_COOKIE, tokens.accessToken, { ...base, maxAge: Math.max(60, (tokens.expiresIn ?? 900) - 30) });
   res.cookies.set(REFRESH_COOKIE, tokens.refreshToken, { ...base, path: '/api', maxAge: 30 * 86_400 });
   const user: HubUser = { id: tokens.user.id, firstName: tokens.user.firstName, lastName: tokens.user.lastName, email: tokens.user.email, roles: tokens.user.roles };
   res.cookies.set(USER_COOKIE, JSON.stringify(user), { ...base, maxAge: 30 * 86_400 });
@@ -56,11 +57,27 @@ export function sessionUser(req: NextRequest): HubUser | null {
   }
 }
 
+/**
+ * Renouvellements en vol, par jeton de rafraîchissement : plusieurs requêtes qui expirent ensemble (retour sur l'onglet,
+ * socket, rechargements parallèles) partagent un seul appel à l'API. Sans cela, la rotation à un seul gagnant révoque
+ * toute la famille et déconnecte l'utilisateur (revue du 2 octobre 2026, constat web 3). Le résultat reste disponible
+ * quelques secondes pour les requêtes qui arrivent juste après, avec l'ancien témoin encore en main.
+ */
+const inflight = new Map<string, { promise: Promise<Tokens | null>; at: number }>();
+const REUSE_MS = 10_000;
+
 /** Renouvelle les jetons avec le témoin de rafraîchissement ; null si la session est perdue. */
 export async function refreshTokens(refreshToken: string | undefined): Promise<Tokens | null> {
   if (!refreshToken) return null;
-  const res = await fetch(`${API_URL}/v1/auth/refresh`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ refreshToken }), cache: 'no-store' });
-  return res.ok ? ((await res.json()) as Tokens) : null;
+  const now = Date.now();
+  for (const [key, entry] of inflight) if (now - entry.at > REUSE_MS) inflight.delete(key);
+  const existing = inflight.get(refreshToken);
+  if (existing) return existing.promise;
+  const promise = fetch(`${API_URL}/v1/auth/refresh`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ refreshToken }), cache: 'no-store' })
+    .then(async (res) => (res.ok ? ((await res.json()) as Tokens) : null))
+    .catch(() => null);
+  inflight.set(refreshToken, { promise, at: now });
+  return promise;
 }
 
 /** En-têtes relayés vers l'API : langue, corrélation, adresse du navigateur (limitation de débit par adresse). */

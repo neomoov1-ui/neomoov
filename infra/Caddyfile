@@ -2,28 +2,65 @@
 # vers l'adresse IP du serveur dans la zone DNS de neomoov.net avant le premier démarrage.
 {
 	email contact@neomoov.net
+	# Délais explicites (revue du 2 octobre 2026, constat web 10) : un client lent ne garde pas une connexion ouverte sans fin.
+	servers {
+		timeouts {
+			read_header 15s
+			read_body 60s
+			idle 5m
+		}
+	}
 }
 
 api.neomoov.net {
 	encode zstd gzip
+	# Journal d'accès JSON (sans corps ni en-têtes d'autorisation), conservé par Docker (rotation 20 Mo × 5).
+	log {
+		output stdout
+		format json
+	}
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options nosniff
 		-Server
 	}
-	# Le nom « api » est résolu par le DNS interne de Docker vers les deux instances (réplicas).
+	# Documents des chauffeurs : 10 Mo par fichier côté API ; la limite du mandataire laisse la marge du formulaire.
+	request_body {
+		max_size 25MB
+	}
+	# Le nom « api » est résolu par le DNS interne de Docker vers les deux instances (réplicas). Pendant un déploiement,
+	# une requête attend jusqu'à 30 s qu'une instance réponde au lieu d'échouer (constat web 7).
 	reverse_proxy api:4000 {
 		header_up X-Forwarded-Proto https
+		lb_try_duration 30s
+		lb_try_interval 500ms
+		fail_duration 10s
+		transport http {
+			dial_timeout 5s
+		}
 	}
 }
 
 hub.neomoov.net, reserver.neomoov.net {
 	encode zstd gzip
+	log {
+		output stdout
+		format json
+	}
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
+	request_body {
+		max_size 25MB
+	}
 	reverse_proxy web:3000 {
 		header_up X-Forwarded-Proto https
+		lb_try_duration 30s
+		lb_try_interval 500ms
+		fail_duration 10s
+		transport http {
+			dial_timeout 5s
+		}
 	}
 }

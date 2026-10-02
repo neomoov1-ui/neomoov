@@ -98,7 +98,16 @@ jobs:
         run: |
           [ -n "$HOST" ] || { echo "Variable PRODUCTION_HOST absente (environnement production)"; exit 1; }
           git push "ssh://${USER_NAME}@${HOST}/opt/neomoov.git" "${SHA}:refs/heads/main" --force
-      - name: Santé
+      - name: Santé et version déployée
+        env:
+          SHA: ${{ inputs.sha }}
         run: |
-          for i in $(seq 1 20); do curl -fsS https://api.neomoov.net/v1/health && exit 0; sleep 6; done
-          exit 1
+          # Le crochet du serveur peut revenir en arrière sur la version précédente : le workflow n'est vert que si la
+          # version servie par /v1/health est bien celle demandée (revue du 2 octobre 2026, constat web 5).
+          expected="${SHA:0:12}"
+          for i in $(seq 1 30); do
+            version="$(curl -fsS https://api.neomoov.net/v1/health | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' || true)"
+            if [ "$version" = "$expected" ]; then echo "version en ligne : $version"; exit 0; fi
+            echo "en attente (version servie : ${version:-aucune}, attendue : $expected)"; sleep 10
+          done
+          echo "La version $expected n'est pas servie après 5 minutes : déploiement refusé ou retour arrière"; exit 1
