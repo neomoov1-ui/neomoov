@@ -33,7 +33,7 @@ export const DEFAULT_PEAK_ZONES: GainWindow[] = [
 export function pushStyle(sound: AlertSound): { channelId: string; sound: string } {
   if (sound === 'default') return { channelId: 'default', sound: 'default' };
   if (sound === 'none') return { channelId: 'booster-silent', sound: 'none' };
-  return { channelId: `booster-${sound}`, sound: `booster-${sound}.wav` };
+  return { channelId: `booster-${sound}`, sound: `booster_${sound}.wav` };
 }
 
 /** Fusion sans clé explicitement indéfinie (propriétés facultatives exactes). */

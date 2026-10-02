@@ -4,9 +4,9 @@ import { Platform, Vibration } from 'react-native';
 
 /** Fichiers sonores embarqués par type de son Booster (les mêmes noms que l'API envoie dans le push). */
 const SOURCES: Record<Exclude<AlertSound, 'default' | 'none'>, number> = {
-  check: require('../../../assets/sounds/booster-check.wav'),
-  session: require('../../../assets/sounds/booster-session.wav'),
-  peak: require('../../../assets/sounds/booster-peak.wav'),
+  check: require('../../../assets/sounds/booster_check.wav'),
+  session: require('../../../assets/sounds/booster_session.wav'),
+  peak: require('../../../assets/sounds/booster_peak.wav'),
 };
 
 let player: AudioPlayer | null = null;

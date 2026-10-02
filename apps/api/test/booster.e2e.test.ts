@@ -398,7 +398,7 @@ describe('Neomoov Booster : vérification sommaire, performance, alertes (intég
     expect(await app.get(NotificationDeliveryService).deliver(queued!.id)).toBe('sent');
     const sent = push.sent.at(-1)!;
     expect(sent.channelId).toBe('booster-peak');
-    expect(sent.sound).toBe('booster-peak.wav');
+    expect(sent.sound).toBe('booster_peak.wav');
     expect(sent.data).toMatchObject({ alertType: 'peak_period', screen: 'booster', color: '#16A34A' });
   });
 
@@ -424,7 +424,7 @@ describe('Neomoov Booster : vérification sommaire, performance, alertes (intég
     expect(await app.get(NotificationDeliveryService).deliver(info!.id)).toBe('sent');
     const sent = push.sent.at(-1)!;
     expect(sent.channelId).toBe('booster-session');
-    expect(sent.sound).toBe('booster-session.wav');
+    expect(sent.sound).toBe('booster_session.wav');
     expect(sent.data).toMatchObject({ screen: 'booster-performance', alertType: 'session_info', color: '#1485E0' });
     expect(sent.title).toBe('Démarrage de session');
   });

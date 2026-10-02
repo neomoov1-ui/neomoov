@@ -26,7 +26,7 @@ Revue de fin de mission, 2 octobre 2026. Branche `booster-g-plateforme` (depuis 
 | Analyse refusée par le modèle : consignée, rapport archivable à la main | Oui |
 | Performance : captures lues, champs vides remplis, heures posées dans le fuseau, confirmation, solde et ratios exacts, PDF | Oui (net 254,00 $, 31,75 $ par heure, 1,27 $ par km) |
 | Récapitulatifs hebdomadaire et mensuel exacts sur des données connues, brouillon exclu ; dispatch | Oui (semaine 41 : 2 sessions, 349,00 $ ; mois : 3 sessions, 389,00 $) |
-| Alertes : défauts, fusion, fenêtres, test par push avec canal et son | Oui (`booster-peak`, `booster-peak.wav`, écran `booster`) |
+| Alertes : défauts, fusion, fenêtres, test par push avec canal et son | Oui (`booster-peak`, `booster_peak.wav`, écran `booster`) |
 | Passe planifiée : alertes dues à l'heure, une fois par jour, vérification seulement sans rapport du jour ; envoi par le push simulé | Oui |
 | Domaine couvert à 100 % | Oui (`src/booster` : 100 % lignes, branches, fonctions) |
 

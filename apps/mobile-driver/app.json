@@ -96,9 +96,9 @@
           "color": "#1485E0",
           "sounds": [
             "./assets/sounds/offer.wav",
-            "./assets/sounds/booster-check.wav",
-            "./assets/sounds/booster-session.wav",
-            "./assets/sounds/booster-peak.wav"
+            "./assets/sounds/booster_check.wav",
+            "./assets/sounds/booster_session.wav",
+            "./assets/sounds/booster_peak.wav"
           ]
         }
       ]

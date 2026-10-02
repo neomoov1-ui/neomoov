@@ -31,9 +31,9 @@ export async function registerForPush(): Promise<string | null> {
     await Notifications.setNotificationChannelAsync('offers', { name: 'Offres de course', importance: Notifications.AndroidImportance.MAX, sound: 'offer.wav', vibrationPattern: [0, 700, 500, 700], lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC, bypassDnd: true });
     await Notifications.setNotificationChannelAsync('default', { name: 'Neomoov Chauffeur', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 250, 250, 250] });
     // Neomoov Booster : un canal par famille de son (vérification, session, gain), un canal silencieux (vibration seulement).
-    await Notifications.setNotificationChannelAsync('booster-check', { name: 'Booster : vérification sommaire', importance: Notifications.AndroidImportance.HIGH, sound: 'booster-check.wav', vibrationPattern: [0, 300, 200, 300], lightColor: '#D97706' });
-    await Notifications.setNotificationChannelAsync('booster-session', { name: 'Booster : session', importance: Notifications.AndroidImportance.HIGH, sound: 'booster-session.wav', vibrationPattern: [0, 250, 250, 250], lightColor: '#1485E0' });
-    await Notifications.setNotificationChannelAsync('booster-peak', { name: 'Booster : périodes et zones de gain', importance: Notifications.AndroidImportance.HIGH, sound: 'booster-peak.wav', vibrationPattern: [0, 150, 100, 150, 100, 150], lightColor: '#16A34A' });
+    await Notifications.setNotificationChannelAsync('booster-check', { name: 'Booster : vérification sommaire', importance: Notifications.AndroidImportance.HIGH, sound: 'booster_check.wav', vibrationPattern: [0, 300, 200, 300], lightColor: '#D97706' });
+    await Notifications.setNotificationChannelAsync('booster-session', { name: 'Booster : session', importance: Notifications.AndroidImportance.HIGH, sound: 'booster_session.wav', vibrationPattern: [0, 250, 250, 250], lightColor: '#1485E0' });
+    await Notifications.setNotificationChannelAsync('booster-peak', { name: 'Booster : périodes et zones de gain', importance: Notifications.AndroidImportance.HIGH, sound: 'booster_peak.wav', vibrationPattern: [0, 150, 100, 150, 100, 150], lightColor: '#16A34A' });
     await Notifications.setNotificationChannelAsync('booster-silent', { name: 'Booster : vibration seulement', importance: Notifications.AndroidImportance.DEFAULT, sound: null, vibrationPattern: [0, 300] });
   }
   const current = await Notifications.getPermissionsAsync();
