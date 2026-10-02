@@ -173,7 +173,8 @@ export interface PushReceipt {
 
 export interface PushProvider {
   readonly name: string;
-  send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string>; sound?: boolean }): Promise<{ tickets: PushTicket[] }>;
+  /** `channelId` : canal Android ; `sound` : `false` ou `'none'` (silencieux), `true` ou `'default'` (son par défaut), sinon le nom d'un fichier sonore embarqué par l'application (`booster-check.wav`). */
+  send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string>; sound?: boolean | string; channelId?: string }): Promise<{ tickets: PushTicket[] }>;
   receipts(ticketIds: string[]): Promise<PushReceipt[]>;
 }
 

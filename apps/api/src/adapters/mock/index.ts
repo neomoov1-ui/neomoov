@@ -307,8 +307,8 @@ export class MockEmailProvider implements EmailProvider {
 /** Push simulé : un jeton qui contient `dead` est refusé (`DeviceNotRegistered`), comme un appareil désinstallé. */
 export class MockPushProvider implements PushProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ tokens: string[]; title: string; body: string; data?: Record<string, string> }> = [];
-  async send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string> }) {
+  readonly sent: Array<{ tokens: string[]; title: string; body: string; data?: Record<string, string>; sound?: boolean | string; channelId?: string }> = [];
+  async send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string>; sound?: boolean | string; channelId?: string }) {
     this.sent.push(input);
     return {
       tickets: input.tokens.map((token) => (token.includes('dead') ? { token, status: 'error' as const, detail: 'DeviceNotRegistered' } : { token, status: 'ok' as const, ticketId: nextId('ticket_mock') })),

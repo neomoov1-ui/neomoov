@@ -17,6 +17,7 @@ import type { AdminSanctionAppealView, AppealStatus, SanctionAppealDecision } fr
 import type { InvitationCreate, InvitationCreated, MembershipUpdate, MembershipView, OrganizationCreate, OrganizationView, RoleCreate, RoleView } from '@neomoov/domain';
 import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeView, PrivacyBreachInput, PrivacyBreachView, StaffCreate } from '@neomoov/domain';
 import type { PilotZoneExclusionsView } from '@neomoov/domain';
+import type { AdminInspectionListQuery, AdminInspectionView, AdminPerformanceLogView, MissingInspectionView, PerformanceListQuery, PerformanceRecapQuery, PerformanceRecapView, VehicleInspectionView } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
 const id = (value: string) => encodeURIComponent(value);
@@ -188,6 +189,13 @@ export function adminResource(t: Transport) {
     decideSanctionAppeal: (appealId: string, body: SanctionAppealDecision) => t.post<AdminSanctionAppealView>(`/admin/fairness/appeals/${id(appealId)}/decide`, body),
     /** Neomoov Pilote (étape 24) : exclusions de zones dans les critères des chauffeurs (surveillance de la discrimination indirecte). */
     pilotZoneExclusions: () => t.get<PilotZoneExclusionsView>('/admin/pilot/zone-exclusions'),
+    // Neomoov Booster (phase 1, agent G) : rapports de vérification sommaire et de performance des chauffeurs (dispatch).
+    boosterInspections: (query: Partial<AdminInspectionListQuery> = {}) => t.get<Page<AdminInspectionView>>('/admin/booster/inspections', { query }),
+    boosterInspection: (inspectionId: string) => t.get<AdminInspectionView>(`/admin/booster/inspections/${id(inspectionId)}`),
+    boosterMissingToday: () => t.get<MissingInspectionView[]>('/admin/booster/inspections/missing-today'),
+    boosterPerformanceLogs: (query: Partial<PerformanceListQuery> & { driverId?: string } = {}) => t.get<Page<AdminPerformanceLogView>>('/admin/booster/performance', { query }),
+    boosterPerformanceLog: (logId: string) => t.get<AdminPerformanceLogView>(`/admin/booster/performance/${id(logId)}`),
+    boosterPerformanceRecap: (query: Partial<PerformanceRecapQuery> & { driverId: string }) => t.get<PerformanceRecapView>('/admin/booster/performance/recap', { query }),
     /** Étape 19 : organisations en arbre, catalogue des permissions, rôles personnalisés, membres et invitations. */
     organizations: () => t.get<OrganizationView[]>('/admin/organizations'),
     createOrganization: (body: OrganizationCreate) => t.post<OrganizationView>('/admin/organizations', body),
