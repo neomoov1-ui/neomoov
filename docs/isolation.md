@@ -46,6 +46,7 @@ Migrations : `0021_organization-isolation` (socle : rôle, fonction, politiques)
 | Rôles et réglages | `roles`, `role_permissions`, `settings` | Rôles système et réglages de la plateforme en lecture ; rôles et réglages de l'organisation en écriture |
 | Catalogue partagé (lecture seule) | `cities`, `zones`, `vehicle_categories`, `pricing_rules`, `surcharges`, `flat_rates`, `packs`, `promotions`, `permissions`, `plans`, `feature_flags` | Lisible par toute organisation, jamais modifiable sous contexte |
 | Module Flotte (0024, étape 23) | `revenue_share_rules`, `organization_statements` (colonne directe) ; `vehicle_maintenance` (par véhicule, organisation dérivée du véhicule hors contexte) | Mêmes règles que les familles ci-dessus ; voir `docs/fleet.md` |
+| Neomoov Booster (0032 provisoire, agent G) | `vehicle_inspections`, `performance_logs`, `driver_alert_settings` (par chauffeur ; `organization_id` des rapports dérivé du chauffeur hors contexte par `org_fill_from_driver`) | Mêmes règles que la famille « par chauffeur » ; voir `docs/booster.md` |
 
 ## Tables réservées à la plateforme
 

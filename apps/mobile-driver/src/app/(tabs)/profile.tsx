@@ -17,7 +17,8 @@ import { disconnectRealtime } from '@/lib/realtime';
 import { useSession } from '@/lib/session';
 import { stopLocationUpdates } from '@/lib/location';
 
-const LINKS: Array<{ key: 'pilot' | 'costs' | 'packs' | 'loyal' | 'score' | 'sanctions' | 'training' | 'payout' | 'onboarding' | 'support'; href: Href; icon: keyof typeof Ionicons.glyphMap }> = [
+const LINKS: Array<{ key: 'booster' | 'pilot' | 'costs' | 'packs' | 'loyal' | 'score' | 'sanctions' | 'training' | 'payout' | 'onboarding' | 'support'; href: Href; icon: keyof typeof Ionicons.glyphMap }> = [
+  { key: 'booster', href: '/booster', icon: 'rocket-outline' },
   { key: 'pilot', href: '/pilot', icon: 'flash-outline' },
   { key: 'costs', href: '/costs', icon: 'calculator-outline' },
   { key: 'packs', href: '/packs', icon: 'albums-outline' },

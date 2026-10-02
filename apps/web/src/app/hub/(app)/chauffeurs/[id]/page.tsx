@@ -121,6 +121,13 @@ export default function DriverDetailPage() {
         <VehiclesTable vehicles={vehicles} writable={writable} onChanged={onDone} />
       </Card>
 
+      <Card title={t('hub.booster.driverLinks')}>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <Link href={`/hub/booster/inspections?driverId=${encodeURIComponent(id)}`} className={`text-brand-blue-dark underline ${focus}`}>{t('hub.booster.driverInspections')}</Link>
+          <Link href={`/hub/booster/performance?driverId=${encodeURIComponent(id)}`} className={`text-brand-blue-dark underline ${focus}`}>{t('hub.booster.driverPerformance')}</Link>
+        </div>
+      </Card>
+
       <div className="grid gap-5 lg:grid-cols-2">
         <Card title={t('hub.drivers.sanctions')}>
           {sanctions.length === 0 ? <p className="text-sm text-slate-600">{t('hub.common.none')}</p> : (

@@ -35,14 +35,15 @@ export class ExpoPushProvider implements PushProvider {
     return { accept: 'application/json', 'content-type': 'application/json', ...(this.#accessToken ? { authorization: `Bearer ${this.#accessToken}` } : {}) };
   }
 
-  async send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string>; sound?: boolean }): Promise<{ tickets: PushTicket[] }> {
+  async send(input: { tokens: string[]; title: string; body: string; data?: Record<string, string>; sound?: boolean | string; channelId?: string }): Promise<{ tickets: PushTicket[] }> {
+    const sound = input.sound === false || input.sound === 'none' ? null : typeof input.sound === 'string' ? input.sound : 'default';
     const tickets: PushTicket[] = [];
     for (let i = 0; i < input.tokens.length; i += BATCH) {
       const batch = input.tokens.slice(i, i + BATCH);
       const res = await this.fetchImpl(`${API}/send`, {
         method: 'POST',
         headers: this.headers(),
-        body: JSON.stringify(batch.map((to) => ({ to, title: input.title, body: input.body, ...(input.data ? { data: input.data } : {}), sound: input.sound === false ? null : 'default', priority: 'high' }))),
+        body: JSON.stringify(batch.map((to) => ({ to, title: input.title, body: input.body, ...(input.data ? { data: input.data } : {}), sound, ...(input.channelId ? { channelId: input.channelId } : {}), priority: 'high' }))),
       });
       const body = (await res.json().catch(() => ({}))) as { data?: ExpoTicket[]; errors?: Array<{ code?: string; message?: string }> };
       if (!res.ok || !Array.isArray(body.data)) throw new AppError('PUSH_SEND_FAILED', `Envoi push refusé par Expo${body.errors?.[0]?.code ? ` (${body.errors[0].code})` : ''}`, 502);

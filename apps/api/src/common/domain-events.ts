@@ -75,6 +75,8 @@ export interface DomainEvents {
   'organization.created': { organizationId: string; parentId: string | null; type: string };
   'organization.subscribed': { organizationId: string; planCode: string };
   'business_account.created': { businessAccountId: string };
+  /** Neomoov Booster (phase 1, agent G) : rapport de vérification sommaire confirmé et archivé par le chauffeur. */
+  'booster.inspection_archived': { inspectionId: string; driverId: string; severity: 'ok' | 'minor' | 'major'; organizationId: string | null; majorItems: string[] };
 }
 
 type Handler<K extends keyof DomainEvents> = (payload: DomainEvents[K]) => void | Promise<void>;

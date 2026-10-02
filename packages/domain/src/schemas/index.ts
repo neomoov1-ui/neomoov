@@ -201,3 +201,4 @@ export const driverLocationSchema = z.object({
 // Types des réponses, pour les clients de l'API (applications, web).
 export type CancelRide = z.infer<typeof cancelRideSchema>;
 export type RateRide = z.infer<typeof rateRideSchema>;
+export * from './booster.js';

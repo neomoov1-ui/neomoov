@@ -119,7 +119,9 @@ export class NotificationDeliveryService {
       case 'push': {
         let detail = 'no_device';
         if (recipient.pushTokens.length) {
-          const { tickets } = await this.push.send({ tokens: recipient.pushTokens, title: rendered.title, body: rendered.body, data: rendered.deepLink });
+          // Neomoov Booster : canal Android et son par type d'alerte, portés par les données du gabarit.
+          const { channelId, sound } = rendered.deepLink;
+          const { tickets } = await this.push.send({ tokens: recipient.pushTokens, title: rendered.title, body: rendered.body, data: rendered.deepLink, ...(channelId ? { channelId } : {}), ...(sound ? { sound } : {}) });
           const dead = tickets.filter((t) => t.detail === 'DeviceNotRegistered').map((t) => t.token);
           if (dead.length) await this.db.update(schema.devices).set({ pushToken: null }).where(inArray(schema.devices.pushToken, dead));
           const ok = tickets.filter((t) => t.status === 'ok');

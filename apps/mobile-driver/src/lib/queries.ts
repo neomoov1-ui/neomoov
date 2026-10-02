@@ -1,5 +1,5 @@
 import { ApiError } from '@neomoov/api-client';
-import type { EarningsQuery } from '@neomoov/domain';
+import type { EarningsQuery, InspectionListQuery, PerformanceListQuery, PerformancePeriod } from '@neomoov/domain';
 import { MutationCache, QueryCache, QueryClient, useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { POLL_DATA_SAVER_MS, POLL_FALLBACK_MS } from './config';
@@ -50,6 +50,11 @@ export const keys = {
   agenda: (position: { lat: number; lng: number } | null) => ['agenda', position ? `${position.lat.toFixed(3)},${position.lng.toFixed(3)}` : 'none'] as const,
   costs: (month: string) => ['costs', month] as const,
   profitability: (month: string) => ['profitability', month] as const,
+  // Neomoov Booster (phase 1, agent G).
+  boosterInspections: ['booster-inspections'] as const,
+  boosterPerformance: ['booster-performance'] as const,
+  boosterRecap: (period: string) => ['booster-recap', period] as const,
+  boosterAlerts: ['booster-alerts'] as const,
 };
 
 function useSignedIn(): boolean {
@@ -193,4 +198,21 @@ export function useMessages(rideId: string, enabled: boolean) {
 /** Après une action qui change l'état du chauffeur : l'accueil, les courses et le dossier sont relus. */
 export async function refreshDriver(): Promise<void> {
   await Promise.all([keys.home, keys.rides, keys.onboarding, keys.documents, keys.profile].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+}
+
+// Neomoov Booster (phase 1, agent G) : rapports de vérification sommaire, rapports de performance et récapitulatif, alertes.
+export function useBoosterInspections(query: Partial<InspectionListQuery> = {}) {
+  return useQuery({ queryKey: [...keys.boosterInspections, query], queryFn: () => api.driver.inspections(query), enabled: useDriverReady() });
+}
+
+export function useBoosterPerformance(query: Partial<PerformanceListQuery> = {}) {
+  return useQuery({ queryKey: [...keys.boosterPerformance, query], queryFn: () => api.driver.performanceLogs(query), enabled: useDriverReady() });
+}
+
+export function useBoosterRecap(period: PerformancePeriod) {
+  return useQuery({ queryKey: keys.boosterRecap(period), queryFn: () => api.driver.performanceRecap({ period }), enabled: useDriverReady() });
+}
+
+export function useBoosterAlerts() {
+  return useQuery({ queryKey: keys.boosterAlerts, queryFn: () => api.driver.alertSettings(), enabled: useDriverReady() });
 }

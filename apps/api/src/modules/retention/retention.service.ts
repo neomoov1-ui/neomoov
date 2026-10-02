@@ -10,7 +10,7 @@
  */
 import { schema } from '@neomoov/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray, isNotNull, lt, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, lt, lte, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { APP_LOGGER } from '../../common/logger.js';
@@ -21,7 +21,7 @@ export const ANONYMIZED_ADDRESS = 'Adresse anonymisée';
 const BACKUP_MAX_AGE_MS = 26 * 3_600_000;
 const BATCH = 1_000;
 
-export type RetentionJobType = 'driver_locations' | 'ride_anonymization' | 'driver_documents' | 'audit_log' | 'invoices';
+export type RetentionJobType = 'driver_locations' | 'ride_anonymization' | 'driver_documents' | 'audit_log' | 'invoices' | 'booster_images' | 'booster_reports';
 export interface RetentionResult {
   type: RetentionJobType | 'blocked_no_backup';
   rowsProcessed: number;
@@ -58,7 +58,7 @@ export class RetentionService {
       return [blocked];
     }
     const results: RetentionResult[] = [];
-    for (const job of [this.driverLocations, this.anonymizeRides, this.driverDocuments, this.auditLog, this.invoices]) {
+    for (const job of [this.driverLocations, this.anonymizeRides, this.driverDocuments, this.auditLog, this.invoices, this.boosterImages, this.boosterReports]) {
       const result = await job.call(this, now);
       await this.log(result);
       results.push(result);
@@ -129,6 +129,53 @@ export class RetentionService {
     }
     if (docs.length) await this.db.delete(schema.driverDocuments).where(inArray(schema.driverDocuments.id, docs.map((d) => d.id)));
     return { type: 'driver_documents', rowsProcessed: docs.length, details: { retentionMonths: months, filesDeleted } };
+  }
+
+  private async deleteFiles(keys: string[], label: string): Promise<number> {
+    let deleted = 0;
+    for (const key of keys) await this.storage.deleteObject(key).then(() => { deleted += 1; }).catch((error: unknown) => this.logger.warn({ err: error, key }, `Fichier ${label} non supprimé`));
+    return deleted;
+  }
+
+  /** Neomoov Booster : photos et captures d'écran supprimées après 90 jours (le rapport et son PDF restent). */
+  private async boosterImages(now: Date): Promise<RetentionResult> {
+    const days = await this.settings.number('retention.inspection_photos_days', 90);
+    const cutoff = new Date(now.getTime() - days * 86_400_000);
+    let filesDeleted = 0;
+    const inspections = await this.db.select({ id: schema.vehicleInspections.id, photos: schema.vehicleInspections.photos }).from(schema.vehicleInspections)
+      .where(and(lte(schema.vehicleInspections.createdAt, cutoff), sql`jsonb_array_length(${schema.vehicleInspections.photos}) > 0`)).limit(BATCH);
+    for (const row of inspections) {
+      filesDeleted += await this.deleteFiles(row.photos.map((p) => p.key), 'de photo');
+      await this.db.update(schema.vehicleInspections).set({ photos: [] }).where(eq(schema.vehicleInspections.id, row.id));
+    }
+    const logs = await this.db.select({ id: schema.performanceLogs.id, screenshots: schema.performanceLogs.screenshots }).from(schema.performanceLogs)
+      .where(and(lte(schema.performanceLogs.createdAt, cutoff), sql`jsonb_array_length(${schema.performanceLogs.screenshots}) > 0`)).limit(BATCH);
+    for (const row of logs) {
+      filesDeleted += await this.deleteFiles(row.screenshots.map((s) => s.key), 'de capture');
+      await this.db.update(schema.performanceLogs).set({ screenshots: [] }).where(eq(schema.performanceLogs.id, row.id));
+    }
+    return { type: 'booster_images', rowsProcessed: inspections.length + logs.length, details: { retentionDays: days, filesDeleted } };
+  }
+
+  /** Neomoov Booster : rapports de vérification sommaire et de performance supprimés après 2 ans, avec leurs fichiers. */
+  private async boosterReports(now: Date): Promise<RetentionResult> {
+    const inspectionYears = await this.settings.number('retention.inspections_years', 2);
+    const performanceYears = await this.settings.number('retention.performance_logs_years', 2);
+    const cutoffOf = (years: number) => new Date(now.getTime() - years * 365.25 * 86_400_000);
+    let filesDeleted = 0;
+    const inspections = await this.db.select({ id: schema.vehicleInspections.id, photos: schema.vehicleInspections.photos, pdfKey: schema.vehicleInspections.pdfKey }).from(schema.vehicleInspections)
+      .where(lte(schema.vehicleInspections.createdAt, cutoffOf(inspectionYears))).limit(BATCH);
+    for (const row of inspections) {
+      filesDeleted += await this.deleteFiles([...row.photos.map((p) => p.key), ...(row.pdfKey ? [row.pdfKey] : [])], 'de rapport');
+      await this.db.delete(schema.vehicleInspections).where(eq(schema.vehicleInspections.id, row.id));
+    }
+    const logs = await this.db.select({ id: schema.performanceLogs.id, screenshots: schema.performanceLogs.screenshots, pdfKey: schema.performanceLogs.pdfKey }).from(schema.performanceLogs)
+      .where(lte(schema.performanceLogs.createdAt, cutoffOf(performanceYears))).limit(BATCH);
+    for (const row of logs) {
+      filesDeleted += await this.deleteFiles([...row.screenshots.map((s) => s.key), ...(row.pdfKey ? [row.pdfKey] : [])], 'de rapport');
+      await this.db.delete(schema.performanceLogs).where(eq(schema.performanceLogs.id, row.id));
+    }
+    return { type: 'booster_reports', rowsProcessed: inspections.length + logs.length, details: { inspectionYears, performanceYears, filesDeleted } };
   }
 
   /** Journal d'audit de plus de 7 ans : le déclencheur « ajout seul » est suspendu le temps de la purge seulement. */

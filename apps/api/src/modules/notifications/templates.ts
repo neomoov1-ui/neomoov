@@ -317,6 +317,39 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Pilote : zone surveillée exclue', body: (d) => `Le chauffeur ${str(d['driverPublicNumber'])} exclut la zone surveillée « ${str(d['zone'])} » de ses critères Neomoov Pilote (${d['origin'] && d['destination'] ? 'départ et arrivée' : d['origin'] ? 'départ' : 'arrivée'}). Surveillance de la discrimination indirecte : voir le rapport des exclusions dans My Hub.` },
     en: { title: 'Pilot: watched zone excluded', body: (d) => `Driver ${str(d['driverPublicNumber'])} excludes the watched zone "${str(d['zone'])}" from their Neomoov Pilot criteria (${d['origin'] && d['destination'] ? 'pickup and drop-off' : d['origin'] ? 'pickup' : 'drop-off'}). Indirect discrimination monitoring: see the exclusions report in My Hub.` },
   },
+  // Neomoov Booster (phase 1, agent G) : alertes de la journée du chauffeur et signalement d'une défectuosité majeure au dispatch.
+  'booster.inspection': {
+    fr: { title: 'Vérification sommaire à effectuer', body: 'Avant votre première course, photographiez votre véhicule et archivez votre rapport de vérification sommaire (article 55).' },
+    en: { title: 'Pre-trip inspection to complete', body: 'Before your first ride, photograph your vehicle and file your pre-trip inspection report (section 55).' },
+  },
+  'booster.session_info': {
+    fr: { title: 'Démarrage de session', body: 'Notez votre odomètre et votre autonomie au départ : votre rapport de performance commence ici.' },
+    en: { title: 'Session start', body: 'Note your odometer and range at departure: your performance report starts here.' },
+  },
+  'booster.session_start': {
+    fr: { title: 'Début de session', body: 'C\'est l\'heure habituelle de votre début de session. Bonne route.' },
+    en: { title: 'Session start', body: 'It is your usual session start time. Safe driving.' },
+  },
+  'booster.session_end': {
+    fr: { title: 'Fin de session', body: 'Complétez votre rapport de performance : odomètre, autonomie et montants de la journée.' },
+    en: { title: 'Session end', body: 'Complete your performance report: odometer, range and the day\'s amounts.' },
+  },
+  'booster.peak_period': {
+    fr: { title: 'Période de gain', body: (d) => `${str(d['labelFr']) || 'Forte demande'} : période de gain de ${str(d['from'])} à ${str(d['to'])}.` },
+    en: { title: 'Peak period', body: (d) => `${str(d['labelEn']) || 'High demand'}: peak period from ${str(d['from'])} to ${str(d['to'])}.` },
+  },
+  'booster.peak_zone': {
+    fr: { title: 'Zone de gain', body: (d) => `${str(d['labelFr']) || 'Zone'} : forte demande attendue de ${str(d['from'])} à ${str(d['to'])}.` },
+    en: { title: 'Peak zone', body: (d) => `${str(d['labelEn']) || 'Zone'}: high demand expected from ${str(d['from'])} to ${str(d['to'])}.` },
+  },
+  'booster.alert_test': {
+    fr: { title: 'Test d\'alerte Booster', body: (d) => `Son et couleur de l'alerte « ${str(d['alertType'])} » bien reçus.` },
+    en: { title: 'Booster alert test', body: (d) => `Sound and colour of the "${str(d['alertType'])}" alert received.` },
+  },
+  'alert.inspection_major': {
+    fr: { title: 'Alerte : défectuosité majeure signalée', body: (d) => `Le chauffeur ${str(d['driverName'])} (${str(d['driverPublicNumber'])}) a archivé un rapport de vérification sommaire avec une défectuosité majeure${d['plate'] ? ` (plaque ${str(d['plate'])})` : ''} : ${str(d['items']) || 'voir le rapport'}. Le véhicule ne doit pas être mis en service avant réparation. Consultez le rapport dans My Hub, Inspections.` },
+    en: { title: 'Alert: major defect reported', body: (d) => `Driver ${str(d['driverName'])} (${str(d['driverPublicNumber'])}) filed a pre-trip inspection report with a major defect${d['plate'] ? ` (plate ${str(d['plate'])})` : ''}: ${str(d['items']) || 'see the report'}. The vehicle must not be put into service before repair. See the report in My Hub, Inspections.` },
+  },
   'alert.stuck_ride': {
     fr: { title: 'Alerte : course figée', body: (d) => `La course${ride(d)} est « ${str(d['state'])} » depuis ${str(d['minutes'])} minutes. Vérifiez-la dans My Hub.` },
     en: { title: 'Alert: stuck ride', body: (d) => `Ride${ride(d)} has been "${str(d['state'])}" for ${str(d['minutes'])} minutes. Check it in My Hub.` },
@@ -424,9 +457,11 @@ export function renderNotification(code: string, data: Data, language: string | 
     + `<h1 style="font-size:20px;margin:0 0 12px">${escapeHtml(title)}</h1><p style="font-size:15px;line-height:1.5;white-space:pre-line">${escapeHtml(body)}</p>`
     + `<p style="font-size:12px;color:#555;margin-top:32px">${escapeHtml(footer)}${support ? `<br>${escapeHtml(support)}` : ''}</p></body></html>`;
   const deepLink: Record<string, string> = { template: code };
-  for (const key of ['rideId', 'offerId', 'statementId', 'invoiceId']) if (typeof data[key] === 'string') deepLink[key] = data[key] as string;
+  for (const key of ['rideId', 'offerId', 'statementId', 'invoiceId', 'alertType', 'channelId', 'sound', 'color', 'inspectionId']) if (typeof data[key] === 'string') deepLink[key] = data[key] as string;
   // Écran nommé de l'application chauffeur quand la notification ne porte pas d'identifiant (packs, documents, planifiées).
-  const screen = code.startsWith('pack.') ? 'packs' : code.startsWith('document.') || code.startsWith('compliance.') || code.startsWith('vehicle.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled' : null;
+  const screen = code.startsWith('pack.') ? 'packs' : code.startsWith('document.') || code.startsWith('compliance.') || code.startsWith('vehicle.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled'
+    // Neomoov Booster : la vérification sommaire, le rapport de performance (fin et informations de session), sinon l'accueil Booster.
+    : code === 'booster.inspection' ? 'booster-inspection' : code === 'booster.session_end' || code === 'booster.session_info' ? 'booster-performance' : code.startsWith('booster.') ? 'booster' : null;
   if (screen) deepLink['screen'] = screen;
   return { title, body, subject: `${title} · ${brandName ?? 'Neomoov'}`, html, deepLink };
 }

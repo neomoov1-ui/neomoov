@@ -50,3 +50,7 @@ export * from './access/support-access.js';
 // Facturation de la plateforme (étape 25) : formules, factures, relances, et schémas de l'API.
 export * from './platform-billing/billing.js';
 export * from './schemas/platform-billing.js';
+// Neomoov Booster (phase 1, agent G) : vérification sommaire, rapport de performance, alertes, et schémas de l'API.
+export * from './booster/inspection.js';
+export * from './booster/performance.js';
+export * from './booster/alerts.js';

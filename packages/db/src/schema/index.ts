@@ -18,3 +18,4 @@ export * from './pilot.js';
 export * from './crm.js';
 export * from './platform-billing.js';
 export * from './fleet.js';
+export * from './booster.js';

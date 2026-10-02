@@ -85,8 +85,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Neomoov Chauffeur utilise l'appareil photo pour photographier vos documents (permis, assurance, immatriculation) et, si la vérification est activée, votre visage en début de quart. / Neomoov Driver uses the camera to photograph your documents (licence, insurance, registration) and, when verification is enabled, your face at the start of a shift.",
-          "photosPermission": "Neomoov Chauffeur accède à vos photos pour joindre un document déjà photographié. / Neomoov Driver accesses your photos to attach a document you already photographed.",
+          "cameraPermission": "Neomoov Chauffeur utilise l'appareil photo pour photographier vos documents (permis, assurance, immatriculation), votre véhicule pour la vérification sommaire quotidienne et, si la vérification est activée, votre visage en début de quart. / Neomoov Driver uses the camera to photograph your documents (licence, insurance, registration), your vehicle for the daily pre-trip check and, when verification is enabled, your face at the start of a shift.",
+          "photosPermission": "Neomoov Chauffeur accède à vos photos pour joindre un document ou une photo du véhicule déjà prise, et vos captures d'écran pour votre rapport de performance. / Neomoov Driver accesses your photos to attach a document or vehicle photo already taken, and your screenshots for your performance report.",
           "microphonePermission": false
         }
       ],
@@ -95,7 +95,10 @@
         {
           "color": "#1485E0",
           "sounds": [
-            "./assets/sounds/offer.wav"
+            "./assets/sounds/offer.wav",
+            "./assets/sounds/booster-check.wav",
+            "./assets/sounds/booster-session.wav",
+            "./assets/sounds/booster-peak.wav"
           ]
         }
       ]

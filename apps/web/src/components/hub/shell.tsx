@@ -16,7 +16,8 @@ import { OrgBar, OrgNav, OrgProvider } from './org-context';
 /** `adminOnly` : écran dont toutes les routes sont réservées à l'administrateur (masqué pour les autres rôles, l'API refuse de toute façon). */
 const NAV: Array<{ group: string; items: Array<{ key: string; href: string; adminOnly?: boolean }> }> = [
   { group: 'operations', items: [{ key: 'dashboard', href: '/hub' }, { key: 'rides', href: '/hub/courses' }, { key: 'newRide', href: '/hub/courses/nouvelle' }] },
-  { group: 'drivers', items: [{ key: 'drivers', href: '/hub/chauffeurs' }, { key: 'documents', href: '/hub/documents' }, { key: 'vehicles', href: '/hub/vehicules' }] },
+  // Neomoov Booster (phase 1, agent G) : inspections (vérification sommaire) et performance des chauffeurs.
+  { group: 'drivers', items: [{ key: 'drivers', href: '/hub/chauffeurs' }, { key: 'documents', href: '/hub/documents' }, { key: 'vehicles', href: '/hub/vehicules' }, { key: 'inspections', href: '/hub/booster/inspections' }, { key: 'performance', href: '/hub/booster/performance' }] },
   { group: 'clients', items: [{ key: 'clients', href: '/hub/clients' }, { key: 'leads', href: '/hub/prospects' }] },
   { group: 'offer', items: [{ key: 'tariffs', href: '/hub/tarifs' }, { key: 'zones', href: '/hub/zones' }, { key: 'offers', href: '/hub/offres' }] },
   { group: 'finance', items: [{ key: 'statements', href: '/hub/releves' }, { key: 'invoices', href: '/hub/factures' }, { key: 'ledgers', href: '/hub/registres' }] },
