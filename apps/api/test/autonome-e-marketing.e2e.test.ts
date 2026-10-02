@@ -29,7 +29,7 @@ type Item = { id: string; space: string; status: string; sensitive: boolean; iss
 
 const calendarScript = (extra: Array<Record<string, unknown>> = []) => (req: MockLlmRequest) => {
   if (req.kind !== 'structured' || req.schemaName !== 'content_calendar') return undefined;
-  const base = { language: 'fr', caption: null, hashtags: ['Montréal', '#aéroport'], cta: 'reserve', sensitive: false, rationale: 'Semaine de l\'aéroport' };
+  const base = { language: 'fr', title: null, caption: null, hashtags: ['Montréal', '#aéroport'], cta: 'reserve', sensitive: false, rationale: 'Semaine de l\'aéroport' };
   return {
     output: {
       summary: 'Fil conducteur : le transfert aéroport au prix tout compris.',
@@ -131,7 +131,7 @@ describe('phase 1 autonome, agent E : calendrier de contenu, diffusion, mesures,
     llm.script(calendarScript());
     const first = (await request(server()).post('/v1/admin/marketing/content/plan').set(bearer(operator.tokens)).send({ weekStart: WEEK }).expect(200)).body as { run: { id: string; status: string; agentCode: string; toolCalls: Array<{ tool: string }> }; replayed: boolean; created: number; autoApproved: number };
     runIds.add(first.run.id);
-    expect((first.run as { error: string | null }).error).toBeNull();
+    expect((first.run as unknown as { error: string | null }).error).toBeNull();
     expect(first).toMatchObject({ replayed: false, created: 12, autoApproved: 0 });
     expect(first.run).toMatchObject({ agentCode: 'content', status: 'succeeded' });
     expect(first.run.toolCalls.map((c) => c.tool)).toEqual(['queryMetrics']);

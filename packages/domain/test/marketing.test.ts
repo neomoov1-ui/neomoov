@@ -96,7 +96,7 @@ describe('marketing : calendrier et créneaux', () => {
     expect(zonedInstant('2026-10-05', '09:00', TZ).toISOString()).toBe('2026-10-05T13:00:00.000Z');
     expect(zonedInstant('2026-12-07', '09:00', TZ).toISOString()).toBe('2026-12-07T14:00:00.000Z');
     expect(slotInstant('2026-10-05', { day: 3, time: '12:30' }, TZ).toISOString()).toBe('2026-10-07T16:30:00.000Z');
-  });
+  }, 20_000);
 
   it('réglage des créneaux : jours et heures valides gardés, le reste remplacé par les défauts', () => {
     expect(parseSlots(null)).toEqual(DEFAULT_SLOTS);

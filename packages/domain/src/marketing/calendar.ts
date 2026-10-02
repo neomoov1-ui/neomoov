@@ -55,8 +55,18 @@ export function nextWeekStart(now: Date, timeZone: string): string {
 }
 
 /** Décalage (ms) entre l'heure locale du fuseau et l'heure UTC à cet instant. */
+const FORMATTERS = new Map<string, Intl.DateTimeFormat>();
+function formatter(timeZone: string): Intl.DateTimeFormat {
+  let f = FORMATTERS.get(timeZone);
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    FORMATTERS.set(timeZone, f);
+  }
+  return f;
+}
+
 function zoneOffsetMs(at: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(at);
+  const parts = formatter(timeZone).formatToParts(at);
   const get = (t: string): number => Number(parts.find((p) => p.type === t)!.value);
   const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
   return asUtc - Math.floor(at.getTime() / 1000) * 1000;

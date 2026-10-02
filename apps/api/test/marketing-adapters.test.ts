@@ -18,7 +18,7 @@ type Call = { url: string; method: string; headers: Record<string, string>; body
 
 function fakeFetch(handler: (call: Call) => { status?: number; body?: unknown; headers?: Record<string, string> }) {
   const calls: Call[] = [];
-  const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  const impl = (async (input: string | URL | Request, init?: RequestInit) => {
     const headers = Object.fromEntries(Object.entries((init?.headers ?? {}) as Record<string, string>).map(([k, v]) => [k.toLowerCase(), v]));
     const raw = init?.body;
     const call: Call = { url: String(input), method: init?.method ?? 'GET', headers, body: raw === undefined || raw === null ? null : typeof raw === 'string' ? raw : `[${(raw as Uint8Array).byteLength} octets]` };
@@ -201,7 +201,7 @@ describe('choix des connecteurs réels et durée WAV', () => {
   });
 
   it('NotConfiguredPublisher : 501 PROVIDER_NOT_CONFIGURED avec les variables attendues', async () => {
-    await expect(new NotConfiguredPublisher('tiktok').publish({} as never)).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501, message: expect.stringContaining('TIKTOK_ACCESS_TOKEN') });
+    await expect(new NotConfiguredPublisher('tiktok').publish()).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501, message: expect.stringContaining('TIKTOK_ACCESS_TOKEN') });
   });
 
   it('durée d\'un WAV PCM ; en-tête absent : null', () => {
