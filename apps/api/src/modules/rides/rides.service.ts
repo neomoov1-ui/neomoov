@@ -211,12 +211,12 @@ export class RidesService {
     return { recipientUserId: null, recipientAddress: ride.guestPhone ?? ride.passengerPhone ?? null, channel: 'sms', language: parties.clientLanguage, organizationId: ride.organizationId ?? null };
   }
 
-  /** Rôle de l'acteur sur cette course ; 403 s'il n'en a aucun. */
+  /** Rôle de l'acteur sur cette course (une partie de la course agit comme telle, même membre du personnel) ; 403 s'il n'en a aucun. */
   async participantKind(ride: RideRow, actor: UserActor): Promise<ActorKind> {
-    if (hasStaffRole(actor.roles)) return 'operator';
     const parties = await this.partiesOf(ride);
     if (parties.driverUserId && parties.driverUserId === actor.userId) return 'driver';
     if (parties.clientUserId === actor.userId) return 'client';
+    if (hasStaffRole(actor.roles)) return 'operator';
     throw AppError.forbidden('NOT_RIDE_PARTICIPANT', 'Vous ne participez pas à cette course');
   }
 
@@ -624,7 +624,8 @@ export class RidesService {
   async cancelByClient(rideId: string, actor: UserActor, input: { reason: string; comment?: string | undefined }): Promise<{ state: RideState; feeCents: number }> {
     const ride = await this.getRide(rideId);
     const kind = await this.participantKind(ride, actor);
-    if (kind === 'driver') throw AppError.forbidden('NOT_CLIENT', 'Le chauffeur annule par son propre endpoint');
+    // Revue du 2 octobre 2026 (sécurité 1) : seul le client annule par cette route ; le chauffeur et l'exploitation (`rides.cancel`) ont la leur.
+    if (kind !== 'client') throw AppError.forbidden('NOT_CLIENT', 'Seul le client annule par cette route : le chauffeur et l\'exploitation ont la leur');
     return this.cancelAsClient(rideId, { kind, userId: actor.userId }, input);
   }
 
@@ -985,6 +986,8 @@ export class RidesService {
   async share(rideId: string, actor: UserActor): Promise<{ trackingUrl: string; token: string; expiresAt: string | null }> {
     const ride = await this.getRide(rideId);
     const kind = await this.participantKind(ride, actor);
+    // Revue du 2 octobre 2026 (sécurité 1) : le lien de suivi d'un passager n'est remis qu'au client de la course.
+    if (kind !== 'client') throw AppError.forbidden('NOT_CLIENT', 'Seul le client partage le suivi de sa course');
     const token = await this.trackingTokenOf(ride, { kind, userId: actor.userId });
     return { trackingUrl: this.trackingUrl(token), token, expiresAt: null };
   }
@@ -1080,9 +1083,12 @@ export class RidesService {
     };
   }
 
-  async sendMessage(rideId: string, actor: UserActor, body: string): Promise<RideMessageView> {
+  /** `fromOperator` : route d'administration (`rides.messages.write`) ; par la route du client, seuls le client et le chauffeur écrivent. */
+  async sendMessage(rideId: string, actor: UserActor, body: string, options: { fromOperator?: boolean } = {}): Promise<RideMessageView> {
     const ride = await this.getRide(rideId);
     const kind = await this.participantKind(ride, actor);
+    // Revue du 2 octobre 2026 (sécurité 1) : l'exploitation écrit par sa route et sa permission, jamais par celle du client.
+    if (kind === 'operator' && !options.fromOperator) throw AppError.forbidden('NOT_RIDE_PARTICIPANT', 'L\'exploitation écrit par la route d\'administration de la course');
     if (isTerminalState(ride.state)) throw AppError.conflict('RIDE_CLOSED', 'La course est terminée, la messagerie est fermée', { state: ride.state });
     const [row] = await this.db.insert(schema.rideMessages).values({ rideId, senderUserId: actor.userId, senderKind: kind, body }).returning();
     if (kind === 'driver' && ride.state === 'arrived') await this.db.update(schema.rides).set({ contactAttempts: sql`${schema.rides.contactAttempts} + 1` }).where(eq(schema.rides.id, rideId));
@@ -1116,6 +1122,8 @@ export class RidesService {
   async sos(rideId: string, actor: UserActor, input: SosInput): Promise<{ incidentId: string; status: 'alerted' }> {
     const ride = await this.getRide(rideId);
     const kind = await this.participantKind(ride, actor);
+    // Revue du 2 octobre 2026 (sécurité 1) : le SOS vient du client ou du chauffeur de la course ; l'exploitation ouvre un incident par ses routes.
+    if (kind === 'operator') throw AppError.forbidden('NOT_RIDE_PARTICIPANT', 'Le SOS est réservé au client et au chauffeur de la course');
     const [incident] = await this.db
       .insert(schema.incidents)
       .values({ rideId, type: 'sos', severity: 'critical', reportedByUserId: actor.userId, reportedByKind: kind, description: input.description ?? 'SOS déclenché depuis l\'application', attachments: input.coordinates ? [{ coordinates: input.coordinates, at: new Date().toISOString() }] : [] })

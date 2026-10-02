@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  invitationCreatedSchema, LEGACY_ROLE_PERMISSIONS, orgOrganizationCreateSchema, PERMISSIONS, removesLastOwner, supportAccessPermissions, supportAccessRequestSchema,
+  invitationCreatedSchema, LEGACY_ROLE_PERMISSIONS, orgOrganizationCreateSchema, PERMISSIONS, removesLastOwner, SUPPORT_ACCESS_EXCLUDED_PERMISSIONS, supportAccessPermissions, supportAccessRequestSchema,
   supportGrantActive, supportGrantStatus, supportGrantTransition, SYSTEM_ROLES, type Permission, type SupportGrantState,
 } from '../src/index.js';
 
@@ -48,10 +48,17 @@ describe('accès temporaire du support (étape 21)', () => {
     expect(supportGrantTransition('revoked', 'deny')).toBeNull();
   });
 
-  it('permissions pendant l\'accès : celles du support, sans la plateforme, dans les modules de la formule', () => {
-    const platform = new Set<Permission>(['rides.read', 'drivers.read', 'members.manage', 'staff.manage', 'support.access', 'metrics.read']);
-    expect([...supportAccessPermissions(platform, null)].sort()).toEqual(['drivers.read', 'members.manage', 'rides.read']);
+  it('permissions pendant l\'accès : celles du support, sans la plateforme ni la gestion des membres, rôles, organisations et domaines, dans les modules de la formule', () => {
+    const platform = new Set<Permission>(['rides.read', 'drivers.read', 'members.read', 'members.manage', 'staff.manage', 'support.access', 'metrics.read']);
+    expect([...supportAccessPermissions(platform, null)].sort()).toEqual(['drivers.read', 'members.read', 'rides.read']);
     expect([...supportAccessPermissions(platform, ['rides'])]).toEqual(['rides.read']);
+    // Revue du 2 octobre 2026 (sécurité 5) : même un administrateur complet ne peut ni s'inviter ni se rendre permanent pendant un accès.
+    const everything = new Set<Permission>(LEGACY_ROLE_PERMISSIONS['admin']!);
+    const granted = supportAccessPermissions(everything, null);
+    for (const code of SUPPORT_ACCESS_EXCLUDED_PERMISSIONS) expect(granted.has(code), code).toBe(false);
+    expect(SUPPORT_ACCESS_EXCLUDED_PERMISSIONS).toEqual(['members.invite', 'members.manage', 'roles.manage', 'organizations.manage', 'domains.manage']);
+    expect(granted.has('rides.read')).toBe(true);
+    expect(granted.has('audit.read')).toBe(true);
   });
 
   it('dernier propriétaire : seul propriétaire actif visé', () => {

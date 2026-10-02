@@ -278,14 +278,19 @@ describe('My Hub côté organisation et accès du support (étape 21, intégrati
     await get(`/v1/org/${A.id}/rides`, support.tokens).expect(200);
     const home = await get(`/v1/org/${A.id}`, support.tokens).expect(200);
     expect(home.body.supportAccess).toMatchObject({ grantId, reason });
-    expect(home.body.permissions).toContain('members.manage');
+    expect(home.body.permissions).toContain('rides.read');
+    // Revue du 2 octobre 2026 (sécurité 5) : le support ne gère ni membres, ni invitations, ni rôles pendant un accès.
+    expect(home.body.permissions).not.toContain('members.manage');
+    expect(home.body.permissions).not.toContain('members.invite');
     expect(home.body.permissions).not.toContain('support.access');
     expect(home.body.permissions).not.toContain('staff.manage');
     expect((await get(`/v1/org/${B.id}/rides`, support.tokens)).body.code).toBe('NOT_A_MEMBER');
-    expect((await post(`/v1/org/${A.id}/support-access/${grantId}/revoke`, support.tokens)).body.code).toBe('SUPPORT_ACCESS_FORBIDDEN');
-    expect((await post(`/v1/org/${A.id}/ownership/transfer`, support.tokens, { membershipId: owner.membershipId })).body.code).toBe('OWNER_REQUIRED');
+    // Décider de son propre accès ou transférer la propriété exige `members.manage`, que le support n'a plus : refus de la garde, avant le service.
+    expect((await post(`/v1/org/${A.id}/support-access/${grantId}/revoke`, support.tokens)).body).toMatchObject({ code: 'FORBIDDEN_ROLE', details: { required: ['members.manage'] } });
+    expect((await post(`/v1/org/${A.id}/ownership/transfer`, support.tokens, { membershipId: owner.membershipId })).body.code).toBe('FORBIDDEN_ROLE');
+    // Seules les requêtes admises sont journalisées « used » (les deux lectures ci-dessus), jamais les refus.
     const used = await db(app).select().from(schema.auditLog).where(and(eq(schema.auditLog.entityId, grantId), eq(schema.auditLog.action, 'support_access.used')));
-    expect(used.length).toBeGreaterThanOrEqual(4);
+    expect(used.length).toBeGreaterThanOrEqual(2);
     expect(used.every((u) => u.organizationId === A.id && u.actorUserId === support.userId && (u.after as { reason: string }).reason === reason)).toBe(true);
     const platformList = await get(`/v1/admin/support-access?organizationId=${A.id}`, support.tokens).expect(200);
     expect(platformList.body.find((g: { id: string }) => g.id === grantId)).toMatchObject({ active: true, organizationName: 'My Hub A' });

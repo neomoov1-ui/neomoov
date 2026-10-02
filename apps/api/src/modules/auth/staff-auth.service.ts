@@ -239,23 +239,30 @@ export class StaffAuthService {
   }
 
   /**
-   * Administration : crée un membre du personnel, ou met à jour celui qui porte déjà ce courriel ou ce téléphone (nom,
-   * rôles ajoutés, mot de passe remplacé). Sert aussi à reprendre l'accès au seul administrateur depuis le serveur.
+   * Administration : crée un membre du personnel, ou met à jour celui qui porte déjà ce courriel (nom, rôles ajoutés,
+   * mot de passe remplacé et sessions révoquées). Sert aussi à reprendre l'accès au seul administrateur depuis le
+   * serveur. Revue du 2 octobre 2026 (sécurité 6) : jamais de fusion silencieuse avec un autre compte : 409 si le
+   * téléphone est celui d'un autre compte, ou si le compte trouvé par courriel a un profil client ou chauffeur ; le
+   * téléphone d'un compte existant n'est jamais modifié.
    */
   async createStaff(input: StaffCreate): Promise<UserRow> {
     const email = input.email.toLowerCase();
     const passwordHash = await hashPassword(input.password);
     const primaryRole: UserRole = input.roles.includes('admin') ? 'admin' : input.roles[0]!;
-    return this.db.transaction(async (tx) => {
+    const { user, existed } = await this.db.transaction(async (tx) => {
       const [byEmail] = await tx.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
       const [byPhone] = await tx.select().from(schema.users).where(eq(schema.users.phone, input.phone)).limit(1);
       if (byEmail && byPhone && byEmail.id !== byPhone.id) throw AppError.conflict('EMAIL_TAKEN', 'Ce courriel et ce téléphone appartiennent à deux comptes différents');
-      let user = byEmail ?? byPhone;
+      if (byPhone && !byEmail) throw AppError.conflict('PHONE_TAKEN', 'Ce téléphone appartient à un autre compte');
+      let user = byEmail;
       if (user) {
         if (user.status !== 'active') throw AppError.conflict('USER_NOT_ACTIVE', 'Ce compte est bloqué ou supprimé');
+        const [client] = await tx.select({ id: schema.clients.id }).from(schema.clients).where(eq(schema.clients.userId, user.id)).limit(1);
+        const [driver] = await tx.select({ id: schema.drivers.id }).from(schema.drivers).where(eq(schema.drivers.userId, user.id)).limit(1);
+        if (client || driver) throw AppError.conflict('USER_HAS_PROFILE', 'Ce courriel est celui d\'un compte client ou chauffeur : un compte du personnel a son propre courriel');
         [user] = await tx
           .update(schema.users)
-          .set({ email, phone: input.phone, firstName: input.firstName, lastName: input.lastName, primaryRole })
+          .set({ firstName: input.firstName, lastName: input.lastName, primaryRole })
           .where(eq(schema.users.id, user.id))
           .returning();
       } else {
@@ -269,8 +276,11 @@ export class StaffAuthService {
         .insert(schema.staffCredentials)
         .values({ userId: user!.id, passwordHash })
         .onConflictDoUpdate({ target: schema.staffCredentials.userId, set: { passwordHash, passwordChangedAt: new Date(), failedAttempts: 0, lockedUntil: null } });
-      return user!;
+      return { user: user!, existed: Boolean(byEmail) };
     });
+    // Mot de passe remplacé sur un compte existant : ses sessions ouvertes (ancien mot de passe ou code SMS) sont révoquées.
+    if (existed) await this.tokens.revokeAllForUser(user.id);
+    return user;
   }
 
   async setPassword(userId: string, password: string): Promise<void> {

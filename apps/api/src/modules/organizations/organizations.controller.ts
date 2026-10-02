@@ -92,10 +92,10 @@ export class AdminOrganizationsController {
   @Post('organizations/:id/invitations')
   @Can('members.invite')
   @HttpCode(201)
-  @ApiOperation({ summary: 'Invitation par courriel ou texto, à usage unique ; le lien part par le canal choisi, le jeton n\'est jamais rendu (sauf réglage de développement)' })
+  @ApiOperation({ summary: 'Invitation par courriel ou texto, à usage unique, pour amorcer une organisation cliente sans propriétaire (409 ensuite : ses membres invitent depuis My Hub) ; le lien part par le canal choisi, le jeton n\'est jamais rendu (sauf réglage de développement)' })
   @ZodBody(invitationCreateSchema)
   @ZodResponse(201, invitationCreatedSchema)
-  @ApiErrors(400, 401, 403, 404, 429)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
   invite(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(invitationCreateSchema)) body: z.infer<typeof invitationCreateSchema>, @CurrentUser() user: UserActor) {
     return this.orgs.invite(id, body, user);
   }

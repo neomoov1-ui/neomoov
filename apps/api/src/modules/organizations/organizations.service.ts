@@ -72,6 +72,14 @@ export class OrganizationsService {
     if (refused.length) throw AppError.forbidden('PERMISSION_ESCALATION', 'Vous ne pouvez accorder que des permissions que vous détenez', { refused });
   }
 
+  /**
+   * Revue du 2 octobre 2026 (sécurité 5) : pendant un accès temporaire, le support ne touche ni aux membres, ni aux
+   * invitations, ni aux rôles, ni aux sous-organisations (ses permissions ne les contiennent déjà pas : seconde barrière).
+   */
+  private assertNotSupport(scope?: OrgScope): void {
+    if (scope?.support) throw AppError.forbidden('SUPPORT_ACCESS_FORBIDDEN', 'Le support ne modifie ni les membres, ni les rôles, ni les organisations pendant un accès temporaire');
+  }
+
   // --- Organisations ---
 
   async list(): Promise<OrganizationView[]> {
@@ -164,6 +172,7 @@ export class OrganizationsService {
   async createRole(input: RoleCreate, actor: UserActor, scope?: OrgScope): Promise<RoleView> {
     // Route d'organisation : le rôle appartient à l'organisation de la route, jamais à une autre.
     if (scope && input.organizationId !== scope.organizationId) throw AppError.notFound('ORGANIZATION_NOT_FOUND', 'Organisation introuvable');
+    this.assertNotSupport(scope);
     const org = await this.organization(input.organizationId);
     const permissions = [...new Set(input.permissions)];
     await this.assertGrantable(actor, permissions, org, scope);
@@ -186,6 +195,7 @@ export class OrganizationsService {
     if (role.system) throw AppError.conflict('SYSTEM_ROLE_READ_ONLY', 'Un rôle système ne se modifie pas');
     // Route d'organisation : seulement un rôle personnalisé de cette organisation (ceux des descendantes passent par leur propre route).
     if (scope && role.organizationId !== scope.organizationId) throw AppError.notFound('ROLE_NOT_FOUND', 'Rôle introuvable');
+    this.assertNotSupport(scope);
     const org = await this.organization(role.organizationId!);
     const wanted = [...new Set(permissions)];
     await this.assertGrantable(actor, wanted, org, scope);
@@ -230,6 +240,7 @@ export class OrganizationsService {
   }
 
   async updateMembership(id: string, input: MembershipUpdate, actor: UserActor, scope?: OrgScope): Promise<MembershipView> {
+    this.assertNotSupport(scope);
     const [m] = await this.db.select().from(schema.memberships).where(eq(schema.memberships.id, id)).limit(1);
     if (!m) throw AppError.notFound('MEMBERSHIP_NOT_FOUND', 'Adhésion introuvable');
     const org = await this.organization(m.organizationId);
@@ -259,7 +270,12 @@ export class OrganizationsService {
    * le jeton n'est rendu que si le réglage de développement le demande.
    */
   async invite(organizationId: string, input: InvitationCreate, actor: UserActor, scope?: OrgScope, now = new Date(), language: 'fr' | 'en' = 'fr'): Promise<InvitationCreated> {
+    this.assertNotSupport(scope);
     const org = await this.organization(organizationId);
+    // Revue du 2 octobre 2026 (sécurité 5) : la plateforme n'invite que pour amorcer une organisation cliente sans propriétaire ; ensuite, ses membres invitent depuis My Hub.
+    if (!scope && org.parentId !== null && (await this.owners(org.id)).some((o) => o.status === 'active')) {
+      throw AppError.conflict('ORGANIZATION_HAS_OWNER', 'Cette organisation a un propriétaire : les invitations se font depuis son My Hub');
+    }
     const role = await this.roleFor(org, input.roleId);
     await this.assertGrantable(actor, role.permissions, org, scope);
     const token = `inv_${randomToken(24)}`;
@@ -357,6 +373,7 @@ export class OrganizationsService {
    * propriétaire et l'ancien propriétaire devient administrateur. Journalisé.
    */
   async transferOwnership(scope: OrgScope, input: OwnershipTransfer, actor: UserActor): Promise<MembershipView> {
+    this.assertNotSupport(scope);
     const owners = await this.owners(scope.organizationId);
     const mine = owners.find((o) => o.userId === actor.userId && o.status === 'active');
     if (!mine) throw AppError.forbidden('OWNER_REQUIRED', 'Seul un propriétaire du compte peut en transférer la propriété');
@@ -394,6 +411,7 @@ export class OrganizationsService {
    * jamais plus que son parent.
    */
   async createSubOrganization(scope: OrgScope, input: OrgOrganizationCreate, actor: UserActor): Promise<OrganizationView> {
+    this.assertNotSupport(scope);
     const parent = await this.organization(input.parentId ?? scope.organizationId);
     if (!parent.path.startsWith(scope.path)) throw AppError.notFound('ORGANIZATION_NOT_FOUND', 'Organisation introuvable');
     const id = randomUUID();

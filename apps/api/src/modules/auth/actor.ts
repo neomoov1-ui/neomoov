@@ -93,9 +93,15 @@ export interface OwnsOptions {
   entity: OwnedEntity;
   /** Paramètre de route qui porte l'identifiant (défaut : `id`). */
   param?: string;
+  /**
+   * Revue du 2 octobre 2026 (sécurité 1) : le personnel ne contourne la propriété qu'en lecture. Une route d'écriture
+   * qui doit lui rester ouverte le déclare ici, toujours avec une permission `@Can` correspondante (vérifié au démarrage).
+   */
+  staffMayWrite?: boolean;
 }
-/** La ressource identifiée par le paramètre doit appartenir à l'utilisateur ; le personnel voit tout. */
-export const Owns = (entity: OwnedEntity, param = 'id') => SetMetadata(OWNS_KEY, { entity, param } satisfies OwnsOptions);
+/** La ressource identifiée par le paramètre doit appartenir à l'utilisateur ; le personnel voit tout, mais n'écrit que sur une route `staffMayWrite`. */
+export const Owns = (entity: OwnedEntity, param = 'id', options: { staffMayWrite?: boolean } = {}) =>
+  SetMetadata(OWNS_KEY, { entity, param, ...(options.staffMayWrite ? { staffMayWrite: true } : {}) } satisfies OwnsOptions);
 
 export interface AuditOptions {
   action: string;
