@@ -16,6 +16,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel se li
 | L'API refuse de démarrer après un changement de `.env` (« Configuration invalide ») | `redemarrer-un-service.md`, section 7 ; `../operations/acces-a-fournir.md`, « Démarrage de l'API en production » |
 | Désactiver un drapeau `FEATURE_*`, changer un réglage, couper un agent ou un canal | `drapeaux-et-reglages.md` |
 | Faire tourner un secret (dont `ENCRYPTION_KEY`) | `secrets-et-cles.md` |
+| `boite-unifiee.md` | Boîte de réception unifiée : relais entrant Brevo et lecture IMAP de contact@, application Meta (Messenger, Facebook, Instagram), relais humain des autres réseaux, appels manqués, réglages `inbox.*` | Écrit le 2 octobre 2026 (phase 1 autonome, agent D) |
 | Encaisser avec Square, déclarer son webhook, verser les relevés des chauffeurs par virement, revenir à Stripe | `square.md` |
 | Incident de confidentialité (Loi 25) | `incident-confidentialite.md` |
 | Publier une version des applications mobiles | `publication-mobile.md` |
@@ -23,6 +24,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel se li
 | Déployer une nouvelle version du serveur, retour arrière | `deploiement-lws.md` |
 | Comptes du personnel, second facteur perdu, clés de service | `personnel-my-hub.md` |
 | Une alerte Sentry ou Better Stack, lire les métriques, suivre une requête (identifiant de corrélation) | `observabilite.md` |
+| Brancher la boîte contact@ (Brevo entrant, IMAP), Messenger, Facebook et Instagram, relayer les autres réseaux, rappeler un appel manqué | `boite-unifiee.md` |
 
 ## Index
 
