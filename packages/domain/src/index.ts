@@ -50,3 +50,6 @@ export * from './access/support-access.js';
 // Facturation de la plateforme (étape 25) : formules, factures, relances, et schémas de l'API.
 export * from './platform-billing/billing.js';
 export * from './schemas/platform-billing.js';
+// Phase 1 « entreprise autonome » (2 octobre 2026) : direction commerciale (prospection B2B, appels sortants, relances, devis).
+export * from './sales/sales.js';
+export * from './schemas/sales.js';

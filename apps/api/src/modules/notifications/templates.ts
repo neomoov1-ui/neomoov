@@ -378,9 +378,47 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Demande d\'accès du support Neomoov', body: (d) => `Le support Neomoov demande un accès de ${str(d['durationMinutes'])} minutes à ${str(d['organizationName']) || 'votre organisation'} (motif : ${str(d['reason'])}). Approuvez ou refusez dans My Hub, menu Accès du support.` },
     en: { title: 'Neomoov support access request', body: (d) => `Neomoov support requests ${str(d['durationMinutes'])} minutes of access to ${str(d['organizationName']) || 'your organization'} (reason: ${str(d['reason'])}). Approve or deny in My Hub, Support access menu.` },
   },
+  // Direction commerciale (phase 1 « entreprise autonome », 2 octobre 2026) : messages de prospection B2B (mention de retrait dans
+  // chaque envoi, Loi anti-pourriel), devis entreprise, confirmation de rendez-vous, relance d'un candidat chauffeur, alertes.
+  'sales.message': {
+    fr: { title: (d) => str(d['subject']) || 'Message de Neomoov', body: (d) => `${str(d['text'])}\n\n${SALES_OPT_OUT.fr}` },
+    en: { title: (d) => str(d['subject']) || 'Message from Neomoov', body: (d) => `${str(d['text'])}\n\n${SALES_OPT_OUT.en}` },
+  },
+  'sales.quote': {
+    fr: {
+      title: (d) => `Proposition de compte entreprise Neomoov pour ${str(d['organizationName'])}`,
+      body: (d, l) => `Bonjour${str(d['contactName']) ? ` ${str(d['contactName'])}` : ' Madame, Monsieur'},\n\nVoici notre proposition de compte entreprise pour ${str(d['organizationName'])} : remise de ${Number(d['discountBps'] ?? 0) / 100} % sur le prix fixe affiché, pour un volume estimé de ${str(d['expectedMonthlyRides'])} courses par mois, avec une facture mensuelle unique payable à ${str(d['paymentTermsDays'])} jours. Le prix de chaque course reste connu avant la réservation, tout compris.\n\nCette proposition est valable jusqu'au ${when(d['validUntil'], l)}.${str(d['notes']) ? `\n\n${str(d['notes'])}` : ''}\n\nPour l'accepter, répondez simplement à ce message : nous ouvrons votre compte et vous recevez votre accès par courriel.\n\n${SALES_OPT_OUT.fr}`,
+    },
+    en: {
+      title: (d) => `Neomoov business account proposal for ${str(d['organizationName'])}`,
+      body: (d, l) => `Hello${str(d['contactName']) ? ` ${str(d['contactName'])}` : ''},\n\nHere is our business account proposal for ${str(d['organizationName'])}: a ${Number(d['discountBps'] ?? 0) / 100}% discount on the displayed fixed price, for an estimated volume of ${str(d['expectedMonthlyRides'])} rides per month, with a single monthly invoice payable within ${str(d['paymentTermsDays'])} days. The price of every ride remains known before booking, all inclusive.\n\nThis proposal is valid until ${when(d['validUntil'], l)}.${str(d['notes']) ? `\n\n${str(d['notes'])}` : ''}\n\nTo accept it, simply reply to this message: we open your account and you receive your access by email.\n\n${SALES_OPT_OUT.en}`,
+    },
+  },
+  'sales.meeting_confirmation': {
+    fr: { title: 'Rendez-vous confirmé avec Neomoov', body: (d, l) => `Bonjour${str(d['contactName']) ? ` ${str(d['contactName'])}` : ''},\n\nNous confirmons notre rendez-vous le ${when(d['startsAt'], l)} (${str(d['durationMinutes'])} minutes) au sujet des déplacements de ${str(d['organizationName'])}.${str(d['link']) ? `\n\nInvitation : ${str(d['link'])}` : ''}\n\nPour le déplacer, répondez simplement à ce message.\n\n${SALES_OPT_OUT.fr}` },
+    en: { title: 'Meeting confirmed with Neomoov', body: (d, l) => `Hello${str(d['contactName']) ? ` ${str(d['contactName'])}` : ''},\n\nWe confirm our meeting on ${when(d['startsAt'], l)} (${str(d['durationMinutes'])} minutes) about ${str(d['organizationName'])}'s travel needs.${str(d['link']) ? `\n\nInvitation: ${str(d['link'])}` : ''}\n\nTo reschedule, simply reply to this message.\n\n${SALES_OPT_OUT.en}` },
+  },
+  'sales.candidate_reminder': {
+    fr: { title: 'Votre dossier de chauffeur Neomoov', body: (d) => str(d['text']) || 'Il manque encore des documents pour terminer votre inscription. Ouvrez l\'application chauffeur pour les déposer.' },
+    en: { title: 'Your Neomoov driver file', body: (d) => str(d['text']) || 'Some documents are still missing to complete your sign-up. Open the driver app to upload them.' },
+  },
+  'alert.sales_meeting': {
+    fr: { title: 'Rendez-vous commercial pris', body: (d, l) => `L'agent commercial a pris un rendez-vous avec ${str(d['organizationName'])} le ${when(d['startsAt'], l)}.${str(d['link']) ? ` Agenda : ${str(d['link'])}.` : ''} Fiche dans My Hub, Ventes.` },
+    en: { title: 'Sales meeting booked', body: (d, l) => `The sales agent booked a meeting with ${str(d['organizationName'])} on ${when(d['startsAt'], l)}.${str(d['link']) ? ` Calendar: ${str(d['link'])}.` : ''} Record in My Hub, Sales.` },
+  },
+  'alert.sales_followup_required': {
+    fr: { title: 'Ventes : suite à donner par une personne', body: (d) => `${str(d['organizationName'])} : ${str(d['result'])}. ${str(d['summary'])} Voir My Hub, Ventes.` },
+    en: { title: 'Sales: human follow-up required', body: (d) => `${str(d['organizationName'])}: ${str(d['result'])}. ${str(d['summary'])} See My Hub, Sales.` },
+  },
   // Facturation de la plateforme (étape 25) : avis au propriétaire du compte de l'organisation.
   ...BILLING_TEMPLATES,
 };
+
+/** Mention de retrait de la prospection B2B (Loi anti-pourriel) : dans chaque message commercial, sans exception. */
+export const SALES_OPT_OUT = {
+  fr: 'Vous recevez ce message parce que les coordonnées professionnelles de votre organisation sont publiques ou que vous avez contacté Neomoov (Groupe NSK inc., Montréal). Pour ne plus recevoir nos messages, répondez « STOP » ou écrivez à contact@neomoov.net : votre demande est appliquée immédiatement.',
+  en: 'You are receiving this message because your organization\'s professional contact details are public or because you contacted Neomoov (Groupe NSK inc., Montreal). To stop receiving our messages, reply "STOP" or write to contact@neomoov.net: your request is applied immediately.',
+} as const;
 
 const GENERIC: Template = {
   fr: { title: 'Neomoov', body: 'Vous avez une nouvelle notification dans l\'application.' },

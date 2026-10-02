@@ -26,7 +26,7 @@ export const crmRecords = pgTable('crm_records', {
   uniqueIndex('crm_records_unique').on(t.provider, t.entityType, t.entityId, t.objectType),
   index('crm_records_status_idx').on(t.status, t.updatedAt),
   index('crm_records_entity_idx').on(t.entityType, t.entityId),
-  check('crm_records_entity_type', sql`${t.entityType} IN ('lead', 'business_account', 'organization')`),
+  check('crm_records_entity_type', sql`${t.entityType} IN ('lead', 'business_account', 'organization', 'prospect')`),
   check('crm_records_object_type', sql`${t.objectType} IN ('contact', 'company', 'deal', 'note')`),
   check('crm_records_status', sql`${t.status} IN ('pending', 'synced', 'error', 'skipped')`),
 ]);

@@ -14,7 +14,7 @@ import { BILLING_PROVIDER, type BillingProvider } from '../src/adapters/billing.
 
 const PRODUCTION = { NODE_ENV: 'production', DATABASE_URL: 'postgresql://x', JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(32), ENCRYPTION_KEY: 'c'.repeat(32), REDIS_URL: 'redis://localhost:6379', SOCIAL_LOGIN_PROVIDER: 'real',
   // Garde de production (étape 17c) : les simulateurs doivent être déclarés explicitement pour que l'API démarre.
-  ALLOW_MOCK_PROVIDERS: 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing' };
+  ALLOW_MOCK_PROVIDERS: 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing,calendar' };
 
 async function providersFor(env: AppEnv) {
   @Global()

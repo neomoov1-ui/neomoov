@@ -17,12 +17,15 @@ import { DB, type Database } from '../../infra/db.module.js';
 import { QuotesService } from '../pricing/quotes.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { RidesService } from '../rides/rides.service.js';
+import { OutboundCallsService } from '../sales/outbound-calls.service.js';
 
-/** Message du serveur Vapi (sous-ensemble utilisé). */
+/** Message du serveur Vapi (sous-ensemble utilisé) ; `assistant`, `call.assistantId`, `call.metadata` et `analysis` servent aux appels sortants commerciaux. */
 export interface VapiMessage {
   type: string;
-  call?: { id?: string; customer?: { number?: string } };
+  call?: { id?: string; assistantId?: string; metadata?: Record<string, unknown>; customer?: { number?: string } };
+  assistant?: { id?: string };
   toolCallList?: Array<{ id: string; function?: { name?: string; arguments?: Record<string, unknown> | string } }>;
+  analysis?: { summary?: string; structuredData?: Record<string, unknown> };
   summary?: string;
   endedReason?: string;
   cost?: number;
@@ -54,6 +57,7 @@ export class VoiceService {
     private readonly rides: RidesService,
     private readonly outbox: NotificationsOutbox,
     private readonly settings: SettingsService,
+    private readonly outboundCalls: OutboundCallsService,
   ) {}
 
   private get db() {
@@ -72,7 +76,11 @@ export class VoiceService {
       }
       return { results };
     }
-    if (message.type === 'end-of-call-report') await this.logCall(message);
+    if (message.type === 'end-of-call-report') {
+      // Appel sortant commercial (phase 1 « entreprise autonome ») : reconnu par son identifiant ou l'assistant commercial, traité par le module des ventes.
+      if (await this.outboundCalls.handleReport(message)) return { received: true };
+      await this.logCall(message);
+    }
     return { received: true };
   }
 

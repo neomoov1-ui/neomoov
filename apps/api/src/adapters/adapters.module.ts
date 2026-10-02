@@ -1,13 +1,13 @@
 import { Global, Module, type Provider } from '@nestjs/common';
 import { APP_ENV, type AppEnv } from '../config/env.js';
 import {
-  MockBillingProvider, MockCrmProvider, MockEmailProvider, MockLlmProvider, MockMapsProvider, MockPaymentProvider, MockPushProvider, MockSevProvider, MockSmsProvider,
+  MockBillingProvider, MockCalendarProvider, MockCrmProvider, MockEmailProvider, MockLlmProvider, MockMapsProvider, MockPaymentProvider, MockPlacesProvider, MockPushProvider, MockSevProvider, MockSmsProvider,
   MockStorageProvider, MockVirusScanner, MockVoiceProvider, MockWhatsAppProvider,
 } from './mock/index.js';
-import { realBilling, realCrm, realEmail, realLlm, realMaps, realPayment, realPush, realSev, realSms, realStorage, realVirusScanner, realVoice, realWhatsApp } from './real/index.js';
+import { realBilling, realCalendar, realCrm, realEmail, realLlm, realMaps, realPayment, realPlaces, realPush, realSev, realSms, realStorage, realVirusScanner, realVoice, realWhatsApp } from './real/index.js';
 import {
-  CRM_PROVIDER, EMAIL_PROVIDER, LLM_PROVIDER, MAPS_PROVIDER, PAYMENT_PROVIDER, PUSH_PROVIDER, SEV_PROVIDER, SMS_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, VOICE_PROVIDER, WHATSAPP_PROVIDER,
-  type CrmProvider, type EmailProvider, type LlmProvider, type MapsProvider, type PaymentProvider, type PushProvider, type SevProvider, type SmsProvider, type StorageProvider, type VirusScanner, type VoiceProvider, type WhatsAppProvider,
+  CALENDAR_PROVIDER, CRM_PROVIDER, EMAIL_PROVIDER, LLM_PROVIDER, MAPS_PROVIDER, PAYMENT_PROVIDER, PLACES_PROVIDER, PUSH_PROVIDER, SEV_PROVIDER, SMS_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, VOICE_PROVIDER, WHATSAPP_PROVIDER,
+  type CalendarProvider, type CrmProvider, type EmailProvider, type LlmProvider, type MapsProvider, type PaymentProvider, type PlacesProvider, type PushProvider, type SevProvider, type SmsProvider, type StorageProvider, type VirusScanner, type VoiceProvider, type WhatsAppProvider,
 } from './types.js';
 import { BILLING_PROVIDER, type BillingProvider } from './billing.types.js';
 
@@ -38,7 +38,10 @@ const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 
     choose<VirusScanner>(VIRUS_SCANNER, 'VIRUS_SCANNER_PROVIDER', () => new MockVirusScanner(), realVirusScanner),
     choose<CrmProvider>(CRM_PROVIDER, 'CRM_PROVIDER', () => new MockCrmProvider(), realCrm),
     choose<BillingProvider>(BILLING_PROVIDER, 'BILLING_PROVIDER', (env) => new MockBillingProvider(mockWebhooks(env)), realBilling),
+    // Direction commerciale (phase 1 « entreprise autonome ») : établissements par Google Places (même clé et même choix que les cartes), agenda du fondateur.
+    choose<PlacesProvider>(PLACES_PROVIDER, 'MAPS_PROVIDER', () => new MockPlacesProvider(), realPlaces),
+    choose<CalendarProvider>(CALENDAR_PROVIDER, 'CALENDAR_PROVIDER', () => new MockCalendarProvider(), realCalendar),
   ],
-  exports: [MAPS_PROVIDER, PAYMENT_PROVIDER, SMS_PROVIDER, EMAIL_PROVIDER, PUSH_PROVIDER, WHATSAPP_PROVIDER, VOICE_PROVIDER, SEV_PROVIDER, LLM_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, CRM_PROVIDER, BILLING_PROVIDER],
+  exports: [MAPS_PROVIDER, PAYMENT_PROVIDER, SMS_PROVIDER, EMAIL_PROVIDER, PUSH_PROVIDER, WHATSAPP_PROVIDER, VOICE_PROVIDER, SEV_PROVIDER, LLM_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, CRM_PROVIDER, BILLING_PROVIDER, PLACES_PROVIDER, CALENDAR_PROVIDER],
 })
 export class AdaptersModule {}

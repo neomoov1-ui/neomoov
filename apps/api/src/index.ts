@@ -70,3 +70,8 @@ export { PlatformBillingService } from './modules/platform-billing/platform-bill
 export { BillingJobsService } from './modules/platform-billing/billing-jobs.service.js';
 export * from './adapters/billing.types.js';
 export { StripeBillingProvider } from './adapters/real/stripe-billing.real.js';
+// Direction commerciale (phase 1 « entreprise autonome », 2 octobre 2026) : module, passe de la file `sales` (worker avec Redis), adaptateurs réels.
+export { SalesModule } from './modules/sales/sales.module.js';
+export { SalesJobsService } from './modules/sales/sales-jobs.service.js';
+export { GooglePlacesProvider } from './adapters/real/google-places.js';
+export { GoogleCalendarProvider } from './adapters/real/google-calendar.js';
