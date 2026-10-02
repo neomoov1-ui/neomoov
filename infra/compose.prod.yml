@@ -98,6 +98,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3000"
+      # Appels internes vers l'API par le réseau Docker : vraie adresse IP du client transmise, pas de limite de débit partagée.
+      API_INTERNAL_URL: http://api:4000
     deploy:
       resources:
         limits:
