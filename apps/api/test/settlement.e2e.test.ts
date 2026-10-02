@@ -311,7 +311,11 @@ describe('règlement hebdomadaire (intégration)', () => {
     const friday = new Date('2026-07-10T10:30:00Z');
     await statements().issue(draft.id!, friday);
     const provider = app.get<MockPaymentProvider>(PAYMENT_PROVIDER);
-    const outage = vi.spyOn(provider, 'chargeOffSession').mockRejectedValueOnce(new AppError('PAYMENT_PROVIDER_ERROR', 'Stripe indisponible (panne simulée)', 502));
+    // L'appel en panne est consigné comme un vrai appel (sa clé est comparée à celle du rejeu), puis rejeté.
+    const outage = vi.spyOn(provider, 'chargeOffSession').mockImplementationOnce(async (input) => {
+      provider.calls.push({ method: 'chargeOffSession', args: [input] });
+      throw new AppError('PAYMENT_PROVIDER_ERROR', 'Stripe indisponible (panne simulée)', 502);
+    });
     try {
       const unknown = await payouts().settle(draft.id!, friday);
       expect(unknown).toMatchObject({ status: 'unknown', attempts: 0, failureCode: 'charge_unknown' });

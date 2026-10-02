@@ -167,8 +167,9 @@ describe('revue du 2 octobre 2026, agent A : crédits, règlements, loyer de flo
     // Le solde affiché et le devis suivant déduisent la réservation.
     expect((await wallet(client)).availableCents).toBe(0);
     expect((await quote(client)).creditsAppliedCents).toBe(0);
-    // La course perdante n'existe pas (transaction annulée).
-    expect(await db(app).select({ id: schema.rides.id }).from(schema.rides).where(eq(schema.rides.quoteId, qB.id))).toHaveLength(0);
+    // La course perdante (quel que soit le devis qui a perdu) n'existe pas : transaction annulée.
+    const loserQuote = results[0]!.status === 409 ? qA : qB;
+    expect(await db(app).select({ id: schema.rides.id }).from(schema.rides).where(eq(schema.rides.quoteId, loserQuote.id))).toHaveLength(0);
 
     // Annulation : la réservation est rendue au compte.
     await request(server()).post(`/v1/rides/${rideA}/cancel`).set(bearer(client)).send({ reason: 'changed_plans' }).expect(200);
@@ -223,10 +224,12 @@ describe('revue du 2 octobre 2026, agent A : crédits, règlements, loyer de flo
     await db(app).update(schema.organizations).set({ stripeAccountId: `acct_test_${orgId.slice(0, 8)}`, stripeAccountOnboarded: true }).where(eq(schema.organizations.id, orgId));
     const orgStatementId = (await orgRow()).id;
     const transferKey = `organization-statement:${orgStatementId}:payout`;
+    // Panne simulée pour ce seul transfert : l'appel est consigné comme un vrai appel (sa clé est vérifiée), puis rejeté sans réponse.
     const original = provider().transfer.bind(provider());
     const outage = vi.spyOn(provider(), 'transfer').mockImplementation(async (input) => {
-      if (input.idempotencyKey === transferKey) throw new Error('Délai dépassé (simulation)');
-      return original(input);
+      if (input.idempotencyKey !== transferKey) return original(input);
+      provider().calls.push({ method: 'transfer', args: [input] });
+      throw new Error('Délai dépassé (simulation)');
     });
     try {
       const report = await organizationStatements.retryFailed();
@@ -258,8 +261,9 @@ describe('revue du 2 octobre 2026, agent A : crédits, règlements, loyer de flo
     const withOutage = async (statementId: string, run: () => Promise<unknown>) => {
       const original = provider().chargeOffSession.bind(provider());
       const outage = vi.spyOn(provider(), 'chargeOffSession').mockImplementation(async (input) => {
-        if (input.metadata?.['statement_id'] === statementId) throw new Error('Délai dépassé (simulation)');
-        return original(input);
+        if (input.metadata?.['statement_id'] !== statementId) return original(input);
+        provider().calls.push({ method: 'chargeOffSession', args: [input] });
+        throw new Error('Délai dépassé (simulation)');
       });
       try {
         await run();
@@ -334,7 +338,10 @@ describe('revue du 2 octobre 2026, agent A : crédits, règlements, loyer de flo
     expect(await tipRow()).toMatchObject({ status: 'failed', attempts: 1, failureCode: 'card_declined', capturedCents: 0 });
     expect((await rideRow(rideId)).tipCents).toBe(0);
     // Délai du prestataire : aucune ligne changée, la clé suivante reste celle de cette tentative.
-    const outage = vi.spyOn(provider(), 'chargeOffSession').mockRejectedValueOnce(new Error('Délai dépassé (simulation)'));
+    const outage = vi.spyOn(provider(), 'chargeOffSession').mockImplementationOnce(async (input) => {
+      provider().calls.push({ method: 'chargeOffSession', args: [input] });
+      throw new Error('Délai dépassé (simulation)');
+    });
     try {
       await expect(app.get(PaymentsService).tip(rideId, client.user.id, 500)).rejects.toThrow('Délai dépassé');
     } finally {
