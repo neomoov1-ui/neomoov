@@ -1,0 +1,229 @@
+{
+  "edition": "2026-10-02",
+  "pass_percent": 80,
+  "minutes": 40,
+  "max_attempts": 3,
+  "cooldown_days": 7,
+  "questions": [
+    {
+      "module": 1,
+      "q": "Vous prenez votre premier client à 6 h, faites une pause de 13 h à 14 h, puis reprenez jusqu'à 20 h. Quand la loi vous impose-t-elle la vérification sommaire du véhicule ?",
+      "choices": [
+        "À chaque remise en service : à 6 h et à 14 h",
+        "Avant la première utilisation de la journée pour le transport rémunéré, donc avant le client de 6 h",
+        "Une fois par semaine, avant la première journée de travail"
+      ],
+      "answer": 1,
+      "explain": "L'article 55 de la Loi vise la première utilisation de la journée pour le transport rémunéré de personnes."
+    },
+    {
+      "module": 1,
+      "q": "Selon l'article 66 du Règlement, que doit contenir le rapport de vérification sommaire conservé dans le véhicule ?",
+      "choices": [
+        "La date et l'heure, la plaque, le numéro de l'accessoire, le nom du chauffeur qualifié, les défectuosités ou leur absence, le motif d'un voyant allumé, l'odomètre et la mention que les éléments de l'article 65 ont été vérifiés",
+        "La date, la signature du chauffeur et le nom du premier client",
+        "Le trajet prévu, la recette attendue et le niveau de carburant"
+      ],
+      "answer": 0,
+      "explain": "Pour un véhicule électrique, le rapport indique aussi l'état de charge de la batterie."
+    },
+    {
+      "module": 1,
+      "q": "Une chauffeuse commence avec Lyft et prévoit 12 000 $ de ventes cette année. Elle pense rester sous le seuil des petits fournisseurs de 30 000 $. Que doit-elle faire ?",
+      "choices": [
+        "Attendre d'atteindre 30 000 $ avant de s'inscrire aux taxes",
+        "S'inscrire seulement à la TPS, la TVQ étant facultative la première année",
+        "S'inscrire à la TPS et à la TVQ avant sa première course payée : le seuil des petits fournisseurs ne s'applique pas aux chauffeurs"
+      ],
+      "answer": 2,
+      "explain": "Revenu Québec exige l'inscription avant la première course payée, quel que soit le montant des ventes."
+    },
+    {
+      "module": 2,
+      "q": "Vous avez travaillé de 7 h à 15 h 30 avec 45 minutes de pause personnelle. Deux applications affichent chacune 4 heures de connexion. Quel temps de travail notez-vous ?",
+      "choices": [
+        "8 h : les deux applications se recoupent",
+        "7 h 45 : la journée complète moins la pause, sans compter deux fois la même heure",
+        "8 h 45 : 4 h + 4 h + la pause"
+      ],
+      "answer": 1,
+      "explain": "La journée réelle va du début à la fin, pauses personnelles retirées ; une heure ouverte sur deux applications ne compte qu'une fois."
+    },
+    {
+      "module": 2,
+      "q": "Vous arrivez à l'épingle GPS d'un client : aucune entrée n'est visible et la rue est à sens unique. Que faites-vous ?",
+      "choices": [
+        "Vous indiquez « arrivé » et vous attendez que le client vous trouve",
+        "Vous annulez : le point de rencontre n'est pas conforme",
+        "Vous vous arrêtez en sécurité, puis vous confirmez un repère précis : numéro, entrée, côté de rue, couleur de votre véhicule"
+      ],
+      "answer": 2,
+      "explain": "Une épingle est un point sur une carte, pas toujours une entrée utilisable ; « arrivé » ne s'indique que sur place, après un repère clair."
+    },
+    {
+      "module": 2,
+      "q": "Un chauffeur de taxi sans permis d'Aéroports de Montréal prend un client qui lui fait signe à la sortie du terminal de Montréal-Trudeau. Que risque-t-il ?",
+      "choices": [
+        "Une contravention : seul un taxi détenant le permis d'Aéroports de Montréal peut prendre des clients sur place",
+        "Rien : l'aéroport est un lieu public",
+        "Un simple rappel de la SAAQ lors du renouvellement du permis"
+      ],
+      "answer": 0,
+      "explain": "Aéroports de Montréal fixe les zones et les conditions d'accès ; des contraventions sont émises aux véhicules qui n'y ont pas droit."
+    },
+    {
+      "module": 3,
+      "q": "Votre relevé hebdomadaire indique 1 200 $ de courses, avec 300 $ de frais d'opérateur déjà retenus, et votre banque reçoit 1 200 $. Dans votre tableau, vous notez 1 200 $ puis vous retirez 300 $ de frais. Quelle est l'erreur ?",
+      "choices": [
+        "Aucune : les frais doivent toujours apparaître dans le tableau",
+        "Les frais sont retirés deux fois : le relevé est déjà net des frais d'opérateur",
+        "Il fallait ajouter 300 $ pour retrouver le prix payé par les clients"
+      ],
+      "answer": 1,
+      "explain": "Identifiez ce que contient chaque montant avant d'additionner ; retirer deux fois la commission est l'erreur la plus courante."
+    },
+    {
+      "module": 3,
+      "q": "Votre coût est de 0,50 $ par kilomètre. Une offre demande 3 km d'approche et 4 km de course pour 9 $ de recette. Que reste-t-il après les coûts ?",
+      "choices": [
+        "9,00 $ : les coûts du véhicule sont déjà couverts par la journée",
+        "7,00 $ : seuls les kilomètres de course comptent",
+        "5,50 $ : 7 km au total coûtent 3,50 $ ; la course reste rentable, mais de peu"
+      ],
+      "answer": 2,
+      "explain": "Les kilomètres à vide usent le véhicule autant que les autres : comptez la distance totale, approche comprise."
+    },
+    {
+      "module": 3,
+      "q": "Pour comparer un véhicule 100 % électrique et un véhicule à essence sur trois ans, quels postes devez-vous réunir ?",
+      "choices": [
+        "Le prix ou la location, l'assurance, l'entretien, l'énergie et la valeur de revente",
+        "Seulement le prix d'achat et la consommation annoncée",
+        "Seulement l'énergie : le reste est identique"
+      ],
+      "answer": 0,
+      "explain": "L'énergie est le premier écart, mais le coût total sur trois ans comprend aussi l'entretien et la valeur de revente."
+    },
+    {
+      "module": 4,
+      "q": "Le client précédent a laissé une forte odeur de nourriture. Un nouveau client monte dans dix minutes. Quelle est la bonne séquence ?",
+      "choices": [
+        "Vaporiser un désodorisant puissant et fermer les vitres",
+        "Aérer et nettoyer la source, vider la poubelle, puis au besoin une senteur légère et non agressive",
+        "Ne rien faire : les odeurs disparaissent en roulant"
+      ],
+      "answer": 1,
+      "explain": "Les odeurs se traitent à la source ; une senteur légère ne vient qu'ensuite, en pensant aux personnes sensibles."
+    },
+    {
+      "module": 4,
+      "q": "Une cliente accompagnée d'un chien d'assistance vous demande une course. Vous êtes allergique aux chiens. Que faites-vous ?",
+      "choices": [
+        "Vous la servez ; une allergie sérieuse se signale à l'opérateur pour qu'une solution soit trouvée, jamais par un refus sur le trottoir",
+        "Vous refusez poliment en expliquant votre allergie",
+        "Vous acceptez à condition que le chien voyage dans le coffre"
+      ],
+      "answer": 0,
+      "explain": "Le refus est discriminatoire au sens de la Charte des droits et libertés de la personne."
+    },
+    {
+      "module": 4,
+      "q": "Un parent monte avec un enfant de 6 ans mesurant 120 cm et vous n'avez pas de siège d'appoint. Que dit le Code de la sécurité routière ?",
+      "choices": [
+        "La ceinture suffit dès 5 ans",
+        "Un siège adapté ou un siège d'appoint est exigé jusqu'à 145 cm ou 9 ans : ne promettez jamais un siège que vous n'avez pas",
+        "Seul le parent est responsable du choix"
+      ],
+      "answer": 1,
+      "explain": "Vérifiez auprès de la SAAQ les règles qui s'appliquent à votre véhicule et annoncez clairement ce que vous avez à bord."
+    },
+    {
+      "module": 5,
+      "q": "La nuit, une personne s'approche de votre véhicule à l'adresse prévue. Quelle question posez-vous avant de déverrouiller ?",
+      "choices": [
+        "« Vous êtes bien Martin, pour le centre-ville ? »",
+        "« Montez, on vérifie en route »",
+        "« Pour qui est la course ? »"
+      ],
+      "answer": 2,
+      "explain": "Le bon client connaît son nom et sa destination ; annoncer le nom donne la réponse à n'importe qui."
+    },
+    {
+      "module": 5,
+      "q": "Après un incident, laquelle de ces phrases a sa place dans votre dossier ?",
+      "choices": [
+        "« À 23 h 05, rue Saint-Denis, le client a refusé de descendre et a frappé le dossier du siège »",
+        "« Le client était visiblement ivre et voulait me provoquer »",
+        "« Un collègue m'a dit qu'il est connu pour faire des histoires »"
+      ],
+      "answer": 0,
+      "explain": "Des faits observables, datés et situés, en séparant ce que vous avez vu de ce qu'on vous a rapporté."
+    },
+    {
+      "module": 5,
+      "q": "Vous installez une caméra de bord qui filme l'habitacle. Quelles règles s'appliquent au Québec ?",
+      "choices": [
+        "Aucune : c'est votre véhicule et votre sécurité",
+        "Informer les passagers par un avis visible, limiter l'usage à la sécurité et aux incidents, conserver les images peu de temps, ne jamais les diffuser et vérifier les règles de votre plateforme",
+        "Publier les vidéos d'incidents pour prévenir les autres chauffeurs"
+      ],
+      "answer": 1,
+      "explain": "Une image où une personne est identifiable est un renseignement personnel protégé par la loi."
+    },
+    {
+      "module": 6,
+      "q": "Vous êtes arrêté une seconde fois avec le téléphone tenu en main au volant. Quelles sont les conséquences ?",
+      "choices": [
+        "Un avertissement écrit sans amende",
+        "La même amende qu'à la première infraction, sans point",
+        "L'amende minimale double et le permis est suspendu immédiatement, de 3 à 30 jours selon le nombre de récidives"
+      ],
+      "answer": 2,
+      "explain": "Dès la première infraction : 300 $ à 600 $ et 5 points d'inaptitude ; la récidive suspend le permis sur-le-champ."
+    },
+    {
+      "module": 6,
+      "q": "Un ajustement de 12 $ a été retiré sans explication sur une course. Quel message a le plus de chances d'aboutir ?",
+      "choices": [
+        "« Vous me volez encore, remboursez-moi tout de suite »",
+        "« Merci d'expliquer et de corriger l'ajustement de 12 $ sur la course [référence] : relevé joint, montant attendu 38 $, montant constaté 26 $ »",
+        "Ouvrir trois dossiers différents pour être certain d'obtenir une réponse"
+      ],
+      "answer": 1,
+      "explain": "Référence, chronologie, montants, pièce et demande précise ; un seul dossier, relancé si nécessaire."
+    },
+    {
+      "module": 6,
+      "q": "En rapprochant vos documents de la semaine, vous voyez une course de 45 $ avec un pourboire de 5 $ annoncé, mais un versement de 45 $. Que faites-vous ?",
+      "choices": [
+        "Vous notez l'écart avec la référence de la course et vous le signalez avec le reçu",
+        "Vous laissez passer : 5 $ ne valent pas une démarche",
+        "Vous demandez au client de verser le pourboire en argent comptant la prochaine fois"
+      ],
+      "answer": 0,
+      "explain": "Rapprochez chaque semaine l'offre, le reçu, les ajustements et le versement ; chaque écart se note avec sa référence."
+    },
+    {
+      "module": 7,
+      "q": "Un client régulier vous donne son numéro pour vous réserver directement. Que faites-vous de ses coordonnées ?",
+      "choices": [
+        "Vous l'ajoutez à une liste d'envoi d'offres sans rien lui demander",
+        "Avec son accord, vous les conservez en sécurité et les supprimez à sa demande, après avoir vérifié que vos autorisations, votre assurance et votre facturation couvrent ce service",
+        "Vous le réservez pendant les courses confiées par une plateforme pour le fidéliser plus vite"
+      ],
+      "answer": 1,
+      "explain": "Les coordonnées d'un client sont des renseignements personnels (Loi 25) ; les règles des plateformes interdisent de détourner leurs clients."
+    },
+    {
+      "module": 7,
+      "q": "Pendant votre plan de 30 jours, vous changez de plage horaire et vous ajoutez des organisateurs de siège la même semaine. Vos recettes montent de 15 %. Que pouvez-vous conclure ?",
+      "choices": [
+        "Les organisateurs de siège expliquent la hausse",
+        "La nouvelle plage horaire explique la hausse",
+        "Rien de certain : testez une seule amélioration à la fois et comparez des journées semblables"
+      ],
+      "answer": 2,
+      "explain": "Une coïncidence n'est pas une preuve : une amélioration à la fois, puis comparaison avec la semaine de référence."
+    }
+  ]
+}

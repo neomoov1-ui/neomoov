@@ -107,7 +107,7 @@ add_action('rest_api_init',function(){register_rest_route('neomoov-academy/v1','
     $a=nma_attestation_find($r['code']);
     if(!nma_attestation_valid($a))return new WP_REST_Response(array('valid'=>false),200);
     $t=strtotime((string)$a['completed_at']);
-    return new WP_REST_Response(array('valid'=>true,'code'=>$a['code'],'name'=>nma_public_name($a['name']),'program'=>'Neomoov Chauffeur Pro','modules'=>(int)($a['modules']??7),'completed_on'=>$t?wp_date('Y-m-d',$t):'','verify_url'=>nma_url('attestation/?code='.rawurlencode($a['code']))),200);
+    return new WP_REST_Response(array('valid'=>true,'code'=>$a['code'],'name'=>nma_public_name($a['name']),'program'=>'Neomoov Chauffeur Pro','modules'=>(int)($a['modules']??7),'completed_on'=>$t?wp_date('Y-m-d',$t):'','exam'=>nma_exam_public((int)$a['uid']),'verify_url'=>nma_url('attestation/?code='.rawurlencode($a['code']))),200);
 }));});
 
 function nma_attestation_scope(){return '<p class="small">L’attestation de suivi confirme que son titulaire a terminé les 7 modules de Neomoov Chauffeur Pro, formation complémentaire de Neomoov Academy, et réussi leurs quiz (au moins 4 bonnes réponses sur 5 par module). Elle ne constitue ni un permis, ni une certification, ni une équivalence de la formation obligatoire au Québec.</p>';}
@@ -117,14 +117,14 @@ function nma_certificate($a,$specimen=false){
     $url=nma_url('attestation/?code='.rawurlencode($a['code']));
     echo '<div class="certificate">'.($specimen?'<p class="specimen">SPÉCIMEN : aperçu administrateur, aucune attestation délivrée</p>':'').'<p class="eyebrow">NEOMOOV ACADEMY · Neomoov Chauffeur Pro</p><h1>Attestation de suivi</h1><p>Neomoov Academy atteste que</p><p class="certificate-name">'.nma_e($a['name']).'</p><p>a terminé les 7 modules de la formation complémentaire <b>Neomoov Chauffeur Pro</b> et réussi leurs quiz le '.nma_e(nma_date($a['completed_at'])).'.</p><ol class="certificate-modules">';
     foreach(nma_lessons() as $l)echo '<li>'.nma_e(nma_lesson_title($l)).'</li>';
-    echo '</ol><p>Code de vérification : <b>'.nma_e($a['code']).'</b><br>À vérifier sur '.nma_e(preg_replace('#^https?://#','',nma_url('attestation/'))).'</p>'.nma_attestation_scope().'<p class="small">Délivrée le '.nma_e(nma_date($a['issued_at'])).' par Neomoov Academy, marque de GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC., Montréal.</p></div><div class="actions no-print"><button type="button" class="btn" onclick="window.print()">Imprimer / Enregistrer en PDF</button>'.($specimen?'':'<a class="text-link" href="'.esc_url($url).'">Voir la page de vérification publique</a>').'</div>';
+    echo '</ol>'.nma_exam_certificate_line($a,$specimen).'<p>Code de vérification : <b>'.nma_e($a['code']).'</b><br>À vérifier sur '.nma_e(preg_replace('#^https?://#','',nma_url('attestation/'))).'</p>'.nma_attestation_scope().'<p class="small">Délivrée le '.nma_e(nma_date($a['issued_at'])).' par Neomoov Academy, marque de GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC., Montréal.</p></div><div class="actions no-print"><button type="button" class="btn" onclick="window.print()">Imprimer / Enregistrer en PDF</button>'.($specimen?'':'<a class="text-link" href="'.esc_url($url).'">Voir la page de vérification publique</a>').'</div>';
 }
 function nma_attestation_page(){
     $code=isset($_GET['code'])&&is_string($_GET['code'])?substr(sanitize_text_field(wp_unslash($_GET['code'])),0,40):'';
     echo '<section class="wrap section narrow">';
     if($code!==''){
         $a=nma_attestation_find($code);echo '<p class="eyebrow">VÉRIFICATION D’UNE ATTESTATION</p>';
-        if(nma_attestation_valid($a))echo '<h1>Attestation valide.</h1><div class="panel"><p><b>'.nma_e(nma_public_name($a['name'])).'</b> a terminé les 7 modules de Neomoov Chauffeur Pro et réussi leurs quiz le '.nma_e(nma_date($a['completed_at'])).'.</p><p>Code vérifié : <b>'.nma_e($a['code']).'</b></p></div>';
+        if(nma_attestation_valid($a))echo '<h1>Attestation valide.</h1><div class="panel"><p><b>'.nma_e(nma_public_name($a['name'])).'</b> a terminé les 7 modules de Neomoov Chauffeur Pro et réussi leurs quiz le '.nma_e(nma_date($a['completed_at'])).'.</p><p>Code vérifié : <b>'.nma_e($a['code']).'</b></p>'.nma_exam_certificate_line($a).'</div>';
         else echo '<h1>Aucune attestation valide pour ce code.</h1><p>Vérifiez la saisie, au format NCP-XXXX-XXXX. Pour toute question : contact@neomoov.net.</p>';
         echo nma_attestation_scope();nma_attestation_verify_form();echo '</section>';return;
     }
@@ -150,7 +150,7 @@ function nma_attestation_page(){
 /* Page de formation d'un membre : progression, modules, sources, quiz corrigé côté serveur. */
 function nma_formation($uid){
     $lessons=nma_lessons();$res=nma_quiz_results($uid);list($done,$total)=nma_progress($uid);
-    echo '<div class="panel no-print"><h2>Votre progression : '.$done.' / '.$total.' modules réussis</h2><div class="progress" role="progressbar" aria-label="Modules réussis" aria-valuemin="0" aria-valuemax="'.$total.'" aria-valuenow="'.$done.'"><span style="width:'.($total?round($done*100/$total):0).'%"></span></div><p>Chaque module se termine par un quiz de 5 questions : 4 bonnes réponses le valident, et vous pouvez le reprendre autant de fois que nécessaire. Les 7 modules réussis donnent droit à votre <a class="text-link" href="'.esc_url(nma_url('attestation/')).'">attestation de suivi</a>.</p><ol class="module-toc">';
+    echo '<div class="panel no-print"><h2>Votre progression : '.$done.' / '.$total.' modules réussis</h2><div class="progress" role="progressbar" aria-label="Modules réussis" aria-valuemin="0" aria-valuemax="'.$total.'" aria-valuenow="'.$done.'"><span style="width:'.($total?round($done*100/$total):0).'%"></span></div><p>Chaque module se termine par un quiz de 5 questions : 4 bonnes réponses le valident, et vous pouvez le reprendre autant de fois que nécessaire. Les 7 modules réussis donnent droit à votre <a class="text-link" href="'.esc_url(nma_url('attestation/')).'">attestation de suivi</a> et ouvrent l’<a class="text-link" href="'.esc_url(nma_url('examen/')).'">examen final</a>.</p><ol class="module-toc">';
     foreach($lessons as $l){$ok=(int)($res[$l['id']]['best']??0)>=nma_quiz_pass($l);echo '<li><a href="#'.esc_attr($l['id']).'">'.nma_e(nma_lesson_title($l)).'</a> <span class="'.($ok?'ok':'todo').'">'.($ok?'Réussi':'À faire').'</span></li>';}
     echo '</ol></div>';
     $guide=nma_data()['guide']??'';if($guide&&nma_https_url($guide))echo '<p class="no-print"><a class="btn secondary" href="'.esc_url($guide).'">Télécharger le guide complet des 7 modules (PDF)</a></p>';

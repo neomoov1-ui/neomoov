@@ -40,6 +40,7 @@ function nmcd_payment_details($p){
     foreach(array('first_name','last_name','address_line_1','address_line_2','locality','administrative_district_level_1','postal_code','country')as$key){if(isset($a[$key])&&is_string($a[$key]))$out['billing_address'][$key]=substr(sanitize_text_field($a[$key]),0,200);}
     $captured=$p['card_details']['card_payment_timeline']['captured_at']??'';
     if(is_string($captured)&&strtotime($captured)!==false)$out['captured_at']=$captured;
+    $card=is_array($p['card_details']['card']??null)?$p['card_details']['card']:array();if(!empty($card['last_4'])&&preg_match('/^\d{4}$/',(string)$card['last_4']))$out['card']=trim(sanitize_text_field((string)($card['card_brand']??'')).' ****'.$card['last_4']);
     return $out;
 }
 function nmcd_html($title,$body){return '<!doctype html><html lang="fr-CA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'.esc_html($title).'</title></head><body><main><h1>'.esc_html($title).'</h1>'.$body.'</main></body></html>';}
