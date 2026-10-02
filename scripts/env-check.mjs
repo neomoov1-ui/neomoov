@@ -94,6 +94,10 @@ const SQUARE_SHAPES = [
   { key: 'SQUARE_SANDBOX_LOCATION_ID', test: (v) => /^[A-Z0-9]{6,40}$/.test(v), expected: 'identifiant d\'emplacement du bac à sable (majuscules et chiffres)' },
   { key: 'SQUARE_WEBHOOK_URL', test: (v) => /^https:\/\/[^\s]+\/v1\/webhooks\/square$/.test(v), expected: 'adresse publique en https se terminant par /v1/webhooks/square' },
   { key: 'SQUARE_ENVIRONMENT', test: (v) => v === 'sandbox' || v === 'production', expected: 'sandbox ou production' },
+  // Twilio (2 octobre 2026) : même contrôle de forme, sans afficher la valeur.
+  { key: 'TWILIO_ACCOUNT_SID', test: (v) => /^AC[0-9a-f]{32}$/.test(v), expected: 'Account SID (AC suivi de 32 caractères hexadécimaux)' },
+  { key: 'TWILIO_AUTH_TOKEN', test: (v) => /^[0-9a-f]{32}$/.test(v), expected: 'Auth Token (32 caractères hexadécimaux)' },
+  { key: 'TWILIO_FROM_NUMBER', test: (v) => /^\+1\d{10}$/.test(v), expected: 'numéro au format international sans espace, par exemple +15145550100' },
 ];
 /** Ce que la valeur semble être quand elle n'a pas la forme attendue (sans la montrer). */
 function squareLooksLike(value) {
@@ -101,11 +105,13 @@ function squareLooksLike(value) {
   if (/^sq0idp-/.test(value)) return 'elle ressemble à un identifiant d\'application de production';
   if (/^EAAA/.test(value)) return 'elle ressemble à un jeton d\'accès';
   if (/^sq0csp-|^sandbox-sq0csb-/.test(value)) return 'elle ressemble à un secret OAuth d\'application, pas à un jeton d\'accès';
+  if (/^SK[0-9a-f]{32}$/.test(value)) return 'elle ressemble à une clé d\'API Twilio (SK…), pas à l\'Account SID (AC…)';
+  if (/^\+?1?[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{4}$/.test(value)) return 'numéro avec espaces ou ponctuation : écrire +1 puis les 10 chiffres collés';
   return 'forme inconnue';
 }
 const squareProblems = SQUARE_SHAPES.filter(({ key, test }) => actual.get(key)?.filled && !test(actual.get(key).value));
 if (squareProblems.length) {
-  console.log('\nForme des clés Square à vérifier (valeurs non affichées) :');
+  console.log('\nForme des clés à vérifier (valeurs non affichées) :');
   for (const { key, expected: shape } of squareProblems) console.log(`  !! ${key} : attendu ${shape} ; ${squareLooksLike(actual.get(key).value)}`);
 }
 

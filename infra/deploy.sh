@@ -56,7 +56,18 @@ fi
 export APP_VERSION="${NEW_REF:0:12}"
 
 log "migrations"
-compose run --rm --no-deps api node ../../packages/db/dist/migrate.js
+# Une résolution DNS ou une connexion passagère en échec (EAI_AGAIN vers le pooler Supabase, 2 octobre 2026) ne doit pas
+# arrêter un déploiement : trois tentatives espacées, la version en service reste intacte si elles échouent toutes.
+migrated=0
+for attempt in 1 2 3; do
+  if compose run --rm --no-deps api node ../../packages/db/dist/migrate.js; then migrated=1; break; fi
+  log "migrations : échec (tentative $attempt sur 3), nouvel essai dans 15 s"
+  sleep 15
+done
+if [ "$migrated" != 1 ]; then
+  log "migrations impossibles : déploiement arrêté, version en service intacte"
+  exit 1
+fi
 
 # Conteneurs remplacés un par un (COMPOSE_PARALLEL_LIMIT=1) : avec deux instances de l'API et les réessais de Caddy,
 # une instance répond pendant que l'autre redémarre (constat web 7).
