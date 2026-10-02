@@ -12,8 +12,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import {
-  EMAIL_PROVIDER, PUSH_PROVIDER, SMS_PROVIDER, STORAGE_PROVIDER, WHATSAPP_PROVIDER,
-  type EmailProvider, type PushProvider, type SmsDeliveryStatus, type SmsProvider, type StorageProvider, type WhatsAppProvider,
+  EMAIL_PROVIDER, PUSH_PROVIDER, SMS_PROVIDER, SOCIAL_PROVIDER, STORAGE_PROVIDER, WHATSAPP_PROVIDER,
+  type EmailProvider, type PushProvider, type SmsDeliveryStatus, type SmsProvider, type SocialProvider, type StorageProvider, type WhatsAppProvider,
 } from '../../adapters/types.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { currentOrgScope } from '../../common/org-scope.context.js';
@@ -47,6 +47,7 @@ export class NotificationDeliveryService {
     @Inject(PUSH_PROVIDER) private readonly push: PushProvider,
     @Inject(WHATSAPP_PROVIDER) private readonly whatsapp: WhatsAppProvider,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+    @Inject(SOCIAL_PROVIDER) private readonly social: SocialProvider,
     @Inject(APP_LOGGER) private readonly logger: Logger,
     private readonly branding: BrandingService,
   ) {}
@@ -161,10 +162,27 @@ export class NotificationDeliveryService {
           await this.db.update(schema.notifications).set({ providerMessageId: null }).where(eq(schema.notifications.id, row.id));
           return 'deferred';
         }
+        // Boîte unifiée : réponse à un courriel reçu (objet « Re: », expéditeur contact@, fil conservé par les en-têtes).
+        const emailHeaders = data['emailHeaders'] && typeof data['emailHeaders'] === 'object' ? Object.fromEntries(Object.entries(data['emailHeaders'] as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string')) : null;
         const { messageId } = await this.email.send({
-          to, from: await this.branding.emailFrom(brand!), subject: rendered.subject, html: rendered.html, text: rendered.body, idempotencyKey: `notification:${row.id}`,
+          to, from: typeof data['emailFrom'] === 'string' ? data['emailFrom'] : await this.branding.emailFrom(brand!), subject: typeof data['emailSubject'] === 'string' ? data['emailSubject'] : rendered.subject,
+          html: rendered.html, text: rendered.body, idempotencyKey: `notification:${row.id}`,
+          ...(typeof data['emailReplyTo'] === 'string' ? { replyTo: data['emailReplyTo'] } : {}),
+          ...(emailHeaders && Object.keys(emailHeaders).length ? { headers: emailHeaders } : {}),
           ...(attachment && attachment !== 'pending' ? { attachments: [attachment] } : {}),
         });
+        await this.finish(row.id, { sentAt: now, providerMessageId: messageId });
+        return 'sent';
+      }
+      case 'social': {
+        // Boîte unifiée : réponse par le connecteur du réseau d'origine (message privé, ou réponse publique à un commentaire).
+        const network = typeof data['network'] === 'string' ? data['network'] : null;
+        const threadRef = typeof data['threadRef'] === 'string' ? data['threadRef'] : row.recipientAddress;
+        if (!network || !threadRef) return this.fail(row.id, 'no_social_thread');
+        const text = typeof data['text'] === 'string' && data['text'] ? data['text'] : rendered.body;
+        const { messageId } = data['kind'] === 'comment'
+          ? await this.social.replyComment({ network: network === 'instagram' ? 'instagram' : 'facebook', commentId: threadRef, text })
+          : await this.social.reply({ network: network === 'instagram' ? 'instagram' : 'messenger', threadId: threadRef, text });
         await this.finish(row.id, { sentAt: now, providerMessageId: messageId });
         return 'sent';
       }

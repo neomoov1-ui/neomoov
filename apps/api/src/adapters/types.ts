@@ -152,8 +152,83 @@ export interface SmsProvider {
 
 export interface EmailProvider {
   readonly name: string;
-  /** `from` (« Nom <adresse> ») : expéditeur de la marque d'une organisation (étape 22) ; sinon `EMAIL_FROM`. */
-  send(input: { to: string; from?: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }>;
+  /**
+   * `from` (« Nom <adresse> ») : expéditeur de la marque d'une organisation (étape 22) ; sinon `EMAIL_FROM`. Boîte unifiée :
+   * `replyTo` et `headers` (`In-Reply-To`, `References`) gardent la réponse dans le fil du courriel reçu.
+   */
+  send(input: { to: string; from?: string; replyTo?: string; subject: string; html: string; text?: string; headers?: Record<string, string>; attachments?: Array<{ filename: string; content: Buffer; contentType: string }>; idempotencyKey?: string }): Promise<{ messageId: string }>;
+}
+
+// --- Boîte de réception unifiée (phase 1 autonome, 2 octobre 2026) ----------------------------------------------------
+
+/** Courriel reçu sur contact@, tel que le relais entrant (Brevo) ou la lecture IMAP le livrent, avant tout nettoyage. */
+export interface InboundEmail {
+  /** `Message-ID` du courriel (chevrons admis) ; absent chez certains expéditeurs. */
+  messageId: string | null;
+  inReplyTo: string | null;
+  references: string[];
+  /** Expéditeur brut (« Nom <adresse> » ou adresse). */
+  from: string;
+  to: string[];
+  subject: string | null;
+  text: string | null;
+  html: string | null;
+  /** Pièces jointes listées (nom, type, taille) : jamais téléchargées ni transmises au modèle. */
+  attachments: Array<{ name: string; contentType: string | null; size: number | null }>;
+  /** En-têtes utiles à la détection des courriels automatiques (noms en minuscules ou non). */
+  headers: Record<string, string>;
+  receivedAt: Date;
+}
+
+/**
+ * Boîte aux lettres (IMAP) : repli du relais entrant. `fetchUnseen` rend les courriels non lus (bornés) et les marque lus ;
+ * un courriel déjà traité est reconnu ensuite par son `Message-ID` (idempotence de la conversation).
+ */
+export interface MailboxProvider {
+  readonly name: string;
+  fetchUnseen(limit?: number): Promise<InboundEmail[]>;
+}
+
+/** Message privé reçu d'une personne sur un réseau (Messenger, Instagram). */
+export interface SocialInboundMessage {
+  network: 'messenger' | 'instagram';
+  /** Identifiant de la personne chez le réseau (PSID, IGSID) : sert à répondre. */
+  senderId: string;
+  senderName: string | null;
+  messageId: string;
+  text: string;
+  receivedAt: Date;
+}
+
+/** Commentaire public reçu sous une publication (Facebook, Instagram). */
+export interface SocialInboundComment {
+  network: 'facebook' | 'instagram';
+  commentId: string;
+  postId: string | null;
+  authorId: string;
+  authorName: string | null;
+  text: string;
+  receivedAt: Date;
+}
+
+/**
+ * Réseaux sociaux (Meta en production : Messenger, Facebook, Instagram ; simulé ailleurs). Les webhooks arrivent sur
+ * `/v1/webhooks/meta` (même application et même secret que WhatsApp) ; `listInbound` et `listComments` servent de
+ * rattrapage par interrogation. Les réseaux sans connecteur (YouTube, TikTok, X, Google, LinkedIn, Snapchat) passent par
+ * le relais humain de My Hub, jamais par cette interface.
+ */
+export interface SocialProvider {
+  readonly name: string;
+  /** Vérification de l'abonnement au webhook (défi de Meta) : même jeton que WhatsApp. */
+  verifyWebhook(query: Record<string, string | undefined>): string | null;
+  /** Signature `X-Hub-Signature-256` du corps brut. */
+  verifySignature(rawBody: string | Buffer, header: string | undefined): boolean;
+  /** Messages et commentaires d'un webhook (`object` page ou instagram) ; les messages de la page elle-même sont ignorés. */
+  parseWebhook(body: unknown): { messages: SocialInboundMessage[]; comments: SocialInboundComment[] };
+  listInbound(since: Date): Promise<SocialInboundMessage[]>;
+  listComments(since: Date): Promise<SocialInboundComment[]>;
+  reply(input: { network: 'messenger' | 'instagram'; threadId: string; text: string }): Promise<{ messageId: string }>;
+  replyComment(input: { network: 'facebook' | 'instagram'; commentId: string; text: string }): Promise<{ messageId: string }>;
 }
 
 export interface PushTicket {
@@ -366,6 +441,8 @@ export const SEV_PROVIDER = Symbol('SEV_PROVIDER');
 export const LLM_PROVIDER = Symbol('LLM_PROVIDER');
 export const STORAGE_PROVIDER = Symbol('STORAGE_PROVIDER');
 export const VIRUS_SCANNER = Symbol('VIRUS_SCANNER');
+export const MAILBOX_PROVIDER = Symbol('MAILBOX_PROVIDER');
+export const SOCIAL_PROVIDER = Symbol('SOCIAL_PROVIDER');
 
 // --- CRM (étape 25, amendement v1.2 section 9) --------------------------------------------------------------------
 

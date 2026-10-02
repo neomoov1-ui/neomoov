@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { AGENT_EFFORTS, STATEMENT_ANOMALY_KINDS } from '../agents/agents.js';
-import { AGENT_MODES, AGENT_RUN_STATUSES, CONVERSATION_CHANNELS, INCIDENT_SEVERITIES, LANGUAGES, SANCTION_TYPES } from '../enums.js';
+import { AGENT_MODES, AGENT_RUN_STATUSES, CONVERSATION_CHANNELS, CONVERSATION_KINDS, INBOX_STATES, INCIDENT_SEVERITIES, LANGUAGES, RELAY_NETWORKS, SANCTION_TYPES, SOCIAL_NETWORKS } from '../enums.js';
 import { QUALITY_REASONS } from '../drivers/quality.js';
 import { adminListQuerySchema } from './admin.js';
 import { cents, isoDate, localDateString, phoneE164, uuid } from './common.js';
@@ -202,16 +202,98 @@ export const conversationReplySchema = z.object({ text: z.string().trim().min(1)
 export type ConversationReplyInput = z.input<typeof conversationReplySchema>;
 export const supportMessageAcceptedSchema = z.object({ accepted: z.literal(true), externalId: z.string() });
 
-/** Conversation de l'assistance, vue par My Hub et par le client (ses propres messages). */
-export const conversationMessageSchema = z.object({ id: uuid, direction: z.enum(['inbound', 'outbound']), author: z.string(), body: z.string(), createdAt: isoDate });
+/**
+ * Conversation de l'assistance, vue par My Hub et par le client (ses propres messages). Boîte unifiée (phase 1
+ * autonome) : nature, réseau, adresse (courriel ou identifiant social), objet du courriel, pièces jointes listées
+ * (jamais transmises au modèle), réponses à relayer à la main sur les réseaux sans connecteur.
+ */
+export const conversationMessageSchema = z.object({
+  id: uuid,
+  direction: z.enum(['inbound', 'outbound']),
+  author: z.string(),
+  body: z.string(),
+  createdAt: isoDate,
+  /** Réseau sans connecteur : la réponse attend qu'un humain la colle (`pending`), puis `done`. */
+  relayStatus: z.enum(['pending', 'done']).nullable(),
+  /** Noms des pièces jointes d'un courriel reçu (listées, jamais transmises au modèle). */
+  attachments: z.array(z.string()),
+});
 export const conversationSchema = z.object({
   id: uuid,
   channel: z.enum(CONVERSATION_CHANNELS),
+  kind: z.enum(CONVERSATION_KINDS),
+  network: z.enum(SOCIAL_NETWORKS).nullable(),
   status: z.string(),
   language: z.string(),
   userId: uuid.nullable(),
+  /** Courriel de l'expéditeur, ou identifiant de la personne sur le réseau (conversation sans compte ni téléphone). */
+  address: z.string().nullable(),
+  displayName: z.string().nullable(),
+  subject: z.string().nullable(),
   escalationReason: z.string().nullable(),
+  /** Au moins une réponse attend d'être relayée à la main. */
+  relayPending: z.boolean(),
   messages: z.array(conversationMessageSchema),
+  lastMessageAt: isoDate,
   createdAt: isoDate,
 });
 export type ConversationView = z.infer<typeof conversationSchema>;
+
+// Boîte de réception unifiée (My Hub) --------------------------------------------------------------------------------
+
+export const inboxListQuerySchema = adminListQuerySchema.extend({
+  channel: z.enum(CONVERSATION_CHANNELS).optional(),
+  state: z.enum(INBOX_STATES).optional(),
+  network: z.enum(SOCIAL_NETWORKS).optional(),
+});
+export type InboxListQuery = z.infer<typeof inboxListQuerySchema>;
+
+/** Ligne de la boîte de réception : la conversation résumée, son état calculé et son délai de première réponse. */
+export const inboxItemSchema = z.object({
+  id: uuid,
+  channel: z.enum(CONVERSATION_CHANNELS),
+  kind: z.enum(CONVERSATION_KINDS),
+  network: z.enum(SOCIAL_NETWORKS).nullable(),
+  status: z.string(),
+  state: z.enum(INBOX_STATES),
+  language: z.string(),
+  userId: uuid.nullable(),
+  phone: z.string().nullable(),
+  address: z.string().nullable(),
+  displayName: z.string().nullable(),
+  subject: z.string().nullable(),
+  /** Début du dernier message (160 caractères). */
+  preview: z.string(),
+  lastDirection: z.enum(['inbound', 'outbound']).nullable(),
+  messageCount: count,
+  relayPending: z.boolean(),
+  /** Secondes entre le premier message reçu et la première réponse ; null tant qu'aucune réponse n'est partie. */
+  firstReplySeconds: z.number().int().min(0).nullable(),
+  /** Première réponse plus tardive que `inbox.first_reply_seconds`. */
+  firstReplyLate: z.boolean(),
+  escalationReason: z.string().nullable(),
+  lastMessageAt: isoDate,
+  createdAt: isoDate,
+});
+export type InboxItemView = z.infer<typeof inboxItemSchema>;
+
+export const inboxSummarySchema = z.object({
+  byChannel: z.array(z.object({ channel: z.enum(CONVERSATION_CHANNELS), awaiting: count, escalated: count, open: count })),
+  relayPending: count,
+  /** Réglage `inbox.first_reply_seconds` en vigueur. */
+  firstReplySeconds: count,
+});
+export type InboxSummaryView = z.infer<typeof inboxSummarySchema>;
+
+/** Relais manuel : un humain colle un message reçu sur un réseau sans connecteur ; l'agent prépare la réponse. */
+export const inboxRelaySchema = z.object({
+  network: z.enum(RELAY_NETWORKS as [string, ...string[]]),
+  kind: z.enum(['message', 'comment']).default('message'),
+  /** Nom ou identifiant de la personne sur le réseau (pseudonyme), jamais une adresse personnelle. */
+  from: z.string().trim().min(1).max(120),
+  text: z.string().trim().min(1).max(4000),
+  /** Lien vers la publication ou le fil, pour retrouver où coller la réponse. */
+  link: z.string().trim().url().max(500).optional(),
+  language: z.enum(LANGUAGES).optional(),
+});
+export type InboxRelayInput = z.input<typeof inboxRelaySchema>;

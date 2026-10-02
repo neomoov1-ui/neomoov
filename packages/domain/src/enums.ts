@@ -141,13 +141,34 @@ export type AgentRunStatus = (typeof AGENT_RUN_STATUSES)[number];
 export const APPROVAL_DECISIONS = ['pending', 'approved', 'rejected'] as const;
 export type ApprovalDecision = (typeof APPROVAL_DECISIONS)[number];
 
-/** Conversations de l'assistance (agent relation client) : canal d'entrée et état. */
-export const CONVERSATION_CHANNELS = ['whatsapp', 'sms', 'voice', 'web', 'app'] as const;
+/**
+ * Conversations de l'assistance (agent relation client) : canal d'entrée et état. Boîte unifiée (phase 1 autonome,
+ * 2 octobre 2026) : `email` (contact@) et `social` (messages et commentaires des réseaux) rejoignent les canaux.
+ */
+export const CONVERSATION_CHANNELS = ['whatsapp', 'sms', 'voice', 'web', 'app', 'email', 'social'] as const;
 export type ConversationChannel = (typeof CONVERSATION_CHANNELS)[number];
 export const CONVERSATION_STATUSES = ['open', 'escalated', 'closed'] as const;
 export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
+/**
+ * Nature d'une conversation de la boîte unifiée : message (par défaut), commentaire public sous une publication,
+ * appel manqué ou message vocal (rapport de fin d'appel), courriel automatique (notification, rebond, liste : classé
+ * sans réponse).
+ */
+export const CONVERSATION_KINDS = ['message', 'comment', 'missed_call', 'voicemail', 'automated'] as const;
+export type ConversationKind = (typeof CONVERSATION_KINDS)[number];
+/** Réseaux sociaux de la boîte unifiée : Meta par connecteur (Messenger, Facebook, Instagram), les autres par relais humain. */
+export const SOCIAL_NETWORKS = ['messenger', 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat'] as const;
+export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
+export const RELAY_NETWORKS: readonly SocialNetwork[] = ['youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat'];
+export function isRelayNetwork(network: string | null | undefined): boolean {
+  return (RELAY_NETWORKS as readonly string[]).includes(network ?? '');
+}
+/** État d'une conversation vu de la boîte : sans réponse, répondue, remise à l'humain, à relayer, fermée. */
+export const INBOX_STATES = ['awaiting', 'answered', 'escalated', 'relay', 'closed'] as const;
+export type InboxState = (typeof INBOX_STATES)[number];
 
-export const NOTIFICATION_CHANNELS = ['push', 'sms', 'email', 'whatsapp', 'in_app'] as const;
+/** `social` : réponse par le connecteur du réseau d'origine (Messenger, Instagram), boîte unifiée. */
+export const NOTIFICATION_CHANNELS = ['push', 'sms', 'email', 'whatsapp', 'in_app', 'social'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 export const PARTNER_TYPES = ['hotel', 'restaurant', 'mall', 'bar', 'organizer'] as const;

@@ -271,6 +271,13 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'billing.suspended_days', value: 45, description: 'Organisation suspendue après 45 jours d\'impayé, jamais pendant une course (reportée au lendemain)' },
   { key: 'billing.payment_terms_days', value: 0, description: 'Échéance d\'une facture de la plateforme après son émission (0 : payable à réception, prélèvement automatique)' },
   { key: 'billing.run_hour', value: 5, description: 'Heure de Montréal de la passe quotidienne de la facturation de la plateforme (renouvellements, relances, suspensions)' },
+  // Boîte de réception unifiée (phase 1 « entreprise autonome », 2 octobre 2026) : courriel, réseaux sociaux, appels manqués.
+  { key: 'inbox.first_reply_seconds', value: 5, description: 'Boîte unifiée : délai visé de la première réponse (accusé de réception) sur tout canal ; au-delà, la conversation est signalée en retard dans My Hub' },
+  { key: 'inbox.escalation_sms', value: true, description: 'Boîte unifiée : toute escalade vers l\'humain envoie aussi un texto au fondateur (alerts.founder_phone), en plus du courriel au personnel' },
+  { key: 'inbox.quiet_hours', value: { from: '22:00', to: '07:00', channels: ['email', 'social'] }, description: 'Boîte unifiée : heures silencieuses (heure de Montréal) pendant lesquelles seul l\'accusé de réception part sur les canaux listés ; la réponse de fond est reportée à la fin de la fenêtre' },
+  { key: 'inbox.email_from', value: 'Neomoov <contact@neomoov.net>', description: 'Boîte unifiée : expéditeur des réponses par courriel (boîte contact@, lue par le relais entrant), sur le domaine authentifié chez le fournisseur' },
+  { key: 'inbox.callback_reminder_minutes', value: 60, description: 'Boîte unifiée : un appel manqué non traité après ce délai rappelle le personnel (tâche de rappel différée)' },
+  { key: 'inbox.mailbox_poll_seconds', value: 120, description: 'Boîte unifiée : période de lecture de la boîte contact@ par IMAP (repli du relais entrant Brevo), quand MAILBOX_PROVIDER=real' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.

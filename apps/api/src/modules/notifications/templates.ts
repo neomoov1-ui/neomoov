@@ -368,6 +368,11 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Agent IA en mode manuel', body: (d) => `Plafond quotidien de dépense atteint : l'agent ${str(d['agentCode'])} passe en mode manuel.` },
     en: { title: 'AI agent switched to manual', body: (d) => `Daily spending cap reached: agent ${str(d['agentCode'])} is now in manual mode.` },
   },
+  // Boîte unifiée (phase 1 autonome) : appel manqué toujours sans suite après le délai de rappel.
+  'alert.callback_due': {
+    fr: { title: 'Rappel à faire : appel manqué', body: (d) => `L'appel manqué de ${str(d['phone']) || 'un numéro masqué'} (${str(d['minutes'])} minutes) n'a pas encore été rappelé : ${str(d['summary']) || 'aucun résumé'}. Rappelez la personne puis terminez la conversation dans My Hub, Boîte de réception.` },
+    en: { title: 'Callback due: missed call', body: (d) => `The missed call from ${str(d['phone']) || 'a hidden number'} (${str(d['minutes'])} minutes) has not been called back yet: ${str(d['summary']) || 'no summary'}. Call the person back, then close the conversation in My Hub, Inbox.` },
+  },
   // My Hub côté organisation (étape 21) : invitation d'un membre (texto ou courriel, lien à usage unique) et demande
   // d'accès du support de la plateforme, envoyée aux propriétaires du compte.
   'organization.invitation': {

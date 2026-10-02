@@ -10,12 +10,14 @@
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import { squareConfig, type AppEnv } from '../../config/env.js';
-import type { CrmProvider, EmailProvider, LlmProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
+import type { CrmProvider, EmailProvider, LlmProvider, MailboxProvider, MapsProvider, PaymentProvider, PushProvider, SevProvider, SmsProvider, SocialProvider, StorageProvider, VirusScanner, VoiceProvider, WhatsAppProvider } from '../types.js';
 import { AnthropicLlmProvider } from './anthropic.js';
 import { ClamAvScanner } from './clamav.js';
 import { ExpoPushProvider } from './expo-push.js';
 import { GoogleMapsProvider } from './google-maps.js';
 import { HubSpotCrmProvider } from './hubspot.real.js';
+import { ImapMailboxProvider } from './imap-mailbox.js';
+import { MetaSocialProvider } from './meta-social.js';
 import { StripeBillingProvider } from './stripe-billing.real.js';
 import type { BillingProvider } from '../billing.types.js';
 import { ResendEmailProvider } from './resend.js';
@@ -149,4 +151,15 @@ export const realCrm = (env: AppEnv): CrmProvider => {
 export const realBilling = (env: AppEnv): BillingProvider => {
   requireKey('facturation de la plateforme (Stripe Billing)', 'STRIPE_SECRET_KEY', env);
   return new StripeBillingProvider(env.STRIPE_SECRET_KEY!, env.STRIPE_BILLING_WEBHOOK_SECRET);
+};
+/** Boîte unifiée : lecture IMAP de contact@ (`imapflow`), repli du relais entrant Brevo. */
+export const realMailbox = (env: AppEnv): MailboxProvider => {
+  for (const variable of ['MAILBOX_HOST', 'MAILBOX_USER', 'MAILBOX_PASSWORD'] as const) requireKey('boîte courriel (IMAP)', variable, env);
+  return new ImapMailboxProvider({ host: env.MAILBOX_HOST!, port: env.MAILBOX_PORT, user: env.MAILBOX_USER!, password: env.MAILBOX_PASSWORD!, folder: env.MAILBOX_FOLDER });
+};
+/** Boîte unifiée : Messenger, Facebook et Instagram par l'API Graph (même application Meta et même secret que WhatsApp). */
+export const realSocial = (env: AppEnv): SocialProvider => {
+  requireKey('réseaux sociaux (Meta)', 'META_PAGE_TOKEN', env);
+  requireKey('réseaux sociaux (Meta)', 'META_PAGE_ID', env);
+  return new MetaSocialProvider(env.META_PAGE_TOKEN!, env.META_PAGE_ID!, env.META_INSTAGRAM_ID ?? null, env.WHATSAPP_VERIFY_TOKEN ?? null, env.WHATSAPP_APP_SECRET ?? null);
 };

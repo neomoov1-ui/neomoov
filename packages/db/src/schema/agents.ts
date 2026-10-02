@@ -89,9 +89,22 @@ export const approvals = pgTable('approvals', {
  */
 export const conversations = pgTable('conversations', {
   id: id(),
+  /** Canal d'entrée ; boîte unifiée (phase 1 autonome) : `email` et `social` s'ajoutent aux canaux d'origine. */
   channel: varchar('channel', { length: 10 }).notNull(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
   phone: varchar('phone', { length: 20 }),
+  /** Courriel de l'expéditeur (canal `email`) ou identifiant de la personne sur le réseau (canal `social`). */
+  address: varchar('address', { length: 254 }),
+  /** Réseau d'une conversation `social` (messenger, facebook, instagram ; youtube, tiktok, x, gbp, linkedin, snapchat en relais). */
+  network: varchar('network', { length: 20 }),
+  /** Nature : message, commentaire public, appel manqué, message vocal, courriel automatique (classé sans réponse). */
+  kind: varchar('kind', { length: 12 }).notNull().default('message'),
+  /** Nom affiché de la personne (expéditeur du courriel, pseudonyme sur le réseau). */
+  displayName: varchar('display_name', { length: 120 }),
+  /** Objet du dernier courriel reçu. */
+  subject: varchar('subject', { length: 255 }),
+  /** Référence de réponse chez le réseau : identifiant de la personne (messages) ou du commentaire (commentaires). */
+  threadRef: varchar('thread_ref', { length: 255 }),
   language: varchar('language', { length: 2 }).notNull().default('fr'),
   rideId: uuid('ride_id').references(() => rides.id, { onDelete: 'set null' }),
   /** Organisation de la conversation (étape 20) : celle de la course ou de la personne ; nulle pour la plateforme. */
@@ -106,10 +119,12 @@ export const conversations = pgTable('conversations', {
   index('conversations_user_idx').on(t.userId, t.lastMessageAt),
   index('conversations_org_idx').on(t.organizationId, t.lastMessageAt),
   index('conversations_phone_idx').on(t.phone, t.lastMessageAt),
+  index('conversations_address_idx').on(t.address, t.lastMessageAt),
   index('conversations_open_idx').on(t.status, t.lastMessageAt).where(sql`${t.status} <> 'closed'`),
-  check('conversations_channel', sql`${t.channel} IN ('whatsapp', 'sms', 'voice', 'web', 'app')`),
+  check('conversations_channel', sql`${t.channel} IN ('whatsapp', 'sms', 'voice', 'web', 'app', 'email', 'social')`),
   check('conversations_status', sql`${t.status} IN ('open', 'escalated', 'closed')`),
-  check('conversations_party', sql`${t.userId} IS NOT NULL OR ${t.phone} IS NOT NULL`),
+  check('conversations_kind', sql`${t.kind} IN ('message', 'comment', 'missed_call', 'voicemail', 'automated')`),
+  check('conversations_party', sql`${t.userId} IS NOT NULL OR ${t.phone} IS NOT NULL OR ${t.address} IS NOT NULL`),
 ]);
 
 export const conversationMessages = pgTable('conversation_messages', {
@@ -122,11 +137,19 @@ export const conversationMessages = pgTable('conversation_messages', {
   /** Identifiant du message chez le canal d'entrée : un message reçu deux fois n'est traité qu'une fois. */
   externalId: varchar('external_id', { length: 120 }),
   agentRunId: uuid('agent_run_id').references(() => agentRuns.id, { onDelete: 'set null' }),
+  /** Boîte unifiée : identifiant de message et références d'un courriel, pièces jointes listées, publication et commentaire d'un réseau. */
+  metadata: jsonb('metadata'),
+  /** Réseau sans connecteur : la réponse attend d'être collée par un humain (`pending`), puis `done`. */
+  relayStatus: varchar('relay_status', { length: 10 }),
+  relayedAt: tz('relayed_at'),
+  relayedByUserId: uuid('relayed_by_user_id'),
   createdAt: createdAt(),
 }, (t) => [
   index('conversation_messages_conversation_idx').on(t.conversationId, t.createdAt),
   uniqueIndex('conversation_messages_external_uq').on(t.externalId).where(sql`${t.externalId} IS NOT NULL`),
+  index('conversation_messages_relay_idx').on(t.createdAt).where(sql`${t.relayStatus} = 'pending'`),
   check('conversation_messages_direction', sql`${t.direction} IN ('inbound', 'outbound')`),
+  check('conversation_messages_relay_status', sql`${t.relayStatus} IS NULL OR ${t.relayStatus} IN ('pending', 'done')`),
 ]);
 
 export const notifications = pgTable('notifications', {

@@ -12,6 +12,7 @@ import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodResponse } from '../../common/openapi.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { NoAudit, Public } from '../auth/actor.js';
+import { SocialInboxService } from '../inbox/social-inbox.service.js';
 import { InboundMessagesService } from './inbound-messages.service.js';
 
 const EMPTY_TWIML = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
@@ -24,6 +25,7 @@ export class MessagingWebhooksController {
     @Inject(WHATSAPP_PROVIDER) private readonly whatsapp: WhatsAppProvider,
     @Inject(APP_ENV) private readonly env: AppEnv,
     private readonly inbound: InboundMessagesService,
+    private readonly socialInbox: SocialInboxService,
   ) {}
 
   @Post('twilio/inbound')
@@ -61,11 +63,17 @@ export class MessagingWebhooksController {
   @Public()
   @NoAudit()
   @HttpCode(200)
-  @ApiOperation({ summary: 'Messages WhatsApp entrants : signature vérifiée sur le corps brut, confiés à l\'agent relation client' })
+  @ApiOperation({ summary: 'Messages WhatsApp entrants : signature vérifiée sur le corps brut, confiés à l\'agent relation client (un objet page ou instagram de la même application Meta est confié à la boîte unifiée)' })
   @ZodResponse(200, z.object({ received: z.number().int().min(0) }))
   @ApiErrors(400, 429)
   async whatsappInbound(@Req() req: RawBodyRequest<Request>, @Headers('x-hub-signature-256') signature: string | undefined) {
     if (!req.rawBody || !this.whatsapp.verifySignature(req.rawBody, signature)) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);
+    const object = (req.body as { object?: unknown } | undefined)?.object;
+    if (object === 'page' || object === 'instagram') {
+      // Même application Meta : Messenger, Facebook et Instagram peuvent être abonnés à cette adresse (boîte unifiée).
+      const social = this.socialInbox.receiveWebhook(req.body);
+      return { received: social.messages + social.comments };
+    }
     const messages = this.whatsapp.parseInbound(req.body);
     for (const m of messages) await this.inbound.receive({ channel: 'whatsapp', from: m.from, text: m.text, externalId: m.messageId, receivedAt: m.timestamp });
     return { received: messages.length };

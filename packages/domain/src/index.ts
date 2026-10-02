@@ -50,3 +50,7 @@ export * from './access/support-access.js';
 // Facturation de la plateforme (étape 25) : formules, factures, relances, et schémas de l'API.
 export * from './platform-billing/billing.js';
 export * from './schemas/platform-billing.js';
+// Boîte de réception unifiée (phase 1 autonome, 2 octobre 2026) : courriels, heures silencieuses, appels manqués.
+export * from './inbox/email.js';
+export * from './inbox/quiet-hours.js';
+export * from './inbox/calls.js';
