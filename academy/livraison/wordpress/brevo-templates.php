@@ -15,6 +15,12 @@ function nmbt_request($method,$body=null){
 function nmbt_admin_import(){
     if(($_SERVER['REQUEST_METHOD']??'')!=='POST'||!current_user_can('manage_options'))return 'Accès refusé.';
     check_admin_referer('nmbt_import');
+    return nmbt_import_run();
+}
+/* Même import par l'API REST (administrateur authentifié par mot de passe d'application) : lots de deux, aucun envoi. */
+add_action('rest_api_init',function(){register_rest_route('neomoov-academy/v1','/brevo/import',array('methods'=>'POST','permission_callback'=>function(){return current_user_can('manage_options');},'callback'=>function(){$done=(array)get_option('nmbt_template_ids',array());return new WP_REST_Response(array('message'=>nmbt_import_run(),'registered'=>count($done)),200);}));});
+function nmbt_import_run(){
+    if(!current_user_can('manage_options'))return 'Accès refusé.';
     $lock='nmbt_import_lock';$held=get_option($lock);if($held&&(int)$held<time()-120)delete_option($lock);
     if(!add_option($lock,time(),'','no'))return 'Un import est déjà en cours. Rechargez dans un instant.';
     try{
