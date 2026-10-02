@@ -7,3 +7,9 @@ livraison/wordpress/brevo-templates-data.json
 
 # Pages intermédiaires des PDF (régénérées par outils/modules-pdf.cjs)
 livraison/formation/pdf/html/
+
+# Médias produits (voix de synthèse, diapositives, vidéos) : hors dépôt
+livraison/formation/video/
+livraison/formation/audio/*.mp3
+livraison/formation/audio/*/*.wav
+livraison/formation/media.json

@@ -10,7 +10,10 @@ const templates=emails.map(e=>({templateName:`CAP_${e.id}_${e.jour}_VENTE_202610
 if(templates.length!==28||templates.some(t=>!t.htmlContent.includes('{{ unsubscribe }}')))throw Error('Lot Brevo invalide');
 fs.writeFileSync(root+'brevo-templates-data.json',JSON.stringify(templates));
 code+="\nfunction nma_brevo_template_data(){return json_decode(<<<'NMA_BREVO_TEMPLATES'\n"+JSON.stringify(templates)+"\nNMA_BREVO_TEMPLATES\n,true);}\n";
-const data=fs.readFileSync('livraison/formation/data.json','utf8').replace(/^\uFEFF/,'');JSON.parse(data);
+const parsed=JSON.parse(fs.readFileSync('livraison/formation/data.json','utf8').replace(/^\uFEFF/,''));
+// Adresses des m\u00E9dias (narration, vid\u00E9os, PDF) hors d\u00E9p\u00F4t : media.json, fusionn\u00E9 au moment de l'assemblage.
+if(fs.existsSync('livraison/formation/media.json')){const media=JSON.parse(fs.readFileSync('livraison/formation/media.json','utf8'));if(media.guide)parsed.guide=media.guide;for(const l of parsed.lessons)if(media.lessons&&media.lessons[l.id])l.media=media.lessons[l.id];}
+const data=JSON.stringify(parsed);
 code+="\nfunction nma_data(){return json_decode(<<<'NMA_DATA'\n"+data+"\nNMA_DATA\n,true);}\n";
 fs.writeFileSync(root+'neomoov-academy-ready.php',code);
 const payload={generator:'Code Snippets v3.10.2',date_created:'2026-09-29 18:00',snippets:[{name:'Neomoov Academy — Neomoov Chauffeur Pro',desc:'Academy, Neomoov Booster, quiz, attestation et paiements configurables. Export inactif. Square API fermé tant que configuration et recette incomplètes.',code:code.replace(/^<\?php\s*/,''),tags:['neomoov','academy'],scope:'global',active:false,priority:10}]};
