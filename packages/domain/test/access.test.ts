@@ -18,9 +18,9 @@ describe('catalogue des permissions (étape 19)', () => {
 
   it('anciens rôles : mêmes accès qu\'avant la bascule (tailles dérivées des routes)', () => {
     // Phase 1 « entreprise autonome » (2 octobre 2026) : `sales.read` et `marketing.read` dans la lecture commune, `sales.manage` et `marketing.manage` pour l'opérateur (exploitation).
-    expect(LEGACY_ROLE_PERMISSIONS['operator']).toHaveLength(59);
-    expect(LEGACY_ROLE_PERMISSIONS['finance']).toHaveLength(30);
-    expect(LEGACY_ROLE_PERMISSIONS['readonly']).toHaveLength(24);
+    expect(LEGACY_ROLE_PERMISSIONS['operator']).toHaveLength(61);
+    expect(LEGACY_ROLE_PERMISSIONS['finance']).toHaveLength(31);
+    expect(LEGACY_ROLE_PERMISSIONS['readonly']).toHaveLength(25);
     expect(LEGACY_ROLE_PERMISSIONS['agent']).toEqual(['agents.run', 'agents.runs.read', 'agents.tools']);
     for (const role of ['operator', 'finance', 'readonly']) for (const code of LEGACY_ROLE_PERMISSIONS[role]!) expect(LEGACY_ROLE_PERMISSIONS['admin']).toContain(code);
     expect(legacyPermissions(['readonly', 'inconnu']).has('rides.read')).toBe(true);

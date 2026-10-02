@@ -292,7 +292,14 @@ export class PublishingService {
             const summary = `${SPACE_RULES[row.space as ContentSpace].name} : « ${comment.text.slice(0, 200)} »${comment.author ? ` (${comment.author})` : ''}`;
             if (socialChannel) {
               // Agent D (boîte unifiée) livré : la relation client reprend le fil sur le canal social.
-              this.events.emit('conversation.inbound', { channel: 'social' as never, externalId: `social-${row.space}-${comment.externalId}`, userId: null, phone: null, text: comment.text, language: classification.language, rideId: null, receivedAt: comment.postedAt });
+              // Même forme et même identifiant externe que les commentaires reçus par le connecteur Meta de la boîte unifiée
+              // (SocialInboxService) : un commentaire vu par les deux chemins n'est traité qu'une fois. Les connecteurs de
+              // diffusion ne donnent pas l'identifiant de l'auteur : l'adresse de la conversation est celle du commentaire.
+              this.events.emit('conversation.inbound', {
+                channel: 'social', externalId: `social:${row.space}:comment:${comment.externalId}`.slice(0, 120), userId: null, phone: null, text: comment.text, language: classification.language, rideId: null, receivedAt: comment.postedAt,
+                address: `${row.space}:comment:${comment.externalId}`.slice(0, 254), network: row.space, kind: 'comment', threadRef: comment.externalId, displayName: comment.author?.slice(0, 120) ?? null,
+                metadata: { commentId: comment.externalId, postId: row.externalId, contentItemId: row.id },
+              });
               outcome = 'forwarded';
               report.forwarded += 1;
             } else {

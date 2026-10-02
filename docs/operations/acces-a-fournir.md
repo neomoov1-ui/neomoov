@@ -39,10 +39,14 @@ Chaque fournisseur a une variable `<SERVICE>_PROVIDER` qui vaut `mock` (simulé)
 | `SEV_PROVIDER` | `sev` | Simulé pendant toute la V1 : l'adaptateur réel n'est pas écrit (section 15) |
 | `STORAGE_PROVIDER` | `storage` | Réel |
 | `VIRUS_SCANNER_PROVIDER` | `antivirus` | Réel (section 12) |
+| `CRM_PROVIDER` | `crm` | Simulé tant que le CRM n'est pas ouvert |
+| `BILLING_PROVIDER` | `billing` | Simulé tant que la facturation des abonnements n'est pas ouverte |
+| `CALENDAR_PROVIDER` | `calendar` | Simulé tant que l'agenda Google du fondateur n'est pas relié (`GOOGLE_CALENDAR_*`, `docs/sales/prospection.md`) ; en `real` sans ses trois clés, l'API refuse de démarrer |
+| `MARKETING_PROVIDER` | `marketing` | `real` dès le départ, même sans clé : chaque espace sans clé refuse clairement, aucune publication simulée (`docs/marketing/connecteurs.md`) ; `mock` seulement pour un essai technique |
 
 Soit, pour la bêta : `ALLOW_MOCK_PROVIDERS=payment,sev,whatsapp,voice`, et `real` partout ailleurs avec les clés des sections suivantes.
 
-Point de départ : le `.env` créé par `infra/server-setup.sh` met dix fournisseurs à `mock` (l'antivirus l'est par défaut) et ne contient pas `ALLOW_MOCK_PROVIDERS`. Tel quel, l'API refuse de démarrer. Pour un premier essai technique sans aucune clé (jamais avec des testeurs), poser `ALLOW_MOCK_PROVIDERS=payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus`, puis retirer chaque nom de la liste au moment où son fournisseur passe à `real`. `SOCIAL_LOGIN_PROVIDER` n'entre pas dans cette liste : `real` est obligatoire en production (déjà posé par le script).
+Point de départ : le `.env` créé par `infra/server-setup.sh` met dix fournisseurs à `mock` (l'antivirus l'est par défaut) et ne contient pas `ALLOW_MOCK_PROVIDERS`. Tel quel, l'API refuse de démarrer. Pour un premier essai technique sans aucune clé (jamais avec des testeurs), poser `ALLOW_MOCK_PROVIDERS=payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing,calendar,marketing`, puis retirer chaque nom de la liste au moment où son fournisseur passe à `real`. `SOCIAL_LOGIN_PROVIDER` n'entre pas dans cette liste : `real` est obligatoire en production (déjà posé par le script).
 
 ## 1. Serveur, domaine et adresses (LWS)
 

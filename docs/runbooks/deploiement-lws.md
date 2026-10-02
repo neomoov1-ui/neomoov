@@ -26,7 +26,7 @@ Puis compléter `/opt/neomoov/.env` sur le serveur :
 
 - `DATABASE_URL` (Supabase, session pooler, projet de production) ;
 - `BACKUP_PASSPHRASE` (`openssl rand -base64 30`, copie dans Bitwarden) ;
-- `ALLOW_MOCK_PROVIDERS` : le fichier créé met les fournisseurs à `mock`, et l'API refuse de démarrer en production avec un fournisseur simulé non déclaré. Pour un premier démarrage technique sans clé : `ALLOW_MOCK_PROVIDERS=payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus` ; ensuite, chaque fournisseur passe à `real` avec ses clés et son nom sort de la liste (bêta proposée : `payment,sev,whatsapp,voice`). Détail : `docs/operations/acces-a-fournir.md`, « Démarrage de l'API en production ».
+- `ALLOW_MOCK_PROVIDERS` : le fichier créé met les fournisseurs à `mock`, et l'API refuse de démarrer en production avec un fournisseur simulé non déclaré. Pour un premier démarrage technique sans clé : `ALLOW_MOCK_PROVIDERS=payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing,calendar,marketing` ; ensuite, chaque fournisseur passe à `real` avec ses clés et son nom sort de la liste (bêta proposée : `payment,sev,whatsapp,voice`). Détail : `docs/operations/acces-a-fournir.md`, « Démarrage de l'API en production ».
 
 Si l'API ne démarre pas après un changement de `.env`, le motif est dans son journal : `docker compose -f infra/compose.prod.yml logs --tail=50 api` (« Configuration invalide… » nomme la variable à corriger).
 

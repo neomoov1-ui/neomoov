@@ -7,6 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { MockLlmProvider, MockLlmRequest, MockSearchConsoleProvider, MockSiteConnector, MockSocialPublisher, MockStorageProvider } from '../src/adapters/mock/index.js';
 import { SEARCH_CONSOLE_PROVIDER, SITE_CONNECTOR, SOCIAL_PUBLISHERS, type SocialPublishers } from '../src/adapters/marketing.types.js';
 import { LLM_PROVIDER, STORAGE_PROVIDER } from '../src/adapters/types.js';
+import { DomainEventsService, type DomainEvents } from '../src/common/domain-events.js';
 import { SettingsService } from '../src/common/settings.service.js';
 import { ContentAgent } from '../src/modules/marketing/content.agent.js';
 import { MarketingJobsService } from '../src/modules/marketing/marketing-jobs.service.js';
@@ -64,7 +65,8 @@ describe('phase 1 autonome, agent E : calendrier de contenu, diffusion, mesures,
   const createdItems = new Set<string>();
   const createdTasks = new Set<string>();
   const runIds = new Set<string>();
-  const mock = (space: string) => publishers.get(space as never) as MockSocialPublisher;
+  const forwardedAddresses: string[] = [];
+  const mock =(space: string) => publishers.get(space as never) as MockSocialPublisher;
 
   beforeAll(async () => {
     app = await startTestApp();
@@ -119,6 +121,19 @@ describe('phase 1 autonome, agent E : calendrier de contenu, diffusion, mesures,
       for (const run of runs) runIds.add(run.id);
       if (runIds.size) await database.delete(schema.agentRuns).where(inArray(schema.agentRuns.id, [...runIds]));
       await database.update(schema.agents).set({ mode: 'approval' }).where(inArray(schema.agents.code, ['content', 'publishing', 'seo']));
+      // Commentaires relayés à la boîte unifiée : conversations (et passes de la relation client) créées par la file des agents.
+      if (forwardedAddresses.length) {
+        await new Promise((resolve) => setTimeout(resolve, 3_000));
+        const conversations = await database.select({ id: schema.conversations.id }).from(schema.conversations).where(inArray(schema.conversations.address, forwardedAddresses));
+        const ids = conversations.map((c) => c.id);
+        if (ids.length) {
+          const messages = await database.select({ externalId: schema.conversationMessages.externalId }).from(schema.conversationMessages).where(inArray(schema.conversationMessages.conversationId, ids));
+          const refs = messages.map((m) => m.externalId).filter((e): e is string => Boolean(e));
+          await database.update(schema.conversationMessages).set({ agentRunId: null }).where(inArray(schema.conversationMessages.conversationId, ids));
+          if (refs.length) await database.delete(schema.agentRuns).where(and(eq(schema.agentRuns.agentCode, 'customer_relations'), inArray(schema.agentRuns.triggerRef, refs)));
+          await database.delete(schema.conversations).where(inArray(schema.conversations.id, ids));
+        }
+      }
       await cleanupTestData(app);
     }
     await app?.close();
@@ -291,20 +306,27 @@ describe('phase 1 autonome, agent E : calendrier de contenu, diffusion, mesures,
     fb.addComment(facebook.externalId!, { text: 'How much to book a ride to the airport?', author: 'Traveller' });
     fb.addComment(facebook.externalId!, { text: 'Est-ce que vos chauffeurs acceptent les chiens ?', author: 'Maître' });
     fb.addComment(facebook.externalId!, { text: 'Arnaque, je veux un remboursement !', author: 'Mécontent' });
-    const alertsBefore = (await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.template, 'alert.agent_escalation'), eq(schema.notifications.recipientUserId, operator.userId)))).length;
+    // Boîte unifiée (agent D) fusionnée : le canal `social` existe, les commentaires non simples partent vers la relation
+    // client (`conversation.inbound`, même forme que le connecteur Meta) au lieu d'une alerte au personnel.
+    const forwarded: Array<DomainEvents['conversation.inbound']> = [];
+    const off = app.get(DomainEventsService).on('conversation.inbound', (p) => { if (p.network === 'facebook' && p.metadata?.['contentItemId'] === facebook.id) forwarded.push(p); });
     // La publication Facebook date de ce test (maintenant) : la fenêtre de relecture de 7 jours la couvre.
-    const report = await app.get(PublishingService).commentsPass(new Date(Date.now() + 60_000));
-    expect(report).toMatchObject({ replied: 3, escalated: 2, forwarded: 0 });
+    const report = await app.get(PublishingService).commentsPass(new Date(Date.now() + 60_000)).finally(off);
+    expect(report).toMatchObject({ replied: 3, escalated: 0, forwarded: 2 });
+    expect(forwarded).toHaveLength(2);
+    for (const p of forwarded) {
+      forwardedAddresses.push(p.address!);
+      expect(p).toMatchObject({ channel: 'social', kind: 'comment', network: 'facebook', externalId: expect.stringMatching(/^social:facebook:comment:/) });
+    }
+    expect(forwarded.map((p) => p.displayName).sort()).toEqual(['Maître', 'Mécontent']);
     expect(fb.replies).toHaveLength(3);
     expect(fb.replies.map((r) => r.text)).toEqual(expect.arrayContaining([expect.stringContaining('Merci beaucoup'), expect.stringContaining('neomoov.net/reserver'), expect.stringContaining('7 jours sur 7')]));
     const detail = (await request(server()).get(`/v1/admin/marketing/content/${facebook.id}`).set(bearer(operator.tokens)).expect(200)).body as Item;
     expect(detail.comments).toHaveLength(5);
     expect(detail.comments.filter((c) => c.outcome === 'replied').every((c) => c.replyBody)).toBe(true);
-    expect(detail.comments.find((c) => c.intent === 'other')).toMatchObject({ outcome: 'escalated', replyBody: null });
-    const alertsAfter = (await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.template, 'alert.agent_escalation'), eq(schema.notifications.recipientUserId, operator.userId)))).length;
-    expect(alertsAfter - alertsBefore).toBe(2);
+    expect(detail.comments.find((c) => c.intent === 'other')).toMatchObject({ outcome: 'forwarded', replyBody: null });
     // Relecture : rien de nouveau, aucun doublon.
-    expect(await app.get(PublishingService).commentsPass(new Date(Date.now() + 120_000))).toMatchObject({ replied: 0, escalated: 0 });
+    expect(await app.get(PublishingService).commentsPass(new Date(Date.now() + 120_000))).toMatchObject({ replied: 0, escalated: 0, forwarded: 0 });
     expect(fb.replies).toHaveLength(3);
   });
 
