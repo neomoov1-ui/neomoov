@@ -13,10 +13,10 @@ Vérification faite sans lire une seule valeur : le script `scripts/env-check.mj
 | Textos (Twilio) | **En place depuis le 2 octobre au soir** (clés posées par `envoyer-twilio-serveur.ps1`, textos réels, premier code de connexion reçu) | Reste le webhook des textos entrants sur le numéro (section 2, étape C) et le second numéro pour WhatsApp | 2 |
 | Clé publique du site (`NEOMOOV_PUBLIC_API_KEY`) | Absente | **Réservation web et préinscription des chauffeurs en panne** : `reserver.neomoov.net` répond « Clé publique non configurée sur le serveur web » (503), et le site neomoov.net qui l'intègre aussi | 3 |
 | Courriels (Resend) | **En place** : deux courriels d'essai envoyés depuis le serveur le 2 octobre au soir et acceptés (domaine vérifié) ; expéditeur `Neomoov <assistance@neomoov.net>` ; redirections `assistance@`, `comptes@`, `operations@`, `beta@`, `support@` créées chez LWS | Rien | 4 |
-| Documents (stockage S3 de Supabase) | Adresse et compartiment présents, **clés d'accès absentes** | Documents des chauffeurs gardés en mémoire, perdus à chaque redémarrage | 5 |
+| Documents (stockage S3 de Supabase) | **En place depuis le 2 octobre au soir** (clés posées par `envoyer-s3-serveur.ps1`, stockage réel, aller-retour PDF vérifié : dépôt, lecture, adresse signée, suppression) | Rien | 5 |
 | Sauvegarde chiffrée du serveur | Phrase secrète absente | **Aucune sauvegarde** ; les purges de conservation (Loi 25) restent bloquées | 6 |
 | Dépôt GitHub `neomoov1-ui/neomoov` | Public | Code confidentiel et contenu payant de l'Academy exposés | 7 |
-| Agent vocal (Vapi) | Clés absentes, simulé | Pas de réservation par téléphone, pas d'appel SOS au fondateur | 8 |
+| Agent vocal (Vapi) | **En place depuis le 2 octobre au soir** : clé posée par `envoyer-vapi-serveur.ps1`, numéro Twilio importé, assistants « Neomoov accueil » et « Neomoov SOS » créés par `vapi:setup`, voix réelle, numéros de transfert et d'alerte réglés | Essai d'appel à faire par le fondateur ; appels sortants de prospection plus tard (phase 3) | 8 |
 | WhatsApp (Meta) | Clés absentes, simulé | Pas de réservation ni d'assistance par WhatsApp | 9 |
 | Paiements Square (production), cartes Google Maps, anti-robots Turnstile, erreurs Sentry (API), modèle Claude, jeton HubSpot | En place | Encaissement réel possible ; devis réels ; préinscription protégée (dès que la section 3 est faite) | 10 |
 | Surveillance (Better Stack), Sentry du web, Sentry des applications | Absents | Aucune alerte si l'API ou un site tombe | 10 |
