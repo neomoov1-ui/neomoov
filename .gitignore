@@ -45,3 +45,4 @@ apps/web/e2e/.state.json
 
 # Résultats des tests de charge (générés par k6)
 tests/load/results/
+academy/livraison/formation/ebook/*.html
