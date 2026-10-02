@@ -131,7 +131,7 @@ export type ComplianceEntityType = (typeof COMPLIANCE_ENTITY_TYPES)[number];
 export const AGENT_MODES = ['auto', 'approval', 'manual'] as const;
 export type AgentMode = (typeof AGENT_MODES)[number];
 
-export const AGENT_CODES = ['customer_relations', 'driver_recruitment', 'accounting', 'analytics', 'voice_call_center', 'quality'] as const;
+export const AGENT_CODES = ['customer_relations', 'driver_recruitment', 'accounting', 'analytics', 'voice_call_center', 'quality', 'vehicle_inspection', 'performance_reading'] as const;
 export type AgentCode = (typeof AGENT_CODES)[number];
 
 /** `skipped` : agent en mode manuel ou plafond de dépense atteint, aucun appel au modèle (l'humain prend le relais). */

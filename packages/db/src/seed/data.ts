@@ -271,6 +271,19 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'billing.suspended_days', value: 45, description: 'Organisation suspendue après 45 jours d\'impayé, jamais pendant une course (reportée au lendemain)' },
   { key: 'billing.payment_terms_days', value: 0, description: 'Échéance d\'une facture de la plateforme après son émission (0 : payable à réception, prélèvement automatique)' },
   { key: 'billing.run_hour', value: 5, description: 'Heure de Montréal de la passe quotidienne de la facturation de la plateforme (renouvellements, relances, suspensions)' },
+  // Neomoov Booster (phase 1, agent G, 2 octobre 2026) : vérification sommaire par caméra, rapport de performance, alertes de la journée.
+  { key: 'booster.enabled', value: true, description: 'Neomoov Booster offert aux chauffeurs dans l\'application (vérification sommaire, rapport de performance, alertes)' },
+  { key: 'booster.inspection_photos_min', value: 6, description: 'Photos exigées pour lancer l\'analyse d\'une vérification sommaire (quatre coins et deux côtés)' },
+  { key: 'booster.inspection_photos_max', value: 12, description: 'Photos au plus par vérification sommaire' },
+  { key: 'booster.performance_screenshots_max', value: 6, description: 'Captures d\'écran au plus par rapport de performance' },
+  { key: 'booster.max_image_bytes', value: 10_485_760, description: 'Taille maximale d\'une photo ou d\'une capture téléversée (10 Mo)' },
+  { key: 'booster.alert_tolerance_minutes', value: 5, description: 'Minutes pendant lesquelles une alerte Booster reste due après son heure (battement de la file chaque minute)' },
+  { key: 'booster.download_link_seconds', value: 300, description: 'Durée d\'un lien signé de téléchargement d\'un rapport (5 minutes)' },
+  { key: 'booster.peak_periods', value: [{ label: { fr: 'Aéroport, départs du matin', en: 'Airport, morning departures' }, days: [0, 1, 2, 3, 4, 5, 6], from: '05:00', to: '09:00' }, { label: { fr: 'Soirées du vendredi et du samedi', en: 'Friday and Saturday evenings' }, days: [5, 6], from: '17:00', to: '02:00' }], description: 'Périodes de gain annoncées aux chauffeurs (défauts provisoires : aéroport 5 h à 9 h, vendredi et samedi 17 h à 2 h) ; modifiables ici' },
+  { key: 'booster.peak_zones', value: [{ label: { fr: 'Aéroport Montréal-Trudeau', en: 'Montréal-Trudeau airport' }, days: [0, 1, 2, 3, 4, 5, 6], from: '05:00', to: '09:00', zone: 'yul' }, { label: { fr: 'Centre-ville', en: 'Downtown' }, days: [5, 6], from: '17:00', to: '02:00', zone: 'centre-ville' }], description: 'Zones de gain annoncées aux chauffeurs (défauts provisoires : aéroport le matin, centre-ville les soirs de fin de semaine) ; codes des zones du catalogue' },
+  { key: 'retention.inspections_years', value: 2, description: 'Conservation des rapports de vérification sommaire (2 ans)' },
+  { key: 'retention.performance_logs_years', value: 2, description: 'Conservation des rapports de performance (2 ans)' },
+  { key: 'retention.inspection_photos_days', value: 90, description: 'Photos et captures d\'écran des rapports Booster supprimées après 90 jours (le rapport et son PDF restent)' },
 ];
 
 // Modèle `claude-opus-5-5` (décision du 26 septembre 2026) ; prompt système : `docs/agents/<agent>.v<n>.md`, chargé par les données de départ.
@@ -281,6 +294,9 @@ export const AGENTS = [
   { code: 'analytics', name: 'Analyse et rapports', mode: 'auto', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'analytics.v1', tools: ['queryMetrics'], thresholds: {} },
   { code: 'quality', name: 'Qualité des chauffeurs (sanctions graduées)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: ['proposeSanction'], thresholds: { finalSuspension: 'human' } },
   { code: 'voice_call_center', name: 'Centre d\'appels vocal (Vapi)', mode: 'auto', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: ['quote', 'createRide', 'rideStatus', 'cancelRide', 'transferToHuman'], thresholds: { transferOnDistress: true } },
+  // Neomoov Booster (phase 1, agent G) : lecteurs d'images sans outil ; la « décision » est toujours celle du chauffeur, qui confirme ou corrige.
+  { code: 'vehicle_inspection', name: 'Booster : analyse des photos de la vérification sommaire', mode: 'approval', model: 'claude-opus-5-5', effort: 'medium', systemPromptKey: 'vehicle_inspection.v1', tools: [], thresholds: { confirmation: 'driver' } },
+  { code: 'performance_reading', name: 'Booster : lecture des captures d\'écran du rapport de performance', mode: 'approval', model: 'claude-opus-5-5', effort: 'medium', systemPromptKey: 'performance_reading.v1', tools: [], thresholds: { confirmation: 'driver' } },
 ] as const;
 
 export const FEATURE_FLAGS = [

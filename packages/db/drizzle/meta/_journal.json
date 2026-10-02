@@ -225,6 +225,13 @@
       "when": 1790925025735,
       "tag": "0031_credit-reservation-statement-unknown",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790945508301,
+      "tag": "0032_booster",
+      "breakpoints": true
     }
   ]
 }
