@@ -1,6 +1,7 @@
 /**
  * Personnel de My Hub (rôles admin, operator, finance, readonly) : courriel et mot de passe argon2id, puis second
- * facteur TOTP obligatoire (inscription au premier accès, codes de secours), verrouillage progressif après cinq échecs.
+ * facteur TOTP obligatoire (inscription au premier accès, codes de secours) ; mots de passe faux verrouillés par couple
+ * courriel et adresse, compte verrouillé progressivement après cinq échecs du second facteur.
  * Un membre du personnel connecté par code SMS (comme client) n'obtient jamais ses rôles du personnel (voir AuthService).
  * Étape 21 : le même second facteur (secret TOTP, codes de secours, verrouillage) sert aux membres des organisations
  * clientes connectés par code SMS (`member`) : jetons de passage distincts, session sans mot de passe ni rôle du
@@ -70,27 +71,56 @@ export class StaffAuthService {
     if (!byEmail.allowed || !byIp.allowed) {
       throw new AppError('RATE_LIMITED', 'Trop de tentatives de connexion, réessayez plus tard', 429, { retryAfter: Math.max(byEmail.resetIn, byIp.resetIn) });
     }
+    // Revue du 2 octobre 2026 (sécurité 4) : les mots de passe faux se comptent par couple courriel et adresse, pour tout
+    // courriel (connu ou non : un 423 ne révèle pas l'existence d'un compte) ; le compte lui-même n'est jamais verrouillé
+    // par des mots de passe faux (un tiers ne prive plus un membre du personnel de My Hub), seulement par son second facteur.
+    const lockKey = this.passwordLockKey(email, ip);
+    await this.assertPasswordNotLocked(lockKey);
     const user = await this.users.findByEmail(email);
     const roles = user ? await this.users.rolesOf(user.id) : [];
     const credentials = user && hasStaffRole(roles) ? await this.credentialsOf(user.id) : null;
     // Étape 21 : un second facteur de membre d'organisation n'a pas de mot de passe ; il n'ouvre jamais de session du personnel.
     if (!user || !credentials?.passwordHash || user.status !== 'active') {
       await verifyPassword(password, await dummyPasswordHash());
+      await this.registerPasswordFailure(lockKey);
       throw AppError.unauthorized('INVALID_CREDENTIALS', 'Courriel ou mot de passe incorrect');
     }
-    this.assertNotLocked(credentials);
     if (!(await verifyPassword(password, credentials.passwordHash))) {
-      await this.registerFailure(credentials);
+      await this.registerPasswordFailure(lockKey);
       throw AppError.unauthorized('INVALID_CREDENTIALS', 'Courriel ou mot de passe incorrect');
     }
-    // Le compteur d'échecs n'est remis à zéro qu'après le second facteur (openSession) : le verrouillage couvre aussi le TOTP.
+    // Mot de passe correct : le verrou du compte (échecs du second facteur) n'est vérifié que maintenant ; le couple est libéré.
+    this.assertNotLocked(credentials);
+    await this.store.reset(lockKey);
+    // Le compteur d'échecs du second facteur n'est remis à zéro qu'après lui (openSession) : le verrouillage couvre le TOTP.
     const ttl = await this.settings.number('auth.mfa_token_ttl_seconds', 300);
     const stage = credentials.totpEnabledAt ? 'mfa_verify' : 'mfa_enroll';
     const mfaToken = await this.tokens.issueTransientToken(stage, user.id, {}, ttl);
     return { status: stage === 'mfa_verify' ? 'mfa_required' : 'mfa_enrollment_required', mfaToken };
   }
 
-  /** Verrouillage en cours : 423 avec le délai restant. Vérifié au mot de passe et à chaque étape du second facteur. */
+  /** Clé du verrou dur des mots de passe faux : courriel et adresse (sans adresse connue, le courriel seul). */
+  private passwordLockKey(email: string, ip: string | null): string {
+    return `staff-pwd:${email.toLowerCase()}:${ip ?? '-'}`;
+  }
+
+  /**
+   * Verrou dur (revue du 2 octobre 2026, sécurité 4) : après `auth.staff_lockout_threshold` mots de passe faux pour ce
+   * courriel depuis cette adresse, 423 pendant le reste de la fenêtre de `auth.staff_lockout_minutes` (compteur du magasin
+   * de limitation, mémoire ou Redis, jamais sur le compte).
+   */
+  private async assertPasswordNotLocked(lockKey: string): Promise<void> {
+    const threshold = await this.settings.number('auth.staff_lockout_threshold', 5);
+    const { count, resetIn } = await this.store.peek(lockKey);
+    if (count >= threshold) throw new AppError('ACCOUNT_LOCKED', 'Trop d\'échecs depuis cette adresse, réessayez plus tard', 423, { retryAfter: Math.max(1, resetIn) });
+  }
+
+  private async registerPasswordFailure(lockKey: string): Promise<void> {
+    const [threshold, minutes] = await Promise.all([this.settings.number('auth.staff_lockout_threshold', 5), this.settings.number('auth.staff_lockout_minutes', 15)]);
+    await this.store.hit(lockKey, threshold, minutes * 60);
+  }
+
+  /** Verrouillage du compte en cours (échecs du second facteur) : 423 avec le délai restant. Vérifié après un mot de passe correct et à chaque étape du second facteur. */
   private assertNotLocked(credentials: CredentialsRow): void {
     if (credentials.lockedUntil && credentials.lockedUntil > new Date()) {
       throw new AppError('ACCOUNT_LOCKED', 'Compte verrouillé après trop d\'échecs, réessayez plus tard', 423, { retryAfter: Math.ceil((credentials.lockedUntil.getTime() - Date.now()) / 1000) });
@@ -98,8 +128,9 @@ export class StaffAuthService {
   }
 
   /**
-   * Verrouillage progressif : 15 minutes au cinquième échec, doublées à chaque nouvelle série (section 8). Le compteur est
-   * incrémenté en base (revue 17.B) : des essais parallèles comptent chacun, celui qui atteint le seuil pose le verrou.
+   * Verrouillage progressif du compte par les échecs du second facteur : 15 minutes au cinquième échec, doublées à chaque
+   * nouvelle série (section 8). Le compteur est incrémenté en base (revue 17.B) : des essais parallèles comptent chacun,
+   * celui qui atteint le seuil pose le verrou.
    */
   private async registerFailure(credentials: CredentialsRow): Promise<void> {
     const [threshold, minutes] = await Promise.all([this.settings.number('auth.staff_lockout_threshold', 5), this.settings.number('auth.staff_lockout_minutes', 15)]);

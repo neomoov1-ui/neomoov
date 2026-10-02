@@ -49,7 +49,7 @@ Dans My Hub (administrateur) : **Administration**, **Équipe**, **Ajouter un mem
 ## 4. Téléphone perdu, compte verrouillé
 
 - Second facteur perdu : My Hub, **Équipe**, **Réinitialiser le second facteur** sur la ligne du membre, après avoir vérifié son identité (ou `POST /v1/admin/staff/{id}/mfa/reset`, administrateur). Ses sessions sont fermées. La prochaine connexion refait l'inscription. Sinon, un code de secours.
-- Verrouillage après 5 mots de passe faux : 15 minutes, doublées à chaque nouvelle série. `POST /v1/admin/staff/{id}/password` (My Hub : **Remplacer le mot de passe**) remet le compteur à zéro et révoque les sessions.
+- Mots de passe faux : après 5 échecs pour un courriel depuis la même adresse (réglages `auth.staff_lockout_threshold` et `auth.staff_lockout_minutes`), 423 pendant 15 minutes depuis cette adresse seulement ; le compte reste joignable d'ailleurs et personne ne peut le verrouiller à distance (revue du 2 octobre 2026). Le compte lui-même se verrouille après 5 codes faux du second facteur : 15 minutes, doublées à chaque nouvelle série. `POST /v1/admin/staff/{id}/password` (My Hub : **Remplacer le mot de passe**) remet ce compteur à zéro et révoque les sessions.
 - Un membre du personnel qui se connecte par code SMS (comme client) n'obtient pas ses rôles du personnel : My Hub exige le mot de passe et le second facteur.
 
 ## 5. Clés de service (agents et intégrations)

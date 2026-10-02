@@ -222,4 +222,35 @@ describe('revue du 2 octobre 2026, agent C : personnel, comptes du personnel, ac
     // Le propriétaire, lui, invite toujours depuis My Hub.
     await post(`/v1/org/${A}/invitations`, owner, { roleId: dispatcherRoleId, phone: testPhone() }).expect(201);
   });
+
+  it('sécurité 4 : les mots de passe faux verrouillent le couple courriel et adresse, jamais le compte ; un 423 ne révèle pas l\'existence d\'un compte', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const staff = await createStaffAndLogin(app, ['finance']);
+    // `trust proxy 1` : l'adresse du client vient de X-Forwarded-For (un seul relais, Caddy).
+    const login = (email: string, password: string, ip: string) => request(server()).post('/v1/auth/staff/login').set('X-Forwarded-For', ip).send({ email, password });
+    const attacker = '198.51.100.7';
+    const elsewhere = '198.51.100.8';
+    for (let i = 0; i < 5; i += 1) {
+      const res = await login(staff.email, 'faux-mot-de-passe', attacker);
+      expect(res.status).toBe(401);
+      expect(res.body.code).toBe('INVALID_CREDENTIALS');
+    }
+    // Depuis cette adresse : verrou dur, même avec le bon mot de passe ; depuis une autre, le membre du personnel se connecte.
+    const locked = await login(staff.email, staff.password, attacker);
+    expect(locked.status).toBe(423);
+    expect(locked.body.code).toBe('ACCOUNT_LOCKED');
+    expect(locked.body.details.retryAfter).toBeGreaterThan(0);
+    const home = await login(staff.email, staff.password, elsewhere);
+    expect(home.status).toBe(200);
+    expect(home.body.status).toBe('mfa_required');
+    // Le compte n'a pas été verrouillé en base : aucun échec de mot de passe n'y est compté.
+    const [credentials] = await db(app).select({ failedAttempts: schema.staffCredentials.failedAttempts, lockedUntil: schema.staffCredentials.lockedUntil }).from(schema.staffCredentials).where(eq(schema.staffCredentials.userId, staff.userId));
+    expect(credentials).toEqual({ failedAttempts: 0, lockedUntil: null });
+    // Un courriel inconnu reçoit exactement la même suite de réponses (401 puis 423) : rien à énumérer.
+    const unknown = testEmail('inconnu');
+    for (let i = 0; i < 5; i += 1) expect((await login(unknown, 'faux-mot-de-passe', attacker)).status).toBe(401);
+    const unknownLocked = await login(unknown, 'faux-mot-de-passe', attacker);
+    expect(unknownLocked.status).toBe(423);
+    expect(unknownLocked.body.code).toBe('ACCOUNT_LOCKED');
+  });
 });
