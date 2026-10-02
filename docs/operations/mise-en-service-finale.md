@@ -10,9 +10,9 @@ Vérification faite sans lire une seule valeur : le script `scripts/env-check.mj
 
 | Élément | État | Conséquence aujourd'hui | Section |
 |---|---|---|---|
-| Textos (Twilio) | Clés absentes, fournisseur simulé | **Personne ne peut se connecter** aux applications ni à la réservation web : le code de connexion part par texto | 2 |
+| Textos (Twilio) | **En place depuis le 2 octobre au soir** (clés posées par `envoyer-twilio-serveur.ps1`, textos réels, premier code de connexion reçu) | Reste le webhook des textos entrants sur le numéro (section 2, étape C) et le second numéro pour WhatsApp | 2 |
 | Clé publique du site (`NEOMOOV_PUBLIC_API_KEY`) | Absente | **Réservation web et préinscription des chauffeurs en panne** : `reserver.neomoov.net` répond « Clé publique non configurée sur le serveur web » (503), et le site neomoov.net qui l'intègre aussi | 3 |
-| Courriels (Resend) | Clé présente, **aucun domaine vérifié** sur le compte | Aucun courriel ne part (reçus, factures, relevés, alertes du personnel, liens d'export Loi 25) | 4 |
+| Courriels (Resend) | Clé présente (clé « envoi seulement » : l'état du domaine n'est pas consultable par l'API ; le domaine a été vérifié le 29 septembre d'après nos notes) | À confirmer par un envoi réel depuis le serveur (fait par moi, section 4) | 4 |
 | Documents (stockage S3 de Supabase) | Adresse et compartiment présents, **clés d'accès absentes** | Documents des chauffeurs gardés en mémoire, perdus à chaque redémarrage | 5 |
 | Sauvegarde chiffrée du serveur | Phrase secrète absente | **Aucune sauvegarde** ; les purges de conservation (Loi 25) restent bloquées | 6 |
 | Dépôt GitHub `neomoov1-ui/neomoov` | Public | Code confidentiel et contenu payant de l'Academy exposés | 7 |
@@ -159,11 +159,11 @@ ssh -t root@78.138.58.92 /opt/neomoov/infra/scripts/env-set.sh NEOMOOV_PUBLIC_AP
 
 ---
 
-## 4. Resend : le domaine des courriels (urgent, 15 minutes plus propagation)
+## 4. Resend : le domaine des courriels (à confirmer, 15 minutes si quelque chose manque)
 
 - **Liens :** domaines https://resend.com/domains ; clés https://resend.com/api-keys ; DNS chez LWS : https://panel.lws.fr, « Mes domaines », `neomoov.net`, « Zone DNS »
 
-**Étape A. Vérifier le compte.** Sur la page des clés, la clé `neomoov-api` doit exister. Si la page est vide, la clé en production vient d'un autre compte : créer une clé « Sending access », domaine `neomoov.net`, puis `… env-set.sh RESEND_API_KEY --recreate api worker`.
+**Étape A. Vérifier le compte.** Sur la page des domaines, `neomoov.net` doit être « Verified » (il l'était le 29 septembre). La clé en production est une clé « envoi seulement » : c'est normal, et c'est pourquoi l'état du domaine ne se lit pas par l'API ; je le confirme par un envoi réel depuis le serveur. Si le domaine n'apparaît pas, passer aux étapes B et C.
 
 **Étape B. Ajouter le domaine.** Page des domaines, « Add Domain » : `neomoov.net`, région « North Virginia (us-east-1) ». Resend affiche les enregistrements DNS à copier.
 
