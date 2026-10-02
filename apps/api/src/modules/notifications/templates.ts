@@ -181,6 +181,10 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Course retirée', body: 'Aucun déplacement vers le client : la course vous a été retirée.' },
     en: { title: 'Ride removed', body: 'No movement towards the customer: the ride has been removed from you.' },
   },
+  'ride.removed_by_operator': {
+    fr: { title: 'Course retirée', body: (d) => `L'exploitation a réattribué la course${ride(d)} : elle ne vous est plus confiée. Aucune sanction.` },
+    en: { title: 'Ride removed', body: (d) => `Operations reassigned ride${ride(d)}: it is no longer yours. No penalty.` },
+  },
   'offer.new': {
     fr: { title: 'Nouvelle offre de course', body: 'Une course vous est proposée. Répondez vite dans l\'application.' },
     en: { title: 'New ride offer', body: 'A ride is offered to you. Respond quickly in the app.' },

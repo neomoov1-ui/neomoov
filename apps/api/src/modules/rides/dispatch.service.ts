@@ -36,11 +36,13 @@ import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { QueueService } from '../../infra/queue.module.js';
 import { REDIS } from '../../infra/redis.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { UserActor } from '../auth/actor.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { ZonesService } from '../pricing/zones.service.js';
+import { DISPATCH_QUEUE, DISPATCH_START_JOB, type DispatchStartJob } from './dispatch-job.js';
 import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, organizationAllows, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PilotHook } from './pilot-hook.js';
@@ -54,6 +56,8 @@ type DispatchRow = typeof schema.rideDispatches.$inferSelect;
 type DispatchUpdate = Partial<Omit<typeof schema.rideDispatches.$inferInsert, 'offersSent'>> & { offersSent?: number | SQL };
 type OfferRow = typeof schema.rideOffers.$inferSelect;
 type StartReason = 'requested' | 'reassign' | 'scheduled_due' | 'release' | 'proposal' | 'operator';
+/** Chemin par lequel une course demandée arrive à la répartition : événement (rapide), tâche durable, balayage du battement. */
+type StartSource = 'event' | 'job' | 'sweep';
 
 interface DispatchConfig {
   radii: SearchRadius[];
@@ -164,6 +168,8 @@ type VehicleRow = {
 export class DispatchService implements OnModuleInit, OnModuleDestroy {
   private tickTimer: NodeJS.Timeout | null = null;
   private runner = false;
+  /** Traitement de la file `dispatch` enregistré dans ce processus (une seule fois : BullMQ ne retire pas un traitement). */
+  private queueRegistered = false;
   private subscriptions: Array<() => void> = [];
   private readonly localLocks = new Map<string, Promise<void>>();
   /** Courses dont l'acceptation (chauffeur ou client) clôt elle-même la répartition : l'événement `ride.assigned` est ignoré. */
@@ -189,6 +195,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     private readonly audit: AuditService,
     private readonly context: RideContextService,
     private readonly pilot: PilotHook,
+    private readonly queues: QueueService,
   ) {}
 
   private get db() {
@@ -214,9 +221,23 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     if (this.runner) return;
     this.runner = true;
     const guard = (rideId: string, what: string) => (error: unknown) => this.logger.error({ err: error, rideId }, what);
+    // Revue du 2 octobre 2026 (constat 4) : la tâche durable `dispatch.start` (3 tentatives) est traitée par le processus qui
+    // porte la répartition ; l'événement `ride.requested` reste le chemin rapide. Les deux passent par le démarrage idempotent.
+    if (!this.queueRegistered) {
+      this.queueRegistered = true;
+      this.queues.process(
+        DISPATCH_QUEUE,
+        async (job) => {
+          if (job.name !== DISPATCH_START_JOB) return;
+          if (!this.runner) throw new Error('Répartition inactive dans ce processus : tâche de démarrage non traitée');
+          await this.ensureStarted((job.data as DispatchStartJob).rideId, 'job');
+        },
+        { concurrency: 4 },
+      );
+    }
     this.subscriptions = [
       this.events.on('ride.requested', (p) => {
-        void this.start(p.rideId, { reason: 'requested' }).catch(guard(p.rideId, 'Répartition impossible'));
+        void this.ensureStarted(p.rideId, 'event').catch(guard(p.rideId, 'Répartition impossible'));
       }),
       this.events.on('ride.reassign_requested', (p) => {
         const data = (p.data ?? {}) as { previousDriverId?: string; source?: string };
@@ -319,29 +340,62 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
    * Ouvre (ou rouvre) la répartition d'une course demandée et fait immédiatement le premier pas. `now` : l'heure du
    * battement qui relance (surveillance du départ), pour que les offres ne soient pas déjà échues à cette heure-là.
    */
-  async start(rideId: string, options: { reason: StartReason; priority?: boolean; excludeDriverIds?: string[]; mode?: NegotiationMode; now?: Date }): Promise<DispatchRow | null> {
+  async start(rideId: string, options: { reason: StartReason; priority?: boolean; excludeDriverIds?: string[]; mode?: NegotiationMode; now?: Date; source?: StartSource }): Promise<DispatchRow | null> {
     if (this.env.DISPATCH_MODE === 'manual' && options.reason === 'requested') return null;
+    return this.withLock(rideId, () => this.startLocked(rideId, options));
+  }
+
+  /**
+   * Démarrage idempotent d'une course demandée (revue du 2 octobre 2026, constat 4), par l'événement `ride.requested`, la
+   * tâche durable `dispatch.start` ou le balayage du battement : une course dont la répartition est ouverte, en attente,
+   * à sa fenêtre close ou épuisée n'est pas relancée. Une répartition close par une attribution ou une annulation alors
+   * que la course est redevenue demandée (chauffeur retiré, signal de réattribution perdu) est rouverte en priorité, sans
+   * le dernier chauffeur retiré. Tout se décide sous le verrou de la course : deux chemins simultanés ne démarrent qu'une fois.
+   */
+  async ensureStarted(rideId: string, source: StartSource, now?: Date): Promise<DispatchRow | null> {
+    if (this.env.DISPATCH_MODE === 'manual') return null;
     return this.withLock(rideId, async () => {
       const ride = await this.rides.getRide(rideId);
-      if (ride.driverId || !['requested', 'offering'].includes(ride.state)) return null;
-      const now = options.now ?? new Date();
+      if (ride.driverId || ride.state !== 'requested') return null;
       const existing = await this.dispatchOf(rideId);
-      const excluded = [...new Set([...((existing?.excludedDriverIds as string[] | null) ?? []), ...(options.excludeDriverIds ?? [])])];
-      const negotiationOn = this.env.FEATURE_NEGOTIATION && ride.negotiationMode === 'negotiation';
-      const mode: NegotiationMode = options.mode ?? (negotiationOn ? 'negotiation' : 'fixed');
-      const priority = options.priority ?? existing?.priority ?? false;
-      const values: DispatchUpdate = {
-        mode, status: 'searching', wave: 0, radiusIndex: priority ? 0 : -1, candidateIds: [], candidateCursor: 0, excludedDriverIds: excluded, offeredDriverIds: [], priority,
-        nextActionAt: now, startedAt: now, endedAt: null, heldReason: null, heldByUserId: null, assignedAt: null, assignedPosition: null, movementCheckedAt: null, negotiationEndsAt: null, lastError: null, updatedAt: now,
-      };
-      const [row] = await this.db.insert(schema.rideDispatches).values({ rideId, ...values }).onConflictDoUpdate({ target: schema.rideDispatches.rideId, set: values }).returning();
-      if (existing) for (const offer of await this.pendingOffers(rideId)) await this.closeOffer(offer, 'withdrawn', now);
-      await this.rides.mark(rideId, 'dispatch_started', SYSTEM_ACTOR, { reason: options.reason, mode, priority, excluded });
-      this.stats.started += 1;
-      // Premier pas avec ce qui vient d'être lu et écrit : chaque aller-retour évité rapproche la première offre.
-      await this.step(rideId, now, { dispatch: row!, ride, pending: [] });
-      return this.dispatchOf(rideId);
+      if (existing && !['assigned', 'cancelled'].includes(existing.status)) return null;
+      if (!existing) return this.startLocked(rideId, { reason: 'requested', source, ...(now ? { now } : {}) });
+      const previous = await this.lastReleasedDriver(rideId);
+      return this.startLocked(rideId, { reason: 'reassign', priority: true, excludeDriverIds: previous ? [previous] : [], source, ...(now ? { now } : {}) });
     });
+  }
+
+  /** Dernier chauffeur retiré de la course (signal `reassign` du journal), à exclure d'une relance par rattrapage. */
+  private async lastReleasedDriver(rideId: string): Promise<string | null> {
+    const [last] = await this.db
+      .select({ data: schema.rideEvents.data })
+      .from(schema.rideEvents)
+      .where(and(eq(schema.rideEvents.rideId, rideId), eq(schema.rideEvents.type, 'reassign')))
+      .orderBy(desc(schema.rideEvents.occurredAt))
+      .limit(1);
+    return (last?.data as { previousDriverId?: string } | null)?.previousDriverId ?? null;
+  }
+
+  private async startLocked(rideId: string, options: { reason: StartReason; priority?: boolean; excludeDriverIds?: string[]; mode?: NegotiationMode; now?: Date; source?: StartSource }): Promise<DispatchRow | null> {
+    const ride = await this.rides.getRide(rideId);
+    if (ride.driverId || !['requested', 'offering'].includes(ride.state)) return null;
+    const now = options.now ?? new Date();
+    const existing = await this.dispatchOf(rideId);
+    const excluded = [...new Set([...((existing?.excludedDriverIds as string[] | null) ?? []), ...(options.excludeDriverIds ?? [])])];
+    const negotiationOn = this.env.FEATURE_NEGOTIATION && ride.negotiationMode === 'negotiation';
+    const mode: NegotiationMode = options.mode ?? (negotiationOn ? 'negotiation' : 'fixed');
+    const priority = options.priority ?? existing?.priority ?? false;
+    const values: DispatchUpdate = {
+      mode, status: 'searching', wave: 0, radiusIndex: priority ? 0 : -1, candidateIds: [], candidateCursor: 0, excludedDriverIds: excluded, offeredDriverIds: [], priority,
+      nextActionAt: now, startedAt: now, endedAt: null, heldReason: null, heldByUserId: null, assignedAt: null, assignedPosition: null, movementCheckedAt: null, negotiationEndsAt: null, lastError: null, updatedAt: now,
+    };
+    const [row] = await this.db.insert(schema.rideDispatches).values({ rideId, ...values }).onConflictDoUpdate({ target: schema.rideDispatches.rideId, set: values }).returning();
+    if (existing) for (const offer of await this.pendingOffers(rideId)) await this.closeOffer(offer, 'withdrawn', now);
+    await this.rides.mark(rideId, 'dispatch_started', SYSTEM_ACTOR, { reason: options.reason, mode, priority, excluded, ...(options.source ? { source: options.source } : {}) });
+    this.stats.started += 1;
+    // Premier pas avec ce qui vient d'être lu et écrit : chaque aller-retour évité rapproche la première offre.
+    await this.step(rideId, now, { dispatch: row!, ride, pending: [] });
+    return this.dispatchOf(rideId);
   }
 
   /** Arrêt de la répartition (annulation du client, course close). */
@@ -399,7 +453,8 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
   /** Fait avancer toutes les répartitions dues à l'instant `now` (offres échues, prochains pas, fenêtres closes, surveillance du départ). */
   async tick(now: Date = new Date(), maxIterations = 50): Promise<DispatchTickReport> {
     this.stats.ticks += 1;
-    const report: DispatchTickReport = { expiredOffers: 0, steps: 0, fallbacks: 0, noMovement: 0, iterations: 0 };
+    const report: DispatchTickReport = { expiredOffers: 0, steps: 0, fallbacks: 0, noMovement: 0, iterations: 0, swept: 0 };
+    report.swept = await this.sweepRequested(now);
     for (let i = 0; i < maxIterations; i += 1) {
       report.iterations += 1;
       let progressed = false;
@@ -434,6 +489,36 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       if (!progressed) break;
     }
     return report;
+  }
+
+  /**
+   * Balayage (revue du 2 octobre 2026, constat 4) : courses demandées depuis plus de `dispatch.requested_sweep_seconds`
+   * (30 s par défaut) dont la répartition n'a jamais démarré (tâche mise en file à la création, signal `dispatch_queued`,
+   * mais worker absent et tâche perdue) ou s'est close alors que la course est redevenue demandée (chauffeur retiré sans
+   * relance). Chaque course est relancée par le démarrage idempotent et journalisée (`dispatch_started`, source `sweep`).
+   */
+  private async sweepRequested(now: Date): Promise<number> {
+    if (this.env.DISPATCH_MODE === 'manual') return 0;
+    const seconds = await this.settings.number('dispatch.requested_sweep_seconds', 30);
+    const rows = await this.db.execute<{ id: string }>(sql`
+      SELECT r.id FROM rides r
+      LEFT JOIN ride_dispatches d ON d.ride_id = r.id
+      WHERE r.state = 'requested' AND r.driver_id IS NULL
+        AND COALESCE((r.state_timestamps->>'requested')::timestamptz, r.created_at) < ${now.toISOString()}::timestamptz - make_interval(secs => ${seconds})
+        AND ((d.ride_id IS NULL AND EXISTS (SELECT 1 FROM ride_events e WHERE e.ride_id = r.id AND e.type = 'dispatch_queued'))
+             OR d.status IN ('assigned', 'cancelled'))
+      ORDER BY COALESCE((r.state_timestamps->>'requested')::timestamptz, r.created_at) ASC
+      LIMIT 50`);
+    let swept = 0;
+    for (const row of rows) {
+      const started = await this.ensureStarted(row.id, 'sweep', now).catch((error: unknown) => {
+        this.logger.error({ err: error, rideId: row.id }, 'Rattrapage de la répartition en échec');
+        return null;
+      });
+      if (started) swept += 1;
+    }
+    if (swept) this.logger.warn({ swept }, 'Courses demandées sans répartition : relancées par le balayage');
+    return swept;
   }
 
   private async failed(rideId: string, error: unknown): Promise<void> {
@@ -1159,13 +1244,17 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     return this.rides.viewById(rideId);
   }
 
-  /** Réattribution par l'opérateur : le chauffeur en place est retiré (sans sanction) et une nouvelle recherche prioritaire démarre. */
+  /**
+   * Réattribution par l'opérateur : le chauffeur en place est retiré (sans sanction), y compris arrivé sur place (revue du
+   * 2 octobre 2026, constat 9), et une nouvelle recherche prioritaire démarre. Une course restée en `cancelled_by_driver`
+   * (constat 10, chien de garde) est remise en demande par le même chemin.
+   */
   async reassign(rideId: string, actor: UserActor, input: { reason: string; excludeDriver: boolean }): Promise<RideView> {
     const ride = await this.rides.getRide(rideId);
     const operator: ActorRef = { kind: 'operator', userId: actor.userId };
     let exclude: string[] = [];
     if (ride.driverId) {
-      if (!['assigned', 'en_route', 'arrived'].includes(ride.state)) throw AppError.conflict('RIDE_NOT_REASSIGNABLE', 'La course ne peut plus être réattribuée', { state: ride.state });
+      if (!['assigned', 'en_route', 'arrived', 'cancelled_by_driver'].includes(ride.state)) throw AppError.conflict('RIDE_NOT_REASSIGNABLE', 'La course ne peut plus être réattribuée', { state: ride.state });
       const released = await this.rides.releaseDriver(rideId, operator, input.reason, { sanction: false, source: 'operator' });
       if (input.excludeDriver) exclude = [released.previousDriverId];
     } else if (!['requested', 'offering'].includes(ride.state)) {

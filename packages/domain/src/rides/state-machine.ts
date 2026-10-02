@@ -47,6 +47,9 @@ export const RIDE_TRANSITIONS: readonly RideTransition[] = [
   { from: 'arrived', event: 'ride_starts', to: 'in_progress' },
   { from: 'arrived', event: 'client_no_show', to: 'no_show', guard: 'waited_five_minutes_and_two_contacts', effects: ['no_show_fee'] },
   { from: 'arrived', event: 'client_cancels', to: 'cancelled_by_client', effects: ['cancellation_fee'] },
+  // Revue du 2 octobre 2026 (constat 9) : un chauffeur arrivé peut encore être retiré (réattribution par l'opérateur, ou
+  // annulation du chauffeur, sanctionnée comme après « en route » : section 5.2) ; la course repart en demande prioritaire.
+  { from: 'arrived', event: 'driver_cancels', to: 'cancelled_by_driver', effects: ['driver_sanction', 'reassign_with_priority'] },
   { from: 'in_progress', event: 'ride_ends', to: 'completed' },
   { from: 'in_progress', event: 'incident', to: 'interrupted' },
   { from: 'completed', event: 'client_rates', to: 'rated' },

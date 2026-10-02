@@ -33491,6 +33491,11 @@
                       "type": "integer",
                       "minimum": 0,
                       "maximum": 9007199254740991
+                    },
+                    "swept": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
@@ -33498,7 +33503,8 @@
                     "steps",
                     "fallbacks",
                     "noMovement",
-                    "iterations"
+                    "iterations",
+                    "swept"
                   ]
                 }
               }
