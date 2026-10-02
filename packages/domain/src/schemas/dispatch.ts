@@ -129,7 +129,8 @@ export const vehicleMismatchSchema = z.object({
 export const incidentCreatedSchema = z.object({ incidentId: uuid, status: z.literal('open') });
 
 export const dispatchTickSchema = z.object({ now: isoDate.optional() });
-export const dispatchTickReportSchema = z.object({ expiredOffers: count, steps: count, fallbacks: count, noMovement: count, iterations: count });
+/** `swept` (revue du 2 octobre 2026, constat 4) : courses demandées sans répartition ouverte, relancées par le balayage du battement. */
+export const dispatchTickReportSchema = z.object({ expiredOffers: count, steps: count, fallbacks: count, noMovement: count, iterations: count, swept: count });
 export type DispatchTickReport = z.infer<typeof dispatchTickReportSchema>;
 
 /** Offre telle que My Hub la voit (toutes les offres d'une course, tous états). */

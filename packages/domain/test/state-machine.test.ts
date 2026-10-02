@@ -50,6 +50,7 @@ describe('transitions valides', () => {
     ['en_route', 'driver_cancels', 'cancelled_by_driver'],
     ['arrived', 'ride_starts', 'in_progress'],
     ['arrived', 'client_cancels', 'cancelled_by_client'],
+    ['arrived', 'driver_cancels', 'cancelled_by_driver'],
     ['in_progress', 'ride_ends', 'completed'],
     ['in_progress', 'incident', 'interrupted'],
     ['completed', 'client_rates', 'rated'],
@@ -79,6 +80,8 @@ describe('transitions valides', () => {
     expect(transition('arrived', 'client_cancels').effects).toEqual(['cancellation_fee']);
     expect(transition('assigned', 'driver_cancels').effects).toEqual(['reassign_with_priority']);
     expect(transition('en_route', 'driver_cancels').effects).toEqual(['driver_sanction', 'reassign_with_priority']);
+    // Revue du 2 octobre 2026 (constat 9) : retrait possible depuis « arrivé », mêmes effets qu'après « en route ».
+    expect(transition('arrived', 'driver_cancels').effects).toEqual(['driver_sanction', 'reassign_with_priority']);
   });
 });
 
@@ -91,7 +94,7 @@ describe('transitions invalides', () => {
     ['assigned', 'ride_ends'],
     ['assigned', 'client_no_show'],
     ['en_route', 'ride_starts'],
-    ['arrived', 'driver_cancels'],
+    ['arrived', 'driver_departs'],
     ['in_progress', 'client_cancels'],
     ['in_progress', 'driver_cancels'],
     ['completed', 'ride_ends'],
@@ -125,6 +128,6 @@ describe('transitions invalides', () => {
   });
 
   it('eventsFrom liste les événements d\'un état', () => {
-    expect(eventsFrom('arrived')).toEqual(['ride_starts', 'client_no_show', 'client_cancels']);
+    expect(eventsFrom('arrived')).toEqual(['ride_starts', 'client_no_show', 'client_cancels', 'driver_cancels']);
   });
 });

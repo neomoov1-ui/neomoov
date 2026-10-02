@@ -25,12 +25,14 @@ import { organizationIdFor } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { cardPaymentsEnabled, APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { QueueService } from '../../infra/queue.module.js';
 import { hasStaffRole, type UserActor } from '../auth/actor.js';
 import { AuditService } from '../audit/audit.service.js';
 import { refreshDriverRating } from '../drivers/driver-rating.js';
 import { PaymentsService, type RideAuthorization } from '../payments/payments.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { PromotionsService } from '../pricing/promotions.service.js';
+import { DISPATCH_QUEUE, DISPATCH_START_ATTEMPTS, DISPATCH_START_JOB, dispatchStartJobId, type DispatchStartJob } from './dispatch-job.js';
 import { categoryAtLeast, currentVehicleJoin, driverEligible, loadEligibilityRules, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PresenceService } from './presence.service.js';
@@ -96,6 +98,7 @@ export class RidesService {
     private readonly promotions: PromotionsService,
     private readonly safety: SafetyHoldService,
     private readonly context: RideContextService,
+    private readonly queues: QueueService,
   ) {}
 
   private get db() {
@@ -259,8 +262,9 @@ export class RidesService {
     const card = input.paymentChoice === 'prepaid' && isCardMethod(input.paymentMethod) ? await this.payments.methodForClient(client.id, input.paymentMethodId) : null;
     const authorization: RideAuthorization | null =
       card && type === 'immediate' ? await this.payments.authorizeBeforeRide({ userId: actor.userId, method: card, maxConsentedCents: input.maxConsentedCents, idempotencyKey, quoteId: input.quoteId }) : null;
+    let ride: RideRow;
     try {
-      const ride = await this.db.transaction(async (tx) => {
+      ride = await this.db.transaction(async (tx) => {
         const inserted = await this.insertRide(tx, input.quoteId, {
           clientId: client.id,
           createdByUserId: actor.userId,
@@ -279,8 +283,6 @@ export class RidesService {
         await this.promotions.reserve(tx, { rideId: inserted.id, clientId: client.id, promotionCode: quote.promoCode, discountCents: quote.promotionDiscountCents });
         return inserted;
       });
-      await this.afterCreation(ride, { kind: 'client', userId: actor.userId });
-      return { ride: await this.view(ride), created: true };
     } catch (error) {
       const constraint = constraintOf(error);
       if (constraint === 'rides_idempotency_key_unique') {
@@ -292,6 +294,10 @@ export class RidesService {
       if (constraint === 'rides_quote_unique') throw AppError.conflict('QUOTE_ALREADY_USED', 'Ce devis a déjà servi à une course');
       throw error;
     }
+    // Revue du 2 octobre 2026 (constat 8) : la course est validée, son autorisation lui appartient ; les suites (tâche de
+    // répartition, événements, avis) ne la remettent jamais en cause, et leurs échecs sont journalisés, pas remontés.
+    await this.afterCreation(ride, { kind: 'client', userId: actor.userId });
+    return { ride: await this.view(ride), created: true };
   }
 
   /** POST /v1/admin/rides : création par l'opérateur, avec un compte client ou une fiche minimale. */
@@ -436,13 +442,35 @@ export class RidesService {
     return (await selectRide(tx as unknown as Database['db'], inserted!.id))!;
   }
 
+  /**
+   * Suites de la création d'une course, après la validation de sa transaction. Revue du 2 octobre 2026 (constats 4 et 8) :
+   * la répartition démarre par une tâche durable `dispatch.start` (identifiant stable, 3 tentatives ; signal
+   * `dispatch_queued` dans le journal, que le balayage du battement utilise pour rattraper une tâche perdue), doublée de
+   * l'événement `ride.requested` (chemin rapide, idempotent côté répartition). Rien ici ne fait échouer la demande : la
+   * course existe, un échec est journalisé et la répartition est rattrapée par la tâche ou le balayage.
+   */
   private async afterCreation(ride: RideRow, actor: ActorRef): Promise<void> {
-    const parties = await this.partiesOf(ride);
-    const payload = this.payload(ride, parties, null, 'requested', 'client_confirms', actor, ride.createdAt);
-    this.events.emit('ride.requested', payload);
-    this.events.emit('ride.state_changed', payload);
-    const recipient = await this.recipientOf(ride);
-    await this.outbox.queue({ ...recipient, template: ride.type === 'scheduled' ? 'ride.scheduled_confirmed' : 'ride.requested', data: { rideId: ride.id, publicNumber: ride.publicNumber, requestedAt: ride.requestedAt?.toISOString() ?? null } });
+    if (this.env.DISPATCH_MODE !== 'manual') {
+      try {
+        await this.mark(ride.id, 'dispatch_queued', SYSTEM_ACTOR, { jobId: dispatchStartJobId(ride.id) });
+      } catch (error) {
+        this.logger.error({ err: error, rideId: ride.id }, 'Signal de mise en file de la répartition non journalisé');
+      }
+      const job: DispatchStartJob = { rideId: ride.id };
+      this.queues
+        .add(DISPATCH_QUEUE, DISPATCH_START_JOB, job, { jobId: dispatchStartJobId(ride.id), attempts: DISPATCH_START_ATTEMPTS, backoff: { type: 'exponential', delay: 2_000 } })
+        .catch((error: unknown) => this.logger.error({ err: error, rideId: ride.id }, 'Tâche de répartition non mise en file : rattrapage par le balayage du battement'));
+    }
+    try {
+      const parties = await this.partiesOf(ride);
+      const payload = this.payload(ride, parties, null, 'requested', 'client_confirms', actor, ride.createdAt);
+      this.events.emit('ride.requested', payload);
+      this.events.emit('ride.state_changed', payload);
+      const recipient = await this.recipientOf(ride);
+      await this.outbox.queue({ ...recipient, template: ride.type === 'scheduled' ? 'ride.scheduled_confirmed' : 'ride.requested', data: { rideId: ride.id, publicNumber: ride.publicNumber, requestedAt: ride.requestedAt?.toISOString() ?? null } });
+    } catch (error) {
+      this.logger.error({ err: error, rideId: ride.id, publicNumber: ride.publicNumber }, 'Suites de la création de la course en échec : course conservée, répartition rattrapée');
+    }
   }
 
   private payload(ride: RideRow, parties: Parties, fromState: RideState | null, toState: RideState, event: string, actor: ActorRef, at: Date, data?: Record<string, unknown>): RideEventPayload {
@@ -456,20 +484,23 @@ export class RidesService {
    * l'état courant (dernière transition identique) renvoie la course telle quelle (idempotence) ; toute autre transition
    * impossible est un 409. Les champs à poser peuvent dépendre de l'état lu sous verrou (`set` fonction).
    */
-  private async applyTransition(rideId: string, event: RideEvent, actor: ActorRef, options: { guards?: Record<string, boolean>; data?: Record<string, unknown>; set?: RideUpdate | ((ride: RideRow) => RideUpdate) } = {}): Promise<TransitionResult> {
-    return this.db.transaction(async (tx) => {
+  private async applyTransition(rideId: string, event: RideEvent, actor: ActorRef, options: { guards?: Record<string, boolean>; data?: Record<string, unknown>; set?: RideUpdate | ((ride: RideRow) => RideUpdate); tx?: Executor } = {}): Promise<TransitionResult> {
+    // Revue du 2 octobre 2026 (constat 10) : l'appelant peut fournir sa transaction pour enchaîner deux transitions atomiquement.
+    const run = async (tx: Executor): Promise<TransitionResult> => {
       const ride = await selectRide(tx as unknown as Database['db'], rideId, true);
       if (!ride) throw AppError.notFound('RIDE_NOT_FOUND', 'Course introuvable');
       if (!canTransition(ride.state, event, options.guards)) {
         const replay = RIDE_TRANSITIONS.find((t) => t.event === event && t.to === ride.state);
         if (replay) {
           const [last] = await tx
-            .select({ type: schema.rideEvents.type })
+            .select({ type: schema.rideEvents.type, actorKind: schema.rideEvents.actorKind, actorUserId: schema.rideEvents.actorUserId })
             .from(schema.rideEvents)
             .where(and(eq(schema.rideEvents.rideId, rideId), inArray(schema.rideEvents.type, [...RIDE_EVENTS])))
             .orderBy(desc(schema.rideEvents.occurredAt))
             .limit(1);
-          if (last?.type === event) return { ride, before: ride, replayed: true, effects: [], at: new Date() };
+          // Revue du 2 octobre 2026 (constat 21) : seule la relecture par le même acteur est idempotente ; un autre acteur
+          // qui rejoue l'événement reçoit le conflit, comme pour toute transition impossible.
+          if (last?.type === event && last.actorKind === actor.kind && (last.actorUserId ?? null) === (actor.userId ?? null)) return { ride, before: ride, replayed: true, effects: [], at: new Date() };
         }
         throw AppError.conflict('RIDE_INVALID_TRANSITION', `Transition impossible depuis l'état ${ride.state}`, { state: ride.state, event });
       }
@@ -483,7 +514,8 @@ export class RidesService {
       await tx.insert(schema.rideEvents).values({ rideId, type: event, fromState: ride.state, toState: to, actorUserId: actor.userId, actorKind: actor.kind, data: { ...(options.data ?? {}), effects }, occurredAt: at });
       const fresh = (await selectRide(tx as unknown as Database['db'], rideId))!;
       return { ride: fresh, before: ride, replayed: false, effects, at };
-    });
+    };
+    return options.tx ? run(options.tx) : this.db.transaction(run);
   }
 
   private async publish(result: TransitionResult, event: RideEvent, actor: ActorRef, data?: Record<string, unknown>): Promise<RideEventPayload> {
@@ -735,21 +767,33 @@ export class RidesService {
     const previousDriverId = current.driverId;
     if (!previousDriverId) throw AppError.conflict('RIDE_NOT_ASSIGNED', 'La course n\'a pas de chauffeur à retirer', { state: current.state });
     const cancellationReason = options.source === 'driver' ? 'driver' : options.source === 'operator' ? 'operator_reassign' : 'no_movement';
-    const cancelled = await this.applyTransition(rideId, 'driver_cancels', actor, { data: { reason, driverId: previousDriverId, source: options.source, ...(options.safety ? { safety: true } : {}), ...(options.pilotGrace ? { pilotGrace: true } : {}) }, set: { cancellationReason, cancellationComment: reason } });
-    const payload = await this.publish(cancelled, 'driver_cancels', actor, { reason, source: options.source });
-    if (cancelled.replayed) return { ride: cancelled.ride, previousDriverId, replayed: true };
-    if (options.source === 'driver') this.events.emit('ride.cancelled_by_driver', { ...payload, reason });
-    // Réattribution immédiate avec priorité : la course redevient demandée, sans chauffeur.
-    const reassigned = await this.applyTransition(rideId, 'reassign', SYSTEM_ACTOR, { data: { previousDriverId, priority: true, source: options.source }, set: { driverId: null, vehicleId: null, servedCategory: null } });
-    // Une planifiée redevient ouverte aux propositions : celle du chauffeur retiré est retirée.
-    await this.db.update(schema.scheduledAssignments).set({ declinedAt: reassigned.at }).where(and(eq(schema.scheduledAssignments.rideId, rideId), eq(schema.scheduledAssignments.driverId, previousDriverId), sql`${schema.scheduledAssignments.declinedAt} IS NULL`));
+    // Revue du 2 octobre 2026 (constat 10) : retrait du chauffeur et remise en demande dans une seule transaction, la course
+    // n'est jamais laissée en `cancelled_by_driver`. Une course qui y serait restée (avant ce correctif, signalée par le
+    // chien de garde) est remise en demande par le même chemin, sans rejouer le retrait.
+    const { cancelled, reassigned } = await this.db.transaction(async (tx) => {
+      const cancelled = current.state === 'cancelled_by_driver'
+        ? null
+        : await this.applyTransition(rideId, 'driver_cancels', actor, { tx, data: { reason, driverId: previousDriverId, source: options.source, ...(options.safety ? { safety: true } : {}), ...(options.pilotGrace ? { pilotGrace: true } : {}) }, set: { cancellationReason, cancellationComment: reason } });
+      if (cancelled?.replayed) return { cancelled, reassigned: null };
+      // Réattribution immédiate avec priorité : la course redevient demandée, sans chauffeur ; les tentatives de contact
+      // du chauffeur retiré ne comptent pas pour le suivant (non-présentation).
+      const reassigned = await this.applyTransition(rideId, 'reassign', SYSTEM_ACTOR, { tx, data: { previousDriverId, priority: true, source: options.source }, set: { driverId: null, vehicleId: null, servedCategory: null, contactAttempts: 0 } });
+      // Une planifiée redevient ouverte aux propositions : celle du chauffeur retiré est retirée.
+      await tx.update(schema.scheduledAssignments).set({ declinedAt: reassigned.at }).where(and(eq(schema.scheduledAssignments.rideId, rideId), eq(schema.scheduledAssignments.driverId, previousDriverId), sql`${schema.scheduledAssignments.declinedAt} IS NULL`));
+      return { cancelled, reassigned };
+    });
+    const payload = cancelled ? await this.publish(cancelled, 'driver_cancels', actor, { reason, source: options.source }) : null;
+    if (!reassigned) return { ride: cancelled!.ride, previousDriverId, replayed: true };
+    if (payload && options.source === 'driver') this.events.emit('ride.cancelled_by_driver', { ...payload, reason });
     const reassignPayload = await this.publish(reassigned, 'reassign', SYSTEM_ACTOR, { previousDriverId, source: options.source });
     this.events.emit('ride.reassign_requested', reassignPayload);
     const recipient = await this.recipientOf(reassigned.ride);
     await this.outbox.queue({ ...recipient, template: 'ride.reassigning', data: { rideId } });
-    if (options.sanction && cancelled.effects.includes('driver_sanction')) this.audit.record({ action: 'ride.driver_cancellation_after_en_route', entity: 'drivers', entityId: previousDriverId, after: { rideId, reason } });
+    // Revue du 2 octobre 2026 (constat 9) : le chauffeur retiré par l'opérateur (attribué, en route ou arrivé) en est prévenu.
+    if (options.source === 'operator' && payload?.driverUserId) await this.outbox.queue({ recipientUserId: payload.driverUserId, template: 'ride.removed_by_operator', data: { rideId, publicNumber: reassigned.ride.publicNumber } });
+    if (cancelled && options.sanction && cancelled.effects.includes('driver_sanction')) this.audit.record({ action: 'ride.driver_cancellation_after_en_route', entity: 'drivers', entityId: previousDriverId, after: { rideId, reason } });
     if (options.source !== 'driver') this.audit.record({ action: options.source === 'operator' ? 'admin.ride_driver_released' : 'ride.driver_released_no_movement', entity: 'rides', entityId: rideId, after: { previousDriverId, reason } });
-    return { ride: reassigned.ride, previousDriverId, replayed: false };
+    return { ride: reassigned.ride, previousDriverId, replayed: cancelled === null };
   }
 
   // --- Déroulé chauffeur ---

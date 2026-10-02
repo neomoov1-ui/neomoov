@@ -32,14 +32,17 @@ export class StuckRidesService {
 
   /** Courses figées à cet instant (pour My Hub et la passe d'alerte). */
   async find(now = new Date()): Promise<StuckRide[]> {
-    const [arrived, enRoute, inProgress, scheduledLate, searching] = await Promise.all([
+    const [arrived, enRoute, inProgress, scheduledLate, searching, cancelledByDriver] = await Promise.all([
       this.settings.number('watchdog.arrived_minutes', 30),
       this.settings.number('watchdog.en_route_minutes', 90),
       this.settings.number('watchdog.in_progress_minutes', 240),
       this.settings.number('watchdog.scheduled_late_minutes', 15),
       this.settings.number('watchdog.searching_minutes', 20),
+      this.settings.number('watchdog.cancelled_by_driver_minutes', 2),
     ]);
     const at = now.toISOString();
+    // Revue du 2 octobre 2026 (constat 10) : une course abandonnée par son chauffeur est remise en demande dans la même
+    // transaction ; si elle restait en `cancelled_by_driver`, elle est signalée (l'opérateur la réattribue).
     const rows = await this.database.db.execute<{ id: string; public_number: string; state: string; since: string }>(sql`
       SELECT r.id, r.public_number, r.state, (r.state_timestamps->>r.state::text) AS since FROM rides r
       WHERE (r.state = 'arrived' AND (r.state_timestamps->>'arrived')::timestamptz < ${at}::timestamptz - make_interval(mins => ${arrived}))
@@ -47,6 +50,7 @@ export class StuckRidesService {
          OR (r.state = 'in_progress' AND (r.state_timestamps->>'in_progress')::timestamptz < ${at}::timestamptz - make_interval(mins => ${inProgress}))
          OR (r.state = 'assigned' AND r.requested_at IS NOT NULL AND r.requested_at < ${at}::timestamptz - make_interval(mins => ${scheduledLate}))
          OR (r.state IN ('requested', 'offering') AND COALESCE(r.requested_at, r.created_at) < ${at}::timestamptz - make_interval(mins => ${searching}))
+         OR (r.state = 'cancelled_by_driver' AND COALESCE((r.state_timestamps->>'cancelled_by_driver')::timestamptz, r.updated_at) < ${at}::timestamptz - make_interval(mins => ${cancelledByDriver}))
       ORDER BY 4 NULLS LAST
       LIMIT 200`);
     return rows.map((r) => {

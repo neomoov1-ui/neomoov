@@ -61,7 +61,7 @@ export class PromotionsService implements OnModuleInit {
     @Inject(APP_LOGGER) private readonly logger: Logger,
   ) {}
 
-  /** Course qui n'aboutit pas (annulée par le client, absence, aucun chauffeur) : l'usage de la promotion est rendu. */
+  /** Course qui n'aboutit pas (annulée par le client, absence, aucun chauffeur, interrompue) : l'usage de la promotion est rendu. */
   onModuleInit() {
     const release = (rideId: string) => {
       this.release(rideId).catch((error: unknown) => this.logger.error({ err: error, rideId }, 'Usage de promotion non libéré'));
@@ -69,6 +69,8 @@ export class PromotionsService implements OnModuleInit {
     this.events.on('ride.cancelled_by_client', (p) => release(p.rideId));
     this.events.on('ride.no_show', (p) => release(p.rideId));
     this.events.on('ride.no_driver', (p) => release(p.rideId));
+    // Revue du 2 octobre 2026 (constat 15) : une course interrompue par l'exploitation n'est pas facturée, la promotion est rendue.
+    this.events.on('ride.interrupted', (p) => release(p.rideId));
   }
 
   private get db() {
