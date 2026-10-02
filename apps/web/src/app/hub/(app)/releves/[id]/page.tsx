@@ -1,6 +1,6 @@
 'use client';
 
-import { OFFLINE_SETTLEMENT_METHODS, type OfflineSettlementMethod, type StatementLineView, type StatementSettleOffline } from '@neomoov/domain';
+import { OFFLINE_SETTLEMENT_METHODS, type OfflineSettlementMethod, type StatementLineView, type StatementReconcile, type StatementSettleOffline } from '@neomoov/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -53,6 +53,12 @@ export default function StatementDetailPage() {
     mutationFn: (body: StatementSettleOffline) => hubApi.admin.settleStatementOffline(id, body),
     onSuccess: () => { setSettlingOffline(false); refresh(); },
   });
+  // Relevé sans réponse du prestataire (revue du 2 octobre 2026, constat 7) : les finances tranchent après vérification chez le prestataire.
+  const [reconciling, setReconciling] = useState(false);
+  const reconcile = useMutation({
+    mutationFn: (body: StatementReconcile) => hubApi.admin.reconcileStatement(id, body),
+    onSuccess: () => { setReconciling(false); refresh(); },
+  });
 
   if (detail.isPending) return <Loading />;
   if (detail.isError) return <ErrorBlock error={detail.error} onRetry={() => void detail.refetch()} />;
@@ -78,6 +84,7 @@ export default function StatementDetailPage() {
         {finance && s.status === 'draft' ? <Action busy={action.isPending} onClick={() => action.mutate(() => hubApi.admin.issueStatement(id))}>{t('hub.statements.issue')}</Action> : null}
         {finance && (s.status === 'issued' || s.status === 'failed') ? <Action busy={action.isPending} onClick={() => action.mutate(() => hubApi.admin.payStatement(id))}>{t('hub.statements.pay')}</Action> : null}
         {finance && (s.status === 'issued' || s.status === 'failed') ? <Action tone="secondary" onClick={() => setSettlingOffline(true)}>{t('hub.statements.settleOffline')}</Action> : null}
+        {finance && s.status === 'unknown' ? <Action onClick={() => setReconciling(true)}>{t('hub.statements.reconcile')}</Action> : null}
         {finance && s.status === 'draft' ? <Action tone="secondary" onClick={() => setAdjusting(true)}>{t('hub.statements.adjust')}</Action> : null}
         {finance && s.status !== 'draft' ? <Action tone="secondary" busy={correction.isPending} onClick={() => correction.mutate(s.driverId)}>{t('hub.statements.prepareCorrection')}</Action> : null}
         {s.pdfAvailable ? (
@@ -85,6 +92,7 @@ export default function StatementDetailPage() {
         ) : s.status !== 'draft' ? <span className="text-sm text-neutral-600">{t('hub.statements.pdfPending')}</span> : null}
       </div>
       {s.status === 'draft' ? <Notice tone="info">{`${t('hub.statements.issueHint')} ${t('hub.statements.adjustHint')}`}</Notice> : null}
+      {s.status === 'unknown' ? <Notice tone="warning">{t('hub.statements.reconcileHint')}</Notice> : null}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card title={t('hub.statements.lines')} className="lg:col-span-2">
@@ -109,7 +117,40 @@ export default function StatementDetailPage() {
 
       <OfflineDialog open={settlingOffline} netCents={s.netCents} busy={offline.isPending} error={offline.isError ? errorText(offline.error) : null} onClose={() => setSettlingOffline(false)} onSubmit={(body) => offline.mutate(body)} />
       <AdjustDialog open={adjusting} busy={adjust.isPending} error={adjust.isError ? errorText(adjust.error) : null} onClose={() => setAdjusting(false)} onSubmit={(body) => adjust.mutate(body)} />
+      <ReconcileDialog open={reconciling} busy={reconcile.isPending} error={reconcile.isError ? errorText(reconcile.error) : null} onClose={() => setReconciling(false)} onSubmit={(body) => reconcile.mutate(body)} />
     </div>
+  );
+}
+
+/** Réconciliation d'un relevé « sans réponse du prestataire » : rejeu avec la même clé, mouvement constaté (référence exigée) ou rien d'exécuté. */
+function ReconcileDialog({ open, busy, error, onClose, onSubmit }: { open: boolean; busy: boolean; error: string | null; onClose: () => void; onSubmit: (body: StatementReconcile) => void }) {
+  const { t } = useTranslation();
+  const [outcome, setOutcome] = useState<StatementReconcile['outcome']>('replay');
+  const [reference, setReference] = useState('');
+  const [note, setNote] = useState('');
+  const needsReference = outcome === 'executed';
+  return (
+    <Dialog open={open} title={t('hub.statements.reconcile')} onClose={onClose}>
+      <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); onSubmit({ outcome, ...(reference.trim() ? { reference: reference.trim() } : {}), ...(note.trim() ? { note: note.trim() } : {}) }); }}>
+        <Notice tone="info">{t('hub.statements.reconcileHint')}</Notice>
+        <Field label={t('hub.statements.reconcileOutcome')}>
+          {(p) => (
+            <Select {...p} value={outcome} onChange={(e) => setOutcome(e.target.value as StatementReconcile['outcome'])}>
+              <option value="replay">{t('hub.statements.outcomeReplay')}</option>
+              <option value="executed">{t('hub.statements.outcomeExecuted')}</option>
+              <option value="not_executed">{t('hub.statements.outcomeNotExecuted')}</option>
+            </Select>
+          )}
+        </Field>
+        <Field label={t('hub.statements.reconcileReference')}>{(p) => <Input {...p} required={needsReference} minLength={2} maxLength={120} value={reference} onChange={(e) => setReference(e.target.value)} />}</Field>
+        <Field label={t('hub.statements.offlineNote')}>{(p) => <Input {...p} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />}</Field>
+        {error ? <Notice tone="danger">{error}</Notice> : null}
+        <div className="flex justify-end gap-2">
+          <Action tone="secondary" onClick={onClose}>{t('hub.common.cancel')}</Action>
+          <Action type="submit" busy={busy} disabled={needsReference && reference.trim().length < 2}>{t('hub.common.confirm')}</Action>
+        </div>
+      </form>
+    </Dialog>
   );
 }
 

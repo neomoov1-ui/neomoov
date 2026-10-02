@@ -10,7 +10,7 @@ import type {
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
-import type { AdminBalance, AdminStatementDetail, OfflinePayout, StatementAdjust, StatementGenerate, StatementGeneration, StatementSettleOffline } from '@neomoov/domain';
+import type { AdminBalance, AdminStatementDetail, OfflinePayout, OrganizationStatementView, StatementAdjust, StatementGenerate, StatementGeneration, StatementReconcile, StatementSettleOffline } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
 import type { AdminSanctionAppealView, AppealStatus, SanctionAppealDecision } from '@neomoov/domain';
@@ -145,6 +145,9 @@ export function adminResource(t: Transport) {
     issueStatement: (statementId: string) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/issue`),
     payStatement: (statementId: string) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/pay`),
     settleStatementOffline: (statementId: string, body: StatementSettleOffline) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/settle-offline`, body),
+    /** Revue du 2 octobre 2026 (constat 7) : relevé resté sans réponse du prestataire, tranché par les finances (rejeu, mouvement constaté, rien d'exécuté). */
+    reconcileStatement: (statementId: string, body: StatementReconcile) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/reconcile`, body),
+    reconcileOrganizationStatement: (statementId: string, body: StatementReconcile) => t.post<OrganizationStatementView>(`/admin/organization-statements/${id(statementId)}/reconcile`, body),
     adjustStatement: (statementId: string, body: StatementAdjust) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/adjust`, body),
     statementPdfPath: (statementId: string) => `/admin/statements/${id(statementId)}/pdf`,
     balances: () => t.get<AdminBalance[]>('/admin/balances'),
