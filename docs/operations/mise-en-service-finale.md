@@ -12,7 +12,7 @@ Vérification faite sans lire une seule valeur : le script `scripts/env-check.mj
 |---|---|---|---|
 | Textos (Twilio) | **En place depuis le 2 octobre au soir** (clés posées par `envoyer-twilio-serveur.ps1`, textos réels, premier code de connexion reçu) | Reste le webhook des textos entrants sur le numéro (section 2, étape C) et le second numéro pour WhatsApp | 2 |
 | Clé publique du site (`NEOMOOV_PUBLIC_API_KEY`) | Absente | **Réservation web et préinscription des chauffeurs en panne** : `reserver.neomoov.net` répond « Clé publique non configurée sur le serveur web » (503), et le site neomoov.net qui l'intègre aussi | 3 |
-| Courriels (Resend) | Clé présente (clé « envoi seulement » : l'état du domaine n'est pas consultable par l'API ; le domaine a été vérifié le 29 septembre d'après nos notes) | À confirmer par un envoi réel depuis le serveur (fait par moi, section 4) | 4 |
+| Courriels (Resend) | **En place** : deux courriels d'essai envoyés depuis le serveur le 2 octobre au soir et acceptés (domaine vérifié) ; expéditeur `Neomoov <assistance@neomoov.net>` ; redirections `assistance@`, `comptes@`, `operations@`, `beta@`, `support@` créées chez LWS | Rien | 4 |
 | Documents (stockage S3 de Supabase) | Adresse et compartiment présents, **clés d'accès absentes** | Documents des chauffeurs gardés en mémoire, perdus à chaque redémarrage | 5 |
 | Sauvegarde chiffrée du serveur | Phrase secrète absente | **Aucune sauvegarde** ; les purges de conservation (Loi 25) restent bloquées | 6 |
 | Dépôt GitHub `neomoov1-ui/neomoov` | Public | Code confidentiel et contenu payant de l'Academy exposés | 7 |
