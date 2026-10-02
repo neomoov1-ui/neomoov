@@ -3,8 +3,9 @@
  * (assistant d'alerte Vapi). Un seul appel par incident, même quand plusieurs processus reçoivent l'événement ; sans
  * numéro ou sans assistant configurés (`alerts.founder_phone`, `voice.sos_assistant_id`), rien n'est tenté.
  */
+import { schema } from '@neomoov/db';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { VOICE_PROVIDER, type VoiceProvider } from '../../adapters/types.js';
 import { DomainEventsService } from '../../common/domain-events.js';
@@ -39,7 +40,9 @@ export class SosCallService implements OnModuleInit {
       WHERE r.id = ${rideId}::uuid AND NOT EXISTS (SELECT 1 FROM ride_events e WHERE e.ride_id = r.id AND e.type = 'sos_call' AND e.data->>'incidentId' = ${incidentId})
       RETURNING id`);
     if (!rows.length) return null;
-    const { callId } = await this.voice.startOutboundCall({ to: phone, assistantId, metadata: { rideId, incidentId } });
+    // Le numéro public de la course est dit au fondateur par l'assistant (`{{publicNumber}}` du premier message).
+    const [ride] = await this.database.db.select({ publicNumber: schema.rides.publicNumber }).from(schema.rides).where(eq(schema.rides.id, rideId)).limit(1);
+    const { callId } = await this.voice.startOutboundCall({ to: phone, assistantId, metadata: { rideId, incidentId }, variables: { publicNumber: ride?.publicNumber ?? rideId, incidentId } });
     return callId;
   }
 }

@@ -24,7 +24,7 @@ Règles : aucune valeur dans le dépôt, un message, un courriel, un ticket ou u
 ## 2. Procédure générale (clé d'un fournisseur)
 
 1. Créer la nouvelle clé chez le fournisseur, en laissant l'ancienne active.
-2. Remplacer la valeur dans `/opt/neomoov/.env` (`nano /opt/neomoov/.env`).
+2. Remplacer la valeur dans `/opt/neomoov/.env`, sans l'afficher : depuis le poste, `ssh -t root@<adresse IP du VPS> /opt/neomoov/infra/scripts/env-set.sh NOM_DE_LA_VARIABLE` (saisie masquée ; `--generate` fabrique un secret aléatoire de 32 caractères ; `--recreate api worker` enchaîne l'étape 3 ; `--build` reconstruit l'image du web pour une variable `NEXT_PUBLIC_*`). À défaut, `nano /opt/neomoov/.env`.
 3. Recréer les services qui la lisent : `docker compose -f infra/compose.prod.yml up -d --force-recreate api worker` (ajouter `web` pour `NEOMOOV_PUBLIC_API_KEY`).
 4. Vérifier : `curl -s https://api.neomoov.net/v1/health`, puis une action réelle qui utilise la clé (texto de connexion, devis, courriel de test).
 5. Révoquer l'ancienne clé chez le fournisseur.

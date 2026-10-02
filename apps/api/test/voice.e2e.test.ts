@@ -77,6 +77,11 @@ describe('agent vocal Vapi (intégration)', () => {
     expect((await db(app).select({ state: schema.rides.state }).from(schema.rides).where(eq(schema.rides.id, ride!.id)))[0]!.state).toBe('cancelled_by_client');
     const [none] = (await tools(phone, [{ name: 'rideStatus', args: {} }, { name: 'transferToHuman', args: { reason: 'plainte' } }])).results;
     expect(none).toMatchObject({ ok: true, rides: [] });
+
+    // Transfert dynamique : Vapi demande la destination, lue dans les réglages, dans la langue de l'appelant.
+    const asked = await request(server()).post('/v1/webhooks/vapi').set('x-vapi-secret', 'mock-signature').send({ message: { type: 'transfer-destination-request', call: { id: 'call-transfer', customer: { number: phone } } } });
+    expect(asked.status).toBe(200);
+    expect(asked.body).toEqual({ destination: { type: 'number', number: expect.stringMatching(/^\+1/), message: 'Je vous transfère à un membre de l\'équipe.' } });
   });
 
   it('appelant reconnu : course sur son compte, langue du compte ; rapport de fin d\'appel journalisé une fois', async ({ skip }) => {
@@ -117,7 +122,7 @@ describe('agent vocal Vapi (intégration)', () => {
       const voice = app.get<MockVoiceProvider>(VOICE_PROVIDER);
       const callId = await sos.call(ride!.id, 'incident-1');
       expect(callId).toMatch(/^call_mock/);
-      expect(voice.calls.at(-1)).toMatchObject({ to: '+15145550199', assistantId: 'asst-sos' });
+      expect(voice.calls.at(-1)).toMatchObject({ to: '+15145550199', assistantId: 'asst-sos', variables: { publicNumber: expect.stringMatching(/^NM-/), incidentId: 'incident-1' } });
       expect(await sos.call(ride!.id, 'incident-1')).toBeNull();
       expect(await sos.call(ride!.id, 'incident-2')).toMatch(/^call_mock/);
     } finally {

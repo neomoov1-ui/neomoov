@@ -28,12 +28,18 @@ export class VapiVoiceProvider implements VoiceProvider {
     return { name: this.name, configured: true };
   }
 
-  async startOutboundCall(input: { to: string; assistantId: string; metadata?: Record<string, string> }): Promise<{ callId: string }> {
+  async startOutboundCall(input: { to: string; assistantId: string; metadata?: Record<string, string>; variables?: Record<string, string> }): Promise<{ callId: string }> {
     if (!this.phoneNumberId) throw new AppError('VOICE_NOT_CONFIGURED', 'Numéro Vapi absent (VAPI_PHONE_NUMBER_ID)', 501);
     const res = await this.fetchImpl(`${API}/call`, {
       method: 'POST',
       headers: { authorization: `Bearer ${this.#apiKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ assistantId: input.assistantId, phoneNumberId: this.phoneNumberId, customer: { number: input.to }, ...(input.metadata ? { metadata: input.metadata } : {}) }),
+      body: JSON.stringify({
+        assistantId: input.assistantId,
+        phoneNumberId: this.phoneNumberId,
+        customer: { number: input.to },
+        ...(input.metadata ? { metadata: input.metadata } : {}),
+        ...(input.variables ? { assistantOverrides: { variableValues: input.variables } } : {}),
+      }),
     });
     const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
     if (!res.ok || !body.id) throw new AppError('VOICE_CALL_FAILED', 'Appel refusé par Vapi', 502);

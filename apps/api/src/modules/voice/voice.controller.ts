@@ -24,8 +24,12 @@ export class VoiceWebhooksController {
   @Public()
   @NoAudit()
   @HttpCode(200)
-  @ApiOperation({ summary: 'Messages du serveur Vapi : outils de l\'agent vocal (prix, réservation, état, annulation, transfert) et rapport de fin d\'appel' })
-  @ZodResponse(200, z.union([z.object({ results: z.array(z.object({ toolCallId: z.string(), result: z.string() })) }), z.object({ received: z.literal(true) })]))
+  @ApiOperation({ summary: 'Messages du serveur Vapi : outils de l\'agent vocal (prix, réservation, état, annulation), destination du transfert et rapport de fin d\'appel' })
+  @ZodResponse(200, z.union([
+    z.object({ results: z.array(z.object({ toolCallId: z.string(), result: z.string() })) }),
+    z.object({ destination: z.object({ type: z.literal('number'), number: z.string(), message: z.string() }) }),
+    z.object({ received: z.literal(true) }),
+  ]))
   @ApiErrors(400, 429)
   async vapi(@Req() req: RawBodyRequest<Request>, @Headers('x-vapi-secret') secret: string | undefined) {
     if (!req.rawBody || !secret) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook absente', 400);

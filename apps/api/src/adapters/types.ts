@@ -197,7 +197,8 @@ export interface WhatsAppProvider {
 
 export interface VoiceProvider {
   readonly name: string;
-  startOutboundCall(input: { to: string; assistantId: string; metadata?: Record<string, string> }): Promise<{ callId: string }>;
+  /** Appel sortant ; `variables` remplit les `{{variables}}` du premier message et du prompt de l'assistant (Vapi : `assistantOverrides.variableValues`). */
+  startOutboundCall(input: { to: string; assistantId: string; metadata?: Record<string, string>; variables?: Record<string, string> }): Promise<{ callId: string }>;
   verifyWebhook(rawBody: string | Buffer, signature: string): Promise<{ type: string; payload: unknown }>;
 }
 

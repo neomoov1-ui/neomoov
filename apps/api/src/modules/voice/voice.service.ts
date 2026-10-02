@@ -29,6 +29,11 @@ export interface VapiMessage {
   durationSeconds?: number;
 }
 
+/** Réponse à `transfer-destination-request` : où transférer l'appel (outil `transferCall` sans destination fixe). */
+export interface TransferDestination {
+  destination: { type: 'number'; number: string; message: string };
+}
+
 export interface Caller {
   phone: string | null;
   userId: string | null;
@@ -72,8 +77,16 @@ export class VoiceService {
       }
       return { results };
     }
+    if (message.type === 'transfer-destination-request') return this.transferDestination(message);
     if (message.type === 'end-of-call-report') await this.logCall(message);
     return { received: true };
+  }
+
+  /** Destination du transfert, lue dans les réglages à chaque appel (changement dans My Hub effectif sans toucher à Vapi). */
+  async transferDestination(message: VapiMessage): Promise<TransferDestination> {
+    const caller = await this.caller(message.call?.customer?.number ?? null);
+    const number = await this.settings.string('voice.transfer_number', '+15145550100');
+    return { destination: { type: 'number', number, message: caller.language === 'en' ? 'I am transferring you to a team member.' : 'Je vous transfère à un membre de l\'équipe.' } };
   }
 
   async caller(phone: string | null): Promise<Caller> {

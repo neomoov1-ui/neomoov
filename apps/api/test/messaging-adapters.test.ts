@@ -91,7 +91,7 @@ describe('adaptateurs réels des messages (sans réseau)', () => {
     const { calls, impl } = fakeFetch([{ match: '/messages', json: { messages: [{ id: 'wamid.1' }] } }]);
     const wa = new WhatsAppCloudProvider('wa-token', '123456', 'verif', 'app-secret', impl);
     expect(await wa.sendText({ to: '+15145550142', text: 'Bonjour' })).toEqual({ messageId: 'wamid.1' });
-    expect(calls[0]!.url).toBe('https://graph.facebook.com/v20.0/123456/messages');
+    expect(calls[0]!.url).toBe('https://graph.facebook.com/v26.0/123456/messages');
     expect(JSON.parse(calls[0]!.body!)).toEqual({ messaging_product: 'whatsapp', to: '15145550142', type: 'text', text: { body: 'Bonjour', preview_url: true } });
     await wa.sendTemplate({ to: '+15145550142', template: 'ride_reminder', language: 'fr_CA', parameters: ['demain 8 h'] });
     expect(JSON.parse(calls[1]!.body!).template).toEqual({ name: 'ride_reminder', language: { code: 'fr_CA' }, components: [{ type: 'body', parameters: [{ type: 'text', text: 'demain 8 h' }] }] });

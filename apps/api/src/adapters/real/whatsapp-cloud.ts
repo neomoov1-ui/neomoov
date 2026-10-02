@@ -7,7 +7,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { AppError } from '../../common/app-error.js';
 import type { WhatsAppInbound, WhatsAppProvider } from '../types.js';
 
-const GRAPH = 'https://graph.facebook.com/v20.0';
+/** Version de l'API Graph (v26.0 publiée le 29 juillet 2026 ; chaque version vit deux ans environ, à monter avant son retrait). */
+const GRAPH = 'https://graph.facebook.com/v26.0';
 
 export function whatsappSignature(appSecret: string, rawBody: string | Buffer): string {
   return `sha256=${createHmac('sha256', appSecret).update(rawBody).digest('hex')}`;
