@@ -77,7 +77,7 @@ const fr = {
   documents: { title: 'Documents à vérifier', type: 'Type', driver: 'Chauffeur', number: 'Numéro', issued: 'Émis le', expires: 'Expire le', uploaded: 'Reçu le', approve: 'Valider', reject: 'Refuser', view: 'Afficher', viewer: 'Document {{type}}', unreadable: 'Aperçu indisponible : téléchargez le fichier.', download: 'Télécharger' },
   vehicles: { title: 'Véhicules', vehicle: 'Véhicule', plate: 'Plaque', seats: 'Places', inspection: 'Prochaine inspection', review: 'Changer le statut' },
   clients: { title: 'Clients', name: 'Nom', phone: 'Téléphone', email: 'Courriel', rides: 'Courses', since: 'Client depuis' },
-  leads: { title: 'Prospects', kind: 'Type', contact: 'Coordonnées', city: 'Ville', message: 'Message', source: 'Source', received: 'Reçu le' },
+  leads: { title: 'Prospects', kind: 'Type', contact: 'Coordonnées', city: 'Ville', message: 'Message', source: 'Source', received: 'Reçu le', attestation: 'Attestation Chauffeur Pro', verify: 'Vérifier', valid: 'Attestation valide', invalid: 'Aucune attestation valide pour ce code', exam: 'examen final réussi', checkError: 'Vérification impossible, réessayez' },
   tariffs: {
     title: 'Tarifs', subtitle: 'Grille par catégorie avec date d\'entrée en vigueur : la ligne la plus récente déjà en vigueur fait foi. Montants en dollars.',
     category: 'Catégorie', base: 'Prise en charge', perKm: 'Par km', perMinute: 'Par minute', minimum: 'Minimum', validFrom: 'En vigueur le', validTo: 'Jusqu\'au', current: 'En vigueur', upcoming: 'À venir', past: 'Remplacé',
@@ -364,7 +364,7 @@ const en: typeof fr = {
   documents: { title: 'Documents to check', type: 'Type', driver: 'Driver', number: 'Number', issued: 'Issued on', expires: 'Expires on', uploaded: 'Received on', approve: 'Approve', reject: 'Reject', view: 'View', viewer: 'Document: {{type}}', unreadable: 'Preview unavailable: download the file.', download: 'Download' },
   vehicles: { title: 'Vehicles', vehicle: 'Vehicle', plate: 'Plate', seats: 'Seats', inspection: 'Next inspection', review: 'Change status' },
   clients: { title: 'Customers', name: 'Name', phone: 'Phone', email: 'Email', rides: 'Rides', since: 'Customer since' },
-  leads: { title: 'Leads', kind: 'Type', contact: 'Contact', city: 'City', message: 'Message', source: 'Source', received: 'Received on' },
+  leads: { title: 'Leads', kind: 'Type', contact: 'Contact', city: 'City', message: 'Message', source: 'Source', received: 'Received on', attestation: 'Chauffeur Pro certificate', verify: 'Verify', valid: 'Valid certificate', invalid: 'No valid certificate for this code', exam: 'final exam passed', checkError: 'Check failed, try again' },
   tariffs: {
     title: 'Rates', subtitle: 'Rate table per category with an effective date: the most recent row already in effect applies. Amounts in dollars.',
     category: 'Category', base: 'Base fare', perKm: 'Per km', perMinute: 'Per minute', minimum: 'Minimum', validFrom: 'Effective', validTo: 'Until', current: 'In effect', upcoming: 'Upcoming', past: 'Replaced',

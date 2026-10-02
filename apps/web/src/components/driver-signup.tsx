@@ -9,7 +9,7 @@ import { ApiError, publicApi, toE164 } from '@/lib/site-api';
 
 export function DriverSignup() {
   const { t, i18n } = useTranslation();
-  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', city: 'Montréal', message: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', city: 'Montréal', message: '', academyCode: '' });
   const [consent, setConsent] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -17,11 +17,13 @@ export function DriverSignup() {
   const [error, setError] = useState<string | null>(null);
   const onToken = useCallback((value: string | null) => setToken(value), []);
   const phone = toE164(form.phone);
+  const academyCode = form.academyCode.trim().toUpperCase();
+  const academyOk = academyCode === '' || /^(NCP|CAP)-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(academyCode);
   const benefits = t('driversPage.benefits', { returnObjects: true }) as string[];
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
 
   async function submit() {
-    if (!phone || !consent || !token) return;
+    if (!phone || !consent || !token || !academyOk) return;
     setBusy(true);
     setError(null);
     try {
@@ -29,6 +31,7 @@ export function DriverSignup() {
         kind: 'driver', firstName: form.firstName.trim(), phone, language: i18n.language === 'en' ? 'en' : 'fr', antiBotToken: token, consent: true,
         ...(form.lastName.trim() ? { lastName: form.lastName.trim() } : {}), ...(form.email.trim() ? { email: form.email.trim() } : {}),
         ...(form.city.trim() ? { city: form.city.trim() } : {}), ...(form.message.trim() ? { message: form.message.trim() } : {}),
+        ...(academyCode ? { academyCode } : {}),
       });
       setSent(true);
     } catch (e) {
@@ -67,10 +70,11 @@ export function DriverSignup() {
             <Field label={t('driversPage.email')}>{(p) => <Input {...p} type="email" autoComplete="email" maxLength={254} value={form.email} onChange={set('email')} />}</Field>
             <Field label={t('driversPage.city')}>{(p) => <Input {...p} autoComplete="address-level2" maxLength={80} value={form.city} onChange={set('city')} />}</Field>
             <Field label={t('driversPage.message')}>{(p) => <Textarea {...p} maxLength={2000} value={form.message} onChange={set('message')} />}</Field>
+            <Field label={t('driversPage.academyCode')} error={academyOk ? null : t('driversPage.academyCodeError')}>{(p) => <Input {...p} maxLength={14} placeholder="NCP-XXXX-XXXX" autoComplete="off" value={form.academyCode} onChange={set('academyCode')} />}</Field>
             <Checkbox required checked={consent} onChange={(e) => setConsent(e.target.checked)} label={t('driversPage.consent')} />
             <Turnstile onToken={onToken} language={i18n.language === 'en' ? 'en' : 'fr'} />
             {error ? <Notice tone="danger">{error}</Notice> : null}
-            <div><Action type="submit" busy={busy} disabled={busy || !phone || !consent || !token || !form.firstName.trim()}>{busy ? t('driversPage.sending') : t('driversPage.submit')}</Action></div>
+            <div><Action type="submit" busy={busy} disabled={busy || !phone || !consent || !token || !academyOk || !form.firstName.trim()}>{busy ? t('driversPage.sending') : t('driversPage.submit')}</Action></div>
           </form>
         )}
       </Card>

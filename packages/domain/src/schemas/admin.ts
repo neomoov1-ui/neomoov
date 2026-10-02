@@ -370,6 +370,8 @@ export const leadInputSchema = z.object({
   email: z.string().trim().email().max(254).optional(),
   city: z.string().trim().max(80).optional(),
   message: z.string().trim().max(2000).optional(),
+  /** Code d'attestation Neomoov Chauffeur Pro (facultatif) : vérifié dans My Hub auprès de l'API publique de l'Academy. */
+  academyCode: z.string().trim().toUpperCase().regex(/^(NCP|CAP)-[A-Z0-9]{4}-[A-Z0-9]{4}$/, 'Code d\'attestation attendu : NCP-XXXX-XXXX').optional(),
   language: z.enum(LANGUAGES).default('fr'),
   /** Jeton de la protection anti-robots (Cloudflare Turnstile). */
   antiBotToken: z.string().min(1).max(2048),

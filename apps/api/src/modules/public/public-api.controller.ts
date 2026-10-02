@@ -60,7 +60,9 @@ export class PublicApiController {
       .insert(schema.leads)
       .values({
         kind: body.kind, firstName: body.firstName, lastName: body.lastName ?? null, phone: body.phone, email: body.email?.toLowerCase() ?? null, city: body.city ?? null,
-        message: body.message ?? null, language: body.language, source, consentAt: new Date(),
+        // L'attestation Neomoov Chauffeur Pro est consignée en tête du message ; My Hub la vérifie auprès de l'Academy.
+        message: [body.academyCode ? `Attestation Neomoov Chauffeur Pro : ${body.academyCode}` : null, body.message ?? null].filter(Boolean).join('\n') || null,
+        language: body.language, source, consentAt: new Date(),
       })
       .returning({ id: schema.leads.id });
     this.audit.record({ action: 'public.lead_received', entity: 'leads', entityId: row!.id, after: { kind: body.kind, source } });

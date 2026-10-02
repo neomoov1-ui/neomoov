@@ -58465,6 +58465,10 @@
                     "type": "string",
                     "maxLength": 2000
                   },
+                  "academyCode": {
+                    "type": "string",
+                    "pattern": "^(NCP|CAP)-[A-Z0-9]{4}-[A-Z0-9]{4}$"
+                  },
                   "language": {
                     "default": "fr",
                     "type": "string",

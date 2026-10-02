@@ -52,7 +52,8 @@ function csp(frameAncestors: string, extra: Extra = {}): string {
     // `https:` : logo d'une organisation hébergé chez elle (marque par organisation, étape 22), images seulement.
     `img-src 'self' data: blob: https: ${TILES}${more('img')}`,
     `font-src 'self' data:${more('font')}`,
-    `connect-src 'self' ${apiOrigin} ${socketOrigin} ${TURNSTILE}${sentryOrigin()}${more('connect')}`,
+    // `https://neomoov.net` : vérification des attestations Neomoov Chauffeur Pro (API publique de l'Academy) depuis My Hub.
+    `connect-src 'self' ${apiOrigin} ${socketOrigin} ${TURNSTILE} https://neomoov.net${sentryOrigin()}${more('connect')}`,
     `frame-src 'self' blob: ${TURNSTILE}${more('frame')}`,
     "object-src 'none'",
     "base-uri 'self'",
