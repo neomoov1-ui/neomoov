@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiDocsServed, cardPaymentsEnabled, loadEnv, squareConfig } from '../src/config/env.js';
+import { apiDocsServed, cardPaymentsEnabled, loadEnv, MIN_SECRET_LENGTH, squareConfig } from '../src/config/env.js';
 
 const base = { NODE_ENV: 'test', DATABASE_URL: 'postgresql://user:pass@localhost:5432/neomoov_test' };
 
@@ -41,7 +41,7 @@ describe('configuration', () => {
 
   it('exige les secrets, Redis et la vérification réelle des jetons Apple et Google en production', () => {
     expect(() => loadEnv({ ...base, NODE_ENV: 'production' }, { dotenv: false })).toThrow(/JWT_ACCESS_SECRET/);
-    const secrets = { ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a', JWT_REFRESH_SECRET: 'b', ENCRYPTION_KEY: 'c' };
+    const secrets = { ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(32), ENCRYPTION_KEY: 'c'.repeat(32) };
     expect(() => loadEnv(secrets, { dotenv: false })).toThrow(/REDIS_URL/);
     expect(() => loadEnv({ ...secrets, REDIS_URL: 'redis://redis:6379' }, { dotenv: false })).toThrow(/SOCIAL_LOGIN_PROVIDER/);
     expect(() => loadEnv({ ...secrets, REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'mock' }, { dotenv: false })).toThrow(/SOCIAL_LOGIN_PROVIDER/);
@@ -53,6 +53,20 @@ describe('configuration', () => {
     expect(() => loadEnv({ ...ready, ALLOW_MOCK_PROVIDERS: 'payment,sev' }, { dotenv: false })).toThrow(/storage/);
     const real = { ...ready, SMS_PROVIDER: 'real', EMAIL_PROVIDER: 'real', PUSH_PROVIDER: 'real', MAPS_PROVIDER: 'real', STORAGE_PROVIDER: 'real', LLM_PROVIDER: 'real', VIRUS_SCANNER_PROVIDER: 'real', CRM_PROVIDER: 'real', BILLING_PROVIDER: 'real' };
     expect(loadEnv({ ...real, ALLOW_MOCK_PROVIDERS: 'payment, SEV ,whatsapp,voice' }, { dotenv: false }).PAYMENT_PROVIDER).toBe('mock');
+  });
+
+  it('revue du 2 octobre 2026 (sécurité 12) : secrets JWT et clé de chiffrement de 32 caractères au moins en production, pas de minimum ailleurs', () => {
+    expect(MIN_SECRET_LENGTH).toBe(32);
+    const ready = { ...base, NODE_ENV: 'production', REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real', ALLOW_MOCK_PROVIDERS: 'payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing' };
+    const long = { JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(40), ENCRYPTION_KEY: 'c'.repeat(64) };
+    expect(loadEnv({ ...ready, ...long }, { dotenv: false }).ENCRYPTION_KEY).toBe('c'.repeat(64));
+    expect(() => loadEnv({ ...ready, ...long, JWT_ACCESS_SECRET: 'a'.repeat(31) }, { dotenv: false })).toThrow(/JWT_ACCESS_SECRET : 32 caractères au moins/);
+    expect(() => loadEnv({ ...ready, ...long, JWT_REFRESH_SECRET: 'court' }, { dotenv: false })).toThrow(/JWT_REFRESH_SECRET : 32 caractères/);
+    expect(() => loadEnv({ ...ready, ...long, ENCRYPTION_KEY: 'dev-encryption-key-non-secret-32b'.slice(0, 20) }, { dotenv: false })).toThrow(/ENCRYPTION_KEY : 32 caractères/);
+    // Les secrets manquants restent signalés comme tels, avant la longueur.
+    expect(() => loadEnv({ ...ready, ...long, ENCRYPTION_KEY: '' }, { dotenv: false })).toThrow(/ENCRYPTION_KEY obligatoire/);
+    // Hors production : un secret court est accepté (valeurs de repli en développement et en test).
+    expect(loadEnv({ ...base, JWT_ACCESS_SECRET: 'court' }, { dotenv: false }).JWT_ACCESS_SECRET).toBe('court');
   });
 
   it('documentation OpenAPI : servie hors production, fermée en production sauf demande', () => {
@@ -80,7 +94,7 @@ describe('configuration', () => {
     expect(() => loadEnv({ ...base, PAYMENT_PROVIDER: 'paypal' }, { dotenv: false })).toThrow(/PAYMENT_PROVIDER/);
 
     const ready = {
-      ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a', JWT_REFRESH_SECRET: 'b', ENCRYPTION_KEY: 'c', REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real',
+      ...base, NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_REFRESH_SECRET: 'b'.repeat(32), ENCRYPTION_KEY: 'c'.repeat(32), REDIS_URL: 'redis://redis:6379', SOCIAL_LOGIN_PROVIDER: 'real',
       ALLOW_MOCK_PROVIDERS: 'maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing', PAYMENT_PROVIDER: 'square',
     };
     expect(() => loadEnv(ready, { dotenv: false })).toThrow(/PAYMENT_PROVIDER=square.*SQUARE_ACCESS_TOKEN, SQUARE_APPLICATION_ID, SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY, SQUARE_WEBHOOK_URL/);

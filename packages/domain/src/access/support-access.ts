@@ -46,11 +46,19 @@ export function supportGrantTransition(current: SupportAccessStatus, action: Sup
 }
 
 /**
+ * Permissions jamais exercées par le support pendant un accès (revue du 2 octobre 2026, sécurité 5) : il ne peut ni
+ * s'inviter ni se rendre permanent, ni toucher aux membres, aux rôles, aux sous-organisations ou aux domaines de
+ * l'organisation ; ces décisions restent aux membres de l'organisation.
+ */
+export const SUPPORT_ACCESS_EXCLUDED_PERMISSIONS: readonly Permission[] = ['members.invite', 'members.manage', 'roles.manage', 'organizations.manage', 'domains.manage'];
+
+/**
  * Permissions du support pendant un accès en cours : ses permissions sur la plateforme, limitées à celles qu'une
- * organisation cliente peut détenir et aux modules de la formule de l'organisation (`null` : aucun module restreint).
+ * organisation cliente peut détenir et aux modules de la formule de l'organisation (`null` : aucun module restreint),
+ * sans celles de `SUPPORT_ACCESS_EXCLUDED_PERMISSIONS`.
  */
 export function supportAccessPermissions(platform: ReadonlySet<Permission>, modules: readonly string[] | null): Set<Permission> {
-  return new Set(ORGANIZATION_PERMISSIONS.filter((code) => platform.has(code) && (!modules || modules.includes(PERMISSIONS[code].module))));
+  return new Set(ORGANIZATION_PERMISSIONS.filter((code) => platform.has(code) && !SUPPORT_ACCESS_EXCLUDED_PERMISSIONS.includes(code) && (!modules || modules.includes(PERMISSIONS[code].module))));
 }
 
 /** Rôle système du propriétaire du compte d'une organisation cliente (N1). */

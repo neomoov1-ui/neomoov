@@ -20,6 +20,42 @@ function clean<T extends Record<string, unknown>>(row: T, omit: string[] = []): 
   return out;
 }
 
+/**
+ * Projection d'une course par rôle (revue du 2 octobre 2026, Loi 25 n° 1) : une course porte des données de deux
+ * personnes, l'export n'en rend qu'une liste blanche de champs. Le chauffeur reçoit sa prestation (états, horaires,
+ * montants, distance), jamais le nom, le téléphone, les adresses, les positions ni les textes du passager ; le client
+ * reçoit sa course sans donnée du chauffeur au-delà de ce que l'application lui montre déjà (ni tarif du chauffeur, ni
+ * identifiants techniques) ; les secrets (jeton de suivi, clé d'idempotence, référence du paiement échelonné) ne sortent
+ * jamais.
+ */
+export const RIDE_EXPORT_FIELDS = {
+  client: [
+    'id', 'publicNumber', 'cityCode', 'clientId', 'guestName', 'guestPhone', 'guestLanguage', 'quoteId', 'reservedCategory', 'servedCategory', 'state', 'type', 'requestedAt',
+    'flightNumber', 'passengerName', 'passengerPhone', 'originAddress', 'originPosition', 'destinationAddress', 'destinationPosition', 'stops', 'preferences', 'specialRequests',
+    'options', 'paymentMethod', 'paymentChoice', 'tollsCents', 'maxConsentedCents', 'quotedTotalCents', 'finalPriceCents', 'serviceFeeCents', 'regulatoryFeeCents', 'gstCents',
+    'qstCents', 'waitChargeCents', 'waitedSeconds', 'tipCents', 'promotionId', 'promotionDiscountCents', 'guaranteeOutcome', 'creditsAppliedCents', 'modelGuaranteeApplied',
+    'favoriteDriverRequested', 'cancellationReason', 'cancellationComment', 'cancellationFeeCents', 'proposedTotalCents', 'agreedTotalCents', 'negotiationMode', 'stateTimestamps',
+    'distanceMeters', 'durationSeconds', 'createdAt', 'updatedAt',
+  ],
+  driver: [
+    'id', 'publicNumber', 'cityCode', 'driverId', 'vehicleId', 'reservedCategory', 'servedCategory', 'state', 'type', 'requestedAt', 'paymentMethod', 'paymentChoice', 'tollsCents',
+    'finalPriceCents', 'fareCents', 'serviceFeeCents', 'regulatoryFeeCents', 'gstCents', 'qstCents', 'waitChargeCents', 'waitedSeconds', 'contactAttempts', 'tipCents',
+    'guaranteeOutcome', 'driverFareProtected', 'modelGuaranteeApplied', 'cancellationReason', 'cancellationFeeCents', 'agreedTotalCents', 'negotiationMode', 'stateTimestamps',
+    'distanceMeters', 'durationSeconds', 'createdAt', 'updatedAt',
+  ],
+} as const satisfies Record<'client' | 'driver', readonly string[]>;
+
+/** Course projetée pour le rôle (liste blanche) ; un champ absent de la ligne est ignoré. */
+export function projectRide(row: Record<string, unknown>, role: keyof typeof RIDE_EXPORT_FIELDS): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const field of RIDE_EXPORT_FIELDS[role]) {
+    if (!(field in row)) continue;
+    const value = row[field];
+    out[field] = value instanceof Date ? value.toISOString() : value;
+  }
+  return out;
+}
+
 /** `decrypt` : champs chiffrés par l'application (numéros de taxes et de documents), rendus en clair à leur titulaire. */
 export async function collectUserData(db: Database, userId: string, decrypt: (value: string | null) => string | null = (v) => v): Promise<ExportData> {
   const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
@@ -38,7 +74,7 @@ export async function collectUserData(db: Database, userId: string, decrypt: (va
   if (client) {
     data['client'] = clean(client);
     data['savedPlaces'] = (await db.select().from(schema.savedPlaces).where(eq(schema.savedPlaces.clientId, client.id))).map((p) => clean(p));
-    data['ridesAsClient'] = (await db.select().from(schema.rides).where(eq(schema.rides.clientId, client.id)).orderBy(desc(schema.rides.createdAt)).limit(1000)).map((r) => clean(r));
+    data['ridesAsClient'] = (await db.select().from(schema.rides).where(eq(schema.rides.clientId, client.id)).orderBy(desc(schema.rides.createdAt)).limit(1000)).map((r) => projectRide(r, 'client'));
   }
 
   const [driver] = await db.select().from(schema.drivers).where(eq(schema.drivers.userId, userId)).limit(1);
@@ -50,7 +86,7 @@ export async function collectUserData(db: Database, userId: string, decrypt: (va
       const extractedNumber = typeof extracted?.['number'] === 'string' ? decrypt(extracted['number']) : null;
       return clean({ ...d, number: decrypt(d.number), extractedFields: extracted ? { ...extracted, number: extractedNumber } : d.extractedFields }, ['fileKey']);
     });
-    data['ridesAsDriver'] = (await db.select().from(schema.rides).where(eq(schema.rides.driverId, driver.id)).orderBy(desc(schema.rides.createdAt)).limit(1000)).map((r) => clean(r));
+    data['ridesAsDriver'] = (await db.select().from(schema.rides).where(eq(schema.rides.driverId, driver.id)).orderBy(desc(schema.rides.createdAt)).limit(1000)).map((r) => projectRide(r, 'driver'));
   }
 
   data['auditTrail'] = (await db.select({ action: schema.auditLog.action, entity: schema.auditLog.entity, entityId: schema.auditLog.entityId, occurredAt: schema.auditLog.occurredAt, ipAddress: schema.auditLog.ipAddress }).from(schema.auditLog).where(eq(schema.auditLog.actorUserId, userId)).orderBy(desc(schema.auditLog.occurredAt)).limit(500)).map((a) => clean(a));

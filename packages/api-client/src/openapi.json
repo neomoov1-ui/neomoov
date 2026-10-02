@@ -77736,6 +77736,33 @@
               }
             }
           },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
           "429": {
             "description": "Limite de débit atteinte (en-tête Retry-After)",
             "content": {
@@ -77769,7 +77796,7 @@
             "bearer": []
           }
         ],
-        "summary": "Invitation par courriel ou texto, à usage unique ; le lien part par le canal choisi, le jeton n'est jamais rendu (sauf réglage de développement)",
+        "summary": "Invitation par courriel ou texto, à usage unique, pour amorcer une organisation cliente sans propriétaire (409 ensuite : ses membres invitent depuis My Hub) ; le lien part par le canal choisi, le jeton n'est jamais rendu (sauf réglage de développement)",
         "tags": [
           "admin"
         ]

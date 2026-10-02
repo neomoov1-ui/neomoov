@@ -145,7 +145,15 @@ export class AuthGuard implements CanActivate {
   }
 }
 
-/** La ressource visée appartient à l'utilisateur (le personnel voit tout) ; 404 si elle n'existe pas. */
+/** Méthodes de lecture : le personnel y voit toute ressource ; en écriture, il est traité comme tout utilisateur. */
+const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/**
+ * La ressource visée appartient à l'utilisateur ; 404 si elle n'existe pas. Le personnel voit tout en lecture ; en
+ * écriture (revue du 2 octobre 2026, sécurité 1), il ne contourne la propriété que sur une route qui le déclare
+ * (`staffMayWrite`, toujours avec sa permission `@Can`) : annuler, partager, écrire ou déclencher un SOS dans la course
+ * d'un autre passe par les routes d'administration et leurs permissions (`rides.cancel`, `rides.messages.write`…).
+ */
 @Injectable()
 export class OwnershipGuard implements CanActivate {
   constructor(
@@ -160,7 +168,7 @@ export class OwnershipGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request>();
     const actor = req.actor;
     if (!actor || actor.kind !== 'user') throw AppError.forbidden('SERVICE_ACCOUNT_NOT_ALLOWED', 'Cette route est réservée aux utilisateurs');
-    if (hasStaffRole(actor.roles)) return true;
+    if (hasStaffRole(actor.roles) && (READ_METHODS.has(req.method) || owns.staffMayWrite === true)) return true;
     const raw = req.params[owns.param ?? 'id'];
     const id = typeof raw === 'string' ? raw : null;
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw AppError.notFound('NOT_FOUND', 'Ressource introuvable');

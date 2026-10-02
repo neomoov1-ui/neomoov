@@ -3,6 +3,7 @@ import { REDACTED, REDACTED_KEYS } from '@neomoov/domain';
 import type { LoggerService } from '@nestjs/common';
 import { nanoid } from 'nanoid';
 import { pino, type DestinationStream, type Logger, type LoggerOptions } from 'pino';
+import type { Options as HttpLoggerOptions } from 'pino-http';
 
 export const correlationStore = new AsyncLocalStorage<{ correlationId: string }>();
 
@@ -30,14 +31,47 @@ export function runWithCorrelation<T>(correlationId: unknown, fn: () => T): T {
 }
 
 /**
- * Chemins masqués par le journal : en-têtes d'authentification, puis chaque clé sensible (secrets et données
- * personnelles, liste partagée avec le suivi des erreurs dans `@neomoov/domain`) au premier et au deuxième niveau.
- * (`code` et `key` ne sont pas masqués : err.code (SQLSTATE, code AppError) et settings.key doivent rester lisibles.)
+ * En-têtes jamais journalisés (revue du 2 octobre 2026, sécurité 3) : authentification, clés et secrets de webhooks
+ * (Vapi, Stripe, Square, Twilio, Meta), adresses d'origine. `serializeRequest` ne les copie déjà pas ; la liste masque
+ * aussi tout objet `req` journalisé par un autre chemin.
+ */
+export const REDACTED_REQUEST_HEADERS: readonly string[] = [
+  'authorization', 'cookie', 'x-api-key', 'x-vapi-secret', 'stripe-signature', 'x-square-hmacsha256-signature', 'x-twilio-signature', 'x-hub-signature-256', 'x-forwarded-for', 'x-real-ip',
+];
+
+/**
+ * Chemins masqués par le journal : en-têtes sensibles, chaîne de requête et adresse d'origine d'une requête, puis chaque
+ * clé sensible (secrets et données personnelles, liste partagée avec le suivi des erreurs dans `@neomoov/domain`) au
+ * premier et au deuxième niveau. (`code` et `key` ne sont pas masqués : err.code (SQLSTATE, code AppError) et
+ * settings.key doivent rester lisibles.)
  */
 export const LOG_REDACT_PATHS: string[] = [
-  'req.headers.authorization', 'req.headers.cookie', 'req.headers["x-api-key"]', 'res.headers["set-cookie"]',
+  ...REDACTED_REQUEST_HEADERS.map((header) => `req.headers["${header}"]`), 'req.query', 'req.remoteAddress', 'res.headers["set-cookie"]',
   ...REDACTED_KEYS.flatMap((key) => [key, `*.${key}`]),
 ];
+
+/** Chemin d'une adresse sans sa chaîne de requête (jeton de session de carte, de suivi, code à usage unique). */
+export function pathWithoutQuery(url: string | undefined): string | undefined {
+  return url?.replace(/[?#].*$/, '');
+}
+
+/**
+ * Requête HTTP telle que journalisée : identifiant, méthode et chemin, rien d'autre (ni en-têtes, ni paramètres, ni
+ * adresse d'origine : revue du 2 octobre 2026, sécurité 3).
+ */
+export function serializeRequest(req: { id?: unknown; method?: string | undefined; url?: string | undefined }): { id: unknown; method: string | undefined; url: string | undefined } {
+  return { id: req.id, method: req.method, url: pathWithoutQuery(req.url) };
+}
+
+/** Options du journal HTTP de l'API (pino-http) : sérialiseur de requête réduit, niveau selon le statut de la réponse. */
+export function httpLoggerOptions(logger: Logger, autoLogging: boolean): HttpLoggerOptions {
+  return {
+    logger,
+    autoLogging,
+    serializers: { req: serializeRequest },
+    customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
+  };
+}
 
 /** Journal structuré JSON ; les champs sensibles sont masqués (section 8) ; chaque ligne porte l'identifiant de corrélation. */
 export function createLogger(name: string, level = process.env['LOG_LEVEL'] ?? 'info', destination?: DestinationStream): Logger {

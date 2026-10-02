@@ -99,5 +99,8 @@ export function assertRoutePolicies(app: INestApplication, globalPrefix = 'v1'):
   const orgPrefix = `/${globalPrefix}/org/`;
   const unscoped = policies.filter((p) => (p.orgScoped && !p.permissions.length) || (p.path.startsWith(orgPrefix) && !p.orgScoped));
   if (unscoped.length) throw new Error(`Routes d'organisation sans @OrgScoped ou sans @Can (refus par défaut) : ${routeList(unscoped)}`);
+  // Revue du 2 octobre 2026 (sécurité 1) : une route @Owns ouverte en écriture au personnel exige sa permission.
+  const staffWrites = policies.filter((p) => p.owns?.staffMayWrite && !p.permissions.length);
+  if (staffWrites.length) throw new Error(`Routes @Owns ouvertes en écriture au personnel sans permission @Can : ${routeList(staffWrites)}`);
   return policies;
 }

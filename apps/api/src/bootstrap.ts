@@ -9,7 +9,7 @@ import { AppModule } from './app.module.js';
 import { AppExceptionFilter } from './common/app-exception.filter.js';
 import { correlationMiddleware } from './common/correlation.middleware.js';
 import { HttpMetrics, httpMetricsMiddleware } from './common/http-metrics.js';
-import { createLogger, PinoNestLogger } from './common/logger.js';
+import { createLogger, httpLoggerOptions, PinoNestLogger } from './common/logger.js';
 import { apiDocsServed, type AppEnv } from './config/env.js';
 import { assertRoutePolicies } from './modules/auth/route-policies.js';
 import { AppIoAdapter } from './common/app-io.adapter.js';
@@ -41,14 +41,9 @@ export async function createApp(env: AppEnv, logger: Logger = createLogger('api'
   // Latence de chaque requête, par motif de route (métriques de My Hub et Prometheus, étape 15).
   app.use(httpMetricsMiddleware(app.get(HttpMetrics)));
   app.use(correlationMiddleware);
-  // L'identifiant de corrélation est ajouté à chaque ligne par le journal lui-même (contexte de la requête).
-  app.use(
-    pinoHttp({
-      logger,
-      autoLogging: env.NODE_ENV !== 'test',
-      customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
-    }),
-  );
+  // L'identifiant de corrélation est ajouté à chaque ligne par le journal lui-même (contexte de la requête) ; la requête
+  // journalisée se réduit à son identifiant, sa méthode et son chemin (revue du 2 octobre 2026, sécurité 3).
+  app.use(pinoHttp(httpLoggerOptions(logger, env.NODE_ENV !== 'test')));
   app.setGlobalPrefix('v1');
   // Le web (My Hub, réservation) appelle l'API depuis le navigateur sur une autre origine ; les mobiles n'ont pas de CORS.
   app.enableCors({ origin: corsOrigins(env), credentials: true, exposedHeaders: ['x-correlation-id'], maxAge: 600 });

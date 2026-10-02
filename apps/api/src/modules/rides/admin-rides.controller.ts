@@ -61,7 +61,7 @@ export class AdminRidesController {
   @ZodResponse(201, rideMessageSchema)
   @ApiErrors(400, 401, 403, 404, 409, 429)
   sendMessage(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(rideMessageInputSchema)) body: z.infer<typeof rideMessageInputSchema>, @CurrentUser() user: UserActor) {
-    return this.rides.sendMessage(id, user, body.body);
+    return this.rides.sendMessage(id, user, body.body, { fromOperator: true });
   }
 
   @Get('stuck')

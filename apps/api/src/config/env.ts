@@ -199,6 +199,10 @@ const PROVIDER_ALIASES: Record<ProviderKey, string> = {
 };
 const MOCKABLE_PROVIDERS = (Object.keys(PROVIDER_ALIASES) as ProviderKey[]).map((key) => [PROVIDER_ALIASES[key], key] as const);
 
+/** Secrets de signature et de chiffrement : 32 caractères au moins en production (`openssl rand -hex 32` en donne 64 ; revue du 2 octobre 2026, sécurité 12). */
+export const MIN_SECRET_LENGTH = 32;
+const PRODUCTION_SECRETS = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'ENCRYPTION_KEY'] as const;
+
 /**
  * Carte proposée aux clients : forcée par `CARD_PAYMENTS`, sinon partout sauf en production avec le simulateur de
  * paiement (bêta sans Stripe : paiement au chauffeur seulement, aucune carte fictive acceptée).
@@ -282,8 +286,10 @@ export function loadEnv(source?: Record<string, string | undefined>, { dotenv = 
     if (bad.length) throw new Error('Configuration invalide : REVIEW_PHONES doit lister des numéros au format E.164.');
   }
   if (env.NODE_ENV === 'production') {
-    const missing = (['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'ENCRYPTION_KEY'] as const).filter((k) => !env[k]);
+    const missing = PRODUCTION_SECRETS.filter((k) => !env[k]);
     if (missing.length) throw new Error(`Configuration invalide en production : ${missing.join(', ')} obligatoire(s).`);
+    const short = PRODUCTION_SECRETS.filter((k) => (env[k] ?? '').length < MIN_SECRET_LENGTH);
+    if (short.length) throw new Error(`Configuration invalide en production : ${short.join(', ')} : ${MIN_SECRET_LENGTH} caractères au moins (openssl rand -hex 32).`);
     if (!env.REDIS_URL) throw new Error('Configuration invalide en production : REDIS_URL est obligatoire.');
     // Le mode simulé accepte des jetons forgés (« mock-apple:<sujet> ») : jamais en production.
     if (env.SOCIAL_LOGIN_PROVIDER !== 'real') throw new Error('Configuration invalide en production : SOCIAL_LOGIN_PROVIDER doit valoir « real ».');
