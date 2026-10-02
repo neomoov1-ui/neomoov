@@ -78,8 +78,7 @@ function nma_attestation_get($uid){$a=get_user_meta($uid,'nma_attestation',true)
 function nma_attestation_issue($uid,$name){
     $existing=nma_attestation_get($uid);if($existing)return $existing;
     list($done,$total)=nma_progress($uid);if(!$total||$done<$total)return null;
-    $lock='nma_attestation_lock_'.$uid;$held=get_option($lock);if($held&&(int)$held<time()-120)delete_option($lock);
-    if(!add_option($lock,time(),'','no'))return null;
+    $lock='nma_attestation_lock_'.$uid;if(!nma_lock($lock,120))return null;
     try{
         wp_cache_delete($uid,'user_meta');$existing=nma_attestation_get($uid);if($existing)return $existing;
         $alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -104,6 +103,7 @@ function nma_attestation_valid($a){return is_array($a)&&!empty($a['uid'])&&get_u
 /* Vérification publique minimale : prénom et initiale du nom. */
 function nma_public_name($n){$p=preg_split('/\s+/u',trim((string)$n));$first=$p[0]??'';$last=count($p)>1?end($p):'';return trim($first.($last!==''?' '.mb_strtoupper(mb_substr($last,0,1)).'.':''));}
 add_action('rest_api_init',function(){register_rest_route('neomoov-academy/v1','/attestation/(?P<code>[A-Za-z0-9-]{11,20})',array('methods'=>'GET','permission_callback'=>'__return_true','callback'=>function($r){
+    if(!nma_rate('attestation_api',120))return new WP_REST_Response(array('valid'=>false,'error'=>'rate_limited'),429);
     $a=nma_attestation_find($r['code']);
     if(!nma_attestation_valid($a))return new WP_REST_Response(array('valid'=>false),200);
     $t=strtotime((string)$a['completed_at']);
@@ -123,6 +123,7 @@ function nma_attestation_page(){
     $code=isset($_GET['code'])&&is_string($_GET['code'])?substr(sanitize_text_field(wp_unslash($_GET['code'])),0,40):'';
     echo '<section class="wrap section narrow">';
     if($code!==''){
+        if(!nma_rate('attestation',60)){echo '<p class="eyebrow">VÉRIFICATION D’UNE ATTESTATION</p><h1>Trop de vérifications depuis votre connexion.</h1><p>Réessayez dans une heure, ou écrivez à contact@neomoov.net.</p></section>';return;}
         $a=nma_attestation_find($code);echo '<p class="eyebrow">VÉRIFICATION D’UNE ATTESTATION</p>';
         if(nma_attestation_valid($a))echo '<h1>Attestation valide.</h1><div class="panel"><p><b>'.nma_e(nma_public_name($a['name'])).'</b> a terminé les 7 modules de Neomoov Chauffeur Pro et réussi leurs quiz le '.nma_e(nma_date($a['completed_at'])).'.</p><p>Code vérifié : <b>'.nma_e($a['code']).'</b></p>'.nma_exam_certificate_line($a).'</div>';
         else echo '<h1>Aucune attestation valide pour ce code.</h1><p>Vérifiez la saisie, au format NCP-XXXX-XXXX. Pour toute question : contact@neomoov.net.</p>';

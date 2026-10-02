@@ -22,7 +22,7 @@ add_action('rest_api_init',function(){register_rest_route('neomoov-academy/v1','
 function nmbt_import_run(){
     if(!current_user_can('manage_options'))return 'Accès refusé.';
     $lock='nmbt_import_lock';$held=get_option($lock);if($held&&(int)$held<time()-120)delete_option($lock);
-    if(!add_option($lock,time(),'','no'))return 'Un import est déjà en cours. Rechargez dans un instant.';
+    if(!nma_lock($lock))return 'Un import est déjà en cours. Rechargez dans un instant.';
     try{
         $pack=nma_brevo_template_data();if(!is_array($pack)||count($pack)!==20)return 'Le lot local doit contenir exactement 20 emails.';
         $remote=nmbt_request('GET');if(is_wp_error($remote))return $remote->get_error_message();
@@ -40,7 +40,7 @@ function nmbt_import_run(){
             $done[$name]=(int)$r['id'];$created++;update_option('nmbt_template_ids',$done,false);
         }
         update_option('nmbt_template_ids',$done,false);
-        return count($done).' / 20 templates retrouvés ou créés dans Brevo. '.$created.' nouveau(x) brouillon(s) inactif(s). Aucun email envoyé.';
+        return count(preg_grep('/^NCP_/',array_keys($done))).' / 20 templates retrouvés ou créés dans Brevo. '.$created.' nouveau(x) brouillon(s) inactif(s). Aucun email envoyé.';
     }finally{delete_option($lock);}
 }
 function nmbt_sender_request($id=0){
@@ -73,7 +73,7 @@ function nmbt_admin_migrate_sender(){
     if(($_SERVER['REQUEST_METHOD']??'')!=='POST'||!current_user_can('manage_options'))return 'Accès refusé.';
     check_admin_referer('nmbt_migrate_sender');
     // Share the importer lock; fail closed instead of stealing a running request's lock.
-    $lock='nmbt_import_lock';if(!add_option($lock,time(),'','no'))return 'Une opération sur les modèles est déjà en cours. Réessayez après sa fin.';
+    $lock='nmbt_import_lock';if(!nma_lock($lock))return 'Une opération sur les modèles est déjà en cours. Réessayez après sa fin.';
     try{
         $senders=nmbt_sender_request();if(is_wp_error($senders))return $senders->get_error_message();
         $matches=array();foreach(($senders['senders']??array())as$sender)if(is_array($sender)&&($sender['email']??'')==='contact@neomoov.net')$matches[]=$sender;
@@ -90,5 +90,5 @@ function nmbt_admin_migrate_sender(){
 }
 function nmbt_admin_status(){
     if(!current_user_can('manage_options'))return;$done=(array)get_option('nmbt_template_ids',array());
-    echo '<hr><h2>Brevo — 20 modèles Neomoov Chauffeur Pro (4 séquences de 5 courriels, version du 2 octobre 2026)</h2><p>'.count($done).' / 20 identifiants de templates enregistrés. Import par lots de deux, avec contrôle des noms existants. Les templates sont créés inactifs ; aucune campagne ni automatisation n’est créée ou envoyée.</p><p>Les modèles importés avec l’expéditeur provisoire peuvent être migrés vers Neomoov Academy &lt;contact@neomoov.net&gt;. La migration vérifie l’expéditeur actif et les 20 modèles inactifs avant chaque lot de deux ; leurs objets et contenus restent inchangés. Les anciens brouillons CAP_… du 30 septembre et les messages d’automatisation sont exclus.</p><form method="post"><input type="hidden" name="nma_admin_action" value="brevo_templates">';wp_nonce_field('nmbt_import');echo '<button class="button">Importer les prochains brouillons Brevo — aucun envoi</button></form><form method="post"><input type="hidden" name="nma_admin_action" value="brevo_sender_migration">';wp_nonce_field('nmbt_migrate_sender');echo '<button class="button">Migrer les deux prochains modèles vers contact@neomoov.net — aucun envoi</button></form>';
+    echo '<hr><h2>Brevo — 20 modèles Neomoov Chauffeur Pro (4 séquences de 5 courriels, version du 2 octobre 2026)</h2><p>'.count(preg_grep('/^NCP_/',array_keys($done))).' / 20 identifiants de templates enregistrés. Import par lots de deux, avec contrôle des noms existants. Les templates sont créés inactifs ; aucune campagne ni automatisation n’est créée ou envoyée.</p><p>Les modèles importés avec l’expéditeur provisoire peuvent être migrés vers Neomoov Academy &lt;contact@neomoov.net&gt;. La migration vérifie l’expéditeur actif et les 20 modèles inactifs avant chaque lot de deux ; leurs objets et contenus restent inchangés. Les anciens brouillons CAP_… du 30 septembre et les messages d’automatisation sont exclus.</p><form method="post"><input type="hidden" name="nma_admin_action" value="brevo_templates">';wp_nonce_field('nmbt_import');echo '<button class="button">Importer les prochains brouillons Brevo — aucun envoi</button></form><form method="post"><input type="hidden" name="nma_admin_action" value="brevo_sender_migration">';wp_nonce_field('nmbt_migrate_sender');echo '<button class="button">Migrer les deux prochains modèles vers contact@neomoov.net — aucun envoi</button></form>';
 }

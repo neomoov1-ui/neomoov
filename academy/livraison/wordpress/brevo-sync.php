@@ -112,7 +112,7 @@ function nma_brevo_apply($uid,$state,$job){
 }
 function nma_brevo_process($uid){
     $uid=(int)$uid;$lock='nmb_sync_lock_'.$uid;$held=get_option($lock);if($held&&(int)$held<time()-300)delete_option($lock);
-    if(!add_option($lock,time(),'','no'))return 'busy';
+    if(!nma_lock($lock))return 'busy';
     try{
         wp_cache_delete($uid,'user_meta');$job=get_user_meta($uid,'nmb_sync_job',true);if(!is_array($job))return 'no_job';
         if(!nma_brevo_ready()){$job['status']='inactive';nma_brevo_job_store($uid,$job);return 'inactive';}

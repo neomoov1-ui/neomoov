@@ -83,7 +83,7 @@ function nmsa_payload($reference, $key, $location) {
 }
 function nmsa_create($uid,$buyer=array(),$accepted_hash='') {
     if(!nmsa_enabled())return nmsa_error('closed');
-    $lock='nma_access_lock_'.$uid;if(!add_option($lock,time(),'','no'))return nmsa_error('busy');
+    $lock='nma_access_lock_'.$uid;if(!nma_lock($lock))return nmsa_error('busy');
     try {
         wp_cache_delete($uid,'user_meta');
         if(get_user_meta($uid,'nma_paid',true)==='yes')return nmsa_error('already_paid');
@@ -121,7 +121,7 @@ function nmsa_create($uid,$buyer=array(),$accepted_hash='') {
 }
 function nmsa_sync($uid) {
     if(!nmsa_mutations_ready())return nmsa_error('configuration');
-    $lock='nma_access_lock_'.$uid;if(!add_option($lock,time(),'','no'))return nmsa_error('busy');
+    $lock='nma_access_lock_'.$uid;if(!nma_lock($lock))return nmsa_error('busy');
     try {
         wp_cache_delete($uid,'user_meta');$r=get_user_meta($uid,'nmsa_checkout',true);$c=nmsa_config();
         if(!is_array($r)||(int)($r['uid']??0)!==$uid||empty($r['order_id'])||($r['environment']??'')!==$c['environment']||($r['location']??'')!==$c['location']
@@ -248,7 +248,7 @@ function nmsa_admin_reconcile(){
     if(!current_user_can('manage_options'))return 'Accès refusé.';check_admin_referer('nmsa_admin_reconcile');$uid=absint($_POST['nmsa_member_id']??0);
     if(!$uid||!get_user_by('id',$uid))return 'Membre inconnu.';
     if(!empty($_POST['billing_verified'])){
-        $lock='nma_access_lock_'.$uid;if(!add_option($lock,time(),'','no'))return 'Une vérification est déjà en cours.';
+        $lock='nma_access_lock_'.$uid;if(!nma_lock($lock))return 'Une vérification est déjà en cours.';
         try{wp_cache_delete($uid,'user_meta');$r=get_user_meta($uid,'nmsa_checkout',true);$note=sanitize_textarea_field(wp_unslash($_POST['billing_note']??''));
             if(!is_array($r)||($r['status']??'')!=='billing_review'||empty($r['payment_id'])||strlen($note)<10)return 'Une revue de facturation existante et une note précise sont nécessaires.';
             $r['billing_verified']=array('payment_id'=>$r['payment_id'],'administrator'=>get_current_user_id(),'at'=>gmdate('c'),'note'=>$note);
