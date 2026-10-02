@@ -324,10 +324,10 @@ export class ConversationsService {
 
   /** État calculé d'une conversation : fermée, remise à l'humain, réponse à relayer, sans réponse (dernier message reçu), répondue. */
   private static readonly STATE_SQL = sql<string>`CASE
-    WHEN ${schema.conversations.status} = 'closed' THEN 'closed'
-    WHEN ${schema.conversations.status} = 'escalated' THEN 'escalated'
-    WHEN EXISTS (SELECT 1 FROM conversation_messages r WHERE r.conversation_id = ${schema.conversations.id} AND r.relay_status = 'pending') THEN 'relay'
-    WHEN (SELECT l.direction FROM conversation_messages l WHERE l.conversation_id = ${schema.conversations.id} ORDER BY l.created_at DESC LIMIT 1) = 'inbound' THEN 'awaiting'
+    WHEN conversations.status = 'closed' THEN 'closed'
+    WHEN conversations.status = 'escalated' THEN 'escalated'
+    WHEN EXISTS (SELECT 1 FROM conversation_messages r WHERE r.conversation_id = conversations.id AND r.relay_status = 'pending') THEN 'relay'
+    WHEN (SELECT l.direction FROM conversation_messages l WHERE l.conversation_id = conversations.id ORDER BY l.created_at DESC LIMIT 1) = 'inbound' THEN 'awaiting'
     ELSE 'answered' END`;
 
   /**
@@ -346,10 +346,10 @@ export class ConversationsService {
     }
     const where = conditions.length ? and(...conditions) : undefined;
     const firstReplySeconds = await this.settings.number('inbox.first_reply_seconds', 5);
-    const last = sql<string | null>`(SELECT l.body FROM conversation_messages l WHERE l.conversation_id = ${schema.conversations.id} ORDER BY l.created_at DESC LIMIT 1)`;
-    const lastDirection = sql<string | null>`(SELECT l.direction FROM conversation_messages l WHERE l.conversation_id = ${schema.conversations.id} ORDER BY l.created_at DESC LIMIT 1)`;
-    const messageCount = sql<number>`(SELECT count(*)::int FROM conversation_messages m WHERE m.conversation_id = ${schema.conversations.id})`;
-    const firstReply = sql<number | null>`(SELECT EXTRACT(EPOCH FROM (min(o.created_at) FILTER (WHERE o.direction = 'outbound') - min(o.created_at) FILTER (WHERE o.direction = 'inbound')))::int FROM conversation_messages o WHERE o.conversation_id = ${schema.conversations.id})`;
+    const last = sql<string | null>`(SELECT l.body FROM conversation_messages l WHERE l.conversation_id = conversations.id ORDER BY l.created_at DESC LIMIT 1)`;
+    const lastDirection = sql<string | null>`(SELECT l.direction FROM conversation_messages l WHERE l.conversation_id = conversations.id ORDER BY l.created_at DESC LIMIT 1)`;
+    const messageCount = sql<number>`(SELECT count(*)::int FROM conversation_messages m WHERE m.conversation_id = conversations.id)`;
+    const firstReply = sql<number | null>`(SELECT EXTRACT(EPOCH FROM (min(o.created_at) FILTER (WHERE o.direction = 'outbound') - min(o.created_at) FILTER (WHERE o.direction = 'inbound')))::int FROM conversation_messages o WHERE o.conversation_id = conversations.id)`;
     const [rows, [total]] = await Promise.all([
       this.db
         .select({ conversation: schema.conversations, state: ConversationsService.STATE_SQL, last, lastDirection, messageCount, firstReply })

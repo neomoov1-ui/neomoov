@@ -98,10 +98,12 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     return { conversation, messages };
   };
   const notificationsTo = (address: string) => db(app!).select().from(schema.notifications).where(eq(schema.notifications.recipientAddress, address)).orderBy(schema.notifications.createdAt);
-  const deliverAll = async (address: string) => {
+  /** Attend que les avis mis en file existent (l'avis est inséré juste après le message), puis les envoie. */
+  const deliverAll = async (address: string, expected = 1) => {
     const delivery = app!.get(NotificationDeliveryService);
     const outcomes: string[] = [];
-    for (const n of await notificationsTo(address)) if (!n.sentAt) outcomes.push(await delivery.deliver(n.id));
+    const rows = await until(() => notificationsTo(address), (n) => n.length >= expected, 'avis en file');
+    for (const n of rows) if (!n.sentAt) outcomes.push(await delivery.deliver(n.id));
     return outcomes;
   };
   const scriptReply = (text: string, classification: Record<string, unknown> = {}) =>
@@ -135,7 +137,7 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     expect(llm.requests[0]!.messages.at(-1)!.content).toContain('canal courriel');
 
     // Les deux courriels partent de contact@, dans le fil du courriel reçu, avec l'objet « Re: ».
-    expect(await deliverAll(sender)).toEqual(['sent', 'sent']);
+    expect(await deliverAll(sender, 2)).toEqual(['sent', 'sent']);
     const mails = email.sent.filter((m) => m.to === sender);
     expect(mails).toHaveLength(2);
     expect(mails[0]).toMatchObject({ from: 'Neomoov <contact@neomoov.net>', replyTo: 'Neomoov <contact@neomoov.net>', subject: 'Re: Prix pour l\'aéroport', headers: { 'In-Reply-To': item.MessageId, References: item.MessageId } });
@@ -203,7 +205,7 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     expect((await request(server()).post('/v1/webhooks/meta').set('x-hub-signature-256', 'mock-signature').send(dm).expect(200)).body).toEqual({ messages: 1, comments: 0 });
     const state = await until(() => conversationsOf({ address: psid }), (s) => s.messages.length === 3, 'réponse de l\'agent (Messenger)');
     expect(state.conversation).toMatchObject({ channel: 'social', network: 'messenger', kind: 'message', status: 'open', address: psid, threadRef: psid });
-    expect(await deliverAll(psid)).toEqual(['sent', 'sent']);
+    expect(await deliverAll(psid, 2)).toEqual(['sent', 'sent']);
     const replies = social.sent.filter((s) => s.threadId === psid);
     expect(replies.map((r) => r.network)).toEqual(['messenger', 'messenger']);
     expect(replies[1]!.text).toContain('réserver dans l\'application');
@@ -215,6 +217,7 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     const author = `fb-user-${rand()}`;
     addresses.push(author);
     llm.scripts.length = 0;
+    llm.requests.length = 0;
     scriptReply('ne devrait pas être appelé', { category: 'complaint', sentiment: 'negative', summary: 'Plainte publique : retard de 40 minutes' });
     const comment = { object: 'page', entry: [{ id: 'mock-page', time: Date.now(), changes: [{ field: 'feed', value: { item: 'comment', verb: 'add', comment_id: `c_${rand()}`, post_id: 'p_1', message: 'Service horrible, 40 minutes de retard et personne ne répond', from: { id: author, name: 'Jean R.' } } }] }] };
     // Les webhooks de la même application Meta sont aussi acceptés sur l'adresse WhatsApp.
@@ -314,7 +317,9 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     const originalGet = settings.get.bind(settings);
     const quiet = vi.spyOn(settings, 'get').mockImplementation(async (key: string, fallback: unknown) => (key === 'inbox.quiet_hours' ? { from: '00:00', to: '23:59', channels: ['email'] } : originalGet(key, fallback)));
     const queues = app.get(QueueService);
-    const added = vi.spyOn(queues, 'add').mockImplementation(async () => undefined);
+    const originalAdd = queues.add.bind(queues);
+    // Seule la tâche différée (reprise) est interceptée ; le message entrant suit la file comme d'habitude.
+    const added = vi.spyOn(queues, 'add').mockImplementation(async (name, job, data, options) => (options?.delay ? undefined : originalAdd(name, job, data, options)));
     scriptReply('Réponse du matin.');
     const item = brevoItem({ Name: 'Noctambule', Address: sender }, 'Question de nuit', 'Vous êtes ouverts la nuit ?');
     try {
@@ -322,7 +327,8 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
       const state = await until(() => conversationsOf({ address: sender }), (s) => s.messages.length === 2, 'accusé des heures silencieuses');
       expect(state.messages[1]!.body).toContain('reprend à 23 h 59');
       expect(llm.requests).toHaveLength(0);
-      const deferred = added.mock.calls.find((c) => c[0] === 'agents' && c[1] === 'conversation');
+      // La tâche différée est mise en file juste après l'accusé : attendue à son tour.
+      const deferred = await until(async () => added.mock.calls.find((c) => c[0] === 'agents' && c[1] === 'conversation' && (c[2] as { resumed?: boolean }).resumed === true), (c) => c !== undefined, 'tâche différée');
       expect(deferred?.[2]).toMatchObject({ resumed: true, channel: 'email', address: sender });
       expect(deferred?.[3]).toMatchObject({ jobId: expect.stringMatching(/-resume$/) });
       expect((deferred?.[3] as { delay: number }).delay).toBeGreaterThan(0);
