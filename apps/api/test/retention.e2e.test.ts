@@ -69,7 +69,7 @@ describe('durées de conservation (Loi 25, intégration)', () => {
 
     const results = await retention().run(now);
     const byType = Object.fromEntries(results.map((r) => [r.type, r]));
-    expect(Object.keys(byType).sort()).toEqual(['audit_log', 'driver_documents', 'driver_locations', 'invoices', 'ride_anonymization']);
+    expect(Object.keys(byType).sort()).toEqual(['audit_log', 'booster_images', 'booster_reports', 'driver_documents', 'driver_locations', 'invoices', 'ride_anonymization']);
     expect(byType['driver_locations']!.details).toMatchObject({ retentionDays: 90 });
     expect(byType['driver_locations']!.details['partitionsDropped']).toContain(partition!.name);
     expect(byType['driver_locations']!.details['defaultRowsDeleted']).toBeGreaterThanOrEqual(1);
@@ -89,7 +89,7 @@ describe('durées de conservation (Loi 25, intégration)', () => {
     expect(byType['ride_anonymization']!.rowsProcessed).toBeGreaterThanOrEqual(1);
 
     const jobs = await request(server()).get('/v1/admin/retention/jobs').set(bearer(admin.tokens)).expect(200);
-    expect(jobs.body.slice(0, 5).map((j: { type: string }) => j.type).sort()).toEqual(['audit_log', 'driver_documents', 'driver_locations', 'invoices', 'ride_anonymization']);
+    expect(jobs.body.slice(0, 7).map((j: { type: string }) => j.type).sort()).toEqual(['audit_log', 'booster_images', 'booster_reports', 'driver_documents', 'driver_locations', 'invoices', 'ride_anonymization']);
     // Rejouée : plus rien à traiter.
     const again = await retention().run(now);
     expect(again.find((r) => r.type === 'ride_anonymization')!.rowsProcessed).toBe(0);

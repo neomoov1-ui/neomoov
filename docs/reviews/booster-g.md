@@ -36,6 +36,7 @@ Revue de fin de mission, 2 octobre 2026. Branche `booster-g-plateforme` (depuis 
 - `node db-lock.cjs run booster-g … vitest run --no-file-parallelism test/booster.e2e.test.ts` : 10 tests verts (131 s).
 - `pnpm --filter @neomoov/api typecheck`, `pnpm --filter @neomoov/mobile-driver typecheck`, `pnpm --filter @neomoov/web typecheck` : verts.
 - `packages/db` : `vitest run test/journal.test.ts` vert ; migration appliquée sous le verrou.
+- `npx expo config --type introspect` (application chauffeur) : permissions caméra et photos déclarées avec textes FR et EN, quatre sons déclarés, `RECORD_AUDIO` bloqué (aucun micro).
 
 ## Points vérifiés
 
@@ -49,7 +50,6 @@ Revue de fin de mission, 2 octobre 2026. Branche `booster-g-plateforme` (depuis 
 
 - PNG et JPEG du rapport (aucun moteur d'image côté API) : capture de vue dans l'application ou moteur serveur, à décider.
 - Analyse synchrone (jusqu'à deux minutes) : passer par la file `agents` si les délais gênent.
-- `expo config --type introspect` à relancer sur le poste du fondateur si la commande n'a pas pu s'exécuter ici (voir rapport).
 - Vidéos et consignes illustrées du parcours de photos ; schéma de carrosserie interactif plus fin (SVG) dans l'application.
 
 ## Pièges

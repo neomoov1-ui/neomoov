@@ -21,11 +21,10 @@ const EMPTY: Form = { date: today(), startTime: '', endTime: '', startEnergy: ''
 
 const timeOf = (iso: string | null): string => (iso ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso)) : '');
 const dollars = (cents: number): string => (cents ? (cents / 100).toFixed(2) : '');
-const num = (v: string): string => (v === null ? '' : String(v));
 
 function formOf(l: PerformanceLogView): Form {
   return {
-    date: l.date, startTime: timeOf(l.startedAt), endTime: timeOf(l.endedAt), startEnergy: num(l.startEnergyPercent?.toString() ?? ''), endEnergy: l.endEnergyPercent?.toString() ?? '',
+    date: l.date, startTime: timeOf(l.startedAt), endTime: timeOf(l.endedAt), startEnergy: l.startEnergyPercent?.toString() ?? '', endEnergy: l.endEnergyPercent?.toString() ?? '',
     startOdometer: l.startOdometerKm?.toString() ?? '', endOdometer: l.endOdometerKm?.toString() ?? '', onlineMinutes: l.onlineMinutes?.toString() ?? '', drivingMinutes: l.drivingMinutes?.toString() ?? '',
     ridesCount: l.ridesCount?.toString() ?? '', rides: dollars(l.ridesCents), tips: dollars(l.tipsCents), promotions: dollars(l.promotionsCents), energy: dollars(l.energyCents), cleaning: dollars(l.cleaningCents),
     points: l.points?.toString() ?? '', notes: l.otherNotes ?? '',

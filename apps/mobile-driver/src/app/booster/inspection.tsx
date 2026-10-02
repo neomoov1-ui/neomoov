@@ -50,7 +50,7 @@ const int = (v: string): number | null => (v.trim() === '' ? null : Number.isInt
  */
 export default function InspectionScreen() {
   const { t, i18n } = useTranslation();
-  const lang = i18n.language === 'en' ? 'en' : 'fr';
+  const lang = i18n.language === 'en' ? 'English' : 'français';
   const params = useLocalSearchParams<{ id?: string }>();
   const [stage, setStage] = useState<Stage>(params.id ? 'review' : 'photos');
   const [photos, setPhotos] = useState<Partial<Record<PhotoKind, PickedPhoto>>>({});

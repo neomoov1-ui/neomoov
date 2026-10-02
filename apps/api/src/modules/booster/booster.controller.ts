@@ -30,7 +30,8 @@ const MAX_FILES = 12;
 const photoIndex = z.coerce.number().int().min(0).max(MAX_FILES - 1);
 const exportQuerySchema = z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), driverId: uuid.optional() });
 
-const multipart = (fields: z.ZodObject, field: string) => ApiBody({ schema: { type: 'object', properties: { ...(zodToOpenApi(fields).properties ?? {}), [field]: { type: 'array', items: { type: 'string', format: 'binary' } } } } });
+/** Corps multipart dans l'OpenAPI : champs texte du schéma et fichiers du champ nommé. */
+const MultipartBody = (fields: z.ZodObject, field: string) => ApiBody({ schema: { type: 'object', required: [field], properties: { ...(zodToOpenApi(fields).properties ?? {}), [field]: { type: 'array', items: { type: 'string', format: 'binary' } } } } });
 
 function stream(res: Response, file: { body: Buffer; contentType: string }, filename?: string): StreamableFile {
   res.setHeader('content-type', file.contentType);
@@ -57,6 +58,7 @@ export class DriverBoosterController {
   @Audit('booster.inspection_created', 'vehicle_inspections')
   @UseInterceptors(FilesInterceptor('photos', MAX_FILES, { limits: { fileSize: MULTER_LIMIT_BYTES, files: MAX_FILES } }))
   @ApiConsumes('multipart/form-data')
+  @MultipartBody(inspectionCreateFieldsSchema, 'photos')
   @ApiOperation({ summary: 'Ouvre un rapport de vérification sommaire avec ses premières photos (JPEG, PNG ou WEBP, 10 Mo chacune) ; plaque et nom repris du véhicule courant et du compte' })
   @ZodResponse(201, vehicleInspectionSchema)
   @ApiErrors(400, 401, 403, 404, 413, 415, 422, 429, 503)
@@ -69,6 +71,7 @@ export class DriverBoosterController {
   @Audit('booster.inspection_photos_added', 'vehicle_inspections', 'id')
   @UseInterceptors(FilesInterceptor('photos', MAX_FILES, { limits: { fileSize: MULTER_LIMIT_BYTES, files: MAX_FILES } }))
   @ApiConsumes('multipart/form-data')
+  @MultipartBody(inspectionPhotosFieldsSchema, 'photos')
   @ApiOperation({ summary: 'Ajoute des photos à un rapport non archivé (reprise d\'une étape du parcours guidé)' })
   @ZodResponse(200, vehicleInspectionSchema)
   @ApiErrors(400, 401, 403, 404, 409, 413, 415, 422, 429)
@@ -181,6 +184,7 @@ export class DriverBoosterController {
   @Audit('booster.performance_screenshots_added', 'performance_logs', 'id')
   @UseInterceptors(FilesInterceptor('screenshots', 6, { limits: { fileSize: MULTER_LIMIT_BYTES, files: 6 } }))
   @ApiConsumes('multipart/form-data')
+  @MultipartBody(z.object({}), 'screenshots')
   @ApiOperation({ summary: 'Ajoute des captures d\'écran (applications de travail) à un rapport non confirmé' })
   @ZodResponse(200, performanceLogSchema)
   @ApiErrors(400, 401, 403, 404, 409, 413, 415, 422, 429)
@@ -425,5 +429,3 @@ export class AdminBoosterController {
   }
 }
 
-// Décorateur multipart réutilisable (documentation OpenAPI des champs texte et des fichiers).
-export const multipartBody = multipart;

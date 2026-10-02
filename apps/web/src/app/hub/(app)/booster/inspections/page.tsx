@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ErrorBlock, Loading, pageLabels, useLang } from '@/components/hub/common';
 import { Action, Badge, Card, Checkbox, DataTable, Field, Input, Notice, PageTitle, Pagination, focus, type Column } from '@/components/ui/kit';
-import { formatDate, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
 
 const PAGE_SIZE = 25;
@@ -71,7 +71,6 @@ export default function InspectionsPage() {
           </>
         )}
       </Card>
-      <p className="text-xs text-slate-500">{t('hub.booster.date')} : {formatDate(new Date().toISOString(), lang)}</p>
     </div>
   );
 }
