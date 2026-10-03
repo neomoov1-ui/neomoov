@@ -5,10 +5,11 @@ if (!defined('ABSPATH')) { exit; }
 function nmsa_config($o=null) {
     $o=$o===null?(array)get_option('nma_settings',array()):$o;
     return array(
-        'token' => defined('NMA_SQUARE_ACCESS_TOKEN') ? NMA_SQUARE_ACCESS_TOKEN : ($o['square_api_token']??''),
+        // Secrets : constantes de wp-config.php d'abord (nma_secret), réglage enregistré en repli.
+        'token' => nma_secret('square_token',$o),
         'location' => defined('NMA_SQUARE_LOCATION_ID') ? NMA_SQUARE_LOCATION_ID : ($o['square_api_location']??''),
         'environment' => defined('NMA_SQUARE_ENVIRONMENT') ? NMA_SQUARE_ENVIRONMENT : ($o['square_api_environment']??'sandbox'),
-        'signature' => defined('NMA_SQUARE_WEBHOOK_SIGNATURE_KEY') ? NMA_SQUARE_WEBHOOK_SIGNATURE_KEY : ($o['square_api_signature']??''),
+        'signature' => nma_secret('square_signature',$o),
         'webhook_url' => rest_url('neomoov-academy/v1/square-api'),
         'terms' => $o['terms']??'', 'terms_version'=>$o['square_api_terms_version']??'',
         'duration_months'=>12,'review_delay'=>'Activation sous 24 h après confirmation du paiement. Une éventuelle revue de facturation est traitée dans ce délai. Support : réponse sous 2 jours ouvrés.',
@@ -210,22 +211,35 @@ add_action('rest_api_init',function(){register_rest_route('neomoov-academy/v1','
     $e=json_decode($raw,true);$object=$e['data']['object']??array();$type=$e['type']??'';
     if(!in_array($type,array('payment.created','payment.updated','refund.created','refund.updated'),true))return new WP_REST_Response(array('received'=>true),200);
     $pid=$object['payment']['id']??($object['refund']['payment_id']??'');if(!is_string($pid)||$pid==='')return new WP_REST_Response(null,400);
-    $job='nmsa_job_'.hash('sha256',$pid);if(!get_option($job)&&!add_option($job,array('payment_id'=>$pid,'at'=>gmdate('c')),'','no'))return new WP_REST_Response(null,503);
+    $job='nmsa_job_'.hash('sha256',$pid);$prior=get_option($job);if(!$prior&&!add_option($job,array('payment_id'=>$pid,'at'=>gmdate('c')),'','no'))return new WP_REST_Response(null,503);
+    // Une nouvelle notification signée redonne un plein crédit d'essais à un traitement abandonné.
+    if(is_array($prior)&&($prior['status']??'')==='abandoned'){$prior['status']='requeued';$prior['attempts']=0;update_option($job,$prior,false);}
     if(!wp_next_scheduled('nmsa_reconcile_payment',array($pid))){$scheduled=wp_schedule_single_event(time()+1,'nmsa_reconcile_payment',array($pid),true);if(is_wp_error($scheduled)||!$scheduled)return new WP_REST_Response(null,503);}
     return new WP_REST_Response(array('received'=>true),200);
 }));});
+/* Relances plafonnées : délai croissant (5 minutes de plus à chaque essai, une heure au plus), abandon après nmsa_retry_max() essais
+   (environ 30 heures), puis alerte unique à contact@neomoov.net et mention dans l'administration ; la réconciliation manuelle reste possible. */
+function nmsa_retry_max(){return 36;}
 add_action('nmsa_reconcile_payment',function($pid){
     $job='nmsa_job_'.hash('sha256',$pid);$answer=nmsa_api('GET','payments/'.rawurlencode($pid));$r=$answer;
     if(!is_wp_error($answer)){$oid=$answer['payment']['order_id']??'';$uid=$oid?(int)get_option('nmsa_order_'.hash('sha256',$oid),0):0;$r=$uid?nmsa_sync($uid):'unrelated';}
     if(is_wp_error($r)&&in_array($r->get_error_code(),array('nmsa_api','nmsa_busy','nmsa_response','nmsa_pending','nmsa_storage','nmsa_configuration'),true)){
-        wp_schedule_single_event(time()+300,'nmsa_reconcile_payment',array($pid));return;
+        $j=get_option($job);$j=is_array($j)?$j:array('payment_id'=>$pid,'at'=>gmdate('c'));$j['attempts']=(int)($j['attempts']??0)+1;$j['last_error']=$r->get_error_code();$j['last_attempt_at']=gmdate('c');
+        if($j['attempts']>=nmsa_retry_max()){
+            $j['status']='abandoned';$j['abandoned_at']=gmdate('c');update_option($job,$j,false);
+            $list=(array)get_option('nmsa_jobs_abandoned',array());$first=!isset($list[$pid]);$list[$pid]=$j['abandoned_at'];update_option('nmsa_jobs_abandoned',array_slice($list,-100,null,true),false);
+            if($first)wp_mail('contact@neomoov.net','Action requise : paiement Square non réconcilié','Le paiement Square '.$pid.' n’a pas pu être réconcilié après '.$j['attempts'].' essais (dernière erreur : '.$j['last_error'].").\nOuvrez l’administration Neomoov Academy, section Square API (état et réconciliation), et relancez la réconciliation du membre concerné après vérification dans Square.\nAucune donnée de carte dans ce message.",array('Content-Type: text/plain; charset=UTF-8'));
+            return;
+        }
+        update_option($job,$j,false);wp_schedule_single_event(time()+min(3600,300*$j['attempts']),'nmsa_reconcile_payment',array($pid));return;
     }
-    delete_option($job);
+    delete_option($job);$list=(array)get_option('nmsa_jobs_abandoned',array());if(isset($list[$pid])){unset($list[$pid]);update_option('nmsa_jobs_abandoned',$list,false);}
 });
 
 function nmsa_save_settings($o){
-    foreach(array('square_api_token','square_api_signature')as$k){
-        if(!empty($_POST[$k.'_replace'])&&isset($_POST[$k])&&is_string($_POST[$k])){
+    foreach(array('square_api_token'=>'square_token','square_api_signature'=>'square_signature')as$k=>$secret_id){
+        // Valeur fournie par wp-config.php : aucune copie n'est enregistrée dans la base.
+        if(!nma_secret_constant($secret_id)&&!empty($_POST[$k.'_replace'])&&isset($_POST[$k])&&is_string($_POST[$k])){
             $v=trim(wp_unslash($_POST[$k]));if(strlen($v)>=16&&strlen($v)<=512&&!preg_match('/\s/',$v))$o[$k]=$v;
         }
     }
@@ -237,9 +251,10 @@ function nmsa_save_settings($o){
 function nmsa_admin_fields($o){
     echo '<tr><th>Square API · environnement</th><td><select name="square_api_environment"><option value="sandbox" '.selected($o['square_api_environment']??'sandbox','sandbox',false).'>Sandbox — aucun accès réel attribué</option><option value="production" '.selected($o['square_api_environment']??'sandbox','production',false).'>Production</option></select></td></tr>';
     foreach(array('square_api_token'=>'Token serveur Square','square_api_signature'=>'Clé de signature webhook','square_api_location'=>'Identifiant établissement Square','square_api_terms_version'=>'Version des conditions (ex. identifiant daté)','square_api_review_delay'=>'Note interne de revue (ne remplace pas le délai contractuel)')as$k=>$label){
-        $secret=in_array($k,array('square_api_token','square_api_signature'),true);$value=$secret?'':($o[$k]??'');
+        $secret=in_array($k,array('square_api_token','square_api_signature'),true);$value=$secret?'':($o[$k]??'');$secret_id=$k==='square_api_token'?'square_token':'square_signature';
+        if($secret&&nma_secret_constant($secret_id)){echo '<tr><th>'.esc_html($label).'</th><td><p>'.esc_html(nma_secret_status($secret_id,$o)).'</p>'.nma_secret_clear_field($secret_id,$o).'</td></tr>';continue;}
         echo '<tr><th><label for="'.esc_attr($k).'">'.esc_html($label).'</label></th><td><input id="'.esc_attr($k).'" name="'.esc_attr($k).'" class="regular-text" type="'.($secret?'password':'text').'" autocomplete="'.($secret?'new-password':'off').'" value="'.esc_attr($value).'">';
-        if($secret)echo '<label><input type="checkbox" name="'.esc_attr($k).'_replace" value="1"> Enregistrer explicitement cette nouvelle valeur</label><p>'.(!empty($o[$k])?'Déjà configuré ; valeur jamais affichée.':'Non configuré.').'</p>';
+        if($secret)echo '<label><input type="checkbox" name="'.esc_attr($k).'_replace" value="1"> Enregistrer explicitement cette nouvelle valeur</label><p>'.esc_html(nma_secret_status($secret_id,$o)).'</p>'.nma_secret_clear_field($secret_id,$o);
         echo '</td></tr>';
     }
     echo '<tr><th>Validation avant recette/ouverture</th><td><label><input type="checkbox" name="square_api_reviewed" value="1" '.checked(!empty($o['square_api_reviewed']),true,false).'> Configuration, conditions, fiscalité, durée et procédure de revue vérifiées.</label><p>Durée : 12 mois calendaires. Activation sous 24 h. Remboursement 14 jours selon conditions. Support 2 jours ouvrés. Prix fixe 99,00 CAD + TPS 4,95 + TVQ 9,88 = 113,83 CAD. Aucune taxe globale Square modifiée.</p><p>Webhook exact : <code>'.esc_html(rest_url('neomoov-academy/v1/square-api')).'</code> · payment.created, payment.updated, refund.created, refund.updated.</p><p>WP-Cron traite les notifications en arrière-plan. La réconciliation manuelle reste disponible ci-dessous.</p></td></tr>';
@@ -299,8 +314,10 @@ function nmsa_admin_status(){
         echo '<hr><h2>Connexion Square — lecture seule</h2><p>Vérifie l’établissement configuré et sa capacité à traiter les cartes. Ne crée aucun paiement et n’ouvre pas les ventes.</p><form method="post"><input type="hidden" name="nma_admin_action" value="square_api_connection">';wp_nonce_field('nmsa_admin_connection');echo '<button class="button">Contrôler la connexion Square</button></form>';
     }
     if(function_exists('nmcd_admin_tools'))nmcd_admin_tools();
-    echo '<hr><h2>Square API — état et réconciliation</h2><form method="get"><input type="hidden" name="page" value="neomoov-academy"><label>ID membre <input name="nmsa_member" type="number" min="1" required></label><button class="button">Consulter</button></form>';
-    $uid=absint($_GET['nmsa_member']??($_POST['nmsa_member_id']??0));$r=$uid?get_user_meta($uid,'nmsa_checkout',true):false;if(!is_array($r))return;
+    echo '<hr><h2>Square API — état et réconciliation</h2>';
+    $abandoned=(array)get_option('nmsa_jobs_abandoned',array());if($abandoned){echo '<div class="notice notice-warning"><p>Notifications Square abandonnées après '.(int)nmsa_retry_max().' essais, à réconcilier à la main :</p><ul>';foreach(array_reverse($abandoned,true) as $p=>$at)echo '<li>'.esc_html($p.' · '.$at).'</li>';echo '</ul></div>';}
+    echo '<form method="get"><input type="hidden" name="page" value="neomoov-academy"><label>ID membre <input name="nmsa_member" type="number" min="1" required></label><button class="button">Consulter</button></form>';
+    $uid=absint($_GET['nmsa_member']??($_POST['nmsa_member_id']??0));$r=$uid?get_user_meta($uid,'nmsa_checkout',true):false;if(!is_array($r))return;nmp_staff_log('square_api_dossier',$uid);
     echo '<p>Membre #'.esc_html($uid).' · '.esc_html(nmsa_status_label($r['status']??'')).'</p><p>Commande : '.esc_html($r['order_id']??'en création').' · paiement : '.esc_html($r['payment_id']??'non confirmé').' · environnement : '.esc_html($r['environment']??'').'</p>';
     echo '<form method="post">';wp_nonce_field('nmsa_admin_reconcile');echo '<input type="hidden" name="nma_admin_action" value="square_api_reconcile"><input type="hidden" name="nmsa_member_id" value="'.esc_attr($uid).'">';
     if(($r['status']??'')==='billing_review')echo '<label><input name="billing_verified" type="checkbox" value="1"> J’ai vérifié la facturation Canada/Québec de ce paiement auprès du membre et des informations Square.</label><p><textarea name="billing_note" rows="3" placeholder="Note de vérification, sans numéro de carte ni pièce sensible"></textarea></p>';
