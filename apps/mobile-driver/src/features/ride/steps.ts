@@ -18,6 +18,16 @@ export function isActive(state: RideState): boolean {
   return ACTIVE_STATES.includes(state);
 }
 
+/**
+ * Annulation par le chauffeur proposée : avant l'arrivée (attribuée, en route) ; une fois arrivé sur place seulement si
+ * le réglage de l'API le permet (`features.driverCancelAfterArrival`, décision du fondateur attendue, faux par défaut) ;
+ * jamais pendant la course (incident ou SOS).
+ */
+export function canDriverCancel(state: RideState, allowAfterArrival: boolean): boolean {
+  if (state === 'assigned' || state === 'en_route') return true;
+  return state === 'arrived' && allowAfterArrival;
+}
+
 /** Où conduire : au client avant le départ de la course, à la destination ensuite. */
 export function navigationTarget<P>(ride: { state: RideState; origin: P; destination: P }): P {
   return ride.state === 'in_progress' ? ride.destination : ride.origin;

@@ -15,13 +15,13 @@ import { RideMap } from '@/components/RideMap';
 import { GraceBanner } from '@/features/pilot/GraceBanner';
 import { EndOfRide } from '@/features/ride/EndOfRide';
 import { CancelSheet, IncidentSheet, MessagesSheet, SosSheet } from '@/features/ride/RideSheets';
-import { clock, endOfRidePending, isActive, navigationTarget, nextAction, noShowStatus, waitedSeconds, type RideAction } from '@/features/ride/steps';
+import { canDriverCancel, clock, endOfRidePending, isActive, navigationTarget, nextAction, noShowStatus, waitedSeconds, type RideAction } from '@/features/ride/steps';
 import { api, errorMessage } from '@/lib/api';
 import { serverNow } from '@/lib/clock';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
 import { openNavigation, type NavigationApp } from '@/lib/navigation';
 import { usePreferences } from '@/lib/preferences';
-import { keys, queryClient, refreshDriver, useDriverRide } from '@/lib/queries';
+import { keys, queryClient, refreshDriver, useAppConfig, useDriverRide } from '@/lib/queries';
 import { useRideSubscription } from '@/lib/realtime';
 
 type Sheet = 'messages' | 'incident' | 'cancel' | 'sos' | null;
@@ -47,6 +47,7 @@ export default function RideScreen() {
   const language = (i18n.language === 'en' ? 'en' : 'fr-CA') as UiLanguage;
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const ride = useDriverRide(id, true);
+  const config = useAppConfig();
   const dataSaver = usePreferences((s) => s.dataSaver);
   const navigationApp = usePreferences((s) => s.navigationApp);
   useRideSubscription(id, true);
@@ -188,7 +189,8 @@ export default function RideScreen() {
 
         <View style={styles.row}>
           <Button label={t('ride.incident')} variant="ghost" onPress={() => setSheet('incident')} style={styles.flex} />
-          {active && data.state !== 'in_progress' ? <Button label={t('ride.cancel')} variant="ghost" onPress={() => setSheet('cancel')} style={styles.flex} /> : null}
+          {/* Annulation une fois arrivé : derrière le réglage de l'API (décision du fondateur attendue, revue du 2 octobre 2026 B). */}
+          {canDriverCancel(data.state, config.data?.features.driverCancelAfterArrival === true) ? <Button label={t('ride.cancel')} variant="ghost" onPress={() => setSheet('cancel')} style={styles.flex} testID="ride-cancel" /> : null}
         </View>
       </ScrollView>
 

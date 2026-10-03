@@ -48,7 +48,22 @@ function googleServicesFile(projectRoot: string): string | undefined {
  * native (modules, greffons, réglages natifs) calculée par `@expo/fingerprint` avec `fingerprint.config.js` ; une mise à
  * jour ne s'installe que sur un build de même empreinte. Canal fixé par le profil de `eas.json` (preview, production).
  */
+/**
+ * Revue du 2 octobre 2026, constat mobile 21 : un build EAS de prévisualisation ou de production ne doit jamais garder
+ * l'adresse de repli `http://localhost:4000` de `src/lib/config.ts` (ni l'émulateur `10.0.2.2`). Le build échoue tôt si
+ * `EXPO_PUBLIC_API_BASE_URL` (variable du profil de `eas.json`) manque ou ne désigne pas une API en HTTPS.
+ */
+export function assertReleaseApiUrl(env: Readonly<Record<string, string | undefined>> = process.env): void {
+  const profile = env['EAS_BUILD_PROFILE'];
+  if (profile !== 'preview' && profile !== 'production') return;
+  const url = env['EXPO_PUBLIC_API_BASE_URL']?.trim() ?? '';
+  if (!/^https:\/\/[^/]+/.test(url) || /localhost|127\.0\.0\.1|10\.0\.2\.2/.test(url)) {
+    throw new Error(`EXPO_PUBLIC_API_BASE_URL : adresse HTTPS de l'API attendue pour le profil ${profile}`);
+  }
+}
+
 export default ({ config, projectRoot }: ConfigContext): ExpoConfig => {
+  assertReleaseApiUrl();
   const androidKey = process.env.GOOGLE_MAPS_ANDROID_KEY;
   const iosKey = process.env.GOOGLE_MAPS_IOS_KEY;
   const projectId = process.env.EAS_PROJECT_ID?.trim() || null;

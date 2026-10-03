@@ -37,7 +37,11 @@ export class ClientProfileService {
       s.number('pricing.negotiation_floor_ppm', 700_000), s.number('negotiation.window_seconds', 600), s.get<string | null>('support.phone', null), s.get<string | null>('support.email', null),
       s.string('legal.privacy_policy_version', '1.0'), s.string('legal.terms_url', 'https://neomoov.net/conditions-d-utilisation/'), s.string('legal.privacy_url', 'https://neomoov.net/politique-de-confidentialite/'),
     ]);
-    const [tipSuggestions, tipMax, airportFreeCancellationBeforeSeconds] = await Promise.all([s.get<unknown>('rides.tip_suggestions_cents', [0, 200, 300, 500]), s.number('rides.tip_max_cents', 10_000), s.number('rides.airport_free_cancellation_before_seconds', 3600)]);
+    const [tipSuggestions, tipMax, airportFreeCancellationBeforeSeconds, driverCancelAfterArrival] = await Promise.all([
+      s.get<unknown>('rides.tip_suggestions_cents', [0, 200, 300, 500]), s.number('rides.tip_max_cents', 10_000), s.number('rides.airport_free_cancellation_before_seconds', 3600),
+      // Décision du fondateur attendue (revue du 2 octobre 2026 B) : faux par défaut, l'application chauffeur masque alors l'annulation à l'état « arrivé ».
+      s.get<unknown>('drivers.cancel_after_arrival_enabled', false),
+    ]);
     const categories = await this.db
       .select({ code: schema.vehicleCategories.code, name: schema.vehicleCategories.name, seats: schema.vehicleCategories.seats, description: schema.vehicleCategories.description, allowedModels: schema.vehicleCategories.allowedModels })
       .from(schema.vehicleCategories)
@@ -47,7 +51,7 @@ export class ClientProfileService {
     return {
       brand,
       organizations,
-      features: { cardPayments: cardPaymentsEnabled(this.env), negotiation: this.env.FEATURE_NEGOTIATION, negotiationAboveMax: this.env.FEATURE_NEGOTIATION_ABOVE_MAX, immediateRides: this.env.FEATURE_IMMEDIATE_RIDES, installments: this.env.FEATURE_INSTALLMENTS, faceCheck: this.env.FEATURE_FACE_CHECK },
+      features: { cardPayments: cardPaymentsEnabled(this.env), negotiation: this.env.FEATURE_NEGOTIATION, negotiationAboveMax: this.env.FEATURE_NEGOTIATION_ABOVE_MAX, immediateRides: this.env.FEATURE_IMMEDIATE_RIDES, installments: this.env.FEATURE_INSTALLMENTS, faceCheck: this.env.FEATURE_FACE_CHECK, driverCancelAfterArrival: driverCancelAfterArrival === true },
       booking: { minLeadSeconds, maxLeadDays, freeCancellationSeconds, cancellationFeeCents, airportFreeCancellationBeforeSeconds },
       negotiation: { floorPpm, windowSeconds },
       tips: {

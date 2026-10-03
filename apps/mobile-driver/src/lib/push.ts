@@ -4,6 +4,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
+import { i18n } from '@/i18n';
 import { api } from './api';
 import { driverStorage } from './storage';
 
@@ -28,13 +29,15 @@ export async function registerForPush(): Promise<string | null> {
   const id = projectId();
   if (!id) return null;
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('offers', { name: 'Offres de course', importance: Notifications.AndroidImportance.MAX, sound: 'offer.wav', vibrationPattern: [0, 700, 500, 700], lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC, bypassDnd: true });
+    // Noms des canaux dans la langue de l'application (revue du 2 octobre 2026, constat mobile 20), remis à jour à chaque ouverture de session.
+    const channel = (key: string) => i18n.t(`push.channels.${key}`);
+    await Notifications.setNotificationChannelAsync('offers', { name: channel('offers'), importance: Notifications.AndroidImportance.MAX, sound: 'offer.wav', vibrationPattern: [0, 700, 500, 700], lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC, bypassDnd: true });
     await Notifications.setNotificationChannelAsync('default', { name: 'Neomoov Chauffeur', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 250, 250, 250] });
     // Neomoov Booster : un canal par famille de son (vérification, session, gain), un canal silencieux (vibration seulement).
-    await Notifications.setNotificationChannelAsync('booster-check', { name: 'Booster : vérification sommaire', importance: Notifications.AndroidImportance.HIGH, sound: 'booster_check.wav', vibrationPattern: [0, 300, 200, 300], lightColor: '#D97706' });
-    await Notifications.setNotificationChannelAsync('booster-session', { name: 'Booster : session', importance: Notifications.AndroidImportance.HIGH, sound: 'booster_session.wav', vibrationPattern: [0, 250, 250, 250], lightColor: '#1485E0' });
-    await Notifications.setNotificationChannelAsync('booster-peak', { name: 'Booster : périodes et zones de gain', importance: Notifications.AndroidImportance.HIGH, sound: 'booster_peak.wav', vibrationPattern: [0, 150, 100, 150, 100, 150], lightColor: '#16A34A' });
-    await Notifications.setNotificationChannelAsync('booster-silent', { name: 'Booster : vibration seulement', importance: Notifications.AndroidImportance.DEFAULT, sound: null, vibrationPattern: [0, 300] });
+    await Notifications.setNotificationChannelAsync('booster-check', { name: channel('boosterCheck'), importance: Notifications.AndroidImportance.HIGH, sound: 'booster_check.wav', vibrationPattern: [0, 300, 200, 300], lightColor: '#D97706' });
+    await Notifications.setNotificationChannelAsync('booster-session', { name: channel('boosterSession'), importance: Notifications.AndroidImportance.HIGH, sound: 'booster_session.wav', vibrationPattern: [0, 250, 250, 250], lightColor: '#1485E0' });
+    await Notifications.setNotificationChannelAsync('booster-peak', { name: channel('boosterPeak'), importance: Notifications.AndroidImportance.HIGH, sound: 'booster_peak.wav', vibrationPattern: [0, 150, 100, 150, 100, 150], lightColor: '#16A34A' });
+    await Notifications.setNotificationChannelAsync('booster-silent', { name: channel('boosterSilent'), importance: Notifications.AndroidImportance.DEFAULT, sound: null, vibrationPattern: [0, 300] });
   }
   const current = await Notifications.getPermissionsAsync();
   const status = current.granted ? 'granted' : (await Notifications.requestPermissionsAsync()).status;

@@ -125,6 +125,7 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'rides.scheduled_reminder_before_seconds', value: 86_400, description: 'Rappel la veille (J-1) pour les courses à plus de 24 heures' },
   { key: 'rides.share_link_ttl_hours', value: 24, description: 'Validité du lien public de suivi d\'une course' },
   { key: 'drivers.required_documents', value: ['licence', 'insurance', 'registration'], description: 'Documents approuvés et non expirés exigés pour passer en ligne' },
+  { key: 'drivers.cancel_after_arrival_enabled', value: false, description: 'Annulation par le chauffeur une fois arrivé sur place, sanctionnée comme après « en route » : proposée par l\'application chauffeur si vrai (décision du fondateur attendue, revue du 2 octobre 2026 B)' },
   { key: 'drivers.require_active_pack', value: false, description: 'Exiger un pack actif pour passer en ligne (activé à l\'étape 8, packs)' },
   { key: 'drivers.platform_fee_default_bps', value: 1000, description: 'Redevance Neomoov des nouveaux chauffeurs, en points de base (1000 = 10 %), bornée de 500 à 1000 (décision du fondateur, 3 octobre 2026)' },
   { key: 'dispatch.pack_priority_seconds', value: 120, description: 'Réservation planifiée : délai pendant lequel seuls les chauffeurs avec pack reçoivent l\'offre, avant ceux sans pack (3 octobre 2026)' },

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import appConfig from '../app.config';
+import appConfig, { assertReleaseApiUrl } from '../app.config';
 import appJson from '../app.json';
 import easJson from '../eas.json';
 
@@ -77,5 +77,16 @@ describe('configuration Expo de l\'application chauffeur', () => {
   it('Sentry : greffon Expo sans réglage secret, envoi des cartes de source facultatif dans les builds', () => {
     expect(appJson.expo.plugins).toContain('@sentry/react-native/expo');
     expect(easJson.build.base.env).toEqual({ SENTRY_ALLOW_FAILURE: 'true' });
+  });
+
+  it('build de prévisualisation ou de production : adresse HTTPS de l\'API exigée, jamais l\'adresse locale de repli (constat mobile 21)', () => {
+    expect(() => assertReleaseApiUrl({ EAS_BUILD_PROFILE: 'production' })).toThrow(/EXPO_PUBLIC_API_BASE_URL/);
+    expect(() => assertReleaseApiUrl({ EAS_BUILD_PROFILE: 'preview', EXPO_PUBLIC_API_BASE_URL: 'http://localhost:4000' })).toThrow();
+    expect(() => assertReleaseApiUrl({ EAS_BUILD_PROFILE: 'production', EXPO_PUBLIC_API_BASE_URL: 'https://127.0.0.1:4000' })).toThrow();
+    expect(() => assertReleaseApiUrl({ EAS_BUILD_PROFILE: 'development', EXPO_PUBLIC_API_BASE_URL: 'http://10.0.2.2:4000' })).not.toThrow();
+    expect(() => assertReleaseApiUrl({})).not.toThrow();
+    for (const profile of ['preview', 'production'] as const) {
+      expect(() => assertReleaseApiUrl({ EAS_BUILD_PROFILE: profile, EXPO_PUBLIC_API_BASE_URL: easJson.build[profile].env.EXPO_PUBLIC_API_BASE_URL })).not.toThrow();
+    }
   });
 });

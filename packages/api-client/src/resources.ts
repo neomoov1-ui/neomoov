@@ -17,6 +17,7 @@ import type { ConversationView, MembershipView, SupportMessageInput } from '@neo
 import type { DriverSanctionView, SanctionAppealInput } from '@neomoov/domain';
 import type { DriverAgendaView, DriverCostsInput, DriverCostsView, DriverProfitabilityView, PilotDecisionPage, PilotSettingsUpdate, PilotSettingsView } from '@neomoov/domain';
 import type { AlertTestInput, DriverAlertSettingsUpdate, DriverAlertSettingsView, InspectionConfirm, InspectionDownloadView, InspectionListQuery, InspectionUpdate, Page, PerformanceListQuery, PerformanceLogInput, PerformanceLogView, PerformanceRecapQuery, PerformanceRecapView, VehicleInspectionView } from '@neomoov/domain';
+import type { DriverAttachment } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
 /** Ce dont les ressources ont besoin : les verbes HTTP du client. */
@@ -153,6 +154,8 @@ export function driverResource(t: Transport) {
   return {
     /** Candidature d'un compte connecté ; renouveler ensuite le jeton (`auth.refresh`) pour obtenir le rôle chauffeur. */
     apply: (body: DriverApply) => t.post<DriverProfileView>('/driver/apply', body),
+    /** Étape 23 : invitation de flotte acceptée par la personne invitée (même téléphone) ; renouveler ensuite le jeton pour le rôle chauffeur. */
+    acceptFleetInvitation: (token: string) => t.post<DriverAttachment>('/driver-invitations/accept', { token }),
     home: () => t.get<DriverHomeView>('/driver/home'),
     profile: () => t.get<DriverProfileView>('/driver/profile'),
     updateProfile: (body: DriverProfileUpdate) => t.patch<DriverProfileView>('/driver/profile', body),
@@ -178,7 +181,8 @@ export function driverResource(t: Transport) {
     /** Charte d'équité (D7) : mes sanctions, ma réponse ou mon appel (réponse d'une personne sous 4 heures ouvrables). */
     sanctions: () => t.get<DriverSanctionView[]>('/driver/sanctions'),
     appealSanction: (sanctionId: string, body: SanctionAppealInput) => t.post<DriverSanctionView>(`/driver/sanctions/${id(sanctionId)}/appeals`, body),
-    startShift: (photoBase64: string) => t.post<ShiftStartResult>('/driver/shifts/start', { photoBase64 }),
+    // Photo du visage en base64 : envoi plus long qu'une requête ordinaire sur un réseau mobile (constat mobile 17).
+    startShift: (photoBase64: string) => t.post<ShiftStartResult>('/driver/shifts/start', { photoBase64 }, { timeoutMs: 60_000 }),
     // Présence et positions (secours au socket `/driver`).
     status: () => t.get<DriverStatusView>('/driver/status'),
     setStatus: (body: DriverStatusInput) => t.post<DriverStatusView>('/driver/status', body),

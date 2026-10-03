@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { CarDiagram, PhotoGuide } from '@/components/CarDiagram';
 import { inspectionForm, pickBoosterPhoto, type PickedPhoto } from '@/features/booster/photos';
 import { api, errorMessage } from '@/lib/api';
 import { keys, queryClient } from '@/lib/queries';
@@ -44,9 +45,10 @@ function formOf(i: VehicleInspectionView): ReviewForm {
 const int = (v: string): number | null => (v.trim() === '' ? null : Number.isInteger(Number(v)) ? Number(v) : null);
 
 /**
- * Vérification sommaire par caméra (Neomoov Booster) : parcours de photos guidé (une étape par vue, reprise possible),
+ * Vérification sommaire par caméra (Neomoov Booster) : parcours de photos guidé (une étape par vue, consigne écrite et
+ * schéma de la position à prendre, reprise possible),
  * envoi et analyse, écran de confirmation (champs préremplis par l'analyse, à confirmer ou corriger ; gravité par élément ;
- * zones de carrosserie), archivage et téléchargement du PDF. Rien n'est archivé sans la confirmation du chauffeur.
+ * zones de carrosserie sur un schéma du véhicule), archivage et téléchargement du PDF. Rien n'est archivé sans la confirmation du chauffeur.
  */
 export default function InspectionScreen() {
   const { t, i18n } = useTranslation();
@@ -161,6 +163,12 @@ export default function InspectionScreen() {
       {stage === 'photos' ? (
         <>
           <Body muted>{t('booster.inspection.photosIntro')}</Body>
+          <Card style={styles.card}>
+            <Text style={styles.stepTitle}>{t('booster.inspection.tipsTitle')}</Text>
+            {(['parked', 'light', 'distance', 'landscape'] as const).map((tip) => (
+              <Body key={tip}>{`• ${t(`booster.inspection.tips.${tip}`)}`}</Body>
+            ))}
+          </Card>
           <Notice tone="info">{t('booster.inspection.progress', { taken, total: INSPECTION_PHOTO_STEPS.length, required: requiredTotal })}</Notice>
           {INSPECTION_PHOTO_STEPS.map((step, index) => {
             const photo = photos[step.kind];
@@ -168,7 +176,14 @@ export default function InspectionScreen() {
               <Card key={step.kind} style={styles.card}>
                 <Text style={styles.stepTitle}>{index + 1}. {t(`booster.photoKinds.${step.kind}`)}{step.required ? '' : ` · ${t('booster.inspection.optional')}`}</Text>
                 <Body muted>{t(`booster.inspection.guides.${step.kind}`)}</Body>
-                {photo ? <Image source={{ uri: photo.uri }} style={styles.preview} contentFit="cover" accessibilityLabel={t(`booster.photoKinds.${step.kind}`)} /> : <View style={styles.frame}><Text style={styles.frameText}>{t('booster.inspection.frame')}</Text></View>}
+                {photo ? (
+                  <Image source={{ uri: photo.uri }} style={styles.preview} contentFit="cover" accessibilityLabel={t(`booster.photoKinds.${step.kind}`)} />
+                ) : (
+                  <View style={styles.frame}>
+                    <PhotoGuide kind={step.kind} label={t('booster.inspection.guideAlt', { view: t(`booster.photoKinds.${step.kind}`) })} />
+                    <Text style={styles.frameText}>{t('booster.inspection.frame')}</Text>
+                  </View>
+                )}
                 <View style={styles.buttons}>
                   <Button label={photo ? t('booster.inspection.retake') : t('booster.inspection.take')} variant="secondary" onPress={() => void take(step.kind, 'camera')} style={styles.flex} testID={`photo-${step.kind}`} />
                   <Button label={t('booster.inspection.pick')} variant="ghost" onPress={() => void take(step.kind, 'library')} style={styles.flex} />
@@ -218,6 +233,7 @@ export default function InspectionScreen() {
 
           <SectionTitle>{t('booster.inspection.bodyZones')}</SectionTitle>
           <Body muted>{t('booster.inspection.zonesHint')}</Body>
+          <CarDiagram selected={Object.keys(form.zones) as BodyZone[]} onToggle={toggleZone} frontLabel={t('booster.inspection.front')} rearLabel={t('booster.inspection.rear')} />
           <View style={styles.carGrid}>
             {([
               ['front_left', 'front_right'], ['windshield', 'windshield'], ['left_side', 'roof', 'right_side'], ['rear_window', 'rear_window'], ['rear_left', 'rear_right'],
@@ -273,8 +289,8 @@ const styles = StyleSheet.create({
   card: { gap: spacing.sm },
   stepTitle: { fontSize: typography.sizes.md, fontWeight: '700', color: colors.night },
   preview: { width: '100%', height: 180, borderRadius: radius.md, backgroundColor: colors.mist },
-  frame: { height: 120, borderRadius: radius.md, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  frameText: { color: colors.muted, fontSize: typography.sizes.sm },
+  frame: { borderRadius: radius.md, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'stretch', justifyContent: 'center', padding: spacing.xs, gap: spacing.xs },
+  frameText: { color: colors.muted, fontSize: typography.sizes.sm, textAlign: 'center' },
   buttons: { flexDirection: 'row', gap: spacing.sm },
   flex: { flex: 1 },
   carGrid: { gap: spacing.xs, alignItems: 'stretch' },
