@@ -2275,6 +2275,1137 @@
       "day": 11,
       "sensitive": false,
       "notes": "Thème : Service aéroport Montréal-Trudeau. Date proposée : vendredi 16 octobre 2026.\n\nPhoto réelle (aéroport) : Photo réelle du tableau des arrivées dans l'aérogare de Montréal-Trudeau (médiathèque, crédit indiqué)."
+    },
+    {
+      "ref": "P21",
+      "pillar": "chauffeurs",
+      "audience": "chauffeurs",
+      "title": "Les conditions pour devenir chauffeur",
+      "body": "Devenir chauffeur Neomoov : les conditions.\n\n• Permis de conduire valide de la classe requise au Québec\n• Autorisation de transport rémunéré de personnes (nous vous accompagnons pour l'obtenir)\n• Vérification des antécédents judiciaires\n• Assurance conforme au transport rémunéré\n• Véhicule 100 % électrique de cinq ans ou moins, admis dans une de nos trois catégories\n• Formation Neomoov en ligne\n\nVous cochez ces cases ? Envoyez votre candidature.",
+      "short": "Devenir chauffeur Neomoov : permis valide, autorisation de transport rémunéré (nous accompagnons), antécédents vérifiés, assurance conforme, véhicule électrique admis.",
+      "cta": "preregister",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Les conditions d'admission"
+        },
+        "instagram": {
+          "body": "Les conditions pour rouler avec Neomoov ✅\n\nPermis valide, autorisation de transport rémunéré (nous vous accompagnons), antécédents vérifiés, assurance conforme, véhicule 100 % électrique récent et formation Neomoov en ligne.\n\nCandidature en deux minutes, lien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#ChauffeurMontréal",
+            "#DevenirChauffeur",
+            "#Montréal",
+            "#VoitureÉlectrique",
+            "#TransportDePersonnes"
+          ],
+          "imageText": "Cochez-vous toutes les cases ?"
+        },
+        "linkedin": {
+          "body": "Professionnels du transport de personnes : voici nos conditions d'admission.\n\nPermis valide de la classe requise au Québec, autorisation de transport rémunéré de personnes (avec accompagnement si besoin), vérification des antécédents judiciaires, assurance conforme, véhicule 100 % électrique admis et formation Neomoov en ligne. À l'entretien, nous évaluons aussi le français fonctionnel et l'anglais de base.",
+          "hashtags": [
+            "#Recrutement",
+            "#Chauffeur",
+            "#Québec"
+          ],
+          "imageText": "Nos exigences",
+          "en": {
+            "title": "Our requirements",
+            "body": "Passenger transportation professionals: here are our admission requirements. A valid Québec licence of the required class, a paid passenger transportation authorization (with support if needed), a criminal background check, proper insurance, an approved 100% electric vehicle and online Neomoov training. During the interview, we also assess working French and basic English."
+          }
+        },
+        "x": {
+          "body": "Devenir chauffeur Neomoov : permis valide, autorisation de transport rémunéré (nous accompagnons), antécédents vérifiés, assurance conforme, véhicule électrique admis.",
+          "hashtags": [],
+          "imageText": "Devenir chauffeur Neomoov",
+          "en": {
+            "title": "Become a Neomoov driver",
+            "body": "Becoming a Neomoov driver: valid licence, paid transport authorization (we help), background check, proper insurance and an approved electric vehicle.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Rouler avec Neomoov : les conditions.\nUn permis valide et l'autorisation de transport rémunéré.\nDes antécédents vérifiés et une assurance conforme.\nUn véhicule 100 % électrique récent.\nEt la formation Neomoov en ligne.",
+          "caption": "Vous cochez tout ? ✅ Candidature sur neomoov.net/chauffeurs/#candidature",
+          "hashtags": [
+            "#DevenirChauffeur",
+            "#Montréal",
+            "#Neomoov",
+            "#VoitureÉlectrique"
+          ],
+          "imageText": "Rouler avec Neomoov"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Un permis valide.\nDes antécédents vérifiés.\nUn véhicule électrique.",
+          "caption": "Les conditions ✅ neomoov.net/chauffeurs/#candidature",
+          "hashtags": [
+            "#Chauffeur",
+            "#MTL"
+          ],
+          "imageText": "Les conditions en bref"
+        },
+        "telegram": {
+          "body": "Devenir chauffeur Neomoov : permis valide, autorisation de transport rémunéré (avec accompagnement), antécédents vérifiés, assurance conforme, véhicule électrique admis. Candidature :",
+          "hashtags": [],
+          "imageText": "Avant de postuler"
+        },
+        "youtube": {
+          "title": "Devenir chauffeur Neomoov : les conditions d'admission",
+          "body": "Pour rouler avec Neomoov, il faut un permis valide de la classe requise au Québec.\nIl faut aussi l'autorisation de transport rémunéré : nous vous accompagnons pour l'obtenir.\nUne vérification des antécédents et une assurance conforme.\nUn véhicule 100 % électrique admis, et la formation Neomoov en ligne.",
+          "caption": "Conditions d'admission des chauffeurs Neomoov à Montréal : permis, autorisation de transport rémunéré, antécédents, assurance, véhicule électrique admis, formation en ligne.",
+          "hashtags": [
+            "#DevenirChauffeur",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Conditions d'admission en vidéo"
+        },
+        "whatsapp_channel": {
+          "body": "Chauffeurs : vous avez un véhicule 100 % électrique récent et l'autorisation de transport rémunéré ? Neomoov vous attend. Candidature :",
+          "hashtags": [],
+          "imageText": "Neomoov vous attend"
+        }
+      },
+      "photoHints": [
+        "chauffeur"
+      ],
+      "day": 11,
+      "sensitive": false,
+      "notes": "Thème : Devenir chauffeur. Date proposée : vendredi 16 octobre 2026.\n\nPhoto réelle (chauffeur) : Photo réelle d'un chauffeur qui photographie ses documents avec son téléphone, assis dans son véhicule (modèle, licence commerciale, crédit indiqué)."
+    },
+    {
+      "ref": "P22",
+      "pillar": "montreal",
+      "audience": "clients",
+      "title": "Le Vieux-Montréal, notre quartier",
+      "body": "Le Vieux-Montréal, c'est aussi notre quartier : nos bureaux sont rue du Saint-Sacrement.\n\nRues pavées, Vieux-Port, terrasses d'automne : pour une sortie ou un souper, réservez votre aller et votre retour à l'avance, et profitez de la soirée sans chercher où vous garer.",
+      "short": "Rues pavées, Vieux-Port, soirées d'automne : sortez dans le Vieux-Montréal, notre quartier, et réservez votre retour à l'avance.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#VieuxMontréal"
+          ],
+          "imageText": "Notre quartier"
+        },
+        "instagram": {
+          "body": "Le Vieux-Montréal, notre quartier 🏙️\n\nRues pavées, Vieux-Port, soirées d'automne. Réservez votre aller et votre retour à l'avance et profitez de la sortie sans chercher où vous garer.\n\nLien dans la bio.",
+          "hashtags": [
+            "#VieuxMontréal",
+            "#Montréal",
+            "#MTL",
+            "#VieuxPort",
+            "#Neomoov",
+            "#SortirÀMontréal"
+          ],
+          "imageText": "Le Vieux-Montréal"
+        },
+        "linkedin": {
+          "body": "Le Vieux-Montréal est notre quartier : les bureaux de Neomoov sont rue du Saint-Sacrement.\n\nVous organisez un souper d'affaires ou un événement dans le secteur ? Réservez les déplacements de vos invités à l'avance : ils reçoivent le suivi de leur course par texto, vous recevez le reçu.",
+          "hashtags": [
+            "#VieuxMontréal",
+            "#Événements"
+          ],
+          "imageText": "Vos invités dans le Vieux",
+          "en": {
+            "title": "Your guests in Old Montréal",
+            "body": "Old Montréal is our neighbourhood: Neomoov's offices are on rue du Saint-Sacrement. Hosting a business dinner or an event in the area? Book your guests' rides in advance: they get ride tracking by text, you get the receipt."
+          }
+        },
+        "x": {
+          "body": "Rues pavées, Vieux-Port, soirées d'automne : sortez dans le Vieux-Montréal, notre quartier, et réservez votre retour à l'avance.",
+          "hashtags": [
+            "#VieuxMontréal"
+          ],
+          "imageText": "Rues pavées et Vieux-Port",
+          "en": {
+            "title": "Cobblestones and the Old Port",
+            "body": "Cobblestone streets, the Old Port, fall evenings: enjoy Old Montréal, our neighbourhood, and book your ride home in advance.",
+            "hashtags": [
+              "#OldMontreal"
+            ]
+          }
+        },
+        "tiktok": {
+          "body": "Le Vieux-Montréal, c'est notre quartier.\nDes rues pavées et le Vieux-Port.\nUne sortie, un souper, une soirée.\nVotre retour est déjà réservé.",
+          "caption": "Sortir dans le Vieux-Montréal 🏙️ neomoov.net/reserver",
+          "hashtags": [
+            "#VieuxMontréal",
+            "#Montréal",
+            "#MTL",
+            "#Neomoov"
+          ],
+          "imageText": "C'est notre quartier"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Le Vieux-Montréal.\nUne soirée d'automne.\nLe retour déjà réservé.",
+          "caption": "Notre quartier 🏙️ neomoov.net/reserver",
+          "hashtags": [
+            "#VieuxMontréal",
+            "#MTL"
+          ],
+          "imageText": "Une soirée d'automne"
+        },
+        "telegram": {
+          "body": "Une soirée dans le Vieux-Montréal ? Réservez votre aller et votre retour à l'avance, sans chercher où vous garer.",
+          "hashtags": [],
+          "imageText": "Sortir dans le Vieux"
+        },
+        "youtube": {
+          "title": "Une soirée dans le Vieux-Montréal, retour compris",
+          "body": "Le Vieux-Montréal, c'est le quartier de Neomoov.\nRues pavées, Vieux-Port, soirées d'automne.\nRéservez votre aller et votre retour à l'avance.\nEt profitez de la soirée sans chercher où vous garer.",
+          "caption": "Une sortie dans le Vieux-Montréal : réservez votre aller et votre retour avec Neomoov, en véhicule 100 % électrique, au moins 2 heures à l'avance.",
+          "hashtags": [
+            "#VieuxMontréal",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Retour compris"
+        },
+        "whatsapp_channel": {
+          "body": "Une sortie dans le Vieux-Montréal cette fin de semaine ? Réservez votre retour en même temps que votre aller :",
+          "hashtags": [],
+          "imageText": "Le retour, réservé aussi"
+        }
+      },
+      "photoHints": [
+        "Montréal",
+        "ville",
+        "Vieux-Montréal"
+      ],
+      "day": 12,
+      "sensitive": false,
+      "notes": "Thème : Quartiers et saisons de Montréal. Date proposée : samedi 17 octobre 2026.\n\nPhoto réelle (ville) : Photo réelle d'une rue pavée du Vieux-Montréal en fin d'après-midi d'automne (médiathèque, crédit indiqué)."
+    },
+    {
+      "ref": "P23",
+      "pillar": "coulisses",
+      "audience": "tous",
+      "title": "D'où vient Neomoov",
+      "body": "Les coulisses de Neomoov.\n\nNeomoov a été fondé à Montréal par un chef d'entreprise qui cumule plus de vingt ans en création et en gestion d'entreprise, et plus de dix ans d'expérience du transport de personnes, au Canada et en Afrique de l'Ouest. De ce double regard sont nées nos règles : un prix connu avant la course, une flotte électrique et un service juste pour le client comme pour le chauffeur.",
+      "short": "Neomoov a été fondé à Montréal par un entrepreneur qui connaît le transport de personnes de l'intérieur, au Canada et en Afrique de l'Ouest.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#Coulisses"
+          ],
+          "imageText": "Les coulisses de Neomoov"
+        },
+        "instagram": {
+          "body": "Du siège du chauffeur à la direction d'un service 🌍\n\nNotre fondateur connaît le métier de l'intérieur : plus de dix ans d'expérience du transport de personnes, au Canada et en Afrique de l'Ouest. Il en a tiré nos règles : un prix connu avant la course et une flotte électrique.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#Coulisses",
+            "#Montréal",
+            "#MTL",
+            "#Entrepreneuriat"
+          ],
+          "imageText": "Du siège du chauffeur"
+        },
+        "linkedin": {
+          "body": "Du siège du chauffeur à la direction d'un service.\n\nNeomoov a été fondé à Montréal par un chef d'entreprise qui cumule plus de vingt ans en création et en gestion d'entreprise et plus de dix ans d'expérience du transport de personnes, au Canada et en Afrique de l'Ouest. Cette double expérience a fixé nos règles : un prix connu avant la course, une flotte électrique, un service juste pour le client et pour le chauffeur.\n\nNeomoov est la division mobilité du Groupe NSK inc.",
+          "hashtags": [
+            "#Entrepreneuriat",
+            "#Montréal",
+            "#Mobilité"
+          ],
+          "imageText": "Notre histoire",
+          "en": {
+            "title": "Our story",
+            "body": "From the driver's seat to running a service. Neomoov was founded in Montréal by an entrepreneur with more than twenty years of experience creating and managing businesses and more than ten years in passenger transportation, in Canada and West Africa. That dual experience shaped our rules: a price known before the ride, an electric fleet, and a service that is fair to riders and drivers. Neomoov is the mobility division of Groupe NSK inc."
+          }
+        },
+        "x": {
+          "body": "Neomoov a été fondé à Montréal par un entrepreneur qui connaît le transport de personnes de l'intérieur, au Canada et en Afrique de l'Ouest.",
+          "hashtags": [
+            "#Coulisses"
+          ],
+          "imageText": "Fondé à Montréal",
+          "en": {
+            "title": "Founded in Montréal",
+            "body": "Neomoov was founded in Montréal by an entrepreneur who knows passenger transportation from the inside, in Canada and West Africa.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "D'où vient Neomoov ?\nD'un fondateur qui connaît le métier de l'intérieur.\nPlus de dix ans de transport de personnes, au Canada et en Afrique de l'Ouest.\nRésultat : un prix connu avant la course, et une flotte électrique.",
+          "caption": "Les coulisses de Neomoov 🌍 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#Coulisses",
+            "#Montréal"
+          ],
+          "imageText": "D'où vient Neomoov ?"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "D'où vient Neomoov ?\nD'un fondateur du métier.\nNé à Montréal.",
+          "caption": "Les coulisses 🌍 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Né à Montréal"
+        },
+        "telegram": {
+          "body": "Les coulisses : Neomoov a été fondé à Montréal par un chef d'entreprise qui connaît le transport de personnes de l'intérieur.",
+          "hashtags": [],
+          "imageText": "Un peu d'histoire"
+        },
+        "youtube": {
+          "title": "Les coulisses de Neomoov : d'où vient le service",
+          "body": "Neomoov a été fondé à Montréal.\nPar un chef d'entreprise qui connaît le transport de personnes de l'intérieur.\nPlus de dix ans d'expérience, au Canada et en Afrique de l'Ouest.\nDe là viennent nos règles : un prix connu avant la course et une flotte électrique.",
+          "caption": "L'histoire de Neomoov, service de transport de personnes à Montréal, division mobilité du Groupe NSK inc.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Les débuts du service"
+        },
+        "whatsapp_channel": {
+          "body": "Saviez-vous que Neomoov a été fondé par un entrepreneur qui connaît le métier de l'intérieur ? Découvrez le service :",
+          "hashtags": [],
+          "imageText": "Le métier de l'intérieur"
+        }
+      },
+      "photoHints": [
+        "chauffeur"
+      ],
+      "day": 12,
+      "sensitive": false,
+      "notes": "Thème : Coulisses. Date proposée : samedi 17 octobre 2026.\n\nPhoto réelle (chauffeur) : Photo réelle d'un chauffeur professionnel qui ouvre la portière arrière à une passagère, devant un immeuble de Montréal (modèles, licence commerciale, crédit indiqué)."
+    },
+    {
+      "ref": "P24",
+      "pillar": "montreal",
+      "audience": "clients",
+      "title": "Le Plateau et le Mile End, à pied",
+      "body": "Escaliers en colimaçon, cafés, petites boutiques : le Plateau-Mont-Royal et le Mile End se découvrent à pied.\n\nFaites-vous déposer au cœur du quartier, promenez-vous, et retrouvez votre chauffeur à l'heure prévue pour le retour.",
+      "short": "Le Plateau et le Mile End se découvrent à pied : faites-vous déposer au cœur du quartier, et retrouvez votre chauffeur à l'heure prévue pour le retour.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#Plateau",
+            "#MileEnd"
+          ],
+          "imageText": "Le Plateau à pied"
+        },
+        "instagram": {
+          "body": "Le Plateau et le Mile End, à pied ☕\n\nFaites-vous déposer au cœur du quartier, flânez, et retrouvez votre chauffeur à l'heure prévue pour le retour.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Plateau",
+            "#MileEnd",
+            "#Montréal",
+            "#MTL",
+            "#Neomoov",
+            "#Brunch"
+          ],
+          "imageText": "Cafés et escaliers"
+        },
+        "linkedin": {
+          "body": "Des collaborateurs de passage à Montréal ?\n\nLe Plateau-Mont-Royal et le Mile End font partie des quartiers à leur faire découvrir. Réservez leurs trajets à l'avance, aller et retour, avec facturation sur votre compte entreprise.",
+          "hashtags": [
+            "#Montréal",
+            "#Tourisme"
+          ],
+          "imageText": "Faire découvrir Montréal",
+          "en": {
+            "title": "Show visitors Montréal",
+            "body": "Colleagues visiting Montréal? The Plateau-Mont-Royal and Mile End are neighbourhoods worth showing them. Book their rides in advance, both ways, billed to your business account."
+          }
+        },
+        "x": {
+          "body": "Le Plateau et le Mile End se découvrent à pied : faites-vous déposer au cœur du quartier, et retrouvez votre chauffeur à l'heure prévue pour le retour.",
+          "hashtags": [
+            "#Plateau"
+          ],
+          "imageText": "Balade de quartier",
+          "en": {
+            "title": "A neighbourhood stroll",
+            "body": "The Plateau and Mile End are best explored on foot: get dropped off in the heart of the neighbourhood, and meet your driver at the set time to head home.",
+            "hashtags": [
+              "#Montreal"
+            ]
+          }
+        },
+        "tiktok": {
+          "body": "Le Plateau et le Mile End, à pied.\nOn vous dépose au cœur du quartier.\nVous flânez entre cafés et escaliers.\nVotre retour est réservé à l'heure prévue.",
+          "caption": "Une balade de quartier ☕ neomoov.net/reserver",
+          "hashtags": [
+            "#Plateau",
+            "#MileEnd",
+            "#Montréal",
+            "#Neomoov"
+          ],
+          "imageText": "On vous dépose"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Le Plateau, à pied.\nLe Mile End, à pied.\nLe retour, en électrique.",
+          "caption": "Balade de quartier ☕ neomoov.net/reserver",
+          "hashtags": [
+            "#Plateau",
+            "#MTL"
+          ],
+          "imageText": "Le Mile End à pied"
+        },
+        "telegram": {
+          "body": "Une balade au Plateau ou dans le Mile End ? Réservez votre aller et votre retour à l'avance :",
+          "hashtags": [],
+          "imageText": "Une balade au Plateau"
+        },
+        "youtube": {
+          "title": "Le Plateau et le Mile End à pied, retour réservé",
+          "body": "Le Plateau-Mont-Royal et le Mile End se découvrent à pied.\nFaites-vous déposer au cœur du quartier.\nFlânez entre les cafés et les escaliers.\nVotre retour est réservé à l'heure prévue.",
+          "caption": "Une balade au Plateau-Mont-Royal et dans le Mile End, à Montréal : réservez votre aller et votre retour avec Neomoov.",
+          "hashtags": [
+            "#Plateau",
+            "#MileEnd",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Retour réservé"
+        },
+        "whatsapp_channel": {
+          "body": "Une balade au Plateau ou dans le Mile End cette fin de semaine ? Réservez votre aller et votre retour à l'avance :",
+          "hashtags": [],
+          "imageText": "Votre fin de semaine"
+        }
+      },
+      "photoHints": [
+        "Montréal",
+        "ville",
+        "Plateau"
+      ],
+      "day": 13,
+      "sensitive": false,
+      "notes": "Thème : Quartiers et saisons de Montréal. Date proposée : dimanche 18 octobre 2026.\n\nPhoto réelle (ville) : Photo réelle d'un escalier extérieur typique du Plateau-Mont-Royal, en automne (médiathèque, crédit indiqué)."
+    },
+    {
+      "ref": "P25",
+      "pillar": "securite",
+      "audience": "clients",
+      "title": "Partager son trajet en temps réel",
+      "body": "Partagez votre trajet en un geste.\n\nPendant votre course Neomoov, un lien de suivi en temps réel se partage avec un proche : il voit l'avancement de la course, sans application. Avant l'arrivée du chauffeur, vous connaissez son nom, le modèle, la couleur et la plaque du véhicule. Et la messagerie masque les numéros des deux côtés.",
+      "short": "Partagez votre trajet Neomoov avec un proche : un lien de suivi en temps réel, sans application. Nom du chauffeur et plaque connus avant l'arrivée.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Partagez votre trajet"
+        },
+        "instagram": {
+          "body": "Un proche suit votre trajet, en direct 📍\n\nUn lien de suivi se partage en un geste, sans application. Nom du chauffeur, modèle, couleur et plaque : vous savez qui arrive.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#MTL",
+            "#Tranquillité",
+            "#TransportDePersonnes"
+          ],
+          "imageText": "Un proche suit votre trajet"
+        },
+        "linkedin": {
+          "body": "Pour vos collaborateurs qui se déplacent tard ou seuls.\n\nLe suivi Neomoov se partage en temps réel par un simple lien, sans application. Le nom du chauffeur, le modèle, la couleur et la plaque du véhicule sont connus avant l'arrivée, et la messagerie masque les numéros des deux côtés.",
+          "hashtags": [
+            "#Mobilité",
+            "#Montréal"
+          ],
+          "imageText": "Pour vos équipes",
+          "en": {
+            "title": "For your team",
+            "body": "For team members travelling late or alone: Neomoov trip tracking can be shared in real time with a simple link, no app needed. The driver's name and the vehicle's model, colour and plate are known before arrival, and messaging hides phone numbers on both sides."
+          }
+        },
+        "x": {
+          "body": "Partagez votre trajet Neomoov avec un proche : un lien de suivi en temps réel, sans application. Nom du chauffeur et plaque connus avant l'arrivée.",
+          "hashtags": [],
+          "imageText": "Suivi en temps réel",
+          "en": {
+            "title": "Real-time tracking",
+            "body": "Share your Neomoov trip with someone close: a real-time tracking link, no app needed. Driver's name and plate known before arrival.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Vous rentrez tard ?\nPartagez votre trajet avec un proche.\nIl le suit en direct, sans application.\nEt vous savez qui arrive : nom, modèle, plaque.",
+          "caption": "Un proche suit votre trajet 📍 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#MTL"
+          ],
+          "imageText": "Vous rentrez tard ?"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Vous rentrez tard ?\nPartagez votre trajet.\nSuivi en direct.",
+          "caption": "Votre trajet, partagé 📍 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Votre trajet, partagé"
+        },
+        "telegram": {
+          "body": "Partagez votre trajet avec un proche : un lien de suivi en temps réel, sans application. Nom du chauffeur et plaque connus avant l'arrivée.",
+          "hashtags": [],
+          "imageText": "Suivi partagé"
+        },
+        "youtube": {
+          "title": "Partager son trajet en temps réel avec un proche",
+          "body": "Pendant votre course Neomoov, vous pouvez partager votre trajet.\nUn simple lien suffit, votre proche n'a pas besoin d'application.\nAvant l'arrivée, vous connaissez le nom du chauffeur et la plaque.\nEt la messagerie masque les numéros des deux côtés.",
+          "caption": "Le partage du trajet en temps réel et les informations sur le chauffeur avant son arrivée, chez Neomoov à Montréal.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Le partage du trajet"
+        },
+        "whatsapp_channel": {
+          "body": "Vous rentrez tard ? Partagez votre trajet Neomoov avec un proche, qui le suit en direct par un simple lien.",
+          "hashtags": [],
+          "imageText": "Rentrer tard, sereinement"
+        }
+      },
+      "photoHints": [
+        "client",
+        "passager"
+      ],
+      "day": 14,
+      "sensitive": true,
+      "notes": "Thème : Sécurité et chauffeurs vérifiés. Date proposée : lundi 19 octobre 2026.\n\nPhoto réelle (client) : Photo réelle d'une passagère qui consulte une carte sur son téléphone à l'arrière d'un véhicule (modèle, licence commerciale, crédit indiqué).\n\nApprobation humaine : Sujet « sécurité » : approbation humaine obligatoire selon les lignes éditoriales."
+    },
+    {
+      "ref": "P26",
+      "pillar": "service",
+      "audience": "entreprises",
+      "title": "Réserver pour un client, un patient ou un invité",
+      "body": "Hôtels, cliniques, conciergeries : réservez pour vos clients.\n\nIndiquez le nom et le numéro de la personne qui voyage : elle reçoit par texto le suivi de sa course, avec le modèle et la plaque du véhicule. Vous, vous recevez le reçu. La course peut être rattachée à votre compte entreprise.",
+      "short": "Réservez pour vos clients, patients ou invités : ils reçoivent le suivi par texto, vous recevez le reçu. Course rattachée à votre compte entreprise.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#Entreprises"
+          ],
+          "imageText": "Réservez pour vos clients"
+        },
+        "instagram": {
+          "body": "Réserver pour un client, simplement 🏨\n\nIl reçoit le suivi de sa course par texto. Vous recevez le reçu. Hôtels, cliniques, conciergeries, organisateurs d'événements : la course peut être rattachée à votre compte entreprise.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#Hôtellerie",
+            "#Montréal",
+            "#Entreprises",
+            "#Conciergerie"
+          ],
+          "imageText": "Pour un client, simplement"
+        },
+        "linkedin": {
+          "body": "Hôtels, cliniques, cabinets, organisateurs d'événements : vos clients méritent un trajet sans souci.\n\nAvec Neomoov, vous réservez pour eux : ils reçoivent le suivi de leur course par texto, avec le modèle et la plaque du véhicule ; vous recevez le reçu, et la course peut être rattachée à votre compte entreprise, avec facturation mensuelle.",
+          "hashtags": [
+            "#Hôtellerie",
+            "#Entreprises",
+            "#Montréal"
+          ],
+          "imageText": "Vos clients, sans souci",
+          "en": {
+            "title": "Worry-free for your clients",
+            "body": "Hotels, clinics, professional firms and event organizers: your clients deserve a worry-free ride. With Neomoov, you book for them: they receive ride tracking by text, with the vehicle's model and plate; you get the receipt, and the ride can be billed to your business account with monthly invoicing."
+          }
+        },
+        "x": {
+          "body": "Réservez pour vos clients, patients ou invités : ils reçoivent le suivi par texto, vous recevez le reçu. Course rattachée à votre compte entreprise.",
+          "hashtags": [],
+          "imageText": "Pour vos invités",
+          "en": {
+            "title": "Book for your guests",
+            "body": "Book for your clients, patients or guests: they get tracking by text, you get the receipt. Rides can be billed to your business account.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Vous accueillez des clients ou des invités ?\nRéservez leur course à leur nom.\nIls reçoivent le suivi par texto.\nEt vous recevez le reçu.",
+          "caption": "Réserver pour un tiers 🏨 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Hôtellerie"
+          ],
+          "imageText": "Vous accueillez des invités ?"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Un invité à raccompagner ?\nRéservez à son nom.\nIl suit sa course en direct.",
+          "caption": "Pour vos invités 🏨 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Un invité à raccompagner ?"
+        },
+        "telegram": {
+          "body": "Réservez pour vos clients ou vos invités : ils reçoivent le suivi par texto, vous recevez le reçu.",
+          "hashtags": [],
+          "imageText": "Pour un client ou un invité"
+        },
+        "youtube": {
+          "title": "Réserver une course pour un client ou un invité",
+          "body": "Avec Neomoov, vous pouvez réserver pour une autre personne.\nIndiquez son nom et son numéro de téléphone.\nElle reçoit le suivi de sa course par texto.\nEt vous recevez le reçu, sur votre compte entreprise si vous en avez un.",
+          "caption": "Hôtels, cliniques, conciergeries, organisateurs d'événements : réservez une course Neomoov pour vos clients, patients ou invités.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Réserver pour un tiers"
+        },
+        "whatsapp_channel": {
+          "body": "Un invité à raccompagner ? Réservez sa course à son nom : il reçoit le suivi par texto, vous recevez le reçu.",
+          "hashtags": [],
+          "imageText": "Le suivi par texto"
+        }
+      },
+      "photoHints": [
+        "client",
+        "passager",
+        "hôtel"
+      ],
+      "day": 14,
+      "sensitive": false,
+      "notes": "Thème : Entreprises et comptes d'affaires. Date proposée : lundi 19 octobre 2026.\n\nPhoto réelle (client) : Photo réelle d'une réceptionniste d'hôtel qui accueille un voyageur à son comptoir (modèles, licence commerciale, crédit indiqué)."
+    },
+    {
+      "ref": "P27",
+      "pillar": "electrique",
+      "audience": "clients",
+      "title": "Neo Premium, Neo Prestige ou Neo XL : quelle catégorie choisir ?",
+      "body": "Neo Premium, Neo Prestige ou Neo XL ?\n\nNeo Premium pour le quotidien, jusqu'à quatre passagers. Neo Prestige pour les rendez-vous qui comptent : intérieur cuir, silence à bord. Neo XL pour les familles et les groupes, jusqu'à six passagers et leurs bagages.\n\nTrois catégories, toutes 100 % électriques, et le véhicule réservé est celui qui arrive.",
+      "short": "Neo Premium pour le quotidien, Neo Prestige pour les rendez-vous qui comptent, Neo XL jusqu'à six passagers. Toutes 100 % électriques.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": "all",
+      "variants": {
+        "site_blog": {
+          "title": "Neo Premium, Neo Prestige ou Neo XL : quelle catégorie choisir ?",
+          "body": "Chez Neomoov, tous les véhicules sont 100 % électriques, récents et confortables. Mais tous les trajets ne se ressemblent pas : un rendez-vous d'affaires, un départ en vacances en famille ou une soirée entre amis n'appellent pas le même véhicule. C'est pourquoi nous proposons trois catégories. Voici comment choisir.\n\n## Ce que les trois catégories ont en commun\n\nQuelle que soit la catégorie, vous profitez des mêmes engagements :\n\n- un véhicule 100 % électrique de cinq ans ou moins, inspecté à l'inscription puis chaque trimestre ;\n- un chauffeur professionnel vérifié ;\n- de l'eau, des chargeurs, le Wi-Fi et un parapluie à disposition ;\n- un prix tout compris affiché avant de confirmer ;\n- la garantie que le véhicule réservé est celui qui arrive.\n\nDans l'application, vous pouvez même choisir le véhicule précis parmi ceux qui sont disponibles à votre heure.\n\n## Neo Premium : le choix de tous les jours\n\nNeo Premium, c'est une berline ou un VUS électrique récent, quatre places, avec climatisation et chargeurs. C'est la catégorie des trajets du quotidien : aller au travail, se rendre à un rendez-vous, rentrer d'une soirée, rejoindre la gare.\n\nPour l'aéroport, Neo Premium accueille quatre passagers et deux valises.\n\n## Neo Prestige : pour les rendez-vous qui comptent\n\nNeo Prestige est la catégorie haut de gamme : intérieur cuir, silence à bord et chauffeur en tenue soignée. Elle convient aux rendez-vous d'affaires importants, à l'accueil d'un client de marque, à une soirée spéciale ou simplement aux moments où vous voulez voyager dans le calme.\n\nComme Neo Premium, elle accueille quatre passagers et deux valises. Votre animal de compagnie peut y voyager en cage, sur demande à la réservation.\n\n## Neo XL : pour les familles et les groupes\n\nNeo XL accueille jusqu'à six passagers et leurs bagages. C'est la catégorie des départs en famille, des sorties en groupe, des collègues qui se déplacent ensemble et des voyageurs chargés : jusqu'à six valises pour l'aéroport. Si vous transportez un équipement volumineux, c'est aussi la bonne option.\n\nNeo XL accepte également votre animal de compagnie en cage, sur demande.\n\n## Comment choisir en trois questions\n\n1. Combien êtes-vous ? Jusqu'à quatre, Neo Premium ou Neo Prestige ; jusqu'à six, Neo XL.\n2. Combien de bagages ? Deux valises, Neo Premium ou Neo Prestige ; davantage, ou de l'équipement, Neo XL.\n3. Quelle occasion ? Le quotidien, Neo Premium ; un moment qui compte, Neo Prestige.\n\n## Des options dans toutes les catégories\n\nQuelle que soit la catégorie, vous pouvez indiquer vos préférences à la réservation : ambiance silencieuse ou discussion, musique, température, langue du chauffeur, aide aux bagages, siège d'enfant, accessibilité pour une personne à mobilité réduite. Un fauteuil roulant manuel pliable peut voyager dans le coffre, selon le véhicule.\n\nLes animaux d'assistance sont toujours acceptés, dans toutes les catégories.\n\n## Et pour l'aéroport ?\n\nPour un transfert vers ou depuis l'aéroport Montréal-Trudeau, pensez d'abord à vos bagages : Neo Premium et Neo Prestige accueillent deux valises, Neo XL jusqu'à six. Indiquez votre numéro de vol à la réservation : votre chauffeur est confirmé la veille et, en cas de retard annoncé, la prise en charge est ajustée sans frais.\n\n## Et pour les entreprises ?\n\nLes comptes entreprises réservent dans toutes les catégories, pour leurs équipes, leurs clients et leurs invités, avec une facture certifiée par mois et par centre de coûts. Neo Prestige se prête bien à l'accueil d'un client important, Neo XL aux déplacements d'équipe.\n\n## Pourquoi 100 % électrique ?\n\nNous avons fait le choix d'une flotte entièrement électrique : des véhicules récents, sans émission, silencieux et agréables. C'est notre façon de rendre le transport de personnes plus respectueux de la ville, sans renoncer au confort.\n\n## Le véhicule réservé est celui qui arrive\n\nC'est l'une de nos garanties : si vous réservez Neo XL, c'est un Neo XL qui vient vous chercher. Réserver au moins 2 heures à l'avance nous permet de tenir cet engagement.\n\nLa liste des modèles admis dans chaque catégorie est publiée sur la page Nos services de neomoov.net.\n\nChoisissez votre catégorie et réservez : https://neomoov.net/reserver",
+          "hashtags": [],
+          "imageText": "Quelle catégorie choisir ?"
+        },
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Premium, Prestige ou XL ?"
+        },
+        "instagram": {
+          "body": "Trois catégories, un même engagement ⚡\n\nNeo Premium pour tous les jours. Neo Prestige pour les rendez-vous qui comptent. Neo XL jusqu'à six passagers. Toutes 100 % électriques, toutes garanties : le véhicule réservé est celui qui arrive.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#NeoPremium",
+            "#NeoPrestige",
+            "#NeoXL",
+            "#VoitureÉlectrique",
+            "#Montréal"
+          ],
+          "imageText": "Trois catégories"
+        },
+        "linkedin": {
+          "body": "Quelle catégorie pour vos déplacements professionnels ?\n\nNeo Premium pour les trajets courants, Neo Prestige pour accueillir un client important dans le calme (intérieur cuir, chauffeur en tenue soignée), Neo XL pour une équipe jusqu'à six personnes. Toutes 100 % électriques, toutes avec la garantie du véhicule réservé.",
+          "hashtags": [
+            "#VoyageDAffaires",
+            "#Montréal",
+            "#MobilitéDurable"
+          ],
+          "imageText": "Pour vos déplacements pros",
+          "en": {
+            "title": "For your business trips",
+            "body": "Which category for your business travel? Neo Premium for everyday trips, Neo Prestige to welcome an important client in calm comfort (leather interior, smartly dressed driver), Neo XL for a team of up to six. All 100% electric, all with the reserved-vehicle guarantee."
+          }
+        },
+        "x": {
+          "body": "Neo Premium pour le quotidien, Neo Prestige pour les rendez-vous qui comptent, Neo XL jusqu'à six passagers. Toutes 100 % électriques.",
+          "hashtags": [],
+          "imageText": "Une catégorie pour chaque trajet",
+          "en": {
+            "title": "A category for every trip",
+            "body": "Neo Premium for everyday trips, Neo Prestige for the moments that matter, Neo XL for up to six passengers. All 100% electric.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Trois catégories, laquelle choisir ?\nNeo Premium : le choix de tous les jours.\nNeo Prestige : cuir et silence à bord.\nNeo XL : jusqu'à six passagers et leurs bagages.\nToutes 100 % électriques.",
+          "caption": "Laquelle est la vôtre ? ⚡ neomoov.net/reserver",
+          "hashtags": [
+            "#NeoPremium",
+            "#NeoPrestige",
+            "#NeoXL",
+            "#Neomoov"
+          ],
+          "imageText": "Laquelle choisir ?"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Neo Premium, au quotidien.\nNeo Prestige, en toute élégance.\nNeo XL, jusqu'à six.",
+          "caption": "Votre catégorie ⚡ neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Votre catégorie"
+        },
+        "telegram": {
+          "body": "Neo Premium, Neo Prestige ou Neo XL : trois catégories 100 % électriques. Le véhicule réservé est celui qui arrive.",
+          "hashtags": [],
+          "imageText": "Nos catégories"
+        },
+        "youtube": {
+          "title": "Neo Premium, Neo Prestige ou Neo XL : quelle catégorie choisir ?",
+          "body": "Neo Premium : berline ou VUS électrique, quatre places, pour tous les jours.\nNeo Prestige : intérieur cuir, silence à bord, pour les rendez-vous qui comptent.\nNeo XL : jusqu'à six passagers et leurs bagages.\nToutes 100 % électriques, et le véhicule réservé est celui qui arrive.",
+          "caption": "Les trois catégories de véhicules électriques Neomoov à Montréal, et comment choisir selon le nombre de passagers, les bagages et l'occasion.",
+          "hashtags": [
+            "#NeoPremium",
+            "#NeoPrestige",
+            "#NeoXL",
+            "#Shorts"
+          ],
+          "imageText": "Les trois catégories en vidéo"
+        },
+        "whatsapp_channel": {
+          "body": "Combien serez-vous ? Jusqu'à quatre : Neo Premium ou Neo Prestige. Jusqu'à six : Neo XL. Réservez :",
+          "hashtags": [],
+          "imageText": "Combien serez-vous ?"
+        }
+      },
+      "photoHints": [
+        "véhicule",
+        "électrique",
+        "VUS"
+      ],
+      "day": 15,
+      "sensitive": false,
+      "notes": "Thème : Véhicules 100 % électriques. Date proposée : mardi 20 octobre 2026.\n\nPhoto réelle (véhicule électrique) : Photo réelle d'un VUS électrique de grande taille (catégorie Neo XL) stationné devant un immeuble moderne de Montréal (médiathèque, crédit indiqué).\n\nExtrait de l'article (méta-description) : Trois catégories de véhicules 100 % électriques : comment choisir selon le nombre de passagers, les bagages et l'occasion."
+    },
+    {
+      "ref": "P28",
+      "pillar": "academy",
+      "audience": "chauffeurs",
+      "title": "L'espace membre gratuit de Neomoov Academy",
+      "body": "Chauffeurs de taxi et de VTC : votre espace Neomoov Academy est gratuit.\n\nCréez-le pour accéder à des ressources et à des bilans gratuits, et découvrir la formation Neomoov Chauffeur Pro à votre rythme.\n\nhttps://neomoov.net/academy/inscription/",
+      "short": "Chauffeurs de taxi et de VTC : créez votre espace Neomoov Academy gratuit, avec des ressources et des bilans à votre rythme. https://neomoov.net/academy/inscription/",
+      "cta": "none",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#NeomoovAcademy"
+          ],
+          "imageText": "Un espace gratuit pour vous"
+        },
+        "instagram": {
+          "body": "Votre espace Academy, gratuit 🎓\n\nDes ressources et des bilans gratuits pour les chauffeurs de taxi et de VTC, à consulter à votre rythme.\n\nCréez votre espace : lien dans la bio (neomoov.net/academy/inscription/).",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#ChauffeurMontréal",
+            "#Formation",
+            "#Taxi",
+            "#VTC"
+          ],
+          "imageText": "Votre espace Academy"
+        },
+        "linkedin": {
+          "body": "Neomoov Academy ouvre un espace membre gratuit aux chauffeurs de taxi et de VTC : des ressources et des bilans pour faire le point sur son activité, et la possibilité de découvrir la formation Neomoov Chauffeur Pro.\n\nInscription : https://neomoov.net/academy/inscription/",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#Formation"
+          ],
+          "imageText": "Un espace membre gratuit",
+          "en": {
+            "title": "A free member area",
+            "body": "Neomoov Academy offers a free member area for taxi and rideshare drivers: resources and self-assessments to take stock of your work, and a chance to discover the Neomoov Chauffeur Pro course. Sign up: https://neomoov.net/academy/inscription/"
+          }
+        },
+        "x": {
+          "body": "Chauffeurs de taxi et de VTC : créez votre espace Neomoov Academy gratuit, avec des ressources et des bilans à votre rythme. https://neomoov.net/academy/inscription/",
+          "hashtags": [
+            "#NeomoovAcademy"
+          ],
+          "imageText": "Inscription gratuite",
+          "en": {
+            "title": "Free sign-up",
+            "body": "Taxi and rideshare drivers: create your free Neomoov Academy space, with resources and self-assessments at your own pace. https://neomoov.net/academy/inscription/",
+            "hashtags": [
+              "#NeomoovAcademy"
+            ]
+          }
+        },
+        "tiktok": {
+          "body": "Chauffeur de taxi ou de VTC ?\nVotre espace Neomoov Academy est gratuit.\nDes ressources et des bilans, à votre rythme.\nL'inscription se fait en ligne, sur le site de l'Academy.",
+          "caption": "Votre espace gratuit 🎓 neomoov.net/academy/inscription/",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#Taxi",
+            "#VTC",
+            "#Formation"
+          ],
+          "imageText": "Taxi ou VTC ? C'est gratuit"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Chauffeur de taxi ou VTC ?\nUn espace gratuit.\nDes ressources à votre rythme.",
+          "caption": "Neomoov Academy 🎓 neomoov.net/academy/inscription/",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#MTL"
+          ],
+          "imageText": "Des ressources à votre rythme"
+        },
+        "telegram": {
+          "body": "Chauffeurs : votre espace Neomoov Academy est gratuit, avec des ressources et des bilans à votre rythme. Inscription : https://neomoov.net/academy/inscription/",
+          "hashtags": [],
+          "imageText": "Ressources gratuites"
+        },
+        "youtube": {
+          "title": "Neomoov Academy : votre espace membre gratuit",
+          "body": "Chauffeurs de taxi et de VTC, Neomoov Academy vous ouvre un espace gratuit.\nVous y trouvez des ressources et des bilans, à consulter à votre rythme.\nEt vous pouvez y découvrir la formation Neomoov Chauffeur Pro.\nL'inscription se fait en ligne, sur le site de Neomoov Academy.",
+          "caption": "Créez votre espace membre gratuit Neomoov Academy : https://neomoov.net/academy/inscription/",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#Formation",
+            "#Shorts"
+          ],
+          "imageText": "L'espace membre en vidéo"
+        },
+        "whatsapp_channel": {
+          "body": "Chauffeurs de taxi et de VTC : créez votre espace Neomoov Academy gratuit. Inscription : https://neomoov.net/academy/inscription/",
+          "hashtags": [],
+          "imageText": "Créez votre espace"
+        }
+      },
+      "photoHints": [
+        "chauffeur",
+        "formation"
+      ],
+      "day": 15,
+      "sensitive": false,
+      "notes": "Thème : Neomoov Academy et Chauffeur Pro. Date proposée : mardi 20 octobre 2026.\n\nPhoto réelle (chauffeur) : Photo réelle d'une chauffeuse qui consulte une fiche pratique sur sa tablette, dans un café (modèle, licence commerciale, crédit indiqué)."
+    },
+    {
+      "ref": "P29",
+      "pillar": "service",
+      "audience": "clients",
+      "title": "Réserver jusqu'à 90 jours à l'avance pour les Fêtes",
+      "body": "Vous connaissez déjà vos dates des Fêtes ?\n\nVol de décembre, souper de fin d'année, rendez-vous importants : chez Neomoov, vous pouvez réserver jusqu'à 90 jours à l'avance. Votre prix tout compris est fixé dès la réservation, et c'est une chose de moins à organiser.",
+      "short": "Vos dates des Fêtes sont connues ? Réservez vos courses jusqu'à 90 jours à l'avance, au prix tout compris fixé dès la réservation.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Vos dates des Fêtes"
+        },
+        "instagram": {
+          "body": "Planifiez vos Fêtes dès maintenant 🗓️\n\nVols, soupers, rendez-vous : réservez jusqu'à 90 jours à l'avance, au prix tout compris fixé dès la réservation.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#MTL",
+            "#TempsDesFêtes",
+            "#Planifier"
+          ],
+          "imageText": "Planifiez vos Fêtes"
+        },
+        "linkedin": {
+          "body": "Fin d'année : vos événements d'entreprise approchent.\n\nSoupers d'équipe, réceptions clients, voyages de décembre : réservez les déplacements jusqu'à 90 jours à l'avance, au prix tout compris fixé dès la réservation, avec une facture mensuelle sur votre compte entreprise.",
+          "hashtags": [
+            "#Événements",
+            "#Montréal"
+          ],
+          "imageText": "Événements de fin d'année",
+          "en": {
+            "title": "Year-end events",
+            "body": "Year-end is coming, and so are company events. Team dinners, client receptions, December trips: book rides up to 90 days ahead, at an all-inclusive price set at booking, with monthly invoicing on your business account."
+          }
+        },
+        "x": {
+          "body": "Vos dates des Fêtes sont connues ? Réservez vos courses jusqu'à 90 jours à l'avance, au prix tout compris fixé dès la réservation.",
+          "hashtags": [
+            "#TempsDesFêtes"
+          ],
+          "imageText": "Jusqu'à 90 jours d'avance",
+          "en": {
+            "title": "Up to 90 days ahead",
+            "body": "Know your holiday dates already? Book rides up to 90 days ahead, at an all-inclusive price set when you book.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Vos dates de décembre sont connues ?\nRéservez dès maintenant, jusqu'à 90 jours à l'avance.\nLe prix est fixé dès la réservation.\nUne chose de moins à organiser.",
+          "caption": "Les Fêtes, planifiées 🗓️ neomoov.net/reserver",
+          "hashtags": [
+            "#TempsDesFêtes",
+            "#Montréal",
+            "#Neomoov"
+          ],
+          "imageText": "Décembre, déjà ?"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Décembre approche.\nRéservez à l'avance.\nJusqu'à 90 jours.",
+          "caption": "Planifiez vos Fêtes 🗓️ neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Décembre approche"
+        },
+        "telegram": {
+          "body": "Vos dates des Fêtes sont connues ? Réservez jusqu'à 90 jours à l'avance, au prix fixé dès la réservation :",
+          "hashtags": [],
+          "imageText": "Les Fêtes, planifiées"
+        },
+        "youtube": {
+          "title": "Réserver jusqu'à 90 jours à l'avance pour les Fêtes",
+          "body": "Vous connaissez déjà vos dates de décembre ?\nAvec Neomoov, réservez jusqu'à 90 jours à l'avance.\nVotre prix tout compris est fixé dès la réservation.\nVols, soupers, rendez-vous : tout est prêt.",
+          "caption": "Planifiez vos déplacements des Fêtes à Montréal avec Neomoov : réservation jusqu'à 90 jours à l'avance, prix tout compris fixé dès la réservation.",
+          "hashtags": [
+            "#TempsDesFêtes",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Réserver pour les Fêtes"
+        },
+        "whatsapp_channel": {
+          "body": "Pensez aux Fêtes : vos courses de décembre se réservent déjà, jusqu'à 90 jours à l'avance :",
+          "hashtags": [],
+          "imageText": "Pensez aux Fêtes"
+        }
+      },
+      "photoHints": [
+        "client",
+        "passager"
+      ],
+      "day": 16,
+      "sensitive": false,
+      "notes": "Thème : Réservation 2 heures à l'avance. Date proposée : mercredi 21 octobre 2026.\n\nPhoto réelle (client) : Photo réelle d'une personne qui note un rendez-vous dans un agenda papier, téléphone posé à côté (modèle, licence commerciale, crédit indiqué)."
+    },
+    {
+      "ref": "P30",
+      "pillar": "marque",
+      "audience": "tous",
+      "title": "Une application conçue par le client pour les chauffeurs",
+      "body": "« Une application conçue par le client pour les chauffeurs. »\n\nC'est la phrase qui guide Neomoov. Côté client : un prix connu avant de confirmer, le véhicule choisi, vos préférences respectées. Côté chauffeur : des courses planifiées, une clientèle qui lui appartient et des décisions toujours prises par une personne. Un trajet réussi, c'est quand les deux y trouvent leur compte.",
+      "short": "Neomoov, une application conçue par le client pour les chauffeurs : un prix connu d'avance pour vous, des courses planifiées pour eux.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#Neomoov"
+          ],
+          "imageText": "Notre phrase guide"
+        },
+        "instagram": {
+          "body": "Conçue par le client, pour les chauffeurs 🤝\n\nCôté client : un prix connu d'avance et vos préférences respectées. Côté chauffeur : des courses planifiées et une clientèle qui lui appartient.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#MTL",
+            "#Chauffeurs",
+            "#ExpérienceClient"
+          ],
+          "imageText": "Conçue par le client"
+        },
+        "linkedin": {
+          "body": "« Une application conçue par le client pour les chauffeurs. »\n\nDerrière cette phrase, un principe de conception : écouter ce que les passagers attendent (un prix connu d'avance, un véhicule garanti, un suivi en direct) et donner aux chauffeurs les outils pour y répondre (courses planifiées, clientèle qui leur appartient, décisions prises par des personnes).",
+          "hashtags": [
+            "#ExpérienceClient",
+            "#Mobilité"
+          ],
+          "imageText": "Un principe de conception",
+          "en": {
+            "title": "A design principle",
+            "body": "Our motto, « Une application conçue par le client pour les chauffeurs », means an app designed by riders, for drivers. Behind it is a design principle: listen to what passengers expect (a price known upfront, a guaranteed vehicle, live tracking) and give drivers the tools to deliver (scheduled rides, a clientele of their own, decisions made by people)."
+          }
+        },
+        "x": {
+          "body": "Neomoov, une application conçue par le client pour les chauffeurs : un prix connu d'avance pour vous, des courses planifiées pour eux.",
+          "hashtags": [],
+          "imageText": "Pour vous et pour eux",
+          "en": {
+            "title": "For you and for them",
+            "body": "Neomoov, an app designed by riders, for drivers: a price known upfront for you, scheduled rides for them.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Une application conçue par le client.\nPour les chauffeurs.\nVous : un prix connu d'avance et vos préférences.\nEux : des courses planifiées et une clientèle à eux.",
+          "caption": "Un trajet réussi des deux côtés 🤝 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Chauffeurs"
+          ],
+          "imageText": "Des deux côtés"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Conçue par le client.\nPour les chauffeurs.\nRéussie des deux côtés.",
+          "caption": "Notre philosophie 🤝 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Notre philosophie"
+        },
+        "telegram": {
+          "body": "Neomoov, une application conçue par le client pour les chauffeurs : un prix connu d'avance pour vous, des courses planifiées pour eux.",
+          "hashtags": [],
+          "imageText": "Client et chauffeur"
+        },
+        "youtube": {
+          "title": "Une application conçue par le client pour les chauffeurs",
+          "body": "Neomoov, c'est une application conçue par le client pour les chauffeurs.\nPour vous : un prix connu d'avance et vos préférences respectées.\nPour les chauffeurs : des courses planifiées et une clientèle qui leur appartient.\nUn trajet réussi, des deux côtés.",
+          "caption": "La philosophie de Neomoov, service de transport de personnes à Montréal : une application conçue par le client pour les chauffeurs.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Pensée pour les deux"
+        },
+        "whatsapp_channel": {
+          "body": "Notre philosophie en une phrase : une application conçue par le client pour les chauffeurs. Réservez votre prochaine course :",
+          "hashtags": [],
+          "imageText": "Une phrase, une philosophie"
+        }
+      },
+      "photoHints": [
+        "chauffeur"
+      ],
+      "day": 16,
+      "sensitive": false,
+      "notes": "Thème : Lancement de la marque et slogan. Date proposée : mercredi 21 octobre 2026.\n\nPhoto réelle (chauffeur) : Photo réelle d'un chauffeur et d'une cliente qui se saluent devant un véhicule électrique (modèles, licence commerciale, crédit indiqué)."
     }
   ]
 }

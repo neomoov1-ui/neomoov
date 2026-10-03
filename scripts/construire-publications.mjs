@@ -159,7 +159,8 @@ const compterMots = (texte) => texte.split(/\s+/).filter((m) => /[\p{L}\p{N}]/u.
 /** Une publication rédigée (forme courte des lots) devient une publication du format d'import et un modèle de lecture. */
 function construire(p, planifier) {
   const date = decalerDate(DEBUT, p.jour);
-  const lien = ADRESSES[p.cta];
+  // cta « none » : l'adresse (espace membre gratuit de l'Academy) est écrite dans le texte.
+  const lien = p.cta === 'none' ? null : ADRESSES[p.cta];
   const espaces = p.blog ? ESPACES : ESPACES.filter((e) => e !== 'site_blog');
   const variantes = {};
   if (p.blog) variantes.site_blog = { title: p.blog.titre, body: p.blog.corps.trim(), hashtags: [], imageText: p.img.site_blog };
@@ -265,7 +266,7 @@ function markdown(lectures, creneaux) {
     l.push(`### ${p.ref} · ${p.jourLong} · ${THEMES[p.theme]} · ${p.title}`);
     l.push('');
     l.push(`- Photo réelle (${SUJETS_PHOTO[p.photo[0]].toLowerCase()}) : ${p.photo[1]}`);
-    l.push(`- Appel à l'action : ${p.lien}`);
+    l.push(`- Appel à l'action : ${p.lien ?? 'adresse écrite dans le texte (espace membre gratuit de l\'Academy)'}`);
     if (p.sensitive) l.push(`- Approbation humaine requise : ${p.motif}`);
     for (const c of p.contenus) {
       l.push('');
