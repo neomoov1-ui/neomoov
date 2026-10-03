@@ -11,9 +11,10 @@ import { keys, queryClient } from '@/lib/queries';
 import { useSession } from '@/lib/session';
 
 /**
- * Rejoindre une organisation (étape 22) : code saisi, lu sur un code QR ou reçu par le lien `https://neomoov.net/c/<code>` ;
- * aperçu de la marque, puis rattachement du profil par l'API (l'application prend la marque de l'organisation). Le
- * rattachement comme chauffeur d'une flotte (répartition, relevés) reste décidé par l'organisation, par invitation.
+ * Rejoindre une organisation (étape 22) : code saisi, lu sur un code QR ou reçu par le lien des chauffeurs
+ * `https://neomoov.net/d/<code>` (ou `neomoov-driver://c/<code>`) ; aperçu de la marque, puis rattachement du profil par
+ * l'API (l'application prend la marque de l'organisation). Le rattachement comme chauffeur d'une flotte (répartition,
+ * relevés) passe par l'invitation de l'organisation (écran `fleet-invitation`).
  */
 export default function JoinScreen() {
   const { t } = useTranslation();
@@ -92,6 +93,7 @@ export default function JoinScreen() {
       ) : null}
       {previewError ? <ErrorState message={previewError} /> : null}
       <Notice>{t('organization.fleetNote')}</Notice>
+      <Button label={t('fleetInvite.open')} variant="ghost" onPress={() => router.push('/fleet-invitation')} testID="join-fleet-invitation" />
       {status !== 'signedIn' ? <Notice>{t('organization.signInFirst')}</Notice> : null}
       {joined ? <Notice tone="success">{t('organization.joined', { name: joined })}</Notice> : null}
       {error ? <ErrorState message={error} /> : null}
