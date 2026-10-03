@@ -1,6 +1,6 @@
 import type { RideInvoiceView, RideView } from '@neomoov/domain';
 import { describe, expect, it } from 'vitest';
-import { downloadStatus, invoiceCandidates, invoiceFileName, PdfDownloadError, sortInvoices } from '../src/features/invoices/logic';
+import { createLimiter, downloadStatus, INVOICE_CONCURRENCY, INVOICE_PAGE_SIZE, invoiceCandidates, invoiceFileName, PdfDownloadError, sortInvoices, visibleCandidates } from '../src/features/invoices/logic';
 
 const ride = (id: string, state: RideView['state']): Pick<RideView, 'id' | 'state'> => ({ id, state });
 
@@ -31,5 +31,45 @@ describe('factures du client', () => {
     expect(downloadStatus(new Error('The Internet connection appears to be offline.'))).toBeNull();
     expect(downloadStatus('inconnu')).toBeNull();
     expect(new PdfDownloadError(409).status).toBe(409);
+  });
+
+  it('10 courses par page ouverte, dans l\'ordre de la liste', () => {
+    const ids = Array.from({ length: 23 }, (_, i) => `r${i}`);
+    expect(INVOICE_PAGE_SIZE).toBe(10);
+    expect(visibleCandidates(ids, 1)).toEqual(ids.slice(0, 10));
+    expect(visibleCandidates(ids, 2)).toEqual(ids.slice(0, 20));
+    expect(visibleCandidates(ids, 3)).toEqual(ids);
+    expect(visibleCandidates(ids, 0)).toEqual(ids.slice(0, 10));
+  });
+
+  it('5 requêtes au plus en même temps, les suivantes dans l\'ordre, même après un échec', async () => {
+    const limit = createLimiter(INVOICE_CONCURRENCY);
+    let running = 0;
+    let peak = 0;
+    const started: number[] = [];
+    const releases: Array<() => void> = [];
+    const task = (i: number) => () =>
+      new Promise<number>((resolve, reject) => {
+        started.push(i);
+        running += 1;
+        peak = Math.max(peak, running);
+        releases[i] = () => {
+          running -= 1;
+          if (i === 2) reject(new Error('panne'));
+          else resolve(i);
+        };
+      });
+    const results = Array.from({ length: 12 }, (_, i) => limit(task(i)).catch((e: Error) => e.message));
+    await Promise.resolve();
+    expect(started).toEqual([0, 1, 2, 3, 4]);
+    for (let i = 0; i < 12; i += 1) {
+      await new Promise((r) => setTimeout(r, 0));
+      releases[i]?.();
+    }
+    const values = await Promise.all(results);
+    expect(peak).toBe(5);
+    expect(started).toEqual(Array.from({ length: 12 }, (_, i) => i));
+    expect(values[2]).toBe('panne');
+    expect(values[11]).toBe(11);
   });
 });

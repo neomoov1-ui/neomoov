@@ -143,6 +143,40 @@ describe("client d'API", () => {
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
+  it('garde la session quand le rafraîchissement tombe sur une panne de l\'API (5xx, 429) : erreur rendue à l\'appelant', async () => {
+    for (const status of [502, 503, 429]) {
+      const f = fakeFetch(json(401, { code: 'TOKEN_EXPIRED', message: 'a' }));
+      const onUnauthorized = vi.fn();
+      const api = createApiClient({
+        baseUrl: 'https://api.test',
+        fetch: f.fetch,
+        onUnauthorized,
+        tokens: { getAccessToken: () => 'x', refresh: async () => { throw new ApiError(status, `HTTP_${status}`, 'panne'); } },
+      });
+      const error = await failure(api.get('/me'));
+      expect(error.status).toBe(status);
+      expect(onUnauthorized).not.toHaveBeenCalled();
+      expect(f.calls).toHaveLength(1);
+    }
+  });
+
+  it('transmet chaque réponse à onResponse avec ses heures d\'envoi et de réception, sans échouer si l\'observateur lève', async () => {
+    const f = fakeFetch(json(200, { ok: true }, { date: 'Sat, 03 Oct 2026 12:00:00 GMT' }), json(404, { code: 'NOT_FOUND', message: 'absent' }));
+    const seen: Array<{ status: number; date: string | null; sentAt: number; receivedAt: number }> = [];
+    const api = createApiClient({
+      baseUrl: 'https://api.test',
+      fetch: f.fetch,
+      onResponse: (response, timing) => {
+        seen.push({ status: response.status, date: response.headers.get('date'), ...timing });
+        throw new Error('observateur défaillant');
+      },
+    });
+    expect(await api.get('/a')).toEqual({ ok: true });
+    expect((await failure(api.get('/b'))).code).toBe('NOT_FOUND');
+    expect(seen.map((s) => [s.status, s.date])).toEqual([[200, 'Sat, 03 Oct 2026 12:00:00 GMT'], [404, null]]);
+    for (const s of seen) expect(s.receivedAt).toBeGreaterThanOrEqual(s.sentAt);
+  });
+
   it('signale la session perdue quand le rafraîchissement échoue', async () => {
     const f = fakeFetch(json(401, { code: 'UNAUTHORIZED', message: 'Non connecté', correlationId: 'c-1' }));
     const onUnauthorized = vi.fn();

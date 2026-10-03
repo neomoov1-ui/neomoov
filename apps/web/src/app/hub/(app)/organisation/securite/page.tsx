@@ -96,7 +96,7 @@ function Security() {
           <form onSubmit={submit} className="flex flex-col gap-4">
             <p className="text-sm text-slate-700">{t('hub.login.enrollSubtitle')}</p>
             {/* SVG produit par l'API (bibliothèque de QR côté serveur), jamais par une saisie. */}
-            <div role="img" aria-label="QR" className="mx-auto w-48 [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: step.enrollment.qrSvg }} />
+            <div role="img" aria-label={t('hub.login.qr')} className="mx-auto w-48 [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: step.enrollment.qrSvg }} />
             <div>
               <p className="text-xs font-semibold text-slate-700">{t('hub.login.enrollSecret')}</p>
               <code className="mt-1 block break-all rounded bg-slate-100 p-2 text-sm" data-testid="totp-secret">{step.enrollment.secret}</code>

@@ -2,7 +2,7 @@
  * Règles d'affichage de la réservation, sans React Native (testées par vitest) : créneaux de prise en charge selon le
  * préavis (D32), lignes du détail de prix telles que l'API les renvoie, cartes des catégories, modes de paiement.
  */
-import type { AppConfig, PaymentChoice, PaymentMethod, QuoteView, QuotesResponse, VehicleCategory } from '@neomoov/domain';
+import type { AppConfig, PaymentChoice, PaymentMethod, Place, QuoteRequest, QuoteView, QuotesResponse, VehicleCategory } from '@neomoov/domain';
 
 export const SLOT_MINUTES = 15;
 
@@ -144,6 +144,48 @@ export function effectivePaymentChoice(options: PaymentOptions, wanted: PaymentC
   if (available(wanted)) return wanted;
   const other: PaymentChoice = wanted === 'prepaid' ? 'pay_driver_after' : 'prepaid';
   return available(other) ? other : null;
+}
+
+/** Brouillon nécessaire à un devis : itinéraire, heure de prise en charge, options cochées. */
+export interface QuoteDraft {
+  origin: Place;
+  destination: Place;
+  stops: Place[];
+  pickupAt: string;
+  options: { flex: boolean; priority: boolean; childSeat: boolean; luggage: boolean; pet: boolean; favouriteDriverId?: string | undefined };
+}
+
+/**
+ * Demande de devis du brouillon, la même partout (choix des options, nouveau devis avant confirmation) : arrêts, heure,
+ * options et chauffeur favori ; le mode de paiement choisi quand il est connu (les crédits ne valent qu'en prépaiement).
+ */
+export function quoteRequestOf(draft: QuoteDraft, paymentChoice?: PaymentChoice | null): QuoteRequest {
+  const { flex, priority, childSeat, luggage, pet, favouriteDriverId } = draft.options;
+  return {
+    origin: draft.origin,
+    destination: draft.destination,
+    stops: draft.stops,
+    requestedAt: draft.pickupAt,
+    options: { flex, priority, childSeat, luggage, pet, ...(favouriteDriverId ? { favouriteDriverId } : {}) },
+    ...(paymentChoice ? { paymentChoice } : {}),
+  };
+}
+
+/** Marge avant la fin de validité d'un devis : la création de la course doit arriver à l'API avant l'expiration. */
+export const QUOTE_EXPIRY_MARGIN_MS = 30_000;
+
+/**
+ * Devis expiré ou sur le point de l'être (revue du 2 octobre 2026, constat mobile 4) : `now` est l'heure de l'API vue
+ * du téléphone. Un nouveau devis est demandé avant la confirmation plutôt que d'envoyer un prix périmé.
+ */
+export function quoteExpired(quote: Pick<QuoteView, 'validUntil'>, now: number, marginMs = QUOTE_EXPIRY_MARGIN_MS): boolean {
+  const validUntil = Date.parse(quote.validUntil);
+  return !Number.isFinite(validUntil) || validUntil - now <= marginMs;
+}
+
+/** Même prix pour le client : total, montant dû et plafond consenti identiques (le nouveau devis peut partir sans nouvelle confirmation). */
+export function samePrice(a: Pick<QuoteView, 'totalCents' | 'amountDueCents' | 'maxConsentedCents'>, b: Pick<QuoteView, 'totalCents' | 'amountDueCents' | 'maxConsentedCents'>): boolean {
+  return a.totalCents === b.totalCents && a.amountDueCents === b.amountDueCents && a.maxConsentedCents === b.maxConsentedCents;
 }
 
 /** Proposition de négociation (V1.1) : bornes du curseur, au dollar, entre le plancher et le prix affiché. */

@@ -9,9 +9,9 @@ import {
   adminCancelRideSchema, adminInterruptRideSchema, interruptionResultSchema, adminClientSchema, adminDashboardSchema, adminDataRequestSchema, adminDocumentSchema,
   adminDriverDetailSchema, adminDriverListItemSchema, adminIncidentSchema, adminInvoiceSchema, adminLeadSchema, adminListQuerySchema, adminPromotionSchema,
   adminReportSchema, adminRideListItemSchema, adminRideListQuerySchema, adminSettingSchema, adminStaffSchema, adminStatementSchema, adminVehicleSchema,
-  cancellationResultSchema, documentReviewSchema, driverPlatformFeeSchema, driverProgramsSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
+  cancellationResultSchema, crmRecordsSchema, documentReviewSchema, driverPlatformFeeSchema, driverProgramsSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
   pricingRuleInputSchema, pricingRuleSchema, reportQuerySchema, sanctionInputSchema, settingUpdateSchema, staffNoteInputSchema, staffNoteSchema, uuid,
-  vehicleReviewSchema, zoneUpdateSchema,
+  vehicleReviewSchema, zoneUpdateSchema, type CrmRecordsView,
 } from '@neomoov/domain';
 import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { Can, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
+import { CrmSyncService, type CrmEntityType } from '../crm/crm-sync.service.js';
 import { RidesService } from '../rides/rides.service.js';
 import { AdminDirectoryService } from './admin-directory.service.js';
 import { AdminDriversService } from './admin-drivers.service.js';
@@ -281,6 +282,7 @@ export class AdminDirectoryController {
   constructor(
     private readonly directory: AdminDirectoryService,
     private readonly drivers: AdminDriversService,
+    private readonly crm: CrmSyncService,
   ) {}
 
   @Get('clients')
@@ -385,6 +387,53 @@ export class AdminDirectoryController {
   @ApiErrors(400, 401, 403, 404, 429)
   leadStatus(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(leadStatusSchema)) body: z.infer<typeof leadStatusSchema>) {
     return this.directory.setLeadStatus(id, body.status);
+  }
+
+  // État CRM d'une fiche (étape 25), affiché dans My Hub : une route par type de fiche, avec la permission de sa liste.
+
+  @Get('crm/leads/:id')
+  @Can('leads.read')
+  @NoAudit()
+  @ApiOperation({ summary: 'État CRM d\'un prospect reçu du web : objets chez le fournisseur, état, tentatives, dernière erreur' })
+  @ZodResponse(200, crmRecordsSchema)
+  @ApiErrors(401, 403, 429)
+  crmLead(@Param('id', zodPipe(uuid)) id: string) {
+    return this.crmRecords('lead', id);
+  }
+
+  @Get('crm/prospects/:id')
+  @Can('sales.read')
+  @NoAudit()
+  @ApiOperation({ summary: 'État CRM d\'un prospect d\'affaires (ventes)' })
+  @ZodResponse(200, crmRecordsSchema)
+  @ApiErrors(401, 403, 429)
+  crmProspect(@Param('id', zodPipe(uuid)) id: string) {
+    return this.crmRecords('prospect', id);
+  }
+
+  @Get('crm/organizations/:id')
+  @Can('organizations.read')
+  @NoAudit()
+  @ApiOperation({ summary: 'État CRM d\'une organisation cliente' })
+  @ZodResponse(200, crmRecordsSchema)
+  @ApiErrors(401, 403, 429)
+  crmOrganization(@Param('id', zodPipe(uuid)) id: string) {
+    return this.crmRecords('organization', id);
+  }
+
+  @Get('crm/business-accounts/:id')
+  @Can('clients.read')
+  @NoAudit()
+  @ApiOperation({ summary: 'État CRM d\'un compte d\'affaires' })
+  @ZodResponse(200, crmRecordsSchema)
+  @ApiErrors(401, 403, 429)
+  crmBusinessAccount(@Param('id', zodPipe(uuid)) id: string) {
+    return this.crmRecords('business_account', id);
+  }
+
+  private async crmRecords(entityType: CrmEntityType, entityId: string): Promise<CrmRecordsView> {
+    const records = await this.crm.records(entityType, entityId);
+    return { provider: this.crm.providerName, records: records.map((r) => ({ ...r, lastSyncedAt: r.lastSyncedAt?.toISOString() ?? null })) };
   }
 
   @Get('packs')

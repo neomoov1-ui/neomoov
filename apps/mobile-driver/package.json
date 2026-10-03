@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "eas-build-pre-install": "node ../../packages/mobile-core/expo/google-services.cjs",
     "eas-build-post-install": "pnpm --filter @neomoov/domain run build && pnpm --filter @neomoov/api-client run build"
   },
   "dependencies": {

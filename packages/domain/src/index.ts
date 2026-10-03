@@ -53,6 +53,8 @@ export * from './access/support-access.js';
 // Facturation de la plateforme (étape 25) : formules, factures, relances, et schémas de l'API.
 export * from './platform-billing/billing.js';
 export * from './schemas/platform-billing.js';
+// CRM (étape 25) : état de la synchronisation d'une fiche, lu dans My Hub.
+export * from './schemas/crm.js';
 // Neomoov Booster (phase 1, agent G) : vérification sommaire, rapport de performance, alertes, et schémas de l'API.
 export * from './booster/inspection.js';
 export * from './booster/performance.js';

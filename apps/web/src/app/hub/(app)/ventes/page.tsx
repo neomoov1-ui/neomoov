@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EnumBadge, ErrorBlock, Loading, pageLabels, useCanWrite, useErrorText, useLang, useDebounced } from '@/components/hub/common';
+import { CrmStatus } from '@/components/hub/crm-status';
 import { Action, Badge, Card, DataTable, Dialog, Field, Input, Notice, PageTitle, Pagination, Select, Textarea, type BadgeTone, type Column } from '@/components/ui/kit';
 import { formatDateTime } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
@@ -206,6 +207,8 @@ function ProspectDialog({ id, writable, onClose, onChanged }: { id: string; writ
             {p.unsubscribedAt ? <p className="text-red-800"><strong>{t('hub.sales.unsubscribed')}</strong> {formatDateTime(p.unsubscribedAt, lang)}</p> : null}
             {p.lastQuote ? <p><strong>{t('hub.sales.quote')}</strong> : {t('hub.sales.discount')} {p.lastQuote.discountBps / 100} %, {p.lastQuote.expectedMonthlyRides} / mois, {p.lastQuote.paymentTermsDays} j · {t('hub.sales.validUntil')} {formatDateTime(p.lastQuote.validUntil, lang)} · {p.lastQuote.inGrid ? t('hub.sales.inGrid') : t('hub.sales.outOfGrid')}</p> : null}
           </div>
+          {/* Étape 25 : état CRM de la fiche (HubSpot, simulé en développement). */}
+          <Card title={t('hub.crm.title')}><CrmStatus kind="prospects" entityId={p.id} /></Card>
           {writable && !closed ? (
             <div className="flex flex-wrap items-end gap-2">
               <Action busy={call.isPending} disabled={pending || !p.phone} onClick={() => call.mutate()}>{t('hub.sales.callNow')}</Action>

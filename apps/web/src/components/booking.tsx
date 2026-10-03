@@ -4,18 +4,21 @@
  * Réservation web sans compte (`/reserver`, intégrable en iframe) : trajet et heure (préavis minimal de la
  * configuration), prix garanti par catégorie (API publique), vérification du numéro par SMS (compte créé au besoin),
  * prix confirmé avec le compte, paiement au chauffeur (modes renvoyés par le devis), confirmation et lien de suivi.
+ * Finalisation (3 octobre 2026) : animal d'assistance (préférence transmise au chauffeur), code promo (vérifié par l'API
+ * avec le devis) et code de parrainage (enregistré sur le compte avant la première course), prérenseignés par l'adresse.
  */
 import type { AppConfig, PaymentMethod, Place, QuoteRequest, QuoteView, QuotesResponse, RidePreferences, RideView } from '@neomoov/domain';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddressField } from '@/components/address-field';
 import { useWebBrand } from '@/components/brand-context';
 import { OtpSignIn } from '@/components/otp-sign-in';
 import { QuoteList } from '@/components/quote-list';
-import { Action, Card, Checkbox, Field, Input, Notice, Textarea, cx } from '@/components/ui/kit';
+import { Action, Card, Checkbox, Field, Input, Notice, Textarea, cx, focus } from '@/components/ui/kit';
 import { formatDateTime, formatMoney, montrealToIso } from '@/lib/format';
 import type { Language } from '@/lib/i18n-resources';
+import { codesFromSearch, normalizePromoCode, normalizeReferralCode, promoOutcome, referralErrorKey } from '@/lib/booking-codes';
 import { createGuestApi, errorCode, publicApi } from '@/lib/site-api';
 
 const OPTIONS = { flex: false, priority: false, childSeat: false, luggage: false, pet: false };
@@ -64,6 +67,12 @@ export function Booking() {
   const [flight, setFlight] = useState('');
   // Animal de compagnie en cage (D8) : seules les catégories qui l'acceptent sont tarifées.
   const [pet, setPet] = useState(false);
+  // Animal d'assistance : jamais un motif de refus ni un supplément ; seulement une information pour le chauffeur.
+  const [assistanceAnimal, setAssistanceAnimal] = useState(false);
+  const [promo, setPromo] = useState('');
+  const [referral, setReferral] = useState('');
+  // Code de parrainage déjà enregistré sur ce compte (une nouvelle tentative de confirmation ne le renvoie pas).
+  const [referralApplied, setReferralApplied] = useState<string | null>(null);
   const [chosenMethod, setChosenMethod] = useState<PaymentMethod | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,15 +81,26 @@ export function Booking() {
   const [trackingPath, setTrackingPath] = useState<string | null>(null);
   const idempotencyKey = useRef(globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`);
 
+  // Codes passés par l'adresse (lien de parrainage, campagne) : prérenseignés, modifiables.
+  useEffect(() => {
+    const codes = codesFromSearch(window.location.search);
+    if (codes.promo) setPromo(codes.promo);
+    if (codes.referral) setReferral(codes.referral);
+  }, []);
+  const promoCode = normalizePromoCode(promo);
+
   const search = useCallback((input: string, sessionToken: string) => publicApi.public.autocomplete(input, sessionToken), []);
   const details = useCallback((placeId: string, sessionToken: string) => publicApi.public.placeDetails(placeId, sessionToken), []);
   const requestedAt = () => montrealToIso(date, time);
-  const request = (): QuoteRequest => ({ origin: origin!, destination: destination!, stops: [], requestedAt: requestedAt(), options: { ...OPTIONS, pet } });
+  const request = (): QuoteRequest => ({ origin: origin!, destination: destination!, stops: [], requestedAt: requestedAt(), options: { ...OPTIONS, pet, ...(promoCode ? { promoCode } : {}) } });
   const paymentMethods = payAfterMethods(quotes?.paymentMethods);
   const paymentMethod = chosenMethod && paymentMethods.includes(chosenMethod) ? chosenMethod : (paymentMethods[0] ?? null);
 
   const fail = (e: unknown) => {
     const code = errorCode(e);
+    const referralKey = referralErrorKey(code);
+    if (referralKey) return setError(t(referralKey));
+    if (code === 'PROMO_CODE_UNKNOWN') return setError(t('book.errors.promoUnknown'));
     setError(code === 'LEAD_TIME_TOO_SHORT' ? t('book.errors.lead') : code === 'RATE_LIMITED' ? t('book.errors.rateLimited') : e instanceof Error && e.message ? e.message : t('book.errors.generic'));
   };
 
@@ -109,6 +129,13 @@ export function Booking() {
     setNotice(null);
     try {
       if (firstName.trim()) await guest.api.me.update({ firstName: firstName.trim(), ...(lastName.trim() ? { lastName: lastName.trim() } : {}) }).catch(() => undefined);
+      // Parrainage : enregistré avant la première course ; un code refusé arrête la confirmation (le message dit quoi faire).
+      const referralCode = normalizeReferralCode(referral);
+      if (referral.trim() && !referralCode) return setError(t('book.errors.referralUnknown'));
+      if (referralCode && referralCode !== referralApplied) {
+        await guest.api.me.applyReferral(referralCode);
+        setReferralApplied(referralCode);
+      }
       // Le devis affiché venait de l'API publique (sans compte) : le prix est recalculé avec le compte, mêmes règles.
       const own = await guest.api.quotes.create({ ...request(), category: quote.category });
       const priced = own.quotes.find((q) => q.category === quote.category);
@@ -123,7 +150,7 @@ export function Booking() {
       const created = await guest.api.rides.create(
         {
           quoteId: priced.id, type: 'scheduled', requestedAt: requestedAt(), paymentMethod, paymentChoice: 'pay_driver_after', maxConsentedCents: priced.maxConsentedCents,
-          preferences: PREFERENCES, ...(special.trim() ? { specialRequests: special.trim() } : {}), ...(flightNumber ? { flightNumber } : {}),
+          preferences: { ...PREFERENCES, ...(assistanceAnimal ? { assistanceAnimal: true } : {}) }, ...(special.trim() ? { specialRequests: special.trim() } : {}), ...(flightNumber ? { flightNumber } : {}),
         },
         idempotencyKey.current,
       );
@@ -168,6 +195,9 @@ export function Booking() {
             </div>
             <Checkbox label={t('book.pet')} checked={pet} onChange={(e) => { setPet(e.target.checked); setStep('trip'); }} />
             {pet ? <p className="text-xs text-slate-600">{t('book.petHint')}</p> : null}
+            <Checkbox label={t('book.assistanceAnimal')} checked={assistanceAnimal} onChange={(e) => setAssistanceAnimal(e.target.checked)} />
+            {assistanceAnimal ? <p className="text-xs text-slate-600">{t('book.assistanceAnimalHint')}</p> : null}
+            <Field label={t('book.promoCode')}>{(p) => <Input {...p} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={30} value={promo} onChange={(e) => { setPromo(e.target.value); setStep('trip'); }} />}</Field>
             {step === 'trip' ? <div><Action type="submit" busy={busy} disabled={busy || !origin || !destination}>{busy ? t('book.quoting') : t('book.getPrice')}</Action></div> : null}
           </form>
         </Card>
@@ -175,7 +205,10 @@ export function Booking() {
 
       {step === 'price' && quotes ? (
         <Card>
+          {/* Annonce au lecteur d'écran : les prix sont apparus sous le formulaire. */}
+          <p role="status" className="sr-only">{t('book.pricesReady', { count: quotes.quotes.length })}</p>
           <QuoteList quotes={quotes.quotes} selected={quote?.id ?? null} onSelect={setQuote} language={lang} name="category" />
+          <PromoNotice outcome={promoOutcome(quote, promoCode)} code={promoCode} language={lang} />
           <p className="mt-2 text-xs text-slate-600">{t('book.validity')}</p>
           <div className="mt-3"><Action onClick={() => setStep('contact')} disabled={!quote}>{t('book.choose')}</Action></div>
         </Card>
@@ -201,13 +234,14 @@ export function Booking() {
                       <p className="text-sm">{t('book.payDriver')}</p>
                       {paymentMethods.map((m) => (
                         <label key={m} className="flex items-center gap-2 text-sm">
-                          <input type="radio" name="payment" value={m} checked={paymentMethod === m} onChange={() => setChosenMethod(m)} className="accent-brand-blue-dark" />
+                          <input type="radio" name="payment" value={m} checked={paymentMethod === m} onChange={() => setChosenMethod(m)} className={cx('h-4 w-4 accent-brand-blue-dark', focus)} />
                           {t(`enum.paymentMethod.${m}`)}
                         </label>
                       ))}
                     </>
                   )}
                 </fieldset>
+                <Field label={t('book.referralCode')} hint={t('book.referralHint')}>{(p) => <Input {...p} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={12} value={referral} disabled={referralApplied !== null} onChange={(e) => setReferral(e.target.value)} />}</Field>
                 <Field label={t('book.specialRequests')}>{(p) => <Textarea {...p} maxLength={500} value={special} onChange={(e) => setSpecial(e.target.value)} />}</Field>
                 <Field label={t('book.flight')}>{(p) => <Input {...p} maxLength={8} value={flight} onChange={(e) => setFlight(e.target.value)} />}</Field>
                 <div><Action onClick={() => void confirm()} busy={busy} disabled={busy || !paymentMethod}>{busy ? t('book.confirming') : t('book.confirm')}</Action></div>
@@ -231,6 +265,19 @@ export function Booking() {
           </div>
         </Card>
       ) : null}
+    </div>
+  );
+}
+
+/** Effet du code promo sur la catégorie choisie, annoncé au lecteur d'écran (zone d'état). */
+function PromoNotice({ outcome, code, language }: { outcome: ReturnType<typeof promoOutcome>; code: string; language: Language }) {
+  const { t } = useTranslation();
+  if (!outcome) return null;
+  return (
+    <div className="mt-2">
+      {outcome.status === 'applied'
+        ? <Notice tone="success">{t('book.promoApplied', { code, amount: formatMoney(outcome.discountCents, language) })}</Notice>
+        : <Notice tone="warning">{t('book.promoNotApplied', { code })}</Notice>}
     </div>
   );
 }

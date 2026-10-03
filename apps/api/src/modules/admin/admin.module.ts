@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ComplianceModule } from '../compliance/compliance.module.js';
+import { CrmModule } from '../crm/crm.module.js';
 import { PricingModule } from '../pricing/pricing.module.js';
 import { RidesModule } from '../rides/rides.module.js';
 import { AdminIncidentsController } from './admin-incidents.controller.js';
@@ -14,7 +15,8 @@ import { AdminOverviewService } from './admin-overview.service.js';
 
 /** My Hub (prompt 12) : endpoints d'administration qui manquaient aux étapes précédentes. */
 @Module({
-  imports: [forwardRef(() => RidesModule), PricingModule, forwardRef(() => ComplianceModule)],
+  // CRM (étape 25) : lecture de l'état de synchronisation d'une fiche, sans écriture.
+  imports: [forwardRef(() => RidesModule), PricingModule, forwardRef(() => ComplianceModule), CrmModule],
   controllers: [AdminOverviewController, AdminDriversController, AdminDirectoryController, AdminIncidentsController, AdminQueuesController, AdminMetricsController, InternalMetricsController],
   providers: [AdminOverviewService, AdminDriversService, AdminDirectoryService, AdminIncidentsService, AdminMetricsService],
   // Étape 20 : les routes d'organisation réutilisent les services de My Hub sous une transaction restreinte.

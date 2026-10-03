@@ -10,7 +10,7 @@ import { AddressField } from '@/components/AddressField';
 import { CategoryCard } from '@/components/CategoryCard';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { ErrorState, Notice, Screen, SectionTitle, ToggleRow } from '@/components/ui';
-import { categoryCards } from '@/features/booking/logic';
+import { categoryCards, quoteRequestOf } from '@/features/booking/logic';
 import { useBooking, type BookingOptions } from '@/features/booking/store';
 import { api, errorMessage } from '@/lib/api';
 import { toE164 } from '@/lib/phone';
@@ -30,6 +30,8 @@ export default function CategoryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [addingStop, setAddingStop] = useState(false);
   const latestRequest = useRef(0);
+  /** Options et arrêts que le devis affiché comprend : rétablis si un nouveau devis échoue. */
+  const priced = useRef({ options: draft.options, stops: draft.stops });
   const cards = useMemo(() => (draft.quotes && config.data ? categoryCards(draft.quotes, config.data.categories) : []), [draft.quotes, config.data]);
   const selected = cards.find((c) => c.code === draft.category) ?? cards[0] ?? null;
   const vehicles = useQuery({
@@ -40,7 +42,11 @@ export default function CategoryScreen() {
 
   if (!draft.quotes || !draft.origin || !draft.destination) return <Redirect href="/book" />;
 
-  /** Nouveau devis avec les options et les arrêts donnés : le prix affiché est toujours celui de l'API. */
+  /**
+   * Nouveau devis avec les options et les arrêts donnés : le prix affiché est toujours celui de l'API. En cas d'échec,
+   * les options et les arrêts reviennent à ceux du devis affiché (revue du 2 octobre 2026, constat mobile 4) : la
+   * réservation ne part jamais avec une option cochée que le prix ne comprend pas.
+   */
   async function requote(patch: { options?: BookingOptions; stops?: Place[] }) {
     const options = patch.options ?? draft.options;
     const stops = patch.stops ?? draft.stops;
@@ -51,16 +57,16 @@ export default function CategoryScreen() {
     setBusy(true);
     setError(null);
     try {
-      const quotes = await api.quotes.create({
-        origin: draft.origin,
-        destination: draft.destination,
-        stops,
-        requestedAt: draft.pickupAt,
-        options: { flex: options.flex, priority: options.priority, childSeat: options.childSeat, luggage: options.luggage, pet: options.pet, ...(options.favouriteDriverId ? { favouriteDriverId: options.favouriteDriverId } : {}) },
-      });
-      if (request === latestRequest.current) draft.update({ quotes, vehicleId: null });
+      const quotes = await api.quotes.create(quoteRequestOf({ origin: draft.origin, destination: draft.destination, stops, pickupAt: draft.pickupAt, options }));
+      if (request === latestRequest.current) {
+        priced.current = { options, stops };
+        draft.update({ quotes, vehicleId: null });
+      }
     } catch (e) {
-      if (request === latestRequest.current) setError(errorMessage(e));
+      if (request === latestRequest.current) {
+        draft.update(priced.current);
+        setError(t('category.requoteFailed', { reason: errorMessage(e) }));
+      }
     } finally {
       if (request === latestRequest.current) setBusy(false);
     }

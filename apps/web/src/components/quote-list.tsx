@@ -1,6 +1,9 @@
 'use client';
 
-/** Choix de la catégorie parmi les devis (un par catégorie) : total tout compris, arrivée estimée, détail du prix. */
+/**
+ * Choix de la catégorie parmi les devis (un par catégorie) : total tout compris, arrivée estimée, détail du prix. Le détail
+ * est hors du libellé du bouton radio (pas d'élément interactif dans un libellé) ; le prix fait partie du nom annoncé.
+ */
 import type { QuoteView } from '@neomoov/domain';
 import { useTranslation } from 'react-i18next';
 import { cx, focus } from '@/components/ui/kit';
@@ -15,8 +18,8 @@ export function QuoteList({ quotes, selected, onSelect, language, name }: { quot
       {quotes.map((q) => {
         const checked = selected === q.id;
         return (
-          <label key={q.id} className={cx('flex cursor-pointer flex-col gap-2 rounded-lg border p-3', checked ? 'border-brand-blue-dark bg-brand-tint' : 'border-slate-300 bg-white hover:border-brand-blue-dark')}>
-            <span className="flex items-center justify-between gap-3">
+          <div key={q.id} className={cx('flex flex-col gap-2 rounded-lg border p-3', checked ? 'border-brand-blue-dark bg-brand-tint' : 'border-slate-300 bg-white hover:border-brand-blue-dark')}>
+            <label className="flex cursor-pointer items-center justify-between gap-3">
               <span className="flex items-center gap-3">
                 <input type="radio" name={name} value={q.category} checked={checked} onChange={() => onSelect(q)} className={cx('h-4 w-4 accent-brand-blue-dark', focus)} />
                 <span>
@@ -27,7 +30,7 @@ export function QuoteList({ quotes, selected, onSelect, language, name }: { quot
                 </span>
               </span>
               <span className="text-lg font-bold text-brand-night">{formatMoney(q.totalCents, language)}</span>
-            </span>
+            </label>
             {checked ? (
               <details className="text-sm">
                 <summary className={cx('cursor-pointer text-brand-blue-dark underline', focus)}>{t('book.details')}</summary>
@@ -43,7 +46,7 @@ export function QuoteList({ quotes, selected, onSelect, language, name }: { quot
                 </dl>
               </details>
             ) : null}
-          </label>
+          </div>
         );
       })}
     </fieldset>

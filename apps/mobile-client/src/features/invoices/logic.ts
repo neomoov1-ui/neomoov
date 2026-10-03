@@ -13,6 +13,44 @@ export function invoiceCandidates(rides: ReadonlyArray<Pick<RideView, 'id' | 'st
   return rides.filter((ride) => INVOICED_STATES.includes(ride.state)).map((ride) => ride.id);
 }
 
+/**
+ * Courses interrogées par page de « Mes factures » (revue du 2 octobre 2026, constat mobile 15) : 10 à l'ouverture, 10
+ * de plus à chaque « Voir plus », au lieu des 50 dernières courses d'un coup.
+ */
+export const INVOICE_PAGE_SIZE = 10;
+
+/** Factures demandées en même temps au plus : la limite de l'API (par adresse IP) est partagée sur un réseau mobile. */
+export const INVOICE_CONCURRENCY = 5;
+
+/** Courses des pages ouvertes (`pages` vaut au moins 1), dans l'ordre de la liste. */
+export function visibleCandidates(candidates: readonly string[], pages: number): string[] {
+  return candidates.slice(0, Math.max(1, Math.floor(pages)) * INVOICE_PAGE_SIZE);
+}
+
+/**
+ * File d'attente des requêtes : au plus `max` tâches en cours, les suivantes partent dans l'ordre d'arrivée dès qu'une
+ * place se libère, que la précédente ait réussi ou échoué.
+ */
+export function createLimiter(max: number): <T>(task: () => Promise<T>) => Promise<T> {
+  let running = 0;
+  const waiting: Array<() => void> = [];
+  return <T>(task: () => Promise<T>) =>
+    new Promise<T>((resolve, reject) => {
+      const run = () => {
+        running += 1;
+        Promise.resolve()
+          .then(task)
+          .then(resolve, reject)
+          .finally(() => {
+            running -= 1;
+            waiting.shift()?.();
+          });
+      };
+      if (running < max) run();
+      else waiting.push(run);
+    });
+}
+
 /** Factures émises, la plus récente d'abord ; une course sans facture (null) n'apparaît pas. */
 export function sortInvoices(invoices: ReadonlyArray<RideInvoiceView | null | undefined>): RideInvoiceView[] {
   return invoices.filter((invoice): invoice is RideInvoiceView => Boolean(invoice)).sort((a, b) => b.issuedAt.localeCompare(a.issuedAt));
