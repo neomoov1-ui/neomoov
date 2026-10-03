@@ -227,7 +227,7 @@ export class SalesToolsService implements OnModuleInit {
     const row = await this.prospects.get(prospectId);
     if (row.stage === 'do_not_contact' || row.unsubscribedAt) throw AppError.conflict('PROSPECT_NOT_CONTACTABLE', 'Prospect retiré');
     if (input.startsAt.getTime() < Date.now()) throw new AppError('MEETING_IN_PAST', 'Le rendez-vous est dans le passé', 400);
-    const [duration, tz, founderEmail] = await Promise.all([this.settings.number('sales.meeting_duration_minutes', 30), this.settings.string('service.time_zone', 'America/Toronto'), this.settings.string('sales.meeting_calendar_email', '')]);
+    const [duration, tz, founderEmail, host] = await Promise.all([this.settings.number('sales.meeting_duration_minutes', 30), this.settings.string('service.time_zone', 'America/Toronto'), this.settings.string('sales.meeting_calendar_email', ''), this.settings.string('sales.meeting_host', '')]);
     const minutes = input.durationMinutes ?? duration;
     const endsAt = new Date(input.startsAt.getTime() + minutes * 60_000);
     const title = input.subject ?? `Neomoov × ${row.organizationName}`;
@@ -237,7 +237,7 @@ export class SalesToolsService implements OnModuleInit {
     await this.prospects.setStage(row.id, 'meeting', null, { nextAction: 'meeting', nextActionAt: input.startsAt });
     await this.prospects.cancelFollowups(row.id, 'replied');
     await this.prospects.touch(row.id, { channel: 'meeting', direction: 'outbound', summary: `Rendez-vous le ${input.startsAt.toISOString()} (${minutes} min), événement ${event.eventId}`, result: 'meeting', ref: `meeting-${event.eventId}`, agentRunId: by.agentRunId, userId: by.userId });
-    if (row.email) await this.outbox.queue({ recipientAddress: row.email, channel: 'email', template: 'sales.meeting_confirmation', language, data: { organizationName: row.organizationName, contactName: row.contactName, startsAt: input.startsAt.toISOString(), durationMinutes: minutes, link: event.htmlLink, prospectId: row.id } });
+    if (row.email) await this.outbox.queue({ recipientAddress: row.email, channel: 'email', template: 'sales.meeting_confirmation', language, data: { organizationName: row.organizationName, contactName: row.contactName, host: host.trim() || null, startsAt: input.startsAt.toISOString(), durationMinutes: minutes, link: event.htmlLink, prospectId: row.id } });
     await this.outbox.queueForStaff('alert.sales_meeting', { organizationName: row.organizationName, startsAt: input.startsAt.toISOString(), link: event.htmlLink, prospectId: row.id });
     this.audit.record({ action: 'sales.meeting_booked', entity: 'prospects', entityId: row.id, after: { eventId: event.eventId, startsAt: input.startsAt.toISOString(), by: by.userId ?? by.agentRunId } });
     this.prospects.syncCrm(row.id, 'meeting');

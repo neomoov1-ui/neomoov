@@ -1,6 +1,7 @@
 /**
  * Mise en place de l'agent vocal chez Vapi (compte 12, `docs/voice-agent.md`) : crée ou met à jour les assistants
- * « Neomoov accueil » et « Neomoov SOS » (prompts, outils, webhook `/v1/webhooks/vapi` avec le secret en en-tête),
+ * « Neomoov accueil », « Neomoov SOS » et « Neomoov commercial » (prompts, outils, webhook `/v1/webhooks/vapi` avec le
+ * secret en en-tête),
  * rattache l'assistant d'accueil au numéro Twilio importé et inscrit l'assistant SOS dans le réglage
  * `voice.sos_assistant_id`. Rejouable. Lit `VAPI_API_KEY`, `VAPI_WEBHOOK_SECRET`, `VAPI_PHONE_NUMBER_ID`,
  * `TWILIO_FROM_NUMBER` et `APP_BASE_URL` dans l'environnement ; n'affiche jamais une valeur secrète.
@@ -21,7 +22,7 @@ import { createLogger, PinoNestLogger } from '../common/logger.js';
 import { SettingsService } from '../common/settings.service.js';
 import { loadEnv } from '../config/env.js';
 import { DB, type Database } from '../infra/db.module.js';
-import { DEFAULT_MODEL, DEFAULT_VOICE, inboundAssistant, redactAssistant, sosAssistant, type AssistantBuildOptions } from '../modules/voice/vapi-assistants.js';
+import { DEFAULT_MODEL, DEFAULT_VOICE, inboundAssistant, redactAssistant, salesAssistant, sosAssistant, type AssistantBuildOptions } from '../modules/voice/vapi-assistants.js';
 import { syncVapi } from '../modules/voice/vapi-sync.js';
 
 function option(name: string): string | undefined {
@@ -64,13 +65,16 @@ try {
   };
   if (dryRun) {
     console.log('Simulation : rien ne sera envoyé à Vapi. Configuration (secret masqué) :');
-    console.log(JSON.stringify({ inbound: redactAssistant(inboundAssistant(options)), sos: redactAssistant(sosAssistant(options)) }, null, 2));
+    console.log(JSON.stringify({ inbound: redactAssistant(inboundAssistant(options)), sos: redactAssistant(sosAssistant(options)), sales: redactAssistant(salesAssistant(options)) }, null, 2));
   } else {
     const client = new VapiAdminClient(env.VAPI_API_KEY);
     const report = await syncVapi(client, { ...options, phoneNumberId: env.VAPI_PHONE_NUMBER_ID ?? null, fromNumber: env.TWILIO_FROM_NUMBER ?? null });
     const action = (a: 'created' | 'updated') => (a === 'created' ? 'créé' : 'mis à jour');
     console.log(`Assistant d'accueil ${action(report.inbound.action)} : ${report.inbound.id}`);
     console.log(`Assistant SOS ${action(report.sos.action)} : ${report.sos.id}`);
+    console.log(`Assistant commercial ${action(report.sales.action)} : ${report.sales.id}`);
+    if (env.VAPI_SALES_ASSISTANT_ID !== report.sales.id) console.log(`À poser dans .env : VAPI_SALES_ASSISTANT_ID=${report.sales.id} (identifiant non secret), puis recréer api et worker.`);
+    if (!env.VAPI_SALES_PHONE_NUMBER_ID) console.log('Appels sortants : sans VAPI_SALES_PHONE_NUMBER_ID, ils partent du numéro de l\'accueil (VAPI_PHONE_NUMBER_ID).');
     if (report.phoneNumber) {
       console.log(`Numéro ${report.phoneNumber.number ?? report.phoneNumber.id} : assistant d'accueil ${report.phoneNumber.action === 'assigned' ? 'rattaché' : 'déjà rattaché'} (identifiant du numéro : ${report.phoneNumber.id}).`);
       if (!env.VAPI_PHONE_NUMBER_ID) console.log(`À poser dans .env : VAPI_PHONE_NUMBER_ID=${report.phoneNumber.id} (identifiant non secret), puis recréer api et worker.`);

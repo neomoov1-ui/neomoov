@@ -8,7 +8,7 @@ Phase 1 « Neomoov entreprise autonome » (2 octobre 2026), direction commercial
 - **Base légale journalisée** (`prospects.consent_basis`, `consent_at`, `consent_source`) : `published_address` (coordonnées professionnelles publiées sans mention de refus : consentement tacite de la Loi anti-pourriel), `form` (formulaire du site avec case cochée, date gardée depuis `leads.consent_at`), `existing_relationship`, `referral`, `none` (prospect connu mais jamais démarché). Rien ne part vers HubSpot sans base (`none`) ni après un retrait.
 - **Mention de retrait dans chaque envoi** (gabarit `sales.message`, `sales.quote`, `sales.meeting_confirmation` : constante `SALES_OPT_OUT`) : réponse « STOP » ou courriel à contact@neomoov.net. Le retrait est définitif (`do_not_contact`, `unsubscribed_at`) et respecté sans exception : séquences, relances, appels, devis et ouverture de compte sont refusés ; un réimport de la même adresse est ignoré avec le motif `do_not_contact`.
 - **Repos après un refus** : un prospect perdu n'est pas relancé avant `sales.lost_cooldown_days` (180 jours).
-- **Appels** : heures de bureau seulement (`sales.call_hours`, jours ouvrables de 9 h à 17 h, heure de Montréal) ; enregistrement seulement si `sales.record_calls` est vrai, annoncé par l'assistant (métadonnée `recording: announced`), consentement journalisé (`outbound_calls.recording_consent`).
+- **Appels** : heures de bureau seulement (`sales.call_hours`, jours ouvrables de 9 h à 17 h, heure de Montréal) ; rendez-vous proposés avec M. Yves Christopher, responsable de la relation client et superviseur (`sales.meeting_host`), du lundi au samedi de 9 h à 17 h (`sales.meeting_hours`), décision du fondateur du 3 octobre 2026 ; enregistrement seulement si `sales.record_calls` est vrai, annoncé par l'assistant (métadonnée `recording: announced`), consentement journalisé (`outbound_calls.recording_consent`).
 - **Données minimisées** : fil des contacts en résumés de 500 caractères, résumé d'appel de 2 000 caractères, jamais de transcription ni d'enregistrement en base ; My Hub affiche les coordonnées masquées. HubSpot reçoit l'organisation, le contact professionnel, l'étape et des notes courtes (`docs/crm.md`).
 
 ## Sources (réglage `sales.sources`)
@@ -53,7 +53,7 @@ Liste des prospects (filtres par étape, source, segment, score minimal, recherc
 
 | Besoin | Variables | État |
 |---|---|---|
-| Assistant commercial Vapi et numéro sortant dédié | `VAPI_SALES_ASSISTANT_ID`, `VAPI_SALES_PHONE_NUMBER_ID` (avec `VAPI_API_KEY`, `VOICE_PROVIDER=real`) | à créer (script dans `docs/voice-agent.md`) |
+| Assistant commercial Vapi et numéro sortant | `VAPI_SALES_ASSISTANT_ID` (créé par `vapi:setup`), `VAPI_SALES_PHONE_NUMBER_ID` facultatif (sinon numéro de l'accueil `VAPI_PHONE_NUMBER_ID`) | assistant créé par le script ; numéro dédié facultatif |
 | Google Places | `GOOGLE_MAPS_SERVER_KEY` avec l'API Places (New) activée, `MAPS_PROVIDER=real` | clé des cartes existante, API à activer |
 | Agenda du fondateur | `CALENDAR_PROVIDER=real`, `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID` | à créer : client OAuth « application de bureau » dans la console Google Cloud (API Calendar activée), jeton de rafraîchissement obtenu une fois par le flux OAuth avec la portée `https://www.googleapis.com/auth/calendar.events` |
 | HubSpot | `CRM_PROVIDER=real`, `HUBSPOT_ACCESS_TOKEN` | portées à compléter (`docs/crm.md`) ; options `b2b` et `prospect` ajoutées au modèle, relancer `crm:setup` |

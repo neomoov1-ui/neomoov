@@ -433,8 +433,8 @@ const TEMPLATES: Record<string, Template> = {
     },
   },
   'sales.meeting_confirmation': {
-    fr: { title: 'Rendez-vous confirmé avec Neomoov', body: (d, l) => `Bonjour${str(d['contactName']) ? ` ${str(d['contactName'])}` : ''},\n\nNous confirmons notre rendez-vous le ${when(d['startsAt'], l)} (${str(d['durationMinutes'])} minutes) au sujet des déplacements de ${str(d['organizationName'])}.${str(d['link']) ? `\n\nInvitation : ${str(d['link'])}` : ''}\n\nPour le déplacer, répondez simplement à ce message.\n\n${SALES_OPT_OUT.fr}` },
-    en: { title: 'Meeting confirmed with Neomoov', body: (d, l) => `Hello${str(d['contactName']) ? ` ${str(d['contactName'])}` : ''},\n\nWe confirm our meeting on ${when(d['startsAt'], l)} (${str(d['durationMinutes'])} minutes) about ${str(d['organizationName'])}'s travel needs.${str(d['link']) ? `\n\nInvitation: ${str(d['link'])}` : ''}\n\nTo reschedule, simply reply to this message.\n\n${SALES_OPT_OUT.en}` },
+    fr: { title: 'Rendez-vous confirmé avec Neomoov', body: (d, l) => `Bonjour${str(d['contactName']) ? ` ${str(d['contactName'])}` : ''},\n\nNous confirmons notre rendez-vous le ${when(d['startsAt'], l)} (${str(d['durationMinutes'])} minutes) au sujet des déplacements de ${str(d['organizationName'])}${str(d['host']) ? `, avec ${str(d['host'])}` : ''}.${str(d['link']) ? `\n\nInvitation : ${str(d['link'])}` : ''}\n\nPour le déplacer, répondez simplement à ce message.\n\n${SALES_OPT_OUT.fr}` },
+    en: { title: 'Meeting confirmed with Neomoov', body: (d, l) => `Hello${str(d['contactName']) ? ` ${str(d['contactName'])}` : ''},\n\nWe confirm our meeting on ${when(d['startsAt'], l)} (${str(d['durationMinutes'])} minutes) about ${str(d['organizationName'])}'s travel needs${str(d['host']) ? `, with ${str(d['host'])}` : ''}.${str(d['link']) ? `\n\nInvitation: ${str(d['link'])}` : ''}\n\nTo reschedule, simply reply to this message.\n\n${SALES_OPT_OUT.en}` },
   },
   'sales.candidate_reminder': {
     fr: { title: 'Votre dossier de chauffeur Neomoov', body: (d) => str(d['text']) || 'Il manque encore des documents pour terminer votre inscription. Ouvrez l\'application chauffeur pour les déposer.' },

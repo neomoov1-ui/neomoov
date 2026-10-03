@@ -10,7 +10,7 @@
 import { schema } from '@neomoov/db';
 import {
   asUntrustedData, callResultFromEndedReason, localClock, nextBusinessSlot, OUTBOUND_CALL_RESULTS, parseBusinessHours, redactSensitive, stageAfterCall, withinBusinessHours,
-  type OutboundCallResult, type OutboundCallView, type Page,
+  type BusinessHours, type OutboundCallResult, type OutboundCallView, type Page,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, count, desc, eq, lte, type SQL } from 'drizzle-orm';
@@ -82,8 +82,13 @@ export class OutboundCallsService {
     return this.database.db;
   }
 
+  /** Numéro sortant : le numéro dédié s'il existe, sinon celui de l'accueil (`VAPI_PHONE_NUMBER_ID`). */
+  get salesPhoneNumberId(): string | null {
+    return this.env.VAPI_SALES_PHONE_NUMBER_ID ?? this.env.VAPI_PHONE_NUMBER_ID ?? null;
+  }
+
   get configured(): boolean {
-    return Boolean(this.env.VAPI_SALES_ASSISTANT_ID && this.env.VAPI_SALES_PHONE_NUMBER_ID);
+    return Boolean(this.env.VAPI_SALES_ASSISTANT_ID && this.salesPhoneNumberId);
   }
 
   isSalesAssistant(assistantId: string | null | undefined): boolean {
@@ -144,14 +149,20 @@ export class OutboundCallsService {
       const [cancelled] = await this.db.update(schema.outboundCalls).set({ status: 'cancelled', summary: contactable.ok ? 'Aucun numéro' : contactable.reason }).where(eq(schema.outboundCalls.id, id)).returning();
       return cancelled!;
     }
-    if (!this.configured) return this.fail(call, 'Assistant commercial Vapi non configuré (VAPI_SALES_ASSISTANT_ID, VAPI_SALES_PHONE_NUMBER_ID)');
-    const recording = await this.settings.get<unknown>('sales.record_calls', false);
+    if (!this.configured) return this.fail(call, 'Assistant commercial Vapi non configuré (VAPI_SALES_ASSISTANT_ID, et VAPI_SALES_PHONE_NUMBER_ID ou VAPI_PHONE_NUMBER_ID)');
+    const [recording, host, meetingHours] = await Promise.all([this.settings.get<unknown>('sales.record_calls', false), this.settings.string('sales.meeting_host', ''), this.settings.get<unknown>('sales.meeting_hours', null)]);
     const assistantId = this.env.VAPI_SALES_ASSISTANT_ID!;
-    const phoneNumberId = this.env.VAPI_SALES_PHONE_NUMBER_ID!;
+    const phoneNumberId = this.salesPhoneNumberId!;
+    const recordingMode = recording === true ? 'announced' : 'off';
     try {
       const { callId } = await this.voice.startOutboundCall({
         to: prospect.phone, assistantId, phoneNumberId,
-        metadata: { callId: call.id, prospectId: prospect.id, scriptKey: call.scriptKey, organizationName: prospect.organizationName.slice(0, 80), contactName: prospect.contactName ?? '', language: prospect.language, recording: recording === true ? 'announced' : 'off' },
+        metadata: { callId: call.id, prospectId: prospect.id, scriptKey: call.scriptKey, organizationName: prospect.organizationName.slice(0, 80), contactName: prospect.contactName ?? '', language: prospect.language, recording: recordingMode },
+        // Variables du premier message et du prompt de l'assistant commercial (`vapi-assistants.ts`).
+        variables: {
+          organizationName: prospect.organizationName.slice(0, 80), contactName: prospect.contactName ?? '', language: prospect.language, recording: recordingMode,
+          meetingHost: host.trim() || 'notre équipe', meetingHours: describeMeetingHours(parseBusinessHours(meetingHours ?? DEFAULT_MEETING_HOURS)),
+        },
       });
       const [row] = await this.db.update(schema.outboundCalls).set({ status: 'calling', vapiCallId: callId, assistantId, phoneNumberId, startedAt: now }).where(eq(schema.outboundCalls.id, id)).returning();
       this.audit.record({ action: 'sales.call_started', entity: 'outbound_calls', entityId: id, after: { prospectId: prospect.id, vapiCallId: callId } });
@@ -283,3 +294,18 @@ export class OutboundCallsService {
 
 /** Issues qui valent une réponse du prospect : les relances en cours n'ont plus lieu d'être. */
 const REPLIED_RESULTS: ReadonlySet<OutboundCallResult> = new Set(['meeting', 'callback', 'not_interested', 'do_not_contact']);
+
+/** Plages des rendez-vous commerciaux par défaut (décision du fondateur du 3 octobre 2026 : lundi au samedi, 9 h à 17 h ; 0 = dimanche). */
+export const DEFAULT_MEETING_HOURS = { days: [1, 2, 3, 4, 5, 6], from: '09:00', to: '17:00' };
+
+const DAY_NAMES = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
+/** « du lundi au samedi, de 9 h à 17 h » : plages dites à voix haute par l'assistant commercial. */
+export function describeMeetingHours(hours: BusinessHours): string {
+  const order = [...new Set(hours.days)].map((d) => (d === 0 ? 7 : d)).sort((a, b) => a - b);
+  const name = (d: number) => DAY_NAMES[d % 7]!;
+  const time = (minute: number) => `${Math.floor(minute / 60)} h${minute % 60 ? ` ${String(minute % 60).padStart(2, '0')}` : ''}`;
+  const consecutive = order.length > 1 && order.every((d, i) => i === 0 || d === order[i - 1]! + 1);
+  const span = order.length === 1 ? `le ${name(order[0]!)}` : consecutive ? `du ${name(order[0]!)} au ${name(order.at(-1)!)}` : `les ${order.map(name).join(', ')}`;
+  return `${span}, de ${time(hours.startMinute)} à ${time(hours.endMinute)}`;
+}

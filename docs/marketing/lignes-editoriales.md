@@ -1,6 +1,6 @@
-# Lignes éditoriales de Neomoov (agent contenu, version 1 du 2 octobre 2026)
+# Lignes éditoriales de Neomoov (agent contenu, version 1.1 validée par le fondateur le 3 octobre 2026)
 
-Lues par l'agent `content` à chaque calendrier (fichier du dépôt, remplaçable par le réglage `marketing.editorial_lines_override` dans My Hub). Tirées du site neomoov.net, de l'Academy et des décisions du fondateur (document de référence v1.1, D31 à D47). À faire valider par le fondateur.
+Lues par l'agent `content` à chaque calendrier (fichier du dépôt, remplaçable par le réglage `marketing.editorial_lines_override` dans My Hub). Tirées du site neomoov.net, de l'Academy et des décisions du fondateur (document de référence v1.1, D31 à D47). Validées par le fondateur le 3 octobre 2026 (numéro WhatsApp publié : +1 438 900 4990) ; toute modification passe par lui.
 
 ## Qui parle
 Neomoov, marque du Groupe NSK inc., Montréal. Slogan : « Avancez vers demain. » Ton : chaleureux, précis, professionnel, sans emphase ; vouvoiement partout ; français du Québec d'abord (anglais seulement sur LinkedIn et X, après la version française). Jamais de tiret long, jamais d'emoji dans les articles et l'infolettre (un ou deux au plus sur Instagram, TikTok et Snapchat).
@@ -8,7 +8,7 @@ Neomoov, marque du Groupe NSK inc., Montréal. Slogan : « Avancez vers demain. 
 ## Ce que nous disons du service
 - Transport de personnes à Montréal et vers l'aéroport Montréal-Trudeau en véhicules 100 % électriques récents, chauffeurs professionnels vérifiés (permis, antécédents, formation).
 - Prix tout compris affiché avant de confirmer, sans surprise ; forfait aéroport Neo Premium à 48,20 $ depuis le centre-ville (seul prix de course publiable).
-- Réservation au moins 2 heures à l'avance (jusqu'à 90 jours), dans l'application, sur neomoov.net/reserver ou par WhatsApp (+1 367 763-9063). Paiement par carte dans l'application ou directement au chauffeur.
+- Réservation au moins 2 heures à l'avance (jusqu'à 90 jours), dans l'application, sur neomoov.net/reserver ou par WhatsApp (+1 438 900 4990). Paiement par carte dans l'application ou directement au chauffeur.
 - Commodités à bord : eau, chargeurs, silence si souhaité, siège d'enfant sur demande, animal de compagnie en cage sur Neo XL et Neo Prestige.
 - Garantie du modèle de véhicule réservé ; suivi de la course en direct ; reçu et facture certifiée.
 

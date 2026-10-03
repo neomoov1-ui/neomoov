@@ -1,14 +1,16 @@
 /**
  * Synchronisation des assistants Neomoov chez Vapi (script `vapi:setup`) : chaque assistant est retrouvé par son nom
- * puis mis à jour, ou créé ; le numéro importé de Twilio reçoit l'assistant d'accueil pour les appels entrants.
+ * puis mis à jour, ou créé (accueil, SOS, commercial) ; le numéro importé de Twilio reçoit l'assistant d'accueil pour
+ * les appels entrants. L'assistant commercial n'est rattaché à aucun numéro : il est désigné à chaque appel sortant.
  * Rejouable : relancer le script réapplique la configuration sans doublon. Aucun secret dans le rapport.
  */
 import type { VapiAdminClient, VapiPhoneNumberSummary } from '../../adapters/real/vapi-admin.js';
-import { INBOUND_ASSISTANT_NAME, SOS_ASSISTANT_NAME, inboundAssistant, sosAssistant, type AssistantBuildOptions } from './vapi-assistants.js';
+import { INBOUND_ASSISTANT_NAME, SALES_ASSISTANT_NAME, SOS_ASSISTANT_NAME, inboundAssistant, salesAssistant, sosAssistant, type AssistantBuildOptions } from './vapi-assistants.js';
 
 export interface VapiSyncReport {
   inbound: { id: string; action: 'created' | 'updated' };
   sos: { id: string; action: 'created' | 'updated' };
+  sales: { id: string; action: 'created' | 'updated' };
   phoneNumber: { id: string; number: string | null; action: 'assigned' | 'already' } | null;
   /** Numéros vus chez Vapi quand aucun ne correspond (aide au diagnostic : identifiants et numéros, pas de secret). */
   candidates: Array<{ id: string; number: string | null }>;
@@ -43,6 +45,7 @@ export async function syncVapi(client: VapiAdminClient, input: VapiSyncInput): P
   const existing = await client.listAssistants();
   const inbound = await upsert(client, INBOUND_ASSISTANT_NAME, inboundAssistant(input), existing);
   const sos = await upsert(client, SOS_ASSISTANT_NAME, sosAssistant(input), existing);
+  const sales = await upsert(client, SALES_ASSISTANT_NAME, salesAssistant(input), existing);
   const numbers = await client.listPhoneNumbers();
   const target = pickPhoneNumber(numbers, input);
   let phoneNumber: VapiSyncReport['phoneNumber'] = null;
@@ -54,5 +57,5 @@ export async function syncVapi(client: VapiAdminClient, input: VapiSyncInput): P
       phoneNumber = { id: target.id, number: target.number ?? null, action: 'assigned' };
     }
   }
-  return { inbound, sos, phoneNumber, candidates: target ? [] : numbers.map((n) => ({ id: n.id, number: n.number ?? null })) };
+  return { inbound, sos, sales, phoneNumber, candidates: target ? [] : numbers.map((n) => ({ id: n.id, number: n.number ?? null })) };
 }

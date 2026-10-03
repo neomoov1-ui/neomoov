@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { VapiAdminClient } from '../src/adapters/real/vapi-admin.js';
 import { VapiVoiceProvider } from '../src/adapters/real/vapi.js';
-import { INBOUND_ASSISTANT_NAME, SOS_ASSISTANT_NAME, inboundAssistant, redactAssistant, sosAssistant, voiceTools } from '../src/modules/voice/vapi-assistants.js';
+import { INBOUND_ASSISTANT_NAME, SALES_ASSISTANT_NAME, SOS_ASSISTANT_NAME, inboundAssistant, redactAssistant, salesAssistant, sosAssistant, voiceTools } from '../src/modules/voice/vapi-assistants.js';
+import { describeMeetingHours } from '../src/modules/sales/outbound-calls.service.js';
+import { parseBusinessHours } from '@neomoov/domain';
 import { pickPhoneNumber, syncVapi } from '../src/modules/voice/vapi-sync.js';
 
 interface Recorded {
@@ -76,6 +78,24 @@ describe('agent vocal Vapi : définition des assistants et mise en place', () =>
     expect(body['maxDurationSeconds']).toBe(180);
   });
 
+  it('assistant commercial : script validé, variables de l\'appel, rapport de fin d\'appel avec données structurées', () => {
+    const body = salesAssistant({ ...options, webhookSecret: null });
+    expect(body['name']).toBe(SALES_ASSISTANT_NAME);
+    expect(String(body['firstMessage'])).toContain('{{organizationName}}');
+    const system = JSON.stringify(body['model']);
+    for (const v of ['{{meetingHost}}', '{{meetingHours}}', '{{language}}', '{{recording}}', '{{contactName}}']) expect(system).toContain(v);
+    expect((body['model'] as Record<string, unknown>)['tools']).toBeUndefined();
+    expect(body['serverMessages']).toEqual(['end-of-call-report']);
+    const plan = body['analysisPlan'] as { structuredDataPlan: { enabled: boolean; schema: { properties: Record<string, unknown>; required: string[] } } };
+    expect(plan.structuredDataPlan.enabled).toBe(true);
+    expect(Object.keys(plan.structuredDataPlan.schema.properties)).toEqual(['result', 'meetingAt', 'callbackAt', 'recordingConsent']);
+    expect(plan.structuredDataPlan.schema.required).toEqual(['result']);
+    // Plages des rendez-vous dites à voix haute (décision du fondateur : lundi au samedi, 9 h à 17 h).
+    expect(describeMeetingHours(parseBusinessHours({ days: [1, 2, 3, 4, 5, 6], from: '09:00', to: '17:00' }))).toBe('du lundi au samedi, de 9 h à 17 h');
+    expect(describeMeetingHours(parseBusinessHours({ days: [2, 4], from: '09:30', to: '12:00' }))).toBe('les mardi, jeudi, de 9 h 30 à 12 h');
+    expect(describeMeetingHours(parseBusinessHours({ days: [6, 0], from: '10:00', to: '14:00' }))).toBe('du samedi au dimanche, de 10 h à 14 h');
+  });
+
   it('mise en place rejouable : création puis mise à jour par nom, numéro importé retrouvé par le numéro Twilio', async () => {
     const state = { assistants: [] as Array<{ id: string; name: string }>, numbers: [{ id: 'pn_1', number: '+15145550100', assistantId: null }, { id: 'pn_2', number: '+13677639063' }] };
     const { calls, impl } = fakeVapi(state);
@@ -83,15 +103,15 @@ describe('agent vocal Vapi : définition des assistants et mise en place', () =>
     expect(JSON.stringify(client)).not.toContain('cle-privee');
 
     const first = await syncVapi(client, options);
-    expect(first).toEqual({ inbound: { id: 'asst_1', action: 'created' }, sos: { id: 'asst_2', action: 'created' }, phoneNumber: { id: 'pn_1', number: '+15145550100', action: 'assigned' }, candidates: [] });
-    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(2);
+    expect(first).toEqual({ inbound: { id: 'asst_1', action: 'created' }, sos: { id: 'asst_2', action: 'created' }, sales: { id: 'asst_3', action: 'created' }, phoneNumber: { id: 'pn_1', number: '+15145550100', action: 'assigned' }, candidates: [] });
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(3);
     expect(calls.find((c) => c.method === 'PATCH' && c.url.endsWith('/phone-number/pn_1'))?.body).toEqual({ assistantId: 'asst_1', name: 'Neomoov' });
     expect(calls.every((c) => c.url.startsWith('https://api.vapi.ai/'))).toBe(true);
 
     const second = await syncVapi(client, options);
-    expect(second).toEqual({ inbound: { id: 'asst_1', action: 'updated' }, sos: { id: 'asst_2', action: 'updated' }, phoneNumber: { id: 'pn_1', number: '+15145550100', action: 'already' }, candidates: [] });
-    expect(state.assistants).toHaveLength(2);
-    expect(calls.filter((c) => c.method === 'PATCH' && c.url.includes('/assistant/'))).toHaveLength(2);
+    expect(second).toEqual({ inbound: { id: 'asst_1', action: 'updated' }, sos: { id: 'asst_2', action: 'updated' }, sales: { id: 'asst_3', action: 'updated' }, phoneNumber: { id: 'pn_1', number: '+15145550100', action: 'already' }, candidates: [] });
+    expect(state.assistants).toHaveLength(3);
+    expect(calls.filter((c) => c.method === 'PATCH' && c.url.includes('/assistant/'))).toHaveLength(3);
 
     // Identifiant connu : il prime sur le numéro ; inconnu : rien n'est rattaché, les candidats sont listés.
     expect(pickPhoneNumber(state.numbers, { phoneNumberId: 'pn_2', fromNumber: '+15145550100' })?.id).toBe('pn_2');
