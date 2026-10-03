@@ -133,30 +133,36 @@ export class GoogleBusinessPublisher implements SocialPublisher {
     };
   }
 
-  /** Avis de la fiche reçus depuis `since`, sans réponse encore ; la note est gardée (3 ou moins : jamais de réponse automatique). */
+  /**
+   * Avis de la fiche reçus depuis `since`, sans réponse encore ; la note est gardée (3 ou moins : jamais de réponse
+   * automatique). Identifiant externe : celui de l'avis seul (court, comme les identifiants de commentaire des autres
+   * réseaux) ; la ressource complète est reconstruite pour répondre.
+   */
   async comments(ref: PublishedRef, since: Date): Promise<SocialComment[]> {
     const { data } = await this.api.call<{ reviews?: Review[] }>(`${API}/${this.location}/reviews?pageSize=50&orderBy=${encodeURIComponent('updateTime desc')}`);
     if (this.reviewOwner.size > 5_000) this.reviewOwner.clear();
     const out: SocialComment[] = [];
     for (const review of data?.reviews ?? []) {
       const postedAt = new Date(review.createTime ?? review.updateTime ?? 0);
-      if (!review.name || review.reviewReply || postedAt <= since) continue;
-      const owner = this.reviewOwner.get(review.name) ?? ref.itemId;
-      this.reviewOwner.set(review.name, owner);
+      const reviewId = review.name?.split('/reviews/')[1];
+      if (!reviewId || review.reviewReply || postedAt <= since) continue;
+      const owner = this.reviewOwner.get(reviewId) ?? ref.itemId;
+      this.reviewOwner.set(reviewId, owner);
       if (owner !== ref.itemId) continue;
       const rating = STARS[review.starRating ?? ''] ?? null;
       const comment = review.comment?.trim();
       const text = `Avis ${rating ?? '?'}/5${comment ? ` : ${comment}` : ', sans commentaire'}`;
-      out.push({ externalId: review.name, author: review.reviewer?.isAnonymous ? null : (review.reviewer?.displayName ?? null), text: text.slice(0, 4_000), postedAt, rating });
+      out.push({ externalId: reviewId, author: review.reviewer?.isAnonymous ? null : (review.reviewer?.displayName ?? null), text: text.slice(0, 4_000), postedAt, rating });
     }
     return out;
   }
 
   /** Réponse publique à un avis (`updateReply` : une seule réponse par avis, remplacée si elle existe). */
   async replyComment(_ref: PublishedRef, commentExternalId: string, text: string): Promise<{ externalId: string }> {
-    if (!/^accounts\/[^/]+\/locations\/[^/]+\/reviews\/[^/]+$/.test(commentExternalId)) throw new AppError('SOCIAL_VALIDATION_ERROR', 'Fiche Google : identifiant d\'avis invalide', HttpStatus.UNPROCESSABLE_ENTITY);
-    await this.api.call<{ comment?: string }>(`${API}/${commentExternalId}/reply`, { method: 'PUT', json: { comment: text.slice(0, 4_096) } });
-    return { externalId: `${commentExternalId}/reply` };
+    const reviewId = commentExternalId.includes('/reviews/') ? commentExternalId.split('/reviews/')[1]! : commentExternalId;
+    if (!/^[\w-]+$/.test(reviewId)) throw new AppError('SOCIAL_VALIDATION_ERROR', 'Fiche Google : identifiant d\'avis invalide', HttpStatus.UNPROCESSABLE_ENTITY);
+    await this.api.call<{ comment?: string }>(`${API}/${this.location}/reviews/${reviewId}/reply`, { method: 'PUT', json: { comment: text.slice(0, 4_096) } });
+    return { externalId: `${reviewId}/reply` };
   }
 
   credentials(): Promise<CredentialStatus> {

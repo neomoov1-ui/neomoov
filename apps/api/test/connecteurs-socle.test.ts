@@ -9,6 +9,7 @@ import { OAuthSession, quoteBigIntegers, retryAfterSeconds, SocialApi, socialErr
 import { TikTokPublisher } from '../src/adapters/real/tiktok.js';
 import { XPublisher } from '../src/adapters/real/x.js';
 import { YouTubePublisher } from '../src/adapters/real/youtube.js';
+import { AppError } from '../src/common/app-error.js';
 import { loadEnv } from '../src/config/env.js';
 import { PublishingService } from '../src/modules/marketing/publishing.service.js';
 import { clock, SocialServer, tokenReplies } from './social-server.js';
@@ -136,5 +137,27 @@ describe('alerte avant l\'échéance d\'une autorisation', () => {
     const { svc, alerts } = service([linkedin]);
     expect(await svc.credentialsPass(new Date(time.now()))).toBe(1);
     expect(alerts[0]!['summary']).toContain('avant le 2026-11-30');
+  });
+});
+
+describe('nouvelle tentative de la diffusion après une limite atteinte', () => {
+  it('attend au moins le délai demandé par le réseau (5 minutes au moins, 26 heures au plus) ; dernière tentative : échec', async () => {
+    const sets: Array<Record<string, unknown>> = [];
+    const database = { db: { update: () => ({ set: (values: Record<string, unknown>) => { sets.push(values); return { where: async () => undefined }; } }) } };
+    const svc = new PublishingService(
+      database as never, new Map() as never, null as never, null as never, { number: async (_key: string, fallback: number) => fallback } as never, null as never,
+      { recordSystem: async () => undefined } as never, { queueForStaff: async () => undefined } as never, null as never, null as never, null as never,
+    );
+    const now = new Date('2026-10-03T12:00:00Z');
+    const record = (error: unknown, attempt = 1) => (svc as unknown as { recordFailure: (...args: unknown[]) => Promise<void> }).recordFailure({ id: 'item', space: 'x' }, attempt, error, now);
+    await record(new AppError('SOCIAL_RATE_LIMITED', 'X 429', 503, { retryAfterSeconds: 900 }));
+    await record(new AppError('SOCIAL_RATE_LIMITED', 'X 429', 503, { retryAfterSeconds: 60 }));
+    await record(new AppError('SOCIAL_RATE_LIMITED', 'YouTube 429', 503, { retryAfterSeconds: 400_000 }));
+    await record(new AppError('SOCIAL_PROVIDER_ERROR', 'panne', 502), 2);
+    await record(new Error('panne'), 3);
+    expect(sets.map((s) => (s['nextAttemptAt'] as Date | null)?.getTime() ?? null)).toEqual([
+      now.getTime() + 900_000, now.getTime() + 300_000, now.getTime() + 26 * 3_600_000, now.getTime() + 1_800_000, null,
+    ]);
+    expect(sets.at(-1)).toMatchObject({ status: 'failed', lastError: 'panne' });
   });
 });

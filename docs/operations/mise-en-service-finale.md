@@ -403,6 +403,8 @@ Les trois agents de développement livrent avec leur code un pas-à-pas par rés
 2. **Google** : Search Console (vérifier `neomoov.net` par l'enregistrement DNS), fiche d'établissement (Business Profile), chaîne YouTube, agenda Google pour les rendez-vous commerciaux ; une seule application OAuth dans le projet `neomoov`.
 3. **LinkedIn** : page entreprise et application « Community Management ».
 4. **TikTok for Developers** (Content Posting), **X** (API v2, formule de base, payante), **Snapchat** (Marketing API).
+
+Depuis le 3 octobre 2026, les connecteurs de la Fiche Google, de LinkedIn, de YouTube, de X et de TikTok sont écrits et s'activent seuls dès que leurs variables sont posées : pas à pas réseau par réseau dans `docs/marketing/connecteurs.md` (section « Pas à pas pour le fondateur »), jeton obtenu sur votre poste par `pnpm --filter @neomoov/api oauth:jeton -- --fournisseur=<réseau>` (écrit dans `C:\Users\PC\cles-neomoov\`, jamais affiché). Snapchat est reporté.
 5. **Brevo** : relais entrant (« inbound parsing ») de `contact@neomoov.net` vers la boîte unifiée.
 6. **Signature électronique** (PandaDoc ou DocuSign) et comptes publicitaires (Meta Ads, Google Ads) : phase 4.
 

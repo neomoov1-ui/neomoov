@@ -67,16 +67,19 @@ describe('Fiche Google réelle', () => {
 
     const comments = await publisher.comments(ref, new Date('2026-10-01T00:00:00Z'));
     expect(comments).toEqual([
-      { externalId: `${LOCATION}/reviews/r1`, author: 'Julie', text: 'Avis 5/5 : Super chauffeur, merci !', postedAt: new Date('2026-10-02T10:00:00Z'), rating: 5 },
-      { externalId: `${LOCATION}/reviews/r2`, author: null, text: 'Avis 2/5 : Merci mais retard', postedAt: new Date('2026-10-02T11:00:00Z'), rating: 2 },
+      { externalId: 'r1', author: 'Julie', text: 'Avis 5/5 : Super chauffeur, merci !', postedAt: new Date('2026-10-02T10:00:00Z'), rating: 5 },
+      { externalId: 'r2', author: null, text: 'Avis 2/5 : Merci mais retard', postedAt: new Date('2026-10-02T11:00:00Z'), rating: 2 },
     ]);
     // Un avis n'appartient qu'à une publication : une autre publication ne le reçoit pas une seconde fois.
     expect(await publisher.comments({ ...ref, itemId: 'autre-item' }, new Date('2026-10-01T00:00:00Z'))).toEqual([]);
     expect(await publisher.comments(ref, new Date('2026-10-01T00:00:00Z'))).toHaveLength(2);
 
-    expect(await publisher.replyComment(ref, `${LOCATION}/reviews/r1`, 'Merci beaucoup !')).toEqual({ externalId: `${LOCATION}/reviews/r1/reply` });
+    expect(await publisher.replyComment(ref, 'r1', 'Merci beaucoup !')).toEqual({ externalId: 'r1/reply' });
+    expect(server.to('/reply', 'PUT')[0]!.url).toBe(`https://mybusiness.googleapis.com/v4/${LOCATION}/reviews/r1/reply`);
     expect(JSON.parse(server.to('/reply', 'PUT')[0]!.body!)).toEqual({ comment: 'Merci beaucoup !' });
-    await expect(publisher.replyComment(ref, 'pas-un-avis', 'x')).rejects.toMatchObject({ code: 'SOCIAL_VALIDATION_ERROR' });
+    // La ressource complète est aussi acceptée.
+    expect(await publisher.replyComment(ref, `${LOCATION}/reviews/r1`, 'Merci')).toEqual({ externalId: 'r1/reply' });
+    await expect(publisher.replyComment(ref, '../../autre/chose', 'x')).rejects.toMatchObject({ code: 'SOCIAL_VALIDATION_ERROR' });
 
     // Un seul échange de jeton pour toute la série (jeton en cache jusqu'à son échéance).
     expect(server.to('oauth2.googleapis.com/token')).toHaveLength(1);
