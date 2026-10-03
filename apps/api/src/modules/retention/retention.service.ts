@@ -178,14 +178,18 @@ export class RetentionService {
     return { type: 'booster_reports', rowsProcessed: inspections.length + logs.length, details: { inspectionYears, performanceYears, filesDeleted } };
   }
 
-  /** Journal d'audit de plus de 7 ans : le déclencheur « ajout seul » est suspendu le temps de la purge seulement. */
+  /**
+   * Journal d'audit de plus de 7 ans. Revue du 2 octobre 2026 (constat 20) : le déclencheur « ajout seul » n'est plus
+   * désactivé (verrou exclusif de toute la table, droit de propriétaire) ; la transaction déclare la purge
+   * (`neomoov.audit_purge`, locale à la transaction) et le déclencheur (migration 0039) admet alors la suppression des
+   * seules lignes de plus d'un an. Les écritures d'audit concurrentes continuent pendant la purge.
+   */
   private async auditLog(now: Date): Promise<RetentionResult> {
     const years = await this.settings.number('retention.audit_log_years', 7);
     const cutoff = monthsAgo(now, years * 12);
     const deleted = await this.db.transaction(async (tx) => {
-      await tx.execute(sql`ALTER TABLE audit_log DISABLE TRIGGER audit_log_append_only`);
+      await tx.execute(sql`SELECT set_config('neomoov.audit_purge', 'on', true)`);
       const rows = await tx.execute<{ n: number }>(sql`WITH d AS (DELETE FROM audit_log WHERE occurred_at < ${cutoff.toISOString()}::timestamptz RETURNING 1) SELECT count(*)::int AS n FROM d`);
-      await tx.execute(sql`ALTER TABLE audit_log ENABLE TRIGGER audit_log_append_only`);
       return Number(rows[0]?.n ?? 0);
     });
     return { type: 'audit_log', rowsProcessed: deleted, details: { retentionYears: years, cutoff: cutoff.toISOString() } };

@@ -457,13 +457,15 @@ export class InvoicingService {
 
   /**
    * Courses terminées ou facturées de frais sans facture (événement perdu, panne) depuis moins de
-   * `invoices.catchup_days` jours : reprises par la passe périodique.
+   * `invoices.catchup_days` jours : reprises par la passe périodique. Revue du 2 octobre 2026 (constat 17) : lecture par
+   * l'index partiel `rides_invoice_catchup_idx` (migration 0039), dont la condition est reprise telle quelle ici.
    */
   async ridesMissingInvoice(limit = 50): Promise<string[]> {
     const days = await this.settings.number('invoices.catchup_days', 2);
     const rows = await this.db.execute<{ id: string }>(sql`
       SELECT r.id FROM rides r
       WHERE r.driver_id IS NOT NULL
+        AND r.state IN ('completed', 'rated', 'disputed', 'cancelled_by_client', 'no_show')
         AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('cancelled_by_client', 'no_show') AND r.cancellation_fee_cents > 0 AND r.payment_choice = 'prepaid'))
         AND r.updated_at > now() - make_interval(days => ${days}::int) AND r.updated_at < now() - interval '2 minutes'
         AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.ride_id = r.id AND i.credit_note_of_id IS NULL)

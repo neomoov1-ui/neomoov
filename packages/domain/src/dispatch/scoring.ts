@@ -134,10 +134,16 @@ export type SearchRadius = number | null;
 
 export const DEFAULT_SEARCH_RADII: readonly SearchRadius[] = Object.freeze([2000, 5000, 10_000, null]);
 
-/** Lit la liste des rayons depuis un réglage : nombres positifs ou null, dans l'ordre ; défaut 2, 5, 10 km puis la zone. */
+/**
+ * Lit la liste des rayons depuis un réglage : nombres positifs ou null, dans l'ordre ; défaut 2, 5, 10 km puis la zone.
+ * Revue du 2 octobre 2026 (constat 22) : un rayon décimal saisi dans My Hub (2500,5) est arrondi au mètre, comme le
+ * contrat le promet (`dispatchSummarySchema.radiusMeters` entier) ; un rayon qui s'arrondit à 0 est écarté.
+ */
 export function parseSearchRadii(value: unknown): SearchRadius[] {
   if (!Array.isArray(value)) return [...DEFAULT_SEARCH_RADII];
-  const radii = value.filter((v): v is SearchRadius => v === null || (typeof v === 'number' && Number.isFinite(v) && v > 0));
+  const radii = value
+    .map((v): SearchRadius | undefined => (v === null ? null : typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : undefined))
+    .filter((v): v is SearchRadius => v === null || (v !== undefined && v > 0));
   return radii.length ? radii : [...DEFAULT_SEARCH_RADII];
 }
 

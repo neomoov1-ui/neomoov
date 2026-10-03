@@ -109,6 +109,28 @@ function validate(input: QuoteInput): void {
 }
 
 /**
+ * Un forfait n'est utilisable que s'il couvre les frais de service et la redevance (revue du 2 octobre 2026, constat 16) :
+ * sinon son tarif serait négatif, refusé par la base (`quotes_amounts_positive`), et tous les devis de la paire de zones
+ * échoueraient. Un forfait mal saisi est alors ignoré : le calcul au compteur s'applique (l'API le signale au chargement
+ * des règles, `flatRatesBelowFees`).
+ */
+function isFlatRateUsable(subtotalCents: number, rules: PricingRules): boolean {
+  return subtotalCents >= rules.serviceFeeCents + rules.regulatoryFeeCents;
+}
+
+/** Forfaits inférieurs aux frais (codes, ou paire de zones et catégorie), ignorés par `computeQuote`. */
+export function flatRatesBelowFees(rules: PricingRules): string[] {
+  const below: string[] = [];
+  for (const rate of rules.flatRates) {
+    for (const [category, totalCents] of Object.entries(rate.totalCentsByCategory)) {
+      const subtotal = subtotalForTotal(totalCents, rules);
+      if (subtotal !== null && !isFlatRateUsable(subtotal, rules)) below.push(rate.codeByCategory?.[category] ?? `${rate.originZone}:${rate.destinationZone}:${category}`);
+    }
+  }
+  return below;
+}
+
+/**
  * Calcule le devis complet d'une course. Fonction pure : mêmes entrées, même résultat.
  * Arrondi au cent ligne par ligne ; le total est la somme des lignes arrondies.
  */
@@ -127,10 +149,11 @@ export function computeQuote(input: QuoteInput, rules: PricingRules): Quote {
 
   const flatRate = matchFlatRate(rules.flatRates, input.originZone, input.destinationZone);
   const flatTotal = flatRate?.totalCentsByCategory[input.category];
-  if (flatTotal !== undefined) {
+  const flatSubtotal = flatTotal === undefined ? null : subtotalForTotal(flatTotal, rules);
+  if (flatTotal !== undefined && flatSubtotal === null) throw new PricingError('FLAT_RATE_NOT_DECOMPOSABLE', `Forfait de ${flatTotal} cents indécomposable en lignes arrondies`);
+  if (flatSubtotal !== null && isFlatRateUsable(flatSubtotal, rules)) {
     // Le forfait remplace tout le calcul et fixe directement le prix total affiché.
-    const subtotal = subtotalForTotal(flatTotal, rules);
-    if (subtotal === null) throw new PricingError('FLAT_RATE_NOT_DECOMPOSABLE', `Forfait de ${flatTotal} cents indécomposable en lignes arrondies`);
+    const subtotal = flatSubtotal;
     flat = true;
     flatRateCode = flatRate!.codeByCategory?.[input.category] ?? `${input.originZone}:${input.destinationZone}`;
     fareCents = subtotal - rules.serviceFeeCents - rules.regulatoryFeeCents;

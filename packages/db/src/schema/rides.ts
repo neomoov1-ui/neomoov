@@ -94,6 +94,8 @@ export const rides = pgTable('rides', {
   index('rides_driver_idx').on(t.driverId, t.createdAt),
   index('rides_state_idx').on(t.state).where(sql`${t.state} IN ('requested', 'offering', 'assigned', 'en_route', 'arrived', 'in_progress')`),
   index('rides_scheduled_idx').on(t.requestedAt).where(sql`${t.type} = 'scheduled'`),
+  /** Rattrapage des factures (`ridesMissingInvoice`, revue du 2 octobre 2026, constat 17) : courses facturables récentes. */
+  index('rides_invoice_catchup_idx').on(t.updatedAt).where(sql`${t.driverId} IS NOT NULL AND ${t.state} IN ('completed', 'rated', 'disputed', 'cancelled_by_client', 'no_show')`),
   index('rides_origin_gist').using('gist', t.originPosition),
   check('rides_amounts_positive', sql`${t.maxConsentedCents} >= 0 AND ${t.quotedTotalCents} >= 0 AND ${t.tipCents} >= 0 AND ${t.waitChargeCents} >= 0 AND ${t.cancellationFeeCents} >= 0`),
   check('rides_final_within_consent', sql`${t.finalPriceCents} IS NULL OR ${t.finalPriceCents} <= ${t.maxConsentedCents}`),

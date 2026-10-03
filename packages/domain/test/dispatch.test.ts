@@ -98,4 +98,9 @@ describe('vagues et rayons', () => {
     expect(parseSearchRadii([1000, -5, 'x', null, Number.NaN])).toEqual([1000, null]);
     expect(parseSearchRadii(['x'])).toEqual([...DEFAULT_SEARCH_RADII]);
   });
+  it('revue du 2 octobre 2026, constat 22 : rayons décimaux arrondis au mètre (contrat entier), rayon nul après arrondi écarté', () => {
+    expect(parseSearchRadii([2500.4, 4999.5, 0.4, null])).toEqual([2500, 5000, null]);
+    expect(parseSearchRadii([0.3])).toEqual([...DEFAULT_SEARCH_RADII]);
+    for (const r of parseSearchRadii([1234.56, 7890.01])) expect(Number.isInteger(r)).toBe(true);
+  });
 });

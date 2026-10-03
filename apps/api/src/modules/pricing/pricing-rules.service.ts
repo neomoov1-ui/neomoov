@@ -1,14 +1,17 @@
 /**
  * Règles de tarification lues en base (settings, pricing_rules, surcharges, flat_rates et zones) et assemblées pour le
  * moteur pur du domaine (`buildPricingRules`). Cache de 60 secondes par processus ; une version (empreinte des sources)
- * est enregistrée avec chaque devis.
+ * est enregistrée avec chaque devis. Un forfait inférieur aux frais (ignoré par le moteur, revue du 2 octobre 2026,
+ * constat 16) est signalé dans le journal à chaque chargement, pour être corrigé.
  */
 import { buildPricingRules, schema, type PricingSources } from '@neomoov/db';
-import type { PricingRules } from '@neomoov/domain';
+import { flatRatesBelowFees, type PricingRules } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, gt, isNull, lte, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import type { Logger } from 'pino';
 import { sha256Hex } from '../../common/crypto.js';
+import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 
@@ -30,6 +33,7 @@ export class PricingRulesService {
   constructor(
     @Inject(DB) private readonly database: Database,
     private readonly settings: SettingsService,
+    @Inject(APP_LOGGER) private readonly logger: Logger,
   ) {}
 
   async rulesFor(cityCode = DEFAULT_CITY): Promise<LoadedPricingRules> {
@@ -86,6 +90,8 @@ export class PricingRulesService {
     const flatRates = latestBy(flatRateRows, (r) => `${r.category}|${r.originZoneCode}|${r.destinationZoneCode}`).map(({ validFrom: _v, ...r }) => r);
     const sources: PricingSources = { timeZone: city.timeZone, settings, pricingRules, surcharges, flatRates };
     const rules = buildPricingRules(sources);
+    const unusable = flatRatesBelowFees(rules);
+    if (unusable.length) this.logger.warn({ cityCode, flatRates: unusable }, 'Forfaits inférieurs aux frais : ignorés, calcul au compteur appliqué');
     const pricingSettings = Object.fromEntries(Object.entries(settings).filter(([k]) => k.startsWith('pricing.') || k.startsWith('rides.')));
     const version = sha256Hex(JSON.stringify({ cityCode, timeZone: city.timeZone, pricingSettings, pricingRules, surcharges, flatRates })).slice(0, 16);
     return { cityCode, timeZone: city.timeZone, rules, version };

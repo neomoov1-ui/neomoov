@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  PricingError, computeQuote, computeWaitChargeCents, finalizeQuote, isNightTime, isPeakHours, localTimeParts,
+  PricingError, computeQuote, computeWaitChargeCents, finalizeQuote, flatRatesBelowFees, isNightTime, isPeakHours, localTimeParts,
   matchFlatRate, mulDivRound, subtotalForTotal,
   type PricingRules, type Promotion, type QuoteInput,
 } from '../src/index.js';
@@ -165,6 +165,23 @@ describe('forfaits', () => {
     while (subtotalForTotal(impossible, rules) !== null) impossible += 1;
     const broken: PricingRules = { ...rules, flatRates: [{ originZone: 'a', destinationZone: 'b', bidirectional: false, totalCentsByCategory: { neo_premium: impossible } }] };
     expect(code(() => computeQuote(base({ originZone: 'a', destinationZone: 'b' }), broken))).toBe('FLAT_RATE_NOT_DECOMPOSABLE');
+  });
+  it('revue du 2 octobre 2026, constat 16 : un forfait inférieur aux frais est ignoré, le calcul au compteur s\'applique et le tarif reste positif', () => {
+    // 3,00 $ taxes comprises : sous-total de 2,61 $, sous les 2,90 $ de frais de service et de redevance.
+    const low: PricingRules = { ...rules, flatRates: [{ originZone: 'a', destinationZone: 'b', bidirectional: false, totalCentsByCategory: { neo_premium: 300, neo_xl: 5500 }, codeByCategory: { neo_premium: 'a-b-premium' } }] };
+    expect(subtotalForTotal(300, rules)).toBe(261);
+    const q = computeQuote(base({ originZone: 'a', destinationZone: 'b' }), low);
+    expect(q).toMatchObject({ flatRate: false, flatRateCode: null, fareCents: 2455, totalCents: 3156 });
+    expect(q.fareCents).toBeGreaterThanOrEqual(0);
+    // Forfait égal aux frais exactement : tarif nul, encore utilisable.
+    const exact = computeQuote(base({ originZone: 'a', destinationZone: 'b' }), { ...low, flatRates: [{ ...low.flatRates[0]!, totalCentsByCategory: { neo_premium: 290 + mulDivRound(290, 50_000, 1_000_000) + mulDivRound(290, 99_750, 1_000_000) } }] });
+    expect(exact).toMatchObject({ flatRate: true, fareCents: 0 });
+    // La catégorie au forfait correct garde son forfait ; seuls les forfaits trop bas sont signalés.
+    expect(computeQuote(base({ category: 'neo_xl', originZone: 'a', destinationZone: 'b' }), low).flatRate).toBe(true);
+    expect(flatRatesBelowFees(low)).toEqual(['a-b-premium']);
+    expect(flatRatesBelowFees({ ...low, flatRates: [{ ...low.flatRates[0]!, codeByCategory: {} }] })).toEqual(['a:b:neo_premium']);
+    expect(flatRatesBelowFees({ ...low, flatRates: [{ originZone: 'a', destinationZone: 'b', bidirectional: false, totalCentsByCategory: { neo_premium: 300 } }] })).toEqual(['a:b:neo_premium']);
+    expect(flatRatesBelowFees(rules)).toEqual([]);
   });
   it('subtotalForTotal retrouve tout sous-total, quel que soit l\'arrondi', () => {
     for (let s = 4000; s < 4400; s += 1) {
