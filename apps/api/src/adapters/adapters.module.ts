@@ -13,6 +13,8 @@ import { BILLING_PROVIDER, type BillingProvider } from './billing.types.js';
 import { SEARCH_CONSOLE_PROVIDER, SITE_CONNECTOR, SOCIAL_PUBLISHERS, TTS_PROVIDER, type SearchConsoleProvider, type SiteConnector, type SocialPublishers, type TtsProvider } from './marketing.types.js';
 import { MockSearchConsoleProvider, MockSiteConnector, MockTtsProvider, mockSocialPublishers } from './mock/marketing.mock.js';
 import { realSearchConsole, realSiteConnector, realSocialPublishers, realTts } from './real/marketing.js';
+import { oauthTokenStore } from './real/oauth-store.js';
+import { DB, type Database } from '../infra/db.module.js';
 
 type Mode = 'mock' | 'real';
 const choose = <T>(token: symbol, key: keyof AppEnv, mock: (env: AppEnv) => T, real: (env: AppEnv) => T): Provider => ({
@@ -48,7 +50,12 @@ const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 
     choose<PlacesProvider>(PLACES_PROVIDER, 'MAPS_PROVIDER', () => new MockPlacesProvider(), realPlaces),
     choose<CalendarProvider>(CALENDAR_PROVIDER, 'CALENDAR_PROVIDER', () => new MockCalendarProvider(), realCalendar),
     // Marketing automatisé (phase 1 « entreprise autonome ») : un seul interrupteur pour les onze espaces, le site, la voix et la Search Console.
-    choose<SocialPublishers>(SOCIAL_PUBLISHERS, 'MARKETING_PROVIDER', () => mockSocialPublishers(), realSocialPublishers),
+    // Jetons OAuth renouvelés (X, TikTok) gardés chiffrés dans la base, partagés par l'API et le worker (sans base : en mémoire).
+    {
+      provide: SOCIAL_PUBLISHERS,
+      inject: [APP_ENV, { token: DB, optional: true }],
+      useFactory: (env: AppEnv, database?: Database): SocialPublishers => (env.MARKETING_PROVIDER === 'real' ? realSocialPublishers(env, { tokenStore: oauthTokenStore(env, database ?? null) }) : mockSocialPublishers()),
+    },
     choose<SiteConnector>(SITE_CONNECTOR, 'MARKETING_PROVIDER', () => new MockSiteConnector(), realSiteConnector),
     choose<TtsProvider>(TTS_PROVIDER, 'MARKETING_PROVIDER', () => new MockTtsProvider(), realTts),
     choose<SearchConsoleProvider>(SEARCH_CONSOLE_PROVIDER, 'MARKETING_PROVIDER', () => new MockSearchConsoleProvider(), realSearchConsole),
