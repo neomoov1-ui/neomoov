@@ -36,7 +36,7 @@ Migrations : `0021_organization-isolation` (socle : rôle, fonction, politiques)
 | Famille | Tables | Règle |
 |---|---|---|
 | Colonne directe | `drivers`, `vehicles`, `rides`, `clients`, `quotes`, `weekly_statements`, `memberships`, `invitations`, `organization_features`, `audit_log`, `conversations`, `notifications`, `incidents`, `credits`, `leads`, `brands`, `organization_domains` | `app_scope_allows(organization_id)` en lecture et en écriture |
-| Par course | `ride_events`, `ride_messages`, `ride_ratings`, `ride_offers`, `ride_dispatches`, `ride_tracks`, `invoices`, `payments`, `scheduled_assignments`, `pack_consumptions`, `credit_uses`, `redevance_ledger`, `promotion_uses`, `tax_ledger` | Organisation de la course |
+| Par course | `ride_events`, `ride_messages`, `ride_ratings`, `ride_offers`, `ride_dispatches`, `ride_tracks`, `invoices`, `payments`, `scheduled_assignments`, `pack_consumptions`, `credit_uses`, `redevance_ledger`, `promotion_uses`, `tax_ledger`, `platform_fees` (0036, redevance Neomoov) | Organisation de la course |
 | Par chauffeur | `driver_documents`, `driver_locations` (partitionnée), `driver_presence`, `driver_scores`, `driver_shifts`, `driver_training_results`, `driver_balances`, `pack_purchases`, `sanctions`, `sanction_appeals` | Organisation du chauffeur |
 | Par chauffeur ou véhicule | `compliance_checks` (0022) | Organisation du chauffeur ou du véhicule de l'échéance |
 | Par client | `client_payment_methods`, `favorite_drivers`, `client_driver_links`, `saved_places` | Organisation du profil client |
