@@ -302,6 +302,7 @@ Pour vos rendez-vous professionnels, Neomoov confirme un chauffeur et le véhicu
   },
   {
     n: 7, jour: 3, theme: 'prix', sujet: 'Le prix affiché est le prix payé', cta: 'reserve',
+    sensible: 'Sujet « argent » (composition du prix) : approbation humaine prévue par les lignes éditoriales.',
     photo: ['client', 'Photo réelle d\'un passager souriant à l\'arrière d\'un véhicule électrique, téléphone en main (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Le prix affiché, le prix payé', instagram: 'Tout est compris', linkedin: 'Transparence du prix', x: 'Aucune majoration', tiktok: 'Le prix change ? Pas ici', snapchat: 'Aucune surprise', youtube: 'Le vrai prix, d\'avance', telegram: 'Prix garanti', whatsapp_channel: 'Le prix total, avant' },
     imgEn: { linkedin: 'Price transparency', x: 'No demand-based pricing' },

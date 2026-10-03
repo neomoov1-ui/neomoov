@@ -2,7 +2,7 @@
 
 Document généré par `node scripts/construire-publications.mjs` à partir des lots `scripts/publications-lancement/lot-*.mjs`, vérifié par `node scripts/verifier-publications.mjs`. Fichier à importer dans My Hub (Marketing, Publier, « Importer des publications ») : `docs/marketing/lancement-50-publications.json`, au format `docs/marketing/lancement-50-publications.schema.json` (campagne `lancement-2026-10`). Rédaction du 3 octobre 2026, à valider par le fondateur avant toute programmation.
 
-Période proposée : du mardi 6 octobre 2026 au lundi 2 novembre 2026 (4 semaines, heure de Montréal), 1 à 3 publications par jour ; changer `startDate` dans le fichier décale tout le calendrier (les textes ne citent aucun jour de semaine). Chaque publication a un texte propre à chaque réseau, un titre d'image différent par réseau (et pour chaque version anglaise) et une indication de photo réelle (règle D46, `photoHints` et `notes`). Le blogue ne reçoit que 5 articles (un ou deux par semaine, comme le prévoient les lignes éditoriales) ; les autres publications visent les neuf autres espaces.
+Période proposée : du mardi 6 octobre 2026 au lundi 2 novembre 2026 (4 semaines, heure de Montréal), 1 à 3 publications par jour ; changer `startDate` dans le fichier décale tout le calendrier (les textes ne citent aucun jour de semaine). Chaque publication a un texte propre à chaque réseau, un titre d'image différent par réseau (et pour chaque version anglaise) et une indication de photo réelle (règle D46, `photoHints` et `notes`). Le blogue ne reçoit que 7 articles (un ou deux par semaine, comme le prévoient les lignes éditoriales) ; les autres publications visent les neuf autres espaces.
 
 Règles appliquées : lignes éditoriales v1.1 (vouvoiement, français du Québec d'abord, anglais seulement sur LinkedIn et X après le français, aucun tiret long, emoji seulement sur Instagram, TikTok et Snapchat, au plus un sur Telegram et la chaîne WhatsApp) ; seuls prix : 48,20 $ (forfait aéroport Neo Premium depuis le centre-ville) et 113,83 $ (Neomoov Chauffeur Pro) ; aucune promesse de revenu, aucun concurrent, aucune donnée personnelle, rien sur la commission ; numéros publics +1 438 900 4990 et +1 438 805-7974 seulement.
 
@@ -16,7 +16,7 @@ Règles appliquées : lignes éditoriales v1.1 (vouvoiement, français du Québe
 | P04 | mercredi 7 octobre 2026 | Véhicules 100 % électriques | Une flotte 100 % électrique | 9 (sans le blogue) | Véhicule électrique | standard |
 | P05 | jeudi 8 octobre 2026 | Service aéroport Montréal-Trudeau | Aller à l'aéroport Montréal-Trudeau avec Neomoov : le guide | les 10 (blogue compris) | Aéroport | humaine requise |
 | P06 | jeudi 8 octobre 2026 | Réservation 2 heures à l'avance | Pourquoi réserver au moins 2 heures à l'avance | 9 (sans le blogue) | Client | standard |
-| P07 | vendredi 9 octobre 2026 | Prix tout compris affiché avant | Le prix affiché est le prix payé | 9 (sans le blogue) | Client | standard |
+| P07 | vendredi 9 octobre 2026 | Prix tout compris affiché avant | Le prix affiché est le prix payé | 9 (sans le blogue) | Client | humaine requise |
 | P08 | vendredi 9 octobre 2026 | Devenir chauffeur | Neomoov recrute des chauffeurs professionnels | 9 (sans le blogue) | Chauffeur | standard |
 | P09 | samedi 10 octobre 2026 | Quartiers et saisons de Montréal | Action de grâce : se déplacer en famille | 9 (sans le blogue) | Client | standard |
 | P10 | samedi 10 octobre 2026 | Commodités à bord | Ce qui vous attend à bord | 9 (sans le blogue) | Véhicule électrique | standard |
@@ -40,6 +40,16 @@ Règles appliquées : lignes éditoriales v1.1 (vouvoiement, français du Québe
 | P28 | mardi 20 octobre 2026 | Neomoov Academy et Chauffeur Pro | L'espace membre gratuit de Neomoov Academy | 9 (sans le blogue) | Chauffeur | standard |
 | P29 | mercredi 21 octobre 2026 | Réservation 2 heures à l'avance | Réserver jusqu'à 90 jours à l'avance pour les Fêtes | 9 (sans le blogue) | Client | standard |
 | P30 | mercredi 21 octobre 2026 | Lancement de la marque et slogan | Une application conçue par le client pour les chauffeurs | 9 (sans le blogue) | Chauffeur | standard |
+| P31 | jeudi 22 octobre 2026 | Commodités à bord | À bord d'un véhicule Neomoov : commodités et préférences | les 10 (blogue compris) | Véhicule électrique | standard |
+| P32 | jeudi 22 octobre 2026 | Service aéroport Montréal-Trudeau | Partir en famille à l'aéroport avec Neo XL | 9 (sans le blogue) | Aéroport | standard |
+| P33 | vendredi 23 octobre 2026 | Devenir chauffeur | Nos engagements envers les chauffeurs | 9 (sans le blogue) | Chauffeur | standard |
+| P34 | vendredi 23 octobre 2026 | Prix tout compris affiché avant | Deux façons de payer | 9 (sans le blogue) | Client | humaine requise |
+| P35 | samedi 24 octobre 2026 | Quartiers et saisons de Montréal | Les marchés publics en automne | 9 (sans le blogue) | Ville | standard |
+| P36 | dimanche 25 octobre 2026 | Conseils de déplacement | Un rendez-vous médical ? Réservez à l'avance | 9 (sans le blogue) | Client | standard |
+| P37 | lundi 26 octobre 2026 | Sécurité et chauffeurs vérifiés | Ce qui est vérifié avant votre course | 9 (sans le blogue) | Véhicule électrique | humaine requise |
+| P38 | lundi 26 octobre 2026 | Neomoov Academy et Chauffeur Pro | Le kit du bon chauffeur (module 4) | 9 (sans le blogue) | Chauffeur | standard |
+| P39 | mardi 27 octobre 2026 | Entreprises et comptes d'affaires | Compte entreprise Neomoov : simplifier les déplacements de votre organisation | les 10 (blogue compris) | Client | standard |
+| P40 | mardi 27 octobre 2026 | Service aéroport Montréal-Trudeau | Un vol tôt le matin | 9 (sans le blogue) | Aéroport | standard |
 
 ## Créneaux (heure de Montréal)
 
@@ -952,6 +962,7 @@ Description :
 
 - Photo réelle (client) : Photo réelle d'un passager souriant à l'arrière d'un véhicule électrique, téléphone en main (modèle, licence commerciale, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
+- Approbation humaine requise : Sujet « argent » (composition du prix) : approbation humaine prévue par les lignes éditoriales.
 
 #### Facebook · 17 h 00 · titre d'image : « Le prix affiché, le prix payé »
 
@@ -4007,5 +4018,1328 @@ Description :
 #### Chaîne WhatsApp · 18 h 30 · titre d'image : « Une phrase, une philosophie »
 
 > Notre philosophie en une phrase : une application conçue par le client pour les chauffeurs. Réservez votre prochaine course :
+>
+> https://neomoov.net/reserver
+
+### P31 · jeudi 22 octobre 2026 · Commodités à bord · À bord d'un véhicule Neomoov : commodités et préférences
+
+- Photo réelle (véhicule électrique) : Photo réelle d'un passager qui branche son téléphone à un chargeur, à l'arrière d'un véhicule électrique récent (modèle, licence commerciale, crédit indiqué).
+- Appel à l'action : https://neomoov.net/reserver
+
+#### Blogue neomoov.net · 10 h 00 · titre d'image : « À bord, tout est prévu »
+
+**À bord d'un véhicule Neomoov : commodités et préférences** (616 mots)
+
+Extrait : Eau, chargeurs, Wi-Fi, parapluie, ambiance, langue du chauffeur, siège d'enfant, animaux, accessibilité : tout ce qui vous attend à bord.
+
+> Un trajet agréable tient souvent à peu de choses : une bouteille d'eau quand on a soif, un chargeur quand la batterie faiblit, le calme quand on a besoin de se concentrer. Chez Neomoov, ces détails font partie du service. Voici ce qui vous attend à bord, et tout ce que vous pouvez demander à la réservation.
+>
+> ## Compris dans tous nos véhicules
+>
+> Quelle que soit la catégorie choisie, Neo Premium, Neo Prestige ou Neo XL, vous trouvez à bord :
+>
+> - de l'eau, pour vous accueillir ;
+> - des chargeurs, pour votre téléphone ;
+> - le Wi-Fi, pour rester connecté ;
+> - un parapluie à disposition, pour les jours de pluie.
+>
+> Ces commodités sont incluses dans tous nos véhicules. Les chauffeurs s'engagent d'ailleurs à équiper leur véhicule pour l'accueil, et chaque véhicule est inspecté à l'inscription, puis chaque trimestre.
+>
+> ## Votre ambiance : silence ou discussion
+>
+> Certains aiment échanger quelques mots avec leur chauffeur, d'autres préfèrent profiter du trajet en silence pour se reposer, lire ou préparer une réunion. À la réservation, vous choisissez l'ambiance qui vous convient : silence, discussion ou sans préférence. Votre chauffeur la connaît avant même de vous accueillir.
+>
+> ## Votre musique et votre température
+>
+> Vous pouvez aussi indiquer la musique souhaitée et la température de l'habitacle : fraîche, tempérée ou chaude. Ces préférences sont transmises au chauffeur avant la course.
+>
+> ## La langue de votre chauffeur
+>
+> Vous préférez être conduit par un chauffeur qui parle français, anglais ou une autre langue ? Indiquez-le à la réservation : nous vous attribuons, selon les disponibilités, un chauffeur qui la parle. Notre service est bilingue, en français et en anglais, dans l'application et au téléphone.
+>
+> ## Bagages, enfants et animaux
+>
+> - Aide aux bagages : indiquez le nombre et la taille de vos bagages, et demandez de l'aide si vous en avez besoin.
+> - Siège d'enfant : il est disponible sur demande, à préciser à la réservation.
+> - Animal de compagnie : il voyage en cage de transport, à bord des catégories Neo XL et Neo Prestige.
+> - Animaux d'assistance : ils sont toujours acceptés, dans toutes les catégories.
+>
+> ## Accessibilité
+>
+> Nous transportons les personnes à mobilité réduite, avec une aide à l'embarquement et aux bagages. Précisez-le à la réservation : un fauteuil roulant manuel pliable peut voyager dans le coffre, selon le véhicule. Nous n'avons pas encore de véhicule adapté aux fauteuils non pliables ; pour ce besoin, le transport adapté de votre ville reste la bonne option.
+>
+> ## Chauffeur favori et arrêts en chemin
+>
+> Vous avez apprécié un chauffeur ? Ajoutez-le à vos favoris et demandez-le pour vos prochaines courses. Vous pouvez aussi prévoir jusqu'à trois arrêts en chemin, inclus dans le prix affiché avant de confirmer.
+>
+> ## Réserver pour quelqu'un d'autre
+>
+> Vous réservez pour un parent, un ami ou un client ? Indiquez son nom et son numéro de téléphone : il reçoit le suivi de sa course par texto, avec le modèle et la plaque du véhicule.
+>
+> ## Vos demandes spéciales
+>
+> Une situation particulière, un besoin précis ? Le formulaire de réservation comprend un champ pour vos demandes spéciales. Dites-nous ce qui rendrait votre trajet plus simple.
+>
+> ## Pourquoi ces détails comptent
+>
+> Neomoov se définit comme une application conçue par le client pour les chauffeurs. Les commodités et les préférences en sont l'illustration la plus concrète : ce que vous attendez d'un trajet est noté à la réservation, et votre chauffeur dispose de tout ce qu'il faut pour y répondre. Un trajet réussi, c'est un passager qui arrive détendu et un chauffeur qui a pu bien faire son travail.
+>
+> ## Comment indiquer vos préférences
+>
+> Vos choix se font au moment de réserver, au moins 2 heures à l'avance :
+>
+> - sur neomoov.net/reserver, sans créer de compte ;
+> - par WhatsApp, au +1 438 900 4990 ;
+> - dans l'application Neomoov.
+>
+> Un compte Neomoov, facultatif, garde vos préférences et vos chauffeurs favoris pour les prochaines fois.
+>
+> Votre trajet, à votre façon : réservez dès maintenant sur https://neomoov.net/reserver
+
+#### Facebook · 12 h 00 · titre d'image : « Commodités et options »
+
+> Ce qui vous attend à bord d'un véhicule Neomoov : de l'eau, des chargeurs, le Wi-Fi et un parapluie, dans toutes les catégories.
+>
+> Et ce que vous pouvez demander : silence ou discussion, musique, température, langue du chauffeur, aide aux bagages, siège d'enfant, animal en cage (Neo XL et Neo Prestige), jusqu'à trois arrêts en chemin.
+>
+> https://neomoov.net/reserver
+
+#### Instagram · 12 h 00 · titre d'image : « Tout ce que vous pouvez demander »
+
+> Tout ce que vous pouvez demander à bord 🧳
+>
+> Silence ou discussion, musique, température, langue du chauffeur, aide aux bagages, siège d'enfant, animal en cage en Neo XL et Neo Prestige. Eau, chargeurs, Wi-Fi et parapluie sont toujours là.
+>
+> Lien dans la bio.
+>
+> #Neomoov #Confort #Montréal #MTL #Voyage #ÀBord
+
+#### LinkedIn · 08 h 30 · titre d'image : « Soigner le trajet »
+
+> Accueillir un visiteur, c'est aussi soigner son trajet.
+>
+> Dans chaque véhicule Neomoov : eau, chargeurs, Wi-Fi, parapluie. À la réservation : langue du chauffeur, ambiance silencieuse, aide aux bagages, accessibilité pour une personne à mobilité réduite, demandes spéciales. Tout est transmis au chauffeur avant la course.
+>
+> https://neomoov.net/reserver
+>
+> #ServiceClient #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Take care of the ride »
+
+> Welcoming a visitor includes taking care of their ride. In every Neomoov vehicle: water, chargers, Wi-Fi, an umbrella. When booking: driver language, a quiet ride, help with luggage, accessibility for a person with reduced mobility, special requests. Everything reaches the driver before the ride.
+>
+> https://neomoov.net/reserver
+>
+> #ServiceClient #Montréal
+
+#### X · 09 h 00 · titre d'image : « Votre trajet, à votre façon »
+
+> À bord : eau, chargeurs, Wi-Fi, parapluie. À la réservation : silence, musique, langue du chauffeur, siège d'enfant, aide aux bagages. Votre trajet, à votre façon.
+>
+> https://neomoov.net/reserver
+
+#### X (version anglaise) · 09 h 00 · titre d'image : « Your ride, your way »
+
+> On board: water, chargers, Wi-Fi, umbrella. When booking: quiet ride, music, driver language, child seat, help with luggage. Your ride, your way.
+>
+> https://neomoov.net/reserver
+
+#### TikTok · 18 h 00 · titre d'image : « Demandez, c'est prévu »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Tout ce que vous pouvez demander à bord.
+2. Silence ou discussion.
+3. Votre musique, votre température.
+4. Un siège d'enfant, de l'aide pour les bagages.
+5. Et votre animal en cage, en Neo XL ou Neo Prestige.
+
+Légende :
+
+> Votre trajet, à votre façon 🧳 neomoov.net/reserver
+>
+> #Neomoov #Montréal #Confort
+
+#### Snapchat · 19 h 00 · titre d'image : « Siège d'enfant, bagages »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Siège d'enfant ?
+2. Aide aux bagages ?
+3. C'est prévu.
+
+Légende :
+
+> Demandez, c'est prévu 🧳 neomoov.net/reserver
+>
+> #Neomoov #MTL
+
+#### Telegram · 17 h 30 · titre d'image : « Vos options »
+
+> À bord de chaque véhicule : eau, chargeurs, Wi-Fi, parapluie. À la réservation : ambiance, musique, langue, siège d'enfant, aide aux bagages.
+>
+> https://neomoov.net/reserver
+
+#### YouTube (Short) · 16 h 00 · titre d'image : « Commodités à bord »
+
+Titre : Commodités et préférences à bord d'un véhicule Neomoov
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Dans chaque véhicule Neomoov : eau, chargeurs, Wi-Fi et parapluie.
+2. À la réservation, choisissez l'ambiance, la musique et la température.
+3. Demandez un siège d'enfant ou de l'aide pour vos bagages.
+4. Votre animal voyage en cage, en Neo XL ou en Neo Prestige.
+
+Description :
+
+> Les commodités comprises et les préférences à indiquer à la réservation d'une course Neomoov à Montréal.
+>
+> https://neomoov.net/reserver
+>
+> #Neomoov #Montréal #Shorts
+
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Vos besoins, prévus »
+
+> Siège d'enfant, aide aux bagages, animal en cage : indiquez vos besoins à la réservation, c'est prévu.
+>
+> https://neomoov.net/reserver
+
+### P32 · jeudi 22 octobre 2026 · Service aéroport Montréal-Trudeau · Partir en famille à l'aéroport avec Neo XL
+
+- Photo réelle (aéroport) : Photo réelle d'une famille de dos avec plusieurs valises sur le trottoir des départs de l'aéroport Montréal-Trudeau (modèles, licence commerciale, crédit indiqué).
+- Appel à l'action : https://neomoov.net/reserver
+
+#### Facebook · 17 h 00 · titre d'image : « Départ en famille »
+
+> Départ en famille vers Montréal-Trudeau ?
+>
+> Neo XL accueille jusqu'à six passagers et six valises. Le siège d'enfant est fourni sans frais pour les forfaits aéroport, sur demande à la réservation. Indiquez votre numéro de vol et vos bagages : votre chauffeur est confirmé la veille.
+>
+> https://neomoov.net/reserver
+>
+> #YUL
+
+#### Instagram · 11 h 00 · titre d'image : « Six passagers, six valises »
+
+> Six passagers, six valises ✈️
+>
+> Pour les départs en famille ou en groupe, Neo XL emmène tout le monde et tous les bagages vers Montréal-Trudeau. Siège d'enfant sans frais pour les forfaits aéroport.
+>
+> Lien dans la bio.
+>
+> #YUL #NeoXL #Famille #Voyage #Montréal #Neomoov
+
+#### LinkedIn · 09 h 00 · titre d'image : « Toute l'équipe à bord »
+
+> Déplacements d'équipe vers Montréal-Trudeau : un seul véhicule pour tout le monde.
+>
+> Neo XL accueille jusqu'à six passagers et six valises, ou un équipement volumineux. Réservation avec numéro de vol, chauffeur confirmé la veille, une seule facture.
+>
+> https://neomoov.net/reserver
+>
+> #YUL #VoyageDAffaires
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « The whole team on board »
+
+> Team travel to Montréal-Trudeau: one vehicle for everyone. Neo XL carries up to six passengers and six suitcases, or bulky equipment. Book with the flight number, driver confirmed the day before, a single invoice.
+>
+> https://neomoov.net/reserver
+>
+> #YUL #VoyageDAffaires
+
+#### X · 09 h 30 · titre d'image : « Tout le monde à YUL »
+
+> Départ en groupe vers YUL ? Neo XL : jusqu'à six passagers et six valises. Siège d'enfant sans frais pour les forfaits aéroport.
+>
+> https://neomoov.net/reserver
+>
+> #YUL
+
+#### X (version anglaise) · 09 h 30 · titre d'image : « Everyone to YUL »
+
+> Heading to YUL as a group? Neo XL: up to six passengers and six suitcases. Child seat at no charge for airport flat rates.
+>
+> https://neomoov.net/reserver
+>
+> #YUL
+
+#### TikTok · 18 h 30 · titre d'image : « Direction Montréal-Trudeau »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Six passagers, six valises.
+2. Direction l'aéroport Montréal-Trudeau.
+3. En Neo XL, tout le monde voyage ensemble.
+4. Siège d'enfant sans frais pour les forfaits aéroport.
+
+Légende :
+
+> Départ en famille ✈️ neomoov.net/reserver
+>
+> #YUL #NeoXL #Famille #Neomoov
+
+#### Snapchat · 19 h 30 · titre d'image : « Un seul véhicule »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Six passagers.
+2. Six valises.
+3. Un seul véhicule.
+
+Légende :
+
+> Direction YUL ✈️ neomoov.net/reserver
+>
+> #YUL #MTL
+
+#### Telegram · 18 h 00 · titre d'image : « Le groupe au complet »
+
+> Départ en famille vers Montréal-Trudeau ? Neo XL : jusqu'à six passagers et six valises.
+>
+> https://neomoov.net/reserver
+
+#### YouTube (Short) · 16 h 30 · titre d'image : « Neo XL vers l'aéroport »
+
+Titre : Partir en famille à l'aéroport avec Neo XL
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Vous partez en famille ou en groupe ?
+2. Neo XL accueille jusqu'à six passagers et six valises.
+3. Le siège d'enfant est sans frais pour les forfaits aéroport.
+4. Votre chauffeur est confirmé la veille.
+
+Description :
+
+> Neo XL pour vos départs en famille ou en groupe vers l'aéroport Montréal-Trudeau : jusqu'à six passagers et six valises.
+>
+> https://neomoov.net/reserver
+>
+> #YUL #NeoXL #Shorts
+
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Vacances en famille »
+
+> Vacances en famille bientôt ? Neo XL emmène jusqu'à six passagers et leurs valises à l'aéroport :
+>
+> https://neomoov.net/reserver
+
+### P33 · vendredi 23 octobre 2026 · Devenir chauffeur · Nos engagements envers les chauffeurs
+
+- Photo réelle (chauffeur) : Photo réelle d'un chauffeur souriant, appuyé contre son véhicule électrique, dans une rue de Montréal (modèle, licence commerciale, crédit indiqué).
+- Appel à l'action : https://neomoov.net/chauffeurs/#candidature
+
+#### Facebook · 17 h 00 · titre d'image : « Nos engagements envers vous »
+
+> Chauffeurs : nos engagements envers vous.
+>
+> • Votre clientèle vous appartient : vous la retrouvez dans « Mes clients » et vous restez prioritaire sur ses courses.
+> • Vous choisissez vos heures, sans minimum, et vous restez libre de rouler ailleurs.
+> • Refuser une offre n'a aucune conséquence.
+> • Les décisions importantes sont toujours prises par une personne, avec un droit de réponse.
+>
+> Ils sont détaillés dans nos engagements et notre Charte d'équité.
+>
+> https://neomoov.net/chauffeurs/#candidature
+
+#### Instagram · 11 h 00 · titre d'image : « Ce que nous garantissons »
+
+> Nos engagements envers les chauffeurs 🤝
+>
+> Vos clients restent les vôtres. Vos heures, sans minimum. Le droit de refuser une offre, sans conséquence. Des décisions prises par des personnes, avec un droit de réponse.
+>
+> Candidature en deux minutes, lien dans la bio.
+>
+> #Neomoov #ChauffeurMontréal #Chauffeurs #Montréal #CharteDÉquité
+
+#### LinkedIn · 08 h 30 · titre d'image : « La Charte d'équité »
+
+> Ce que Neomoov garantit à ses chauffeurs, par écrit.
+>
+> Une clientèle qui leur appartient, la liberté de choisir leurs heures et de rouler ailleurs, le droit de refuser une offre sans conséquence, et des décisions importantes toujours prises par une personne, motivées par écrit, avec droit de réponse et d'appel. C'est notre Charte d'équité.
+>
+> https://neomoov.net/chauffeurs/#candidature
+>
+> #Chauffeurs #Équité #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Our Charte d'équité »
+
+> What Neomoov guarantees its drivers, in writing: a clientele of their own, freedom to choose their hours and drive elsewhere, the right to decline an offer with no consequences, and important decisions always made by a person, explained in writing, with the right to respond and appeal. That is our Charte d'équité (fairness charter).
+>
+> https://neomoov.net/chauffeurs/#candidature
+>
+> #Chauffeurs #Équité #Montréal
+
+#### X · 09 h 00 · titre d'image : « Vos clients, vos heures »
+
+> Chauffeurs Neomoov : votre clientèle vous appartient, vos heures sans minimum, le droit de refuser sans conséquence, des décisions prises par des personnes.
+>
+> https://neomoov.net/chauffeurs/#candidature
+
+#### X (version anglaise) · 09 h 00 · titre d'image : « Your clients, your hours »
+
+> Neomoov drivers: your clientele is yours, your hours with no minimum, the right to decline with no consequences, decisions made by people.
+>
+> https://neomoov.net/chauffeurs/#candidature
+
+#### TikTok · 18 h 00 · titre d'image : « Ce que Neomoov vous garantit »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Chauffeurs, ce que Neomoov vous garantit :
+2. Vos clients restent les vôtres.
+3. Vos heures, sans minimum.
+4. Refuser une offre, sans conséquence.
+5. Des décisions prises par des personnes.
+
+Légende :
+
+> Nos engagements 🤝 neomoov.net/chauffeurs/#candidature
+>
+> #ChauffeurMontréal #Neomoov #Chauffeurs
+
+#### Snapchat · 19 h 00 · titre d'image : « Des décisions humaines »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Vos clients restent les vôtres.
+2. Vos heures, sans minimum.
+3. Des décisions humaines.
+
+Légende :
+
+> Chauffeurs 🤝 neomoov.net/chauffeurs/#candidature
+>
+> #Chauffeur #MTL
+
+#### Telegram · 17 h 30 · titre d'image : « Chauffeurs, à vous »
+
+> Chauffeurs : votre clientèle vous appartient, vos heures sans minimum, et les décisions importantes sont prises par une personne. Candidature :
+>
+> https://neomoov.net/chauffeurs/#candidature
+
+#### YouTube (Short) · 16 h 00 · titre d'image : « Nos engagements en vidéo »
+
+Titre : Les engagements de Neomoov envers ses chauffeurs
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Chez Neomoov, la clientèle d'un chauffeur lui appartient.
+2. Il choisit ses heures, sans minimum, et reste libre de rouler ailleurs.
+3. Refuser une offre n'a aucune conséquence.
+4. Et les décisions importantes sont prises par une personne, avec un droit de réponse.
+
+Description :
+
+> La Charte d'équité et les engagements de Neomoov envers les chauffeurs de Montréal.
+>
+> https://neomoov.net/chauffeurs/#candidature
+>
+> #ChauffeurMontréal #Neomoov #Shorts
+
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Votre clientèle, à vous »
+
+> Vous êtes chauffeur ? Chez Neomoov, votre clientèle vous appartient et vous choisissez vos heures. Candidature :
+>
+> https://neomoov.net/chauffeurs/#candidature
+
+### P34 · vendredi 23 octobre 2026 · Prix tout compris affiché avant · Deux façons de payer
+
+- Photo réelle (client) : Photo réelle d'un passager qui paie par carte sur un terminal tendu par le chauffeur (modèles, licence commerciale, crédit indiqué).
+- Appel à l'action : https://neomoov.net/reserver
+- Approbation humaine requise : Sujet « argent » (paiement) : approbation humaine prévue par les lignes éditoriales.
+
+#### Facebook · 12 h 00 · titre d'image : « Deux façons de payer »
+
+> Deux façons de payer votre course Neomoov, au choix à la commande :
+>
+> • Prépayer : carte, Apple Pay, Google Pay ou virement Interac.
+> • Payer le chauffeur à la fin de la course : espèces ou terminal, selon les modes qu'il accepte.
+>
+> Dans les deux cas, un reçu et une facture vous sont envoyés par courriel.
+>
+> https://neomoov.net/reserver
+
+#### Instagram · 12 h 00 · titre d'image : « Payez comme vous voulez »
+
+> Payez comme vous voulez 💳
+>
+> Prépayez à la commande ou payez votre chauffeur à la fin de la course. Reçu et facture par courriel, dans tous les cas.
+>
+> Lien dans la bio.
+>
+> #Neomoov #Montréal #MTL #Paiement #Simplicité
+
+#### LinkedIn · 09 h 00 · titre d'image : « Le paiement, sans friction »
+
+> Le paiement, sans friction.
+>
+> Vos collaborateurs prépayent leur course ou paient le chauffeur à la fin du trajet ; chaque course génère un reçu et une facture par courriel, prêts pour la comptabilité. Avec un compte entreprise : une facture certifiée par mois et par centre de coûts.
+>
+> https://neomoov.net/reserver
+>
+> #Comptabilité #Entreprises
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Frictionless payment »
+
+> Payment without friction. Your team can prepay rides or pay the driver at the end of the trip; every ride generates a receipt and an invoice by email, ready for accounting. With a business account: one certified invoice per month and cost centre.
+>
+> https://neomoov.net/reserver
+>
+> #Comptabilité #Entreprises
+
+#### X · 09 h 30 · titre d'image : « Carte ou au chauffeur »
+
+> Prépayez à la commande (carte, Apple Pay, Google Pay, Interac) ou payez le chauffeur à la fin de la course. Reçu et facture par courriel.
+>
+> https://neomoov.net/reserver
+
+#### X (version anglaise) · 09 h 30 · titre d'image : « Card or pay the driver »
+
+> Prepay when booking (card, Apple Pay, Google Pay, Interac) or pay the driver at the end of the ride. Receipt and invoice by email.
+>
+> https://neomoov.net/reserver
+
+#### TikTok · 18 h 30 · titre d'image : « Option un, option deux »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Comment payer votre course Neomoov ?
+2. Option un : vous prépayez à la commande.
+3. Option deux : vous payez le chauffeur à la fin.
+4. Dans les deux cas, reçu et facture par courriel.
+
+Légende :
+
+> Payez comme vous voulez 💳 neomoov.net/reserver
+>
+> #Neomoov #Montréal #Paiement
+
+#### Snapchat · 19 h 30 · titre d'image : « À vous de choisir »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Prépayer en ligne ?
+2. Ou payer à la fin ?
+3. Les deux sont possibles.
+
+Légende :
+
+> À vous de choisir 💳 neomoov.net/reserver
+>
+> #Neomoov #MTL
+
+#### Telegram · 18 h 00 · titre d'image : « Paiement au choix »
+
+> Prépayez à la commande ou payez le chauffeur à la fin de la course. Reçu et facture par courriel.
+>
+> https://neomoov.net/reserver
+
+#### YouTube (Short) · 16 h 30 · titre d'image : « Payer sa course »
+
+Titre : Comment payer une course Neomoov
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Avec Neomoov, vous choisissez votre mode de paiement à la commande.
+2. Prépayez par carte, Apple Pay, Google Pay ou virement Interac.
+3. Ou payez le chauffeur à la fin, en espèces ou par terminal, selon ce qu'il accepte.
+4. Un reçu et une facture vous sont envoyés par courriel.
+
+Description :
+
+> Les deux façons de payer une course Neomoov à Montréal : prépaiement à la commande ou paiement au chauffeur à la fin de la course.
+>
+> https://neomoov.net/reserver
+>
+> #Neomoov #Montréal #Shorts
+
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Payer à la fin »
+
+> Bon à savoir : vous pouvez payer votre course à la commande, ou directement au chauffeur à la fin du trajet.
+>
+> https://neomoov.net/reserver
+
+### P35 · samedi 24 octobre 2026 · Quartiers et saisons de Montréal · Les marchés publics en automne
+
+- Photo réelle (ville) : Photo réelle des étals de courges et de pommes au marché Jean-Talon en automne (médiathèque, crédit indiqué).
+- Appel à l'action : https://neomoov.net/reserver
+
+#### Facebook · 12 h 00 · titre d'image : « Produits d'ici »
+
+> Courges, pommes, produits d'ici : les marchés Jean-Talon et Atwater sont à leur plus beau en automne.
+>
+> Faites-vous déposer, prenez votre temps, et rentrez avec vos sacs sans chercher de stationnement. Aide aux bagages sur demande, à la réservation.
+>
+> https://neomoov.net/reserver
+>
+> #Montréal
+
+#### Instagram · 11 h 00 · titre d'image : « Les marchés d'automne »
+
+> Les marchés d'automne 🍎
+>
+> Jean-Talon, Atwater : faites le plein de produits d'ici et rentrez avec vos sacs, sans chercher de stationnement. Aide aux bagages sur demande.
+>
+> Lien dans la bio.
+>
+> #MarchéJeanTalon #MarchéAtwater #Montréal #MTL #Automne #Neomoov
+
+#### LinkedIn · 08 h 30 · titre d'image : « Faire découvrir la ville »
+
+> Une équipe en visite à Montréal ?
+>
+> Les marchés Jean-Talon et Atwater sont une belle façon de faire découvrir la ville en automne. Réservez leurs trajets à l'avance, facturés sur votre compte entreprise.
+>
+> https://neomoov.net/reserver
+>
+> #Montréal #Tourisme
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Show your team the city »
+
+> Team visiting Montréal? The Jean-Talon and Atwater markets are a great way to discover the city in the fall. Book their rides ahead, billed to your business account.
+>
+> https://neomoov.net/reserver
+>
+> #Montréal #Tourisme
+
+#### X · 09 h 00 · titre d'image : « Jean-Talon ou Atwater ? »
+
+> Jean-Talon ou Atwater cette fin de semaine ? Rentrez avec vos sacs sans chercher de stationnement. Aide aux bagages sur demande.
+>
+> https://neomoov.net/reserver
+>
+> #Montréal
+
+#### X (version anglaise) · 09 h 00 · titre d'image : « Jean-Talon or Atwater? »
+
+> Jean-Talon or Atwater market this weekend? Head home with your bags, no parking to find. Help with luggage on request.
+>
+> https://neomoov.net/reserver
+>
+> #Montreal
+
+#### TikTok · 18 h 00 · titre d'image : « Les marchés de Montréal »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Les marchés de Montréal en automne.
+2. Jean-Talon, Atwater, produits d'ici.
+3. Vos sacs sont pleins ?
+4. Votre retour est réservé, aide aux bagages sur demande.
+
+Légende :
+
+> Retour du marché 🍎 neomoov.net/reserver
+>
+> #MarchéJeanTalon #Montréal #Automne #Neomoov
+
+#### Snapchat · 19 h 00 · titre d'image : « Les sacs pleins ? »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Un tour au marché ?
+2. Les sacs pleins ?
+3. Le retour est réservé.
+
+Légende :
+
+> Les marchés d'automne 🍎 neomoov.net/reserver
+>
+> #Montréal #MTL
+
+#### Telegram · 17 h 30 · titre d'image : « Une sortie au marché »
+
+> Une sortie au marché Jean-Talon ou Atwater ? Réservez votre retour à l'avance, aide aux bagages sur demande.
+>
+> https://neomoov.net/reserver
+
+#### YouTube (Short) · 16 h 00 · titre d'image : « Au marché, sans stationnement »
+
+Titre : Les marchés d'automne à Montréal, sans chercher de stationnement
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Les marchés Jean-Talon et Atwater sont à leur plus beau en automne.
+2. Faites-vous déposer et prenez votre temps.
+3. Rentrez avec vos sacs, sans chercher de stationnement.
+4. Aide aux bagages sur demande, à la réservation.
+
+Description :
+
+> Une sortie aux marchés publics de Montréal en automne : réservez votre aller et votre retour avec Neomoov.
+>
+> https://neomoov.net/reserver
+>
+> #MarchéJeanTalon #Montréal #Shorts
+
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Un tour au marché ? »
+
+> Un tour au marché cette fin de semaine ? Rentrez avec vos sacs sans chercher de stationnement :
+>
+> https://neomoov.net/reserver
+
+### P36 · dimanche 25 octobre 2026 · Conseils de déplacement · Un rendez-vous médical ? Réservez à l'avance
+
+- Photo réelle (client) : Photo réelle d'une personne âgée qui monte à l'arrière d'un véhicule, aidée par le chauffeur (modèles, licence commerciale, crédit indiqué).
+- Appel à l'action : https://neomoov.net/reserver
+
+#### Facebook · 12 h 00 · titre d'image : « Un rendez-vous à venir ? »
+
+> Un rendez-vous médical à venir ? Réservez votre trajet dès que l'heure est fixée, au moins 2 heures à l'avance.
+>
+> Vous accompagnez un parent ? Réservez à son nom : il reçoit le suivi de sa course par texto, et vous êtes rassuré. Aide à l'embarquement et aux bagages sur demande.
+>
+> https://neomoov.net/reserver
+
+#### Instagram · 11 h 00 · titre d'image : « Vos rendez-vous, sans stress »
+
+> Vos rendez-vous, sans stress 📅
+>
+> Réservez dès que l'heure est fixée. Pour un parent, réservez à son nom : il reçoit le suivi par texto. Aide à l'embarquement sur demande.
+>
+> Lien dans la bio.
+>
+> #Neomoov #Montréal #MTL #ProcheAidant #RendezVous
+
+#### LinkedIn · 08 h 30 · titre d'image : « Pour vos patients »
+
+> Cliniques et cabinets médicaux : facilitez l'arrivée de vos patients.
+>
+> Avec un compte entreprise Neomoov, vous réservez pour eux ; ils reçoivent le suivi de leur course par texto, avec une aide à l'embarquement sur demande, et vous recevez une facture mensuelle.
+>
+> https://neomoov.net/reserver
+>
+> #Santé #Entreprises #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « For your patients »
+
+> Clinics and medical offices: make it easier for patients to arrive. With a Neomoov business account, you book for them; they get ride tracking by text, with help boarding on request, and you receive a monthly invoice.
+>
+> https://neomoov.net/reserver
+>
+> #Santé #Entreprises #Montréal
+
+#### X · 09 h 00 · titre d'image : « Réservez dès l'heure fixée »
+
+> Rendez-vous médical à venir ? Réservez dès que l'heure est fixée. Pour un parent, réservez à son nom : il reçoit le suivi par texto.
+>
+> https://neomoov.net/reserver
+
+#### X (version anglaise) · 09 h 00 · titre d'image : « Book once the time is set »
+
+> Medical appointment coming up? Book as soon as the time is set. For a parent, book in their name: they get tracking by text.
+>
+> https://neomoov.net/reserver
+
+#### TikTok · 18 h 00 · titre d'image : « Un rendez-vous cette semaine ? »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Un rendez-vous médical cette semaine ?
+2. Réservez dès que l'heure est fixée.
+3. Pour un parent, réservez à son nom.
+4. Il reçoit le suivi par texto, et vous êtes rassuré.
+
+Légende :
+
+> Vos rendez-vous, sans stress 📅 neomoov.net/reserver
+>
+> #Neomoov #Montréal #ProcheAidant
+
+#### Snapchat · 19 h 00 · titre d'image : « Réservé à l'avance »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Un rendez-vous ?
+2. Réservé à l'avance.
+3. Suivi par texto.
+
+Légende :
+
+> Sans stress 📅 neomoov.net/reserver
+>
+> #Neomoov #MTL
+
+#### Telegram · 17 h 30 · titre d'image : « Pensez au trajet »
+
+> Un rendez-vous médical à venir ? Réservez dès que l'heure est fixée, ou pour un parent, à son nom :
+>
+> https://neomoov.net/reserver
+
+#### YouTube (Short) · 16 h 00 · titre d'image : « Rendez-vous médical »
+
+Titre : Un rendez-vous médical ? Réservez votre trajet à l'avance
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Un rendez-vous médical à venir ?
+2. Réservez votre trajet dès que l'heure est fixée.
+3. Pour un parent, réservez à son nom : il reçoit le suivi par texto.
+4. Aide à l'embarquement et aux bagages, sur demande.
+
+Description :
+
+> Conseils pour vos trajets vers un rendez-vous médical à Montréal avec Neomoov : réserver à l'avance, réserver pour un proche, demander de l'aide à l'embarquement.
+>
+> https://neomoov.net/reserver
+>
+> #Neomoov #Montréal #Shorts
+
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Pour un parent »
+
+> Vous accompagnez un parent à un rendez-vous ? Réservez sa course à son nom : il reçoit le suivi par texto.
+>
+> https://neomoov.net/reserver
+
+### P37 · lundi 26 octobre 2026 · Sécurité et chauffeurs vérifiés · Ce qui est vérifié avant votre course
+
+- Photo réelle (véhicule électrique) : Photo réelle d'un technicien qui inspecte la roue d'un véhicule électrique dans un atelier (modèle, licence commerciale, crédit indiqué).
+- Appel à l'action : https://neomoov.net/reserver
+- Approbation humaine requise : Sujet « sécurité » : approbation humaine obligatoire selon les lignes éditoriales.
+
+#### Facebook · 12 h 00 · titre d'image : « Avant la course »
+
+> Votre sécurité se prépare avant la course.
+>
+> Chaque véhicule Neomoov a cinq ans ou moins et passe une inspection à l'inscription, puis chaque trimestre. Les documents des chauffeurs et des véhicules (permis, assurance, immatriculation, vérification mécanique) sont contrôlés, avec des rappels avant chaque échéance. Et pendant la course, un bouton d'urgence alerte immédiatement notre équipe.
+>
+> https://neomoov.net/reserver
+
+#### Instagram · 11 h 00 · titre d'image : « Inspecté chaque trimestre »
+
+> Inspecté chaque trimestre 🔧
+>
+> Véhicules de cinq ans ou moins, documents contrôlés avant chaque échéance, bouton d'urgence pendant la course : votre tranquillité se prépare en amont.
+>
+> Lien dans la bio.
+>
+> #Neomoov #Montréal #MTL #Tranquillité #VéhiculeÉlectrique
+
+#### LinkedIn · 08 h 30 · titre d'image : « La gestion du risque »
+
+> Gestion du risque dans les déplacements de vos équipes.
+>
+> Chez Neomoov, chaque véhicule a cinq ans ou moins et est inspecté à l'inscription, puis chaque trimestre ; permis, assurance, immatriculation et vérification mécanique sont contrôlés, avec des rappels avant échéance ; pendant la course, un bouton d'urgence alerte immédiatement notre équipe.
+>
+> https://neomoov.net/reserver
+>
+> #Mobilité #Entreprises
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Managing travel risk »
+
+> Managing risk in your team's travel: at Neomoov, every vehicle is five years old or less and inspected at registration, then every quarter; licence, insurance, registration and mechanical inspection are checked, with reminders before they expire; during the ride, an emergency button alerts our team immediately.
+>
+> https://neomoov.net/reserver
+>
+> #Mobilité #Entreprises
+
+#### X · 09 h 00 · titre d'image : « Cinq ans ou moins »
+
+> Véhicules de cinq ans ou moins, inspectés chaque trimestre, documents contrôlés avant chaque échéance, bouton d'urgence pendant la course.
+>
+> https://neomoov.net/reserver
+
+#### X (version anglaise) · 09 h 00 · titre d'image : « Five years old or less »
+
+> Vehicles five years old or less, inspected every quarter, documents checked before they expire, an emergency button during the ride.
+>
+> https://neomoov.net/reserver
+
+#### TikTok · 18 h 00 · titre d'image : « Ce qui se passe avant »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Ce qui se passe avant votre course.
+2. Le véhicule a cinq ans ou moins.
+3. Il est inspecté chaque trimestre.
+4. Les documents sont contrôlés avant chaque échéance.
+5. Et pendant la course, un bouton d'urgence.
+
+Légende :
+
+> Votre tranquillité se prépare 🔧 neomoov.net/reserver
+>
+> #Neomoov #Montréal #VoitureÉlectrique
+
+#### Snapchat · 19 h 00 · titre d'image : « Documents contrôlés »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Inspecté chaque trimestre.
+2. Documents contrôlés.
+3. Bouton d'urgence.
+
+Légende :
+
+> Avant votre course 🔧 neomoov.net/reserver
+>
+> #Neomoov #MTL
+
+#### Telegram · 17 h 30 · titre d'image : « Véhicules inspectés »
+
+> Chaque véhicule Neomoov a cinq ans ou moins et est inspecté chaque trimestre. Pendant la course, un bouton d'urgence alerte notre équipe.
+>
+> https://neomoov.net/reserver
+
+#### YouTube (Short) · 16 h 00 · titre d'image : « Nos vérifications du véhicule »
+
+Titre : Ce que Neomoov vérifie avant votre course
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Chaque véhicule Neomoov a cinq ans ou moins.
+2. Il est inspecté à l'inscription, puis chaque trimestre.
+3. Permis, assurance, immatriculation et vérification mécanique sont contrôlés.
+4. Et pendant la course, un bouton d'urgence alerte immédiatement notre équipe.
+
+Description :
+
+> Les vérifications des véhicules et des documents avant chaque course Neomoov, et le bouton d'urgence pendant le trajet.
+>
+> https://neomoov.net/reserver
+>
+> #Neomoov #Montréal #Shorts
+
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Tranquillité d'esprit »
+
+> Votre tranquillité compte : véhicules inspectés chaque trimestre, documents contrôlés, bouton d'urgence pendant la course.
+>
+> https://neomoov.net/reserver
+
+### P38 · lundi 26 octobre 2026 · Neomoov Academy et Chauffeur Pro · Le kit du bon chauffeur (module 4)
+
+- Photo réelle (chauffeur) : Photo réelle d'un chauffeur qui range une trousse d'accueil (eau, chargeurs) dans le coffre de son véhicule (modèle, licence commerciale, crédit indiqué).
+- Appel à l'action : https://neomoov.net/academy
+
+#### Facebook · 17 h 00 · titre d'image : « L'expérience client »
+
+> Chauffeurs : l'expérience client commence avant la première parole.
+>
+> Dans Neomoov Chauffeur Pro, le module « L'expérience client et le kit du bon chauffeur » vous aide à préparer votre véhicule et votre accueil, avec une fiche pratique au principe simple : utile avant luxueux.
+>
+> Formation complémentaire en ligne : sept modules, quiz et attestation de suivi.
+>
+> https://neomoov.net/academy
+>
+> #NeomoovAcademy
+
+#### Instagram · 12 h 00 · titre d'image : « Le kit du bon chauffeur »
+
+> Le kit du bon chauffeur 🎓
+>
+> Utile avant luxueux : c'est le principe de la fiche pratique du module 4 de Neomoov Chauffeur Pro. Préparez votre véhicule et votre accueil, à votre rythme.
+>
+> Lien dans la bio.
+>
+> #NeomoovAcademy #ChauffeurPro #Taxi #VTC #ExpérienceClient
+
+#### LinkedIn · 09 h 00 · titre d'image : « L'accueil se prépare »
+
+> Formation des chauffeurs : l'expérience client se prépare.
+>
+> Le module 4 de Neomoov Chauffeur Pro, « L'expérience client et le kit du bon chauffeur », aborde l'accueil, la préparation du véhicule et l'équipement utile, avec une fiche pratique au principe simple : utile avant luxueux.
+>
+> https://neomoov.net/academy
+>
+> #Formation #NeomoovAcademy #ServiceClient
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Welcoming takes preparation »
+
+> Driver training: customer experience takes preparation. Module 4 of Neomoov Chauffeur Pro, on customer experience and the good driver's kit, covers welcoming passengers, preparing the vehicle and useful equipment, with a practical sheet built on a simple rule: useful before luxurious.
+>
+> https://neomoov.net/academy
+>
+> #Formation #NeomoovAcademy #ServiceClient
+
+#### X · 09 h 30 · titre d'image : « Module 4 »
+
+> Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Le principe de la fiche pratique : utile avant luxueux.
+>
+> https://neomoov.net/academy
+>
+> #NeomoovAcademy
+
+#### X (version anglaise) · 09 h 30 · titre d'image : « The good driver's kit »
+
+> Neomoov Chauffeur Pro, module 4: customer experience and the good driver's kit. The rule of the practical sheet: useful before luxurious.
+>
+> https://neomoov.net/academy
+>
+> #NeomoovAcademy
+
+#### TikTok · 18 h 30 · titre d'image : « Votre kit est prêt ? »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Chauffeurs, votre kit d'accueil est prêt ?
+2. Le module 4 de Neomoov Chauffeur Pro en parle.
+3. L'expérience client et le kit du bon chauffeur.
+4. Le principe : utile avant luxueux.
+
+Légende :
+
+> Préparez votre accueil 🎓 neomoov.net/academy
+>
+> #NeomoovAcademy #ChauffeurPro #Taxi #VTC
+
+#### Snapchat · 19 h 30 · titre d'image : « Utile avant luxueux »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Votre kit d'accueil ?
+2. Utile avant luxueux.
+3. Module 4, Chauffeur Pro.
+
+Légende :
+
+> Neomoov Academy 🎓 neomoov.net/academy
+>
+> #NeomoovAcademy #Formation
+
+#### Telegram · 18 h 00 · titre d'image : « Chauffeur Pro, module 4 »
+
+> Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Utile avant luxueux.
+>
+> https://neomoov.net/academy
+
+#### YouTube (Short) · 16 h 30 · titre d'image : « Le kit en vidéo »
+
+Titre : Le kit du bon chauffeur : utile avant luxueux
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Dans Neomoov Chauffeur Pro, le module 4 porte sur l'expérience client.
+2. Il aborde l'accueil et la préparation du véhicule.
+3. Sa fiche pratique a un principe simple : utile avant luxueux.
+4. Une formation complémentaire en ligne, à votre rythme.
+
+Description :
+
+> Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Formation pratique complémentaire pour les chauffeurs de taxi et de VTC, par Neomoov Academy.
+>
+> https://neomoov.net/academy
+>
+> #NeomoovAcademy #ChauffeurPro #Shorts
+
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Préparez votre accueil »
+
+> Chauffeurs : préparez votre accueil avec le module 4 de Neomoov Chauffeur Pro, l'expérience client et le kit du bon chauffeur :
+>
+> https://neomoov.net/academy
+
+### P39 · mardi 27 octobre 2026 · Entreprises et comptes d'affaires · Compte entreprise Neomoov : simplifier les déplacements de votre organisation
+
+- Photo réelle (client) : Photo réelle d'une équipe en réunion dans une salle de conférence lumineuse du centre-ville (modèles, licence commerciale, crédit indiqué).
+- Appel à l'action : https://neomoov.net/reserver
+
+#### Blogue neomoov.net · 10 h 00 · titre d'image : « Le compte entreprise »
+
+**Compte entreprise Neomoov : simplifier les déplacements de votre organisation** (624 mots)
+
+Extrait : Centres de coûts, facture mensuelle, réservation pour vos clients et invités, prix connu d'avance : le compte entreprise Neomoov expliqué.
+
+> Rendez-vous clients, visiteurs à accueillir, collaborateurs en déplacement, patients à raccompagner : dans beaucoup d'organisations, les trajets se multiplient et leur suivi devient vite une tâche à part entière. Le compte entreprise Neomoov a été pensé pour simplifier tout cela. Voici comment il fonctionne.
+>
+> ## Un compte pour toute votre organisation
+>
+> Le compte entreprise regroupe les déplacements de vos équipes, de vos clients et de vos invités. Vous organisez vos dépenses par centres de coûts : un service, un projet, un établissement. Chaque course est rattachée au bon centre, et vous savez où va votre budget de déplacement.
+>
+> ## Une facture par mois, et des reçus pour chaque course
+>
+> Fini la collecte de reçus éparpillés. Avec le compte entreprise, vous recevez une facture certifiée par mois et par centre de coûts. Chaque course génère aussi un reçu automatique, envoyé par courriel, prêt pour la comptabilité.
+>
+> ## Réserver pour un client, un patient ou un invité
+>
+> La personne qui voyage n'a pas besoin de compte. Vous indiquez son nom et son numéro de téléphone : elle reçoit par texto le suivi de sa course, puis l'approche et l'arrivée du chauffeur, avec le modèle et la plaque du véhicule. Vous, vous recevez le reçu.
+>
+> C'est particulièrement utile pour :
+>
+> - les cliniques et les cabinets médicaux, qui raccompagnent leurs patients ;
+> - les hôtels et les conciergeries, qui organisent les déplacements de leurs clients ;
+> - les cabinets professionnels, qui accueillent des clients et des partenaires ;
+> - les organisateurs d'événements, qui transportent conférenciers et invités.
+>
+> Un hôtel ou une clinique peut aussi afficher notre code QR à l'accueil : la course réservée peut alors être rattachée à son compte.
+>
+> ## Des courses planifiées, un chauffeur confirmé la veille
+>
+> Les courses se réservent au moins 2 heures à l'avance et jusqu'à 90 jours. Pour une réunion importante, un congrès ou une série de rendez-vous, vous planifiez vos courses à l'avance, et le chauffeur est confirmé la veille.
+>
+> ## Un prix connu d'avance, sans majoration
+>
+> Le prix de chaque course est calculé avant la réservation, avec le trafic prévu à l'heure du départ, et affiché tout compris : tarif du chauffeur, frais de service, péages, redevance et taxes. Il ne change plus une fois confirmé et ne dépend pas de la demande du moment. Vos budgets de déplacement deviennent prévisibles.
+>
+> ## Des véhicules électriques et des chauffeurs identifiés
+>
+> Tous nos véhicules sont 100 % électriques, récents et inspectés chaque trimestre. Vos invités voyagent avec des chauffeurs identifiés et vérifiés : permis, antécédents, assurance et formation contrôlés avant leur première course. Pour un client important, la catégorie Neo Prestige offre un intérieur cuir, le silence à bord et un chauffeur en tenue soignée. Pour une équipe, Neo XL accueille jusqu'à six passagers.
+>
+> Choisir des véhicules électriques, c'est aussi aligner vos déplacements sur vos engagements de mobilité durable.
+>
+> ## Le confort de vos invités
+>
+> Dans chaque véhicule : eau, chargeurs, Wi-Fi et parapluie à disposition. À la réservation, vous pouvez préciser la langue du chauffeur, une ambiance silencieuse, l'aide aux bagages ou toute demande spéciale. Notre service est bilingue, en français et en anglais.
+>
+> ## Pour vos événements
+>
+> Vous organisez un congrès, un gala ou une réception ? Planifiez les arrivées et les départs de vos invités jusqu'à 90 jours à l'avance, dans la catégorie qui convient à chacun. Les conférenciers reçoivent le suivi de leur course par texto, et toutes les courses de l'événement peuvent être regroupées sous un même centre de coûts.
+>
+> ## Comment ouvrir un compte
+>
+> Faites votre demande sur la page Entreprises de neomoov.net, en indiquant vos besoins et votre volume de courses estimé. Nous vous envoyons une proposition sous deux jours ouvrables. Vous pouvez aussi nous écrire par WhatsApp au +1 438 900 4990, ou nous appeler au +1 438 900 4990 ou au +1 438 805-7974.
+>
+> En attendant, vous pouvez réserver vos premières courses dès maintenant, sans compte : https://neomoov.net/reserver
+
+#### Facebook · 12 h 00 · titre d'image : « Simplifiez vos trajets »
+
+> Votre organisation multiplie les trajets ?
+>
+> Le compte entreprise Neomoov simplifie tout : centres de coûts, une facture certifiée par mois, des reçus automatiques, la réservation pour vos clients et invités, et des courses planifiées jusqu'à 90 jours à l'avance.
+>
+> Demande sur la page Entreprises de neomoov.net : proposition sous deux jours ouvrables.
+>
+> https://neomoov.net/reserver
+>
+> #Entreprises
+
+#### Instagram · 12 h 00 · titre d'image : « Le compte entreprise, en bref »
+
+> Le compte entreprise, en bref 💼
+>
+> Centres de coûts, une facture par mois, des reçus automatiques et des réservations pour vos invités, en véhicules 100 % électriques.
+>
+> Demande sur la page Entreprises de neomoov.net.
+>
+> #Neomoov #Entreprises #Montréal #MTL #MobilitéDurable
+
+#### LinkedIn · 08 h 30 · titre d'image : « Simplifier vos déplacements »
+
+> Simplifier les déplacements de votre organisation.
+>
+> Centres de coûts, facture certifiée mensuelle, reçus automatiques, réservation pour clients, patients et invités, courses planifiées jusqu'à 90 jours à l'avance, prix connu d'avance et sans majoration, flotte 100 % électrique.
+>
+> Demandez votre proposition sur la page Entreprises de neomoov.net : réponse sous deux jours ouvrables.
+>
+> https://neomoov.net/reserver
+>
+> #Entreprises #MobilitéDurable #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Simplify your travel »
+
+> Simplify your organization's travel. Cost centres, a certified monthly invoice, automatic receipts, bookings for clients, patients and guests, rides scheduled up to 90 days ahead, prices known upfront with no surcharge, and a 100% electric fleet. Request your proposal on the Entreprises page at neomoov.net; we reply within two business days.
+>
+> https://neomoov.net/reserver
+>
+> #Entreprises #MobilitéDurable #Montréal
+
+#### X · 09 h 00 · titre d'image : « Pour les organisations »
+
+> Compte entreprise Neomoov : centres de coûts, facture mensuelle, reçus automatiques, prix connu d'avance, flotte 100 % électrique. Proposition sous deux jours ouvrables.
+>
+> https://neomoov.net/reserver
+
+#### X (version anglaise) · 09 h 00 · titre d'image : « For organizations »
+
+> Neomoov business accounts: cost centres, monthly invoicing, automatic receipts, prices known upfront, a 100% electric fleet. Proposal within two business days.
+>
+> https://neomoov.net/reserver
+
+#### TikTok · 18 h 00 · titre d'image : « Les trajets de votre organisation »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Vous gérez les trajets de votre organisation ?
+2. Des centres de coûts et une facture par mois.
+3. Des reçus automatiques pour chaque course.
+4. Des réservations pour vos clients et vos invités.
+5. Et une flotte 100 % électrique.
+
+Légende :
+
+> Le compte entreprise 💼 page Entreprises de neomoov.net
+>
+> #Entreprises #Montréal #Neomoov
+
+#### Snapchat · 19 h 00 · titre d'image : « Une flotte électrique »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Votre organisation ?
+2. Une facture par mois.
+3. Une flotte électrique.
+
+Légende :
+
+> Compte entreprise 💼 neomoov.net
+>
+> #Neomoov #MTL
+
+#### Telegram · 17 h 30 · titre d'image : « Entreprises, en bref »
+
+> Compte entreprise : centres de coûts, facture mensuelle, reçus automatiques et réservations pour vos invités. Demande sur la page Entreprises de neomoov.net.
+>
+> https://neomoov.net/reserver
+
+#### YouTube (Short) · 16 h 00 · titre d'image : « Le compte expliqué »
+
+Titre : Le compte entreprise Neomoov expliqué
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Le compte entreprise Neomoov regroupe les trajets de votre organisation.
+2. Vous recevez une facture certifiée par mois et par centre de coûts.
+3. Vous réservez pour vos clients, vos patients et vos invités.
+4. Et chaque course se fait en véhicule 100 % électrique.
+
+Description :
+
+> Le compte entreprise Neomoov à Montréal : centres de coûts, facture mensuelle, reçus automatiques, réservation pour un tiers, flotte électrique. Demande sur la page Entreprises de neomoov.net.
+>
+> https://neomoov.net/reserver
+>
+> #Entreprises #Montréal #Shorts
+
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Une facture mensuelle »
+
+> Votre entreprise multiplie les trajets ? Le compte entreprise Neomoov les regroupe sur une facture mensuelle. Demande sur la page Entreprises de neomoov.net.
+>
+> https://neomoov.net/reserver
+
+### P40 · mardi 27 octobre 2026 · Service aéroport Montréal-Trudeau · Un vol tôt le matin
+
+- Photo réelle (aéroport) : Photo réelle de l'aéroport Montréal-Trudeau à l'aube, vu de l'extérieur (médiathèque, crédit indiqué).
+- Appel à l'action : https://neomoov.net/reserver
+
+#### Facebook · 17 h 00 · titre d'image : « Un vol tôt le matin ? »
+
+> Un vol tôt le matin ?
+>
+> Réservez votre transfert vers Montréal-Trudeau dès que votre vol est réservé. La veille, vous recevez par texto le nom de votre chauffeur, son véhicule et sa plaque. Le matin venu, un texto vous prévient quand il est en route. Vous n'avez plus qu'à fermer la porte.
+>
+> https://neomoov.net/reserver
+>
+> #YUL
+
+#### Instagram · 11 h 00 · titre d'image : « Dormez tranquille »
+
+> Vol à l'aube ? Dormez tranquille 🌅
+>
+> Votre chauffeur est confirmé la veille, et un texto vous prévient quand il est en route. Réservez dès que votre vol est réservé.
+>
+> Lien dans la bio.
+>
+> #YUL #AéroportMontréal #Voyage #Neomoov #Montréal
+
+#### LinkedIn · 09 h 00 · titre d'image : « Premier vol du matin »
+
+> Premier vol du matin pour un rendez-vous à l'extérieur ?
+>
+> Réservez le transfert vers Montréal-Trudeau en même temps que le billet : le chauffeur est confirmé la veille, un texto signale son départ, et la facture certifiée arrive par courriel.
+>
+> https://neomoov.net/reserver
+>
+> #YUL #VoyageDAffaires
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « First flight of the day »
+
+> First flight out for a meeting elsewhere? Book the transfer to Montréal-Trudeau along with the ticket: the driver is confirmed the day before, a text tells you when they're on the way, and the certified invoice arrives by email.
+>
+> https://neomoov.net/reserver
+>
+> #YUL #VoyageDAffaires
+
+#### X · 09 h 30 · titre d'image : « Départ à l'aube »
+
+> Vol tôt le matin ? Votre chauffeur est confirmé la veille, et un texto vous prévient quand il est en route. Réservez dès que votre vol est réservé.
+>
+> https://neomoov.net/reserver
+>
+> #YUL
+
+#### X (version anglaise) · 09 h 30 · titre d'image : « Dawn departure »
+
+> Early-morning flight? Your driver is confirmed the night before, and a text tells you when they're on the way. Book as soon as your flight is booked.
+>
+> https://neomoov.net/reserver
+>
+> #YUL
+
+#### TikTok · 18 h 30 · titre d'image : « Vol à six heures ? »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Vol à six heures du matin ?
+2. Votre chauffeur est confirmé la veille.
+3. Un texto vous prévient quand il est en route.
+4. Vous n'avez plus qu'à fermer la porte.
+
+Légende :
+
+> Dormez tranquille 🌅 neomoov.net/reserver
+>
+> #YUL #Voyage #Montréal #Neomoov
+
+#### Snapchat · 19 h 30 · titre d'image : « Départ matinal »
+
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Vol à l'aube ?
+2. Chauffeur confirmé la veille.
+3. Dormez tranquille.
+
+Légende :
+
+> Départ matinal 🌅 neomoov.net/reserver
+>
+> #YUL #MTL
+
+#### Telegram · 18 h 00 · titre d'image : « Transfert matinal »
+
+> Vol tôt le matin ? Votre chauffeur est confirmé la veille, et un texto vous prévient quand il est en route.
+>
+> https://neomoov.net/reserver
+
+#### YouTube (Short) · 16 h 30 · titre d'image : « Prêt dès la veille »
+
+Titre : Un vol tôt le matin ? Votre transfert est prêt la veille
+
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
+
+1. Vous prenez un vol tôt le matin à Montréal-Trudeau ?
+2. Réservez votre transfert dès que votre vol est réservé.
+3. La veille, vous recevez le nom du chauffeur, le véhicule et la plaque.
+4. Le matin, un texto vous prévient quand il est en route.
+
+Description :
+
+> Départ matinal de l'aéroport Montréal-Trudeau : comment Neomoov confirme votre chauffeur la veille.
+>
+> https://neomoov.net/reserver
+>
+> #YUL #Montréal #Shorts
+
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Réservez dès maintenant »
+
+> Un vol tôt le matin ? Réservez votre transfert dès maintenant : chauffeur confirmé la veille, texto quand il est en route.
 >
 > https://neomoov.net/reserver
