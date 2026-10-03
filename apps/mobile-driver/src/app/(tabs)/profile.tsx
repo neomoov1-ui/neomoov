@@ -11,11 +11,9 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { api, errorMessage } from '@/lib/api';
 import { changeStatus } from '@/lib/presence';
 import { usePreferences } from '@/lib/preferences';
-import { unregisterPush } from '@/lib/push';
 import { keys, queryClient, useAppConfig, useConsents, useHome, useProfile, useVehicles } from '@/lib/queries';
-import { disconnectRealtime } from '@/lib/realtime';
 import { useSession } from '@/lib/session';
-import { stopLocationUpdates } from '@/lib/location';
+import { endSession } from '@/lib/session-end';
 
 const LINKS: Array<{ key: 'booster' | 'pilot' | 'costs' | 'packs' | 'loyal' | 'score' | 'sanctions' | 'training' | 'payout' | 'onboarding' | 'support'; href: Href; icon: keyof typeof Ionicons.glyphMap }> = [
   { key: 'booster', href: '/booster', icon: 'rocket-outline' },
@@ -120,28 +118,20 @@ export default function ProfileScreen() {
       setSheet(null);
     });
 
-  const signOut = async () => {
-    await stopLocationUpdates();
-    disconnectRealtime();
-    queryClient.clear();
-    await useSession.getState().signOut();
-    router.replace('/');
-  };
-
+  // Sortie par la routine unique (revue du 2 octobre 2026, constat mobile 2) : hors ligne, notifications, session révoquée,
+  // socket, cache et session effacés.
   const logout = () =>
     run(async () => {
-      const refreshToken = useSession.getState().refreshToken;
-      if (home.data?.presence.status !== 'offline') await changeStatus('offline').catch(() => undefined);
-      await unregisterPush();
-      await api.auth.logout(refreshToken ? { refreshToken } : {}).catch(() => undefined);
-      await signOut();
+      await endSession('logout');
+      router.replace('/');
     });
 
   const deleteAccount = () =>
     run(async () => {
       await changeStatus('offline').catch(() => undefined);
       await api.me.remove();
-      await signOut();
+      await endSession('deleted');
+      router.replace('/');
     });
 
   return (

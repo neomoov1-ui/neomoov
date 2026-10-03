@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { describeBlocker } from '../src/features/home/blockers';
-import { clock, endOfRidePending, isActive, navigationTarget, nextAction, noShowStatus, secondsLeft, waitedSeconds } from '../src/features/ride/steps';
+import { clock, endOfRidePending, isActive, navigationTarget, nextAction, noShowStatus, offerDeadline, secondsLeft, secondsUntil, waitedSeconds } from '../src/features/ride/steps';
 import { navigationLinks, openNavigation } from '../src/lib/navigation';
 
 const NOW = Date.parse('2026-09-26T12:00:00Z');
@@ -25,6 +25,21 @@ describe('déroulé de la course', () => {
     expect(waitedSeconds(undefined, NOW)).toBe(0);
     expect(clock(270)).toBe('4:30');
     expect(clock(-5)).toBe('0:00');
+  });
+
+  it('offre : compte à rebours juste malgré une horloge du téléphone décalée (constat mobile 1)', () => {
+    const offer = { sentAt: '2026-09-26T12:00:00Z', expiresAt: '2026-09-26T12:00:15Z' };
+    // Téléphone en avance de 15 s : l'écart mesuré (-15 s) ramène l'échéance à son horloge, l'offre garde ses 15 s.
+    const phoneAhead = NOW + 15_000;
+    expect(secondsUntil(offerDeadline(offer, { offsetMs: -15_000, receivedAt: phoneAhead }), phoneAhead)).toBe(15);
+    // Téléphone en retard de 20 s : pas de compte à rebours allongé (l'acceptation finirait en OFFER_EXPIRED).
+    const phoneBehind = NOW - 20_000;
+    expect(secondsUntil(offerDeadline(offer, { offsetMs: 20_000, receivedAt: phoneBehind }), phoneBehind + 10_000)).toBe(5);
+    // Avant toute mesure : durée de l'offre comptée depuis sa réception, quelle que soit l'horloge.
+    expect(secondsUntil(offerDeadline(offer, { offsetMs: null, receivedAt: phoneAhead }), phoneAhead + 3_000)).toBe(12);
+    // Ni mesure ni réception connue : la fin de l'offre telle quelle.
+    expect(offerDeadline(offer, { offsetMs: null, receivedAt: null })).toBe(Date.parse(offer.expiresAt));
+    expect(secondsUntil(NOW - 1, NOW)).toBe(0);
   });
 
   it('non-présentation : attente minimale et tentatives de contact', () => {

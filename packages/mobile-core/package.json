@@ -48,6 +48,8 @@
     "./phone": "./src/phone.ts",
     "./storage": "./src/storage.ts",
     "./session": "./src/session.ts",
+    "./session-end": "./src/session-end.ts",
+    "./server-clock": "./src/server-clock.ts",
     "./support-chat": "./src/support-chat.tsx",
     "./observability": "./src/observability.ts",
     "./sentry": "./src/sentry.ts"

@@ -10,7 +10,8 @@ import { keys, queryClient, refreshDriver, usePilotDecisions } from '@/lib/queri
 
 /**
  * Bandeau « Acceptée par Pilote » (étape 24) sur une course attribuée : compte à rebours du délai de grâce et annulation
- * sans frais, sans pénalité ; après le délai, le bandeau disparaît et l'annulation ordinaire s'applique.
+ * sans frais, sans pénalité ; après le délai, le bandeau disparaît et l'annulation ordinaire s'applique. `now` est l'heure
+ * de l'API vue du téléphone (`serverNow`), pas l'horloge brute du téléphone (revue du 2 octobre 2026, constat mobile 1).
  */
 export function GraceBanner({ rideId, state, now }: { rideId: string; state: string; now: number }) {
   const { t } = useTranslation();

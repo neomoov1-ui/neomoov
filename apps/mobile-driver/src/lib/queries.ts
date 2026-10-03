@@ -2,6 +2,7 @@ import { ApiError } from '@neomoov/api-client';
 import type { EarningsQuery, InspectionListQuery, PerformanceListQuery, PerformancePeriod } from '@neomoov/domain';
 import { MutationCache, QueryCache, QueryClient, useQuery } from '@tanstack/react-query';
 import { api } from './api';
+import { noteOffers } from './clock';
 import { POLL_DATA_SAVER_MS, POLL_FALLBACK_MS } from './config';
 import { reportMobileError } from './observability';
 import { usePreferences } from './preferences';
@@ -179,10 +180,19 @@ function useFallbackInterval(wanted: boolean): number | false {
   return saver ? POLL_DATA_SAVER_MS : POLL_FALLBACK_MS;
 }
 
-/** Offres en attente : poussées par le socket, relues ici au retour au premier plan et en repli. */
+/** Offres en attente : poussées par le socket, relues ici au retour au premier plan et en repli (heure de réception notée). */
 export function useOffers(poll: boolean) {
   const interval = useFallbackInterval(poll);
-  return useQuery({ queryKey: keys.offers, queryFn: () => api.driver.offers(), enabled: useDriverReady(), refetchInterval: interval });
+  return useQuery({
+    queryKey: keys.offers,
+    queryFn: async () => {
+      const offers = await api.driver.offers();
+      noteOffers(offers, true);
+      return offers;
+    },
+    enabled: useDriverReady(),
+    refetchInterval: interval,
+  });
 }
 
 /** Fiche de course ; rafraîchie par HTTP quand le socket est indisponible (7.3), plus lentement en économie de données. */
