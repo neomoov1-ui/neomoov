@@ -172,7 +172,9 @@ describe('module Flotte : parcours gestionnaire, chauffeur, versement (intégrat
     const maintenance = await post(`/v1/org/${A.id}/vehicles/${vehicleId}/maintenance`, ownerA.tokens, { kind: 'tires', performedOn: localToday(), odometerKm: 12_500, costCents: 64_000, nextDueOn: '2027-04-01' });
     expect(maintenance.status, JSON.stringify(maintenance.body)).toBe(201);
     expect(maintenance.body.due).toEqual([{ kind: 'tires', dueOn: '2027-04-01', dueKm: null, status: 'ok' }]);
-    expect(maintenance.body.aiSuggestion).toBeNull();
+    // Finalisation du 3 octobre 2026 : suggestion d'entretien par règles déterministes (aucune inspection ni contrôle des freins enregistrés).
+    expect(maintenance.body.aiSuggestion).toContain('Aucune inspection enregistrée');
+    expect(maintenance.body.aiSuggestion).not.toContain('Pneus : vérifiez');
 
     // 4. Règle de partage de A : 20 % du tarif chauffeur.
     const rule = await post(`/v1/org/${A.id}/revenue-share-rules`, ownerA.tokens, { mode: 'percentage', percentagePpm: 200_000, effectiveFrom: '2026-01-01' });
