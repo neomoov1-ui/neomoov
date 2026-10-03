@@ -4529,6 +4529,1135 @@
       "day": 22,
       "sensitive": false,
       "notes": "Thème : Service aéroport Montréal-Trudeau. Date proposée : mardi 27 octobre 2026.\n\nPhoto réelle (aéroport) : Photo réelle de l'aéroport Montréal-Trudeau à l'aube, vu de l'extérieur (médiathèque, crédit indiqué)."
+    },
+    {
+      "ref": "P41",
+      "pillar": "electrique",
+      "audience": "clients",
+      "title": "Pourquoi une flotte 100 % électrique",
+      "body": "Pourquoi Neomoov a-t-il choisi une flotte 100 % électrique ?\n\nParce que le transport de personnes peut être respectueux de la ville sans renoncer au confort. Nos véhicules sont récents, sans émission et silencieux. Chaque trajet Neomoov est une façon simple de vous déplacer autrement à Montréal.",
+      "short": "Une flotte 100 % électrique, des véhicules récents et sans émission : le transport de personnes peut respecter la ville sans renoncer au confort.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#MobilitéDurable"
+          ],
+          "imageText": "Pourquoi 100 % électrique ?"
+        },
+        "instagram": {
+          "body": "Respectueux de la ville, sans renoncer au confort 🌿\n\nRécents, sans émission, silencieux : nos véhicules sont 100 % électriques, toutes catégories confondues.\n\nLien dans la bio.",
+          "hashtags": [
+            "#VoitureÉlectrique",
+            "#MobilitéDurable",
+            "#Montréal",
+            "#MTL",
+            "#Neomoov",
+            "#Électrique"
+          ],
+          "imageText": "Respectueux de la ville"
+        },
+        "linkedin": {
+          "body": "Mobilité durable : passer à l'acte dans vos déplacements.\n\nChoisir Neomoov pour les trajets de vos équipes et de vos invités, c'est rouler en véhicules 100 % électriques récents, sans émission, sans renoncer au confort ni à la ponctualité. Un geste concret, intégré à votre compte entreprise.",
+          "hashtags": [
+            "#MobilitéDurable",
+            "#Entreprises",
+            "#Montréal"
+          ],
+          "imageText": "Passer à l'acte",
+          "en": {
+            "title": "Putting it into practice",
+            "body": "Sustainable mobility: putting it into practice in your travel. Choosing Neomoov for your team and guests means riding in recent 100% electric, zero-emission vehicles, without giving up comfort or punctuality. A concrete step, built into your business account."
+          }
+        },
+        "x": {
+          "body": "Une flotte 100 % électrique, des véhicules récents et sans émission : le transport de personnes peut respecter la ville sans renoncer au confort.",
+          "hashtags": [
+            "#MobilitéDurable"
+          ],
+          "imageText": "Sans émission",
+          "en": {
+            "title": "Zero emissions",
+            "body": "A 100% electric fleet of recent, zero-emission vehicles: passenger transportation can respect the city without giving up comfort.",
+            "hashtags": [
+              "#EV"
+            ]
+          }
+        },
+        "tiktok": {
+          "body": "Pourquoi tout électrique ?\nPour respecter la ville.\nSans renoncer au confort.\nDes véhicules récents, sans émission et silencieux.",
+          "caption": "100 % électrique 🌿 neomoov.net/reserver",
+          "hashtags": [
+            "#VoitureÉlectrique",
+            "#MobilitéDurable",
+            "#Montréal",
+            "#Neomoov"
+          ],
+          "imageText": "Pourquoi tout électrique ?"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Pourquoi électrique ?\nPour la ville.\nEt pour votre confort.",
+          "caption": "Notre choix 🌿 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Notre choix"
+        },
+        "telegram": {
+          "body": "Pourquoi une flotte 100 % électrique ? Pour un transport de personnes respectueux de la ville, sans renoncer au confort.",
+          "hashtags": [],
+          "imageText": "Une flotte sans émission"
+        },
+        "youtube": {
+          "title": "Pourquoi Neomoov roule 100 % électrique",
+          "body": "Chez Neomoov, toute la flotte est électrique.\nDes véhicules récents, sans émission et silencieux.\nUn transport de personnes plus respectueux de la ville.\nSans renoncer au confort.",
+          "caption": "Le choix d'une flotte 100 % électrique pour le transport de personnes à Montréal.",
+          "hashtags": [
+            "#VoitureÉlectrique",
+            "#MobilitéDurable",
+            "#Shorts"
+          ],
+          "imageText": "Le choix de l'électrique"
+        },
+        "whatsapp_channel": {
+          "body": "Chaque course Neomoov se fait en véhicule 100 % électrique, récent et silencieux. Réservez la vôtre :",
+          "hashtags": [],
+          "imageText": "Votre course, en électrique"
+        }
+      },
+      "photoHints": [
+        "véhicule",
+        "électrique",
+        "recharge"
+      ],
+      "day": 23,
+      "sensitive": false,
+      "notes": "Thème : Véhicules 100 % électriques. Date proposée : mercredi 28 octobre 2026.\n\nPhoto réelle (véhicule électrique) : Photo réelle d'un véhicule électrique en recharge, gros plan sur le connecteur branché (médiathèque, crédit indiqué)."
+    },
+    {
+      "ref": "P42",
+      "pillar": "service",
+      "audience": "clients",
+      "title": "Réserver par WhatsApp, sans compte",
+      "body": "Réservez par WhatsApp, sans compte.\n\nÉcrivez-nous au +1 438 900 4990 avec votre adresse de départ, votre destination, l'heure souhaitée et la catégorie. Un opérateur vous confirme le prix et le chauffeur. Au moins 2 heures à l'avance, jusqu'à 90 jours.",
+      "short": "Réservez par WhatsApp au +1 438 900 4990 : départ, destination, heure, catégorie. Un opérateur vous confirme le prix et le chauffeur.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Réservez par WhatsApp"
+        },
+        "instagram": {
+          "body": "Réserver par message 💬\n\nÉcrivez-nous sur WhatsApp au +1 438 900 4990 : départ, destination, heure, catégorie. Un opérateur vous confirme le prix et le chauffeur.\n\nAu moins 2 heures à l'avance.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#MTL",
+            "#Réservation",
+            "#Simple"
+          ],
+          "imageText": "Réserver par message"
+        },
+        "linkedin": {
+          "body": "Vos assistants préfèrent écrire plutôt qu'appeler ?\n\nLes courses Neomoov se réservent aussi par WhatsApp, au +1 438 900 4990, sans compte : départ, destination, heure et catégorie, puis un opérateur confirme le prix et le chauffeur.",
+          "hashtags": [
+            "#Montréal",
+            "#Mobilité"
+          ],
+          "imageText": "Pour vos assistants",
+          "en": {
+            "title": "For your assistants",
+            "body": "Your assistants prefer texting to calling? Neomoov rides can also be booked on WhatsApp at +1 438 900 4990, no account needed: pickup, destination, time and category, then an operator confirms the price and the driver."
+          }
+        },
+        "x": {
+          "body": "Réservez par WhatsApp au +1 438 900 4990 : départ, destination, heure, catégorie. Un opérateur vous confirme le prix et le chauffeur.",
+          "hashtags": [],
+          "imageText": "Un message suffit",
+          "en": {
+            "title": "Just send a message",
+            "body": "Book on WhatsApp at +1 438 900 4990: pickup, destination, time, category. An operator confirms the price and your driver.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Réserver une course par message ?\nÉcrivez-nous sur WhatsApp.\nDépart, destination, heure, catégorie.\nUn opérateur vous confirme le prix et le chauffeur.",
+          "caption": "Par message 💬 WhatsApp : +1 438 900 4990",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#MTL"
+          ],
+          "imageText": "Par message ?"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Un message suffit.\nDépart, destination, heure.\nPrix et chauffeur confirmés.",
+          "caption": "WhatsApp 💬 +1 438 900 4990",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Départ, destination, heure"
+        },
+        "telegram": {
+          "body": "Réservez par WhatsApp au +1 438 900 4990 : départ, destination, heure et catégorie. Un opérateur confirme le prix et le chauffeur.",
+          "hashtags": [],
+          "imageText": "Le numéro à garder"
+        },
+        "youtube": {
+          "title": "Réserver une course Neomoov par WhatsApp",
+          "body": "Vous pouvez réserver votre course Neomoov par WhatsApp.\nÉcrivez au +1 438 900 4990 avec votre départ, votre destination et l'heure.\nPrécisez la catégorie : Neo Premium, Neo Prestige ou Neo XL.\nUn opérateur vous confirme le prix et le chauffeur.",
+          "caption": "Comment réserver une course Neomoov par WhatsApp au +1 438 900 4990, sans compte, au moins 2 heures à l'avance.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "WhatsApp, mode d'emploi"
+        },
+        "whatsapp_channel": {
+          "body": "Vous lisez ce message sur WhatsApp ? Vous pouvez aussi y réserver : écrivez-nous au +1 438 900 4990 avec votre départ, votre destination et l'heure.",
+          "hashtags": [],
+          "imageText": "Réservez ici aussi"
+        }
+      },
+      "photoHints": [
+        "client",
+        "passager"
+      ],
+      "day": 23,
+      "sensitive": false,
+      "notes": "Thème : Réservation 2 heures à l'avance. Date proposée : mercredi 28 octobre 2026.\n\nPhoto réelle (client) : Photo réelle d'un homme qui écrit un message sur son téléphone en attendant devant une gare de Montréal (modèle, licence commerciale, crédit indiqué)."
+    },
+    {
+      "ref": "P43",
+      "pillar": "montreal",
+      "audience": "clients",
+      "title": "L'hiver à Montréal : nos conseils pour vos déplacements",
+      "body": "L'hiver approche à Montréal. Nos conseils : réservez dès que vous connaissez votre heure, attendez au chaud en suivant l'arrivée de votre chauffeur en direct, et prévoyez de la marge pour vos rendez-vous importants.\n\nBonne nouvelle : votre prix est garanti une fois confirmé, même un soir de tempête.",
+      "short": "L'hiver arrive : réservez dès que l'heure est connue, suivez votre chauffeur en direct et sortez au bon moment. Votre prix reste garanti, même un soir de tempête.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": "all",
+      "variants": {
+        "site_blog": {
+          "title": "L'hiver à Montréal : nos conseils pour vos déplacements",
+          "body": "L'hiver arrive à Montréal, et avec lui la neige, le froid et les journées plus courtes. Se déplacer demande alors un peu plus d'organisation. Voici nos conseils pour traverser la saison sereinement, et ce que Neomoov fait de son côté pour vous faciliter la vie.\n\n## Réservez plus tôt que d'habitude\n\nQuand la neige tombe, les trajets se planifient mieux à l'avance. Le bon réflexe : réserver votre course dès que vous connaissez votre heure de départ. Chez Neomoov, chaque course se réserve au moins 2 heures à l'avance et jusqu'à 90 jours. Un rendez-vous la semaine prochaine ? Réservez-le dès aujourd'hui.\n\n## Un prix qui ne dépend pas de la météo\n\nUne tempête ralentit la circulation ? Votre prix ne bouge pas. Chez Neomoov, le prix est calculé avant la réservation, avec le trafic prévu à l'heure de votre départ, et il est garanti une fois confirmé, même si la circulation est dense. Aucune majoration liée à la demande, même un soir de tempête.\n\n## Attendez au chaud\n\nInutile de guetter la rue dans le froid. Une fois votre chauffeur en route, vous suivez son arrivée en direct : son nom, le modèle et la plaque du véhicule, et son heure d'arrivée. Sortez au bon moment, quand il approche.\n\nUn conseil tout de même : soyez prêt à l'heure prévue. Les premières minutes d'attente sont gratuites au point de rendez-vous, mais l'attente au-delà est facturée.\n\n## Prévoyez de la marge pour vos rendez-vous\n\nL'hiver, les trajets peuvent prendre plus de temps : chaussée enneigée, déneigement, visibilité réduite. Pour un rendez-vous important, un examen ou une entrevue, choisissez une heure de départ qui vous laisse de la marge. Votre prix, lui, reste le même.\n\n## L'aéroport en hiver\n\nLes vols d'hiver connaissent parfois des retards. Indiquez toujours votre numéro de vol à la réservation : en cas de retard annoncé, l'heure de prise en charge est ajustée sans frais supplémentaires. Pour un départ tôt le matin, réservez dès que votre vol est confirmé ; votre chauffeur est confirmé la veille.\n\nVous partez au soleil avec de gros bagages ou des équipements de sport ? Neo XL accueille jusqu'à six passagers et six valises.\n\n## Bien choisir sa catégorie en hiver\n\nAvec les manteaux, les bottes et parfois l'équipement de ski, l'espace compte davantage en hiver. Si vous êtes quatre avec des bagages, pensez à Neo XL, qui accueille jusqu'à six passagers et leurs bagages. Pour les trajets du quotidien, Neo Premium reste le choix de tous les jours.\n\n## Pensez à vos proches\n\nL'hiver, les déplacements sont plus difficiles pour certains de vos proches. Vous pouvez réserver une course pour un parent, à son nom : il reçoit le suivi par texto, avec le modèle et la plaque du véhicule. Demandez une aide à l'embarquement et aux bagages à la réservation, si besoin.\n\n## Partagez votre trajet\n\nLes soirées d'hiver sont longues et sombres. Pendant votre course, partagez votre trajet avec un proche par un simple lien : il suit votre avancement en direct, sans application.\n\n## Le confort à bord\n\nNos véhicules 100 % électriques sont récents et confortables. Indiquez la température souhaitée à la réservation : fraîche, tempérée ou chaude. Et si la neige se transforme en pluie, un parapluie est à disposition à bord.\n\n## Les sorties d'hiver\n\nSpectacles, soupers, fêtes de fin d'année : réservez votre retour en même temps que votre aller. Vous profitez de la soirée sans penser au stationnement, ni à la voiture à déneiger.\n\n## En résumé\n\n1. Réservez dès que vous connaissez votre heure, jusqu'à 90 jours à l'avance.\n2. Votre prix est garanti, quelle que soit la météo.\n3. Suivez l'arrivée de votre chauffeur en direct et sortez au bon moment.\n4. Prévoyez de la marge pour vos rendez-vous importants.\n5. Pour l'aéroport, indiquez votre numéro de vol.\n\nBon hiver à toutes et à tous, et à bientôt à bord.\n\nRéservez votre prochaine course : https://neomoov.net/reserver",
+          "hashtags": [],
+          "imageText": "Nos conseils d'hiver"
+        },
+        "facebook": {
+          "hashtags": [
+            "#HiverMontréal"
+          ],
+          "imageText": "L'hiver approche"
+        },
+        "instagram": {
+          "body": "Prêts pour l'hiver ? ❄️\n\nRéservez dès que vous connaissez votre heure, suivez votre chauffeur en direct et sortez au bon moment. Votre prix reste garanti, même un soir de tempête.\n\nLien dans la bio.",
+          "hashtags": [
+            "#HiverMontréal",
+            "#Montréal",
+            "#MTL",
+            "#Neige",
+            "#Neomoov",
+            "#Hiver"
+          ],
+          "imageText": "Prêts pour l'hiver ?"
+        },
+        "linkedin": {
+          "body": "Hiver et déplacements professionnels : trois réflexes.\n\nPlanifier les courses dès que les horaires sont connus (jusqu'à 90 jours à l'avance). Prévoir de la marge pour les rendez-vous importants. Compter sur un prix garanti, même quand la circulation ralentit : chez Neomoov, il est fixé avant la course.",
+          "hashtags": [
+            "#Hiver",
+            "#VoyageDAffaires",
+            "#Montréal"
+          ],
+          "imageText": "Trois réflexes d'hiver",
+          "en": {
+            "title": "Three winter habits",
+            "body": "Winter and business travel: three habits. Schedule rides as soon as times are known (up to 90 days ahead). Leave extra margin for important meetings. Count on a guaranteed price, even when traffic slows down: at Neomoov, it's set before the ride."
+          }
+        },
+        "x": {
+          "body": "L'hiver arrive : réservez dès que l'heure est connue, suivez votre chauffeur en direct et sortez au bon moment. Votre prix reste garanti, même un soir de tempête.",
+          "hashtags": [
+            "#HiverMontréal"
+          ],
+          "imageText": "Même un soir de tempête",
+          "en": {
+            "title": "Even on a stormy night",
+            "body": "Winter is near: book as soon as you know the time, track your driver live and step out at the right moment. Your price stays guaranteed, even on a stormy night.",
+            "hashtags": [
+              "#Montreal"
+            ]
+          }
+        },
+        "tiktok": {
+          "body": "L'hiver à Montréal, nos conseils.\nRéservez dès que l'heure est connue.\nAttendez au chaud, suivez votre chauffeur en direct.\nVotre prix reste garanti, même un soir de tempête.",
+          "caption": "Prêts pour l'hiver ❄️ neomoov.net/reserver",
+          "hashtags": [
+            "#HiverMontréal",
+            "#Montréal",
+            "#Neige",
+            "#Neomoov"
+          ],
+          "imageText": "L'hiver, nos conseils"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Il neige dehors ?\nAttendez au chaud.\nLe prix ne bouge pas.",
+          "caption": "L'hiver, sans stress ❄️ neomoov.net/reserver",
+          "hashtags": [
+            "#HiverMontréal",
+            "#MTL"
+          ],
+          "imageText": "Il neige dehors ?"
+        },
+        "telegram": {
+          "body": "L'hiver arrive : réservez tôt, suivez votre chauffeur en direct et sortez au bon moment. Votre prix reste garanti.",
+          "hashtags": [],
+          "imageText": "Réflexes d'hiver"
+        },
+        "youtube": {
+          "title": "L'hiver à Montréal : nos conseils pour vos déplacements",
+          "body": "L'hiver arrive à Montréal.\nRéservez dès que vous connaissez votre heure de départ.\nAttendez au chaud et suivez l'arrivée de votre chauffeur en direct.\nVotre prix est garanti, même si la circulation ralentit.",
+          "caption": "Nos conseils pour vos déplacements à Montréal en hiver avec Neomoov : réserver tôt, suivre son chauffeur en direct, prévoir de la marge, prix garanti.",
+          "hashtags": [
+            "#HiverMontréal",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Se déplacer en hiver"
+        },
+        "whatsapp_channel": {
+          "body": "L'hiver arrive à Montréal ❄️ Réservez vos courses dès que l'heure est connue : votre prix reste garanti, même un soir de tempête.",
+          "hashtags": [],
+          "imageText": "Bientôt l'hiver"
+        }
+      },
+      "photoHints": [
+        "Montréal",
+        "ville",
+        "hiver",
+        "neige"
+      ],
+      "day": 24,
+      "sensitive": false,
+      "notes": "Thème : Quartiers et saisons de Montréal. Date proposée : jeudi 29 octobre 2026.\n\nPhoto réelle (ville) : Photo réelle d'une rue de Montréal enneigée en début de soirée, lampadaires allumés (médiathèque, crédit indiqué).\n\nExtrait de l'article (méta-description) : Neige, froid, circulation ralentie : nos conseils pour vous déplacer sereinement à Montréal cet hiver, et ce que Neomoov fait pour vous."
+    },
+    {
+      "ref": "P44",
+      "pillar": "service",
+      "audience": "clients",
+      "title": "Voyager avec un enfant ou un animal",
+      "body": "Vous voyagez avec un enfant ou avec votre animal ?\n\n• Siège d'enfant : sur demande, à la réservation.\n• Animal de compagnie : en cage de transport, à bord des catégories Neo XL et Neo Prestige.\n• Animaux d'assistance : toujours acceptés, dans toutes les catégories, sans supplément.\n\nTout se précise au moment de réserver.",
+      "short": "Siège d'enfant sur demande, animal de compagnie en cage en Neo XL et Neo Prestige, animaux d'assistance acceptés partout : précisez-le à la réservation.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Enfants et animaux"
+        },
+        "instagram": {
+          "body": "Toute la famille est la bienvenue 🐾\n\nSiège d'enfant sur demande. Animal de compagnie en cage, en Neo XL ou Neo Prestige. Animaux d'assistance acceptés dans toutes les catégories.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#MTL",
+            "#Famille",
+            "#AnimauxDeCompagnie"
+          ],
+          "imageText": "Toute la famille bienvenue"
+        },
+        "linkedin": {
+          "body": "Familles de vos collaborateurs, invités avec enfants : pensez-y à la réservation.\n\nNeomoov fournit un siège d'enfant sur demande, accepte les animaux de compagnie en cage à bord des catégories Neo XL et Neo Prestige, et les animaux d'assistance dans toutes les catégories.",
+          "hashtags": [
+            "#Famille",
+            "#Montréal"
+          ],
+          "imageText": "Pensez aux familles",
+          "en": {
+            "title": "Think of families",
+            "body": "Colleagues' families, guests with children: plan for it when booking. Neomoov provides a child seat on request, accepts pets in a carrier in Neo XL and Neo Prestige, and service animals in every category."
+          }
+        },
+        "x": {
+          "body": "Siège d'enfant sur demande, animal de compagnie en cage en Neo XL et Neo Prestige, animaux d'assistance acceptés partout : précisez-le à la réservation.",
+          "hashtags": [],
+          "imageText": "Siège d'enfant sur demande",
+          "en": {
+            "title": "Child seats on request",
+            "body": "Child seat on request, pets in a carrier in Neo XL and Neo Prestige, service animals welcome in every category: just say so when booking.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Vous voyagez avec votre chien ?\nIl est le bienvenu en cage, en Neo XL ou Neo Prestige.\nAvec un jeune enfant ? Siège d'enfant sur demande.\nPrécisez-le simplement à la réservation.",
+          "caption": "Toute la famille à bord 🐾 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#AnimauxDeCompagnie",
+            "#Famille"
+          ],
+          "imageText": "Avec votre chien ?"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Avec votre chien ?\nEn cage, c'est oui.\nNeo XL ou Neo Prestige.",
+          "caption": "Bienvenue à bord 🐾 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "En cage, c'est oui"
+        },
+        "telegram": {
+          "body": "Siège d'enfant sur demande, animal de compagnie en cage en Neo XL et Neo Prestige, animaux d'assistance acceptés partout.",
+          "hashtags": [],
+          "imageText": "Bon à savoir"
+        },
+        "youtube": {
+          "title": "Voyager avec un enfant ou un animal chez Neomoov",
+          "body": "Vous voyagez avec un jeune enfant ? Demandez un siège d'enfant à la réservation.\nVotre animal de compagnie voyage en cage, en Neo XL ou en Neo Prestige.\nLes animaux d'assistance sont acceptés dans toutes les catégories.\nTout se précise au moment de réserver.",
+          "caption": "Siège d'enfant, animaux de compagnie et animaux d'assistance : ce que Neomoov propose à Montréal.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Voyager avec un animal"
+        },
+        "whatsapp_channel": {
+          "body": "Vous voyagez avec votre animal ? Il est le bienvenu en cage, à bord des catégories Neo XL et Neo Prestige. Réservez :",
+          "hashtags": [],
+          "imageText": "Votre animal, bienvenu"
+        }
+      },
+      "photoHints": [
+        "véhicule",
+        "électrique",
+        "animal"
+      ],
+      "day": 24,
+      "sensitive": false,
+      "notes": "Thème : Commodités à bord. Date proposée : jeudi 29 octobre 2026.\n\nPhoto réelle (véhicule électrique) : Photo réelle d'un petit chien dans sa cage de transport, à l'arrière d'un VUS électrique (médiathèque, licence commerciale, crédit indiqué)."
+    },
+    {
+      "ref": "P45",
+      "pillar": "chauffeurs",
+      "audience": "chauffeurs",
+      "title": "Devenir chauffeur, étape par étape",
+      "body": "Devenir chauffeur Neomoov, étape par étape :\n\n1. Remplissez le formulaire : deux minutes suffisent.\n2. Téléversez vos documents depuis votre téléphone.\n3. Passez un court entretien téléphonique avec notre assistant.\n4. Vérification sous 48 heures, validée par une personne.\n5. Suivez la formation en ligne, une heure à votre rythme.\n6. Première course : vous choisissez vos heures.",
+      "short": "Devenir chauffeur Neomoov : formulaire, documents, entretien, vérification sous 48 h validée par une personne, formation en ligne d'une heure, première course.",
+      "cta": "preregister",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Étape par étape"
+        },
+        "instagram": {
+          "body": "Six étapes pour rouler avec Neomoov 🚗\n\nFormulaire, documents, entretien, vérification sous 48 heures, formation en ligne d'une heure, première course. Le tout depuis votre téléphone.\n\nCandidature, lien dans la bio.",
+          "hashtags": [
+            "#DevenirChauffeur",
+            "#ChauffeurMontréal",
+            "#Neomoov",
+            "#Montréal",
+            "#VoitureÉlectrique"
+          ],
+          "imageText": "Six étapes"
+        },
+        "linkedin": {
+          "body": "Recrutement des chauffeurs Neomoov : un parcours clair.\n\nFormulaire en ligne, documents téléversés depuis le téléphone, entretien téléphonique (langues, expérience, disponibilités), vérification sous 48 heures avec validation humaine, formation en ligne d'une heure, puis première course.",
+          "hashtags": [
+            "#Recrutement",
+            "#Chauffeur",
+            "#Montréal"
+          ],
+          "imageText": "Un parcours clair",
+          "en": {
+            "title": "A clear path",
+            "body": "Recruiting Neomoov drivers: a clear path. Online form, documents uploaded from your phone, a phone interview (languages, experience, availability), verification within 48 hours with human approval, a one-hour online training, then your first ride."
+          }
+        },
+        "x": {
+          "body": "Devenir chauffeur Neomoov : formulaire, documents, entretien, vérification sous 48 h validée par une personne, formation en ligne d'une heure, première course.",
+          "hashtags": [],
+          "imageText": "De la candidature à la course",
+          "en": {
+            "title": "From application to first ride",
+            "body": "Becoming a Neomoov driver: form, documents, interview, verification within 48 hours approved by a person, one-hour online training, first ride.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Devenir chauffeur Neomoov, en six étapes.\nLe formulaire, puis vos documents.\nUn court entretien téléphonique.\nUne vérification sous 48 heures.\nLa formation en ligne, puis votre première course.",
+          "caption": "On commence ? 🚗 neomoov.net/chauffeurs/#candidature",
+          "hashtags": [
+            "#DevenirChauffeur",
+            "#ChauffeurMontréal",
+            "#Neomoov"
+          ],
+          "imageText": "Le parcours du chauffeur"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Formulaire en deux minutes.\nVérification sous 48 heures.\nFormation d'une heure.",
+          "caption": "Rouler avec Neomoov 🚗 neomoov.net/chauffeurs/#candidature",
+          "hashtags": [
+            "#Chauffeur",
+            "#MTL"
+          ],
+          "imageText": "Deux minutes pour commencer"
+        },
+        "telegram": {
+          "body": "Devenir chauffeur Neomoov : formulaire, documents, entretien, vérification sous 48 heures, formation d'une heure, première course. Candidature :",
+          "hashtags": [],
+          "imageText": "Comment postuler"
+        },
+        "youtube": {
+          "title": "Devenir chauffeur Neomoov : les étapes",
+          "body": "Première étape : le formulaire de candidature, deux minutes suffisent.\nEnsuite, vos documents depuis votre téléphone, et un court entretien.\nUne vérification sous 48 heures, validée par une personne.\nUne formation en ligne d'une heure, puis votre première course.",
+          "caption": "Les étapes pour devenir chauffeur Neomoov à Montréal, de la candidature à la première course.",
+          "hashtags": [
+            "#DevenirChauffeur",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Les étapes en vidéo"
+        },
+        "whatsapp_channel": {
+          "body": "Chauffeurs : la candidature Neomoov prend deux minutes, et la vérification se fait sous 48 heures. Lancez-vous :",
+          "hashtags": [],
+          "imageText": "Lancez-vous"
+        }
+      },
+      "photoHints": [
+        "chauffeur"
+      ],
+      "day": 25,
+      "sensitive": false,
+      "notes": "Thème : Devenir chauffeur. Date proposée : vendredi 30 octobre 2026.\n\nPhoto réelle (chauffeur) : Photo réelle d'une chauffeuse qui remplit un formulaire sur son téléphone, assise au volant de son véhicule (modèle, licence commerciale, crédit indiqué)."
+    },
+    {
+      "ref": "P46",
+      "pillar": "coulisses",
+      "audience": "tous",
+      "title": "Comment nous choisissons les véhicules",
+      "body": "Les coulisses : comment un véhicule entre-t-il dans la flotte Neomoov ?\n\nIl doit être 100 % électrique, avoir cinq ans ou moins et figurer parmi les modèles admis de sa catégorie (ou un modèle équivalent approuvé par Neomoov). Il est inspecté à l'inscription, puis chaque trimestre, et équipé pour l'accueil : eau, chargeurs, Wi-Fi, parapluie.",
+      "short": "Pour entrer dans la flotte Neomoov : 100 % électrique, cinq ans ou moins, modèle admis, inspection à l'inscription puis chaque trimestre.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#Coulisses"
+          ],
+          "imageText": "Entrer dans la flotte"
+        },
+        "instagram": {
+          "body": "Les coulisses de notre flotte 🔍\n\n100 % électrique, cinq ans ou moins, modèle admis dans sa catégorie, inspecté à l'inscription puis chaque trimestre, équipé pour vous accueillir.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#Coulisses",
+            "#VoitureÉlectrique",
+            "#Montréal",
+            "#MTL"
+          ],
+          "imageText": "Les coulisses de la flotte"
+        },
+        "linkedin": {
+          "body": "Comment nous sélectionnons les véhicules de la flotte.\n\n100 % électriques, cinq ans ou moins, modèles admis par catégorie (Neo Premium, Neo Prestige, Neo XL), inspection à l'inscription puis chaque trimestre, équipement d'accueil obligatoire. La garantie du véhicule réservé repose sur cette exigence.",
+          "hashtags": [
+            "#Coulisses",
+            "#Mobilité"
+          ],
+          "imageText": "Nos exigences de flotte",
+          "en": {
+            "title": "How we select vehicles",
+            "body": "How we select fleet vehicles: 100% electric, five years old or less, approved models per category (Neo Premium, Neo Prestige, Neo XL), inspection at registration and every quarter, mandatory welcome equipment. Our reserved-vehicle guarantee rests on these standards."
+          }
+        },
+        "x": {
+          "body": "Pour entrer dans la flotte Neomoov : 100 % électrique, cinq ans ou moins, modèle admis, inspection à l'inscription puis chaque trimestre.",
+          "hashtags": [
+            "#Coulisses"
+          ],
+          "imageText": "Nos critères",
+          "en": {
+            "title": "Our standards",
+            "body": "To join the Neomoov fleet: 100% electric, five years old or less, an approved model, inspected at registration and every quarter.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Comment un véhicule entre chez Neomoov ?\nIl doit être 100 % électrique.\nIl doit avoir cinq ans ou moins.\nIl est inspecté, puis réinspecté chaque trimestre.\nEt il est prêt à vous accueillir.",
+          "caption": "Les coulisses de la flotte 🔍 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#Coulisses",
+            "#VoitureÉlectrique"
+          ],
+          "imageText": "Comment un véhicule entre"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "100 % électrique.\nCinq ans ou moins.\nInspecté chaque trimestre.",
+          "caption": "Nos critères 🔍 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Notre exigence"
+        },
+        "telegram": {
+          "body": "Les coulisses : chaque véhicule Neomoov est 100 % électrique, a cinq ans ou moins et est inspecté chaque trimestre.",
+          "hashtags": [],
+          "imageText": "Réinspecté chaque trimestre"
+        },
+        "youtube": {
+          "title": "Les coulisses : comment Neomoov choisit ses véhicules",
+          "body": "Chaque véhicule Neomoov est 100 % électrique.\nIl a cinq ans ou moins et fait partie des modèles admis de sa catégorie.\nIl est inspecté à l'inscription, puis chaque trimestre.\nEt il est équipé pour vous accueillir : eau, chargeurs, Wi-Fi, parapluie.",
+          "caption": "Les critères de choix des véhicules de la flotte Neomoov à Montréal.",
+          "hashtags": [
+            "#Neomoov",
+            "#Coulisses",
+            "#Shorts"
+          ],
+          "imageText": "Le choix des véhicules"
+        },
+        "whatsapp_channel": {
+          "body": "Saviez-vous que chaque véhicule Neomoov est réinspecté chaque trimestre ? Réservez votre prochaine course :",
+          "hashtags": [],
+          "imageText": "Saviez-vous ?"
+        }
+      },
+      "photoHints": [
+        "véhicule",
+        "électrique"
+      ],
+      "day": 25,
+      "sensitive": false,
+      "notes": "Thème : Coulisses. Date proposée : vendredi 30 octobre 2026.\n\nPhoto réelle (véhicule électrique) : Photo réelle d'une berline électrique haut de gamme vue de profil dans un stationnement intérieur (médiathèque, crédit indiqué)."
+    },
+    {
+      "ref": "P47",
+      "pillar": "montreal",
+      "audience": "clients",
+      "title": "Soirée d'Halloween : le retour réservé",
+      "body": "Soirée d'Halloween le 31 octobre ?\n\nQue vous sortiez costumé ou que vous accompagniez les petits, réservez votre retour en même temps que votre aller. Le prix est connu avant de confirmer, et vous suivez l'arrivée de votre chauffeur en direct.\n\nJoyeuse Halloween !",
+      "short": "Soirée d'Halloween ? Réservez votre retour en même temps que votre aller : prix connu d'avance, chauffeur suivi en direct. Joyeuse Halloween !",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#Halloween"
+          ],
+          "imageText": "Joyeuse Halloween"
+        },
+        "instagram": {
+          "body": "Soirée d'Halloween ? 🎃\n\nRéservez votre retour en même temps que votre aller, et profitez de la soirée. Neo XL accueille jusqu'à six passagers, costumes compris.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Halloween",
+            "#Montréal",
+            "#MTL",
+            "#Neomoov",
+            "#SortirÀMontréal"
+          ],
+          "imageText": "Soirée d'Halloween ?"
+        },
+        "linkedin": {
+          "body": "Soirée d'entreprise ou événement à la fin d'octobre ?\n\nPour vos invités, pensez au retour : réservez-le à l'avance, à leur nom ; ils reçoivent le suivi de leur course par texto, et la course est rattachée à votre compte entreprise.",
+          "hashtags": [
+            "#Événements",
+            "#Montréal"
+          ],
+          "imageText": "Pensez au retour de vos invités",
+          "en": {
+            "title": "Your guests' ride home",
+            "body": "Hosting a company party or event at the end of October? Think about your guests' ride home: book it in advance, in their name; they get ride tracking by text, and the ride is billed to your business account."
+          }
+        },
+        "x": {
+          "body": "Soirée d'Halloween ? Réservez votre retour en même temps que votre aller : prix connu d'avance, chauffeur suivi en direct. Joyeuse Halloween !",
+          "hashtags": [
+            "#Halloween"
+          ],
+          "imageText": "Le 31 octobre",
+          "en": {
+            "title": "Halloween night",
+            "body": "Halloween night out? Book your ride home along with your ride there: price known upfront, driver tracked live. Happy Halloween!",
+            "hashtags": [
+              "#Halloween"
+            ]
+          }
+        },
+        "tiktok": {
+          "body": "Soirée d'Halloween en vue ?\nCostume prêt, retour réservé.\nNeo XL pour toute la bande, jusqu'à six.\nJoyeuse Halloween de la part de Neomoov !",
+          "caption": "Le retour est réservé 🎃 neomoov.net/reserver",
+          "hashtags": [
+            "#Halloween",
+            "#Montréal",
+            "#MTL",
+            "#Neomoov"
+          ],
+          "imageText": "Costume prêt, retour réservé"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Costume prêt ?\nRetour réservé ?\nJoyeuse Halloween !",
+          "caption": "Joyeuse Halloween 🎃 neomoov.net/reserver",
+          "hashtags": [
+            "#Halloween",
+            "#MTL"
+          ],
+          "imageText": "Toute la bande à bord"
+        },
+        "telegram": {
+          "body": "Soirée d'Halloween ? Réservez votre retour en même temps que votre aller. Joyeuse Halloween !",
+          "hashtags": [],
+          "imageText": "Retour réservé"
+        },
+        "youtube": {
+          "title": "Halloween à Montréal : réservez votre retour",
+          "body": "Une soirée d'Halloween le 31 octobre ?\nRéservez votre retour en même temps que votre aller.\nNeo XL accueille jusqu'à six passagers.\nJoyeuse Halloween de la part de Neomoov !",
+          "caption": "Pour votre soirée d'Halloween à Montréal, réservez votre aller et votre retour avec Neomoov, au moins 2 heures à l'avance.",
+          "hashtags": [
+            "#Halloween",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Halloween à Montréal"
+        },
+        "whatsapp_channel": {
+          "body": "Joyeuse Halloween 🎃 Une soirée en vue ? Réservez votre retour dès maintenant :",
+          "hashtags": [],
+          "imageText": "Une soirée en vue ?"
+        }
+      },
+      "photoHints": [
+        "Montréal",
+        "ville",
+        "Halloween"
+      ],
+      "day": 26,
+      "sensitive": false,
+      "notes": "Thème : Quartiers et saisons de Montréal. Date proposée : samedi 31 octobre 2026.\n\nPhoto réelle (ville) : Photo réelle d'une rue résidentielle de Montréal décorée pour l'Halloween, à la tombée de la nuit (médiathèque, crédit indiqué)."
+    },
+    {
+      "ref": "P48",
+      "pillar": "montreal",
+      "audience": "clients",
+      "title": "Changement d'heure du 1er novembre",
+      "body": "Changement d'heure : le 1er novembre à 2 h, on recule d'une heure.\n\nUn vol ou un rendez-vous tôt le matin dans les jours qui suivent ? Vérifiez vos réveils, et l'heure de vos courses planifiées. Et comme la nuit tombe plus tôt, pensez à partager votre trajet avec un proche : un simple lien suffit.",
+      "short": "Le 1er novembre à 2 h, on recule l'heure. Un vol ou un rendez-vous tôt le matin ? Vérifiez vos réveils et l'heure de vos courses planifiées.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Changement d'heure"
+        },
+        "instagram": {
+          "body": "On recule l'heure ⏰\n\nLe 1er novembre à 2 h, l'heure recule d'une heure. Vérifiez vos réveils et l'heure de vos courses planifiées tôt le matin.\n\nLien dans la bio.",
+          "hashtags": [
+            "#ChangementDHeure",
+            "#Montréal",
+            "#MTL",
+            "#Neomoov",
+            "#Conseil"
+          ],
+          "imageText": "On recule l'heure"
+        },
+        "linkedin": {
+          "body": "Changement d'heure le 1er novembre.\n\nUn bon moment pour vérifier les déplacements planifiés de vos équipes en début de semaine, en particulier les départs tôt le matin vers l'aéroport.",
+          "hashtags": [
+            "#Planification",
+            "#Montréal"
+          ],
+          "imageText": "Vérifiez vos plannings",
+          "en": {
+            "title": "Check your schedules",
+            "body": "Clocks go back on November 1: a good time to double-check your team's scheduled rides early in the week, especially early-morning airport departures."
+          }
+        },
+        "x": {
+          "body": "Le 1er novembre à 2 h, on recule l'heure. Un vol ou un rendez-vous tôt le matin ? Vérifiez vos réveils et l'heure de vos courses planifiées.",
+          "hashtags": [
+            "#ChangementDHeure"
+          ],
+          "imageText": "Le 1er novembre à 2 h",
+          "en": {
+            "title": "Clocks go back",
+            "body": "Clocks go back one hour at 2 a.m. on November 1. Early flight or meeting? Check your alarms and your scheduled ride times.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Changement d'heure le 1er novembre.\nÀ 2 h du matin, on recule d'une heure.\nVérifiez vos réveils.\nEt l'heure de vos courses planifiées tôt le matin.",
+          "caption": "Une heure de plus ⏰ neomoov.net/reserver",
+          "hashtags": [
+            "#ChangementDHeure",
+            "#Montréal",
+            "#Neomoov"
+          ],
+          "imageText": "Une heure de plus"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "On recule l'heure.\nVérifiez vos réveils.\nEt vos courses du matin.",
+          "caption": "Changement d'heure ⏰ neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Vos courses du matin"
+        },
+        "telegram": {
+          "body": "Changement d'heure : le 1er novembre à 2 h, on recule d'une heure. Vérifiez l'heure de vos courses planifiées tôt le matin.",
+          "hashtags": [],
+          "imageText": "Rappel horaire"
+        },
+        "youtube": {
+          "title": "Changement d'heure : vérifiez vos courses du matin",
+          "body": "Le 1er novembre à 2 h, on recule d'une heure.\nVous avez un vol ou un rendez-vous tôt le matin ?\nVérifiez vos réveils et l'heure de vos courses planifiées.\nEt comme la nuit tombe plus tôt, partagez votre trajet avec un proche.",
+          "caption": "Changement d'heure du 1er novembre au Québec : nos conseils pour vos déplacements planifiés avec Neomoov.",
+          "hashtags": [
+            "#ChangementDHeure",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Avant le changement d'heure"
+        },
+        "whatsapp_channel": {
+          "body": "Rappel : le 1er novembre à 2 h, on recule l'heure. Vérifiez vos réveils pour vos départs matinaux.",
+          "hashtags": [],
+          "imageText": "Vos réveils"
+        }
+      },
+      "photoHints": [
+        "Montréal",
+        "ville",
+        "Vieux-Port"
+      ],
+      "day": 27,
+      "sensitive": false,
+      "notes": "Thème : Conseils de déplacement. Date proposée : dimanche 1er novembre 2026.\n\nPhoto réelle (ville) : Photo réelle de la tour de l'Horloge du Vieux-Port de Montréal au crépuscule (médiathèque, crédit indiqué)."
+    },
+    {
+      "ref": "P49",
+      "pillar": "montreal",
+      "audience": "clients",
+      "title": "Réserver une course pour un proche ou un client : mode d'emploi",
+      "body": "Réserver une course pour un proche ou un client, c'est simple : indiquez son nom et son numéro de téléphone. Il reçoit le suivi de sa course par texto, avec le modèle et la plaque du véhicule. Vous pouvez prépayer la course, et vous recevez le reçu.\n\nNi compte ni application pour la personne qui voyage.",
+      "short": "Réservez pour un proche ou un client : son nom, son numéro, et il reçoit le suivi par texto. Vous pouvez prépayer, et vous recevez le reçu.",
+      "cta": "reserve",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": "all",
+      "variants": {
+        "site_blog": {
+          "title": "Réserver une course pour un proche ou un client : mode d'emploi",
+          "body": "Votre mère a un rendez-vous à l'autre bout de la ville, un client arrive à l'aéroport, un ami a besoin d'un retour après une soirée : vous ne voyagez pas, mais vous voulez que le trajet se passe bien. Avec Neomoov, vous pouvez réserver une course pour une autre personne. Voici comment faire, étape par étape.\n\n## Ce qu'il vous faut\n\nPour réserver au nom de quelqu'un d'autre, vous avez besoin de trois informations :\n\n- son nom ;\n- son numéro de téléphone mobile ;\n- l'adresse de départ, la destination et l'heure souhaitée.\n\nLa personne qui voyage n'a besoin ni de compte ni d'application.\n\n## Étape 1 : réservez au moins 2 heures à l'avance\n\nComme toutes nos courses, une réservation pour une autre personne se fait au moins 2 heures à l'avance, et jusqu'à 90 jours. Vous pouvez réserver sur neomoov.net/reserver sans créer de compte, par WhatsApp au +1 438 900 4990 ou dans l'application Neomoov. Dans le formulaire en ligne, cochez l'option « Réservation pour une autre personne ».\n\n## Étape 2 : indiquez ses préférences\n\nVous connaissez ses habitudes mieux que personne : profitez-en. Vous pouvez préciser :\n\n- la catégorie de véhicule (Neo Premium, Neo Prestige ou Neo XL) ;\n- la langue du chauffeur, selon les disponibilités ;\n- une ambiance silencieuse ou la discussion ;\n- l'aide aux bagages ou à l'embarquement ;\n- un siège d'enfant ;\n- l'accessibilité pour une personne à mobilité réduite ;\n- toute demande spéciale.\n\nCes informations sont transmises au chauffeur avant la course.\n\n## Étape 3 : choisissez le paiement\n\nVous pouvez prépayer la course à la commande, par carte, Apple Pay, Google Pay ou virement Interac : la personne qui voyage n'a alors rien à régler. Elle peut aussi payer le chauffeur à la fin de la course, en espèces ou par terminal, selon les modes qu'il accepte.\n\n## Ce que reçoit la personne qui voyage\n\nElle reçoit par texto le suivi de sa course : l'approche et l'arrivée du chauffeur, avec le modèle et la plaque du véhicule. Elle sait exactement qui vient la chercher. Les échanges avec le chauffeur passent par une messagerie qui masque les numéros des deux côtés.\n\n## Ce que vous recevez\n\nVous recevez le reçu de la course. La personne qui voyage peut aussi vous partager son trajet en temps réel par un simple lien : vous suivez l'avancement de la course, sans application.\n\n## Pour les entreprises\n\nHôtels, cliniques, cabinets professionnels, organisateurs d'événements : vous réservez pour vos clients, vos patients ou vos invités ? Avec un compte entreprise, ces courses sont rattachées à votre compte et regroupées sur une facture certifiée par mois et par centre de coûts.\n\n## Quelques exemples\n\n- Un parent âgé : demandez l'aide à l'embarquement et aux bagages, et précisez la langue du chauffeur.\n- Un client à l'aéroport : indiquez son numéro de vol ; en cas de retard annoncé, la prise en charge est ajustée sans frais.\n- Un retour de soirée : réservez l'aller et le retour en même temps.\n- Un groupe d'invités : choisissez Neo XL, jusqu'à six passagers.\n\n## Modifier ou annuler\n\nUn changement de programme ? Modifiez ou annulez la course depuis l'application, ou écrivez-nous ou appelez-nous avec le numéro de course. Pour un transfert vers ou depuis l'aéroport, l'annulation est gratuite jusqu'à 1 heure avant l'heure prévue ; pour les autres courses, dans les 2 minutes qui suivent l'attribution du chauffeur. Au-delà, des frais d'annulation s'appliquent.\n\n## Une précision importante\n\nPour le moment, les mineurs non accompagnés ne sont pas transportés. Un enfant voyage toujours avec un adulte.\n\n## En résumé\n\n1. Réservez au moins 2 heures à l'avance, avec le nom et le numéro de la personne.\n2. Indiquez ses préférences et ses besoins.\n3. Prépayez la course, ou laissez-la payer à la fin du trajet.\n4. Elle reçoit le suivi par texto ; vous recevez le reçu.\n\nRéservez pour un proche ou un client : https://neomoov.net/reserver",
+          "hashtags": [],
+          "imageText": "Réserver pour un proche"
+        },
+        "facebook": {
+          "hashtags": [],
+          "imageText": "Pour un proche ou un client"
+        },
+        "instagram": {
+          "body": "Réserver pour quelqu'un d'autre 📲\n\nSon nom, son numéro, et le tour est joué. Il reçoit le suivi par texto, vous pouvez prépayer, et vous recevez le reçu.\n\nLien dans la bio.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#MTL",
+            "#ProcheAidant",
+            "#Famille"
+          ],
+          "imageText": "Pour quelqu'un d'autre"
+        },
+        "linkedin": {
+          "body": "Réserver pour un client, un patient ou un invité.\n\nIl reçoit le suivi de sa course par texto, avec le modèle et la plaque du véhicule ; vous prépayez si vous le souhaitez et recevez le reçu. Avec un compte entreprise, ces courses sont regroupées sur une facture mensuelle par centre de coûts.",
+          "hashtags": [
+            "#Entreprises",
+            "#Hôtellerie",
+            "#Montréal"
+          ],
+          "imageText": "Réserver pour un tiers",
+          "en": {
+            "title": "Booking for someone else",
+            "body": "Booking for a client, patient or guest: they receive ride tracking by text, with the vehicle's model and plate; you can prepay and you get the receipt. With a business account, these rides are grouped on a monthly invoice per cost centre."
+          }
+        },
+        "x": {
+          "body": "Réservez pour un proche ou un client : son nom, son numéro, et il reçoit le suivi par texto. Vous pouvez prépayer, et vous recevez le reçu.",
+          "hashtags": [],
+          "imageText": "Son nom, son numéro",
+          "en": {
+            "title": "Their name, their number",
+            "body": "Book for a loved one or a client: their name and number, and they get tracking by text. You can prepay, and you get the receipt.",
+            "hashtags": []
+          }
+        },
+        "tiktok": {
+          "body": "Réserver pour quelqu'un d'autre ?\nSon nom et son numéro de téléphone suffisent.\nIl reçoit le suivi de sa course par texto.\nVous pouvez prépayer, et vous recevez le reçu.",
+          "caption": "Pour vos proches 📲 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#ProcheAidant"
+          ],
+          "imageText": "Le mode d'emploi"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Pour un proche ?\nSon nom, son numéro.\nIl suit sa course.",
+          "caption": "Réservez pour lui 📲 neomoov.net/reserver",
+          "hashtags": [
+            "#Neomoov",
+            "#MTL"
+          ],
+          "imageText": "Réservez pour lui"
+        },
+        "telegram": {
+          "body": "Réservez pour un proche ou un client : il reçoit le suivi par texto, vous pouvez prépayer, et vous recevez le reçu.",
+          "hashtags": [],
+          "imageText": "Pour vos proches"
+        },
+        "youtube": {
+          "title": "Réserver une course pour un proche : mode d'emploi",
+          "body": "Avec Neomoov, vous pouvez réserver pour une autre personne.\nIndiquez son nom et son numéro de téléphone.\nElle reçoit le suivi de sa course par texto, avec le modèle et la plaque.\nVous pouvez prépayer la course, et vous recevez le reçu.",
+          "caption": "Mode d'emploi pour réserver une course Neomoov pour un proche, un client ou un invité à Montréal.",
+          "hashtags": [
+            "#Neomoov",
+            "#Montréal",
+            "#Shorts"
+          ],
+          "imageText": "Mode d'emploi en vidéo"
+        },
+        "whatsapp_channel": {
+          "body": "Un parent à accompagner sans pouvoir y aller ? Réservez sa course à son nom : il reçoit le suivi par texto, et vous pouvez prépayer :",
+          "hashtags": [],
+          "imageText": "Un parent à accompagner ?"
+        }
+      },
+      "photoHints": [
+        "client",
+        "passager"
+      ],
+      "day": 28,
+      "sensitive": false,
+      "notes": "Thème : Conseils de déplacement. Date proposée : lundi 2 novembre 2026.\n\nPhoto réelle (client) : Photo réelle d'une jeune femme qui aide sa mère âgée à monter dans un véhicule (modèles, licence commerciale, crédit indiqué).\n\nExtrait de l'article (méta-description) : Son nom, son numéro, ses préférences : comment réserver une course Neomoov pour un proche, un client ou un invité, étape par étape."
+    },
+    {
+      "ref": "P50",
+      "pillar": "academy",
+      "audience": "chauffeurs",
+      "title": "Neomoov Chauffeur Pro : une attestation vérifiable",
+      "body": "Neomoov Chauffeur Pro : une attestation que l'on peut vérifier.\n\nQuand les sept quiz sont réussis, vous obtenez une attestation de suivi à votre nom, avec un code de vérification. L'accès comprend aussi l'application web Neomoov Booster, pour douze mois. 113,83 $ tout compris.\n\nFormation pratique complémentaire, ouverte à tous les chauffeurs de taxi et de VTC.",
+      "short": "Neomoov Chauffeur Pro : sept quiz réussis, une attestation de suivi à votre nom avec un code de vérification. Neomoov Booster inclus. 113,83 $ tout compris.",
+      "cta": "academy",
+      "hashtags": [],
+      "language": "fr",
+      "spaces": [
+        "facebook",
+        "instagram",
+        "linkedin",
+        "x",
+        "tiktok",
+        "snapchat",
+        "telegram",
+        "youtube",
+        "whatsapp_channel"
+      ],
+      "variants": {
+        "facebook": {
+          "hashtags": [
+            "#NeomoovAcademy"
+          ],
+          "imageText": "Une attestation vérifiable"
+        },
+        "instagram": {
+          "body": "Une attestation vérifiable 🎓\n\nRéussissez les sept quiz de Neomoov Chauffeur Pro et obtenez une attestation de suivi à votre nom, avec un code de vérification. 113,83 $ tout compris, accès de douze mois.\n\nLien dans la bio.",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#ChauffeurPro",
+            "#Formation",
+            "#Taxi",
+            "#VTC",
+            "#ChauffeurMontréal"
+          ],
+          "imageText": "Votre attestation"
+        },
+        "linkedin": {
+          "body": "Neomoov Chauffeur Pro délivre une attestation de suivi vérifiable.\n\nAprès la réussite des sept quiz, le chauffeur reçoit une attestation à son nom, avec un code qui permet de la vérifier. Formation pratique complémentaire pour chauffeurs de taxi et de VTC, avec l'application web Neomoov Booster. 113,83 $ tout compris.",
+          "hashtags": [
+            "#Formation",
+            "#NeomoovAcademy"
+          ],
+          "imageText": "Un code de vérification",
+          "en": {
+            "title": "A verifiable certificate",
+            "body": "Neomoov Chauffeur Pro provides a verifiable completion certificate: after passing the seven quizzes, drivers receive a certificate in their name, with a code that allows anyone to verify it. A practical complementary course for taxi and rideshare drivers, including the Neomoov Booster web app. $113.83, taxes included."
+          }
+        },
+        "x": {
+          "body": "Neomoov Chauffeur Pro : sept quiz réussis, une attestation de suivi à votre nom avec un code de vérification. Neomoov Booster inclus. 113,83 $ tout compris.",
+          "hashtags": [
+            "#NeomoovAcademy"
+          ],
+          "imageText": "Sept quiz, une attestation",
+          "en": {
+            "title": "Seven quizzes, one certificate",
+            "body": "Neomoov Chauffeur Pro: pass seven quizzes, get a certificate in your name with a verification code. Neomoov Booster included. $113.83, taxes included.",
+            "hashtags": [
+              "#NeomoovAcademy"
+            ]
+          }
+        },
+        "tiktok": {
+          "body": "Une attestation que l'on peut vérifier ?\nRéussissez les sept quiz de Neomoov Chauffeur Pro.\nVotre attestation porte votre nom et un code de vérification.\n113,83 $ tout compris, avec Neomoov Booster.",
+          "caption": "Votre attestation 🎓 neomoov.net/academy",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#ChauffeurPro",
+            "#Taxi",
+            "#VTC"
+          ],
+          "imageText": "On peut la vérifier"
+        },
+        "snapchat": {
+          "format": "short",
+          "body": "Sept quiz réussis.\nUne attestation à votre nom.\nUn code de vérification.",
+          "caption": "Neomoov Chauffeur Pro 🎓 neomoov.net/academy",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#Formation"
+          ],
+          "imageText": "Une attestation à votre nom"
+        },
+        "telegram": {
+          "body": "Neomoov Chauffeur Pro : sept quiz, une attestation de suivi vérifiable, l'application web Neomoov Booster. 113,83 $ tout compris.",
+          "hashtags": [],
+          "imageText": "Neomoov Booster inclus"
+        },
+        "youtube": {
+          "title": "Neomoov Chauffeur Pro : une attestation vérifiable",
+          "body": "Neomoov Chauffeur Pro compte sept modules, chacun avec son quiz.\nQuand les sept quiz sont réussis, vous obtenez une attestation de suivi.\nElle porte votre nom et un code de vérification.\n113,83 $ tout compris, avec l'application web Neomoov Booster.",
+          "caption": "L'attestation de suivi vérifiable de Neomoov Chauffeur Pro, la formation pratique complémentaire de Neomoov Academy pour les chauffeurs de taxi et de VTC. 113,83 $ tout compris.",
+          "hashtags": [
+            "#NeomoovAcademy",
+            "#ChauffeurPro",
+            "#Shorts"
+          ],
+          "imageText": "L'attestation en vidéo"
+        },
+        "whatsapp_channel": {
+          "body": "Chauffeurs : obtenez votre attestation Neomoov Chauffeur Pro, vérifiable par code. 113,83 $ tout compris :",
+          "hashtags": [],
+          "imageText": "Obtenez votre attestation"
+        }
+      },
+      "photoHints": [
+        "chauffeur",
+        "formation"
+      ],
+      "day": 28,
+      "sensitive": true,
+      "notes": "Thème : Neomoov Academy et Chauffeur Pro. Date proposée : lundi 2 novembre 2026.\n\nPhoto réelle (chauffeur) : Photo réelle d'un chauffeur souriant, téléphone en main, à côté de son véhicule électrique (modèle, licence commerciale, crédit indiqué).\n\nApprobation humaine : Prix publié (113,83 $) : sujet « argent », approbation humaine prévue par les lignes éditoriales."
     }
   ]
 }
