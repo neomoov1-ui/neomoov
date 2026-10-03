@@ -264,6 +264,12 @@ export class ProspectsService {
     return row;
   }
 
+  /** Prospect qui porte ce courriel professionnel (réponse reçue dans la boîte unifiée), le plus récent d'abord ; null sinon. */
+  async findByEmail(email: string): Promise<ProspectRow | null> {
+    const [row] = await this.db.select().from(schema.prospects).where(eq(schema.prospects.email, email.trim().toLowerCase())).orderBy(desc(schema.prospects.updatedAt)).limit(1);
+    return row ?? null;
+  }
+
   /** Réponse reçue d'un prospect (boîte unifiée, agent D) : étape « a répondu », relances closes. */
   async incomingReply(id: string, channel: TouchChannel, summary: string): Promise<ProspectRow> {
     const before = await this.get(id);

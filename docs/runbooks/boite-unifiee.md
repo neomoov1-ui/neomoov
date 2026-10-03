@@ -47,15 +47,28 @@ Même application Meta que WhatsApp (`docs/operations/acces-a-fournir.md`), mêm
 4. Essai : un message privé à la page Facebook ; dans My Hub, filtre « Réseaux sociaux », la conversation apparaît, l'agent répond par Messenger. Un commentaire sous une publication : réponse publique courte ; un commentaire négatif ou une plainte est remis à l'humain (état « En attente de l'humain »), avec une réponse publique neutre qui renvoie au message privé.
 5. Rattrapage : avec `SOCIAL_PROVIDER=real`, le worker interroge aussi l'API Graph à chaque passe de la file `inbox` (même période que l'IMAP) pour ce qu'un webhook aurait manqué.
 
-Limites : fenêtre de 24 heures de Meta pour répondre à un message privé (au-delà, la réponse est refusée par Meta et l'avis passe en erreur dans la file des notifications : répondre à la main depuis la page) ; messages avec pièce jointe seulement notés « (pièce jointe sans texte) ».
+Fenêtre de 24 heures de Meta (message privé Messenger ou Instagram ; les réponses publiques aux commentaires n'y sont pas soumises) : dans les 24 heures qui suivent le dernier message de la personne, la réponse part normalement. Au-delà, la plateforme n'envoie rien que Meta refuserait : la réponse part par un autre canal connu de la personne (courriel, texto ou push de son compte Neomoov), sinon elle passe « à relayer » dans la boîte et la conversation est remise au personnel (courriel, texto au fondateur). Une réponse refusée par Meta à l'envoi suit le même chemin, sans nouvel essai. Quand Meta aura accordé la permission « Human Agent » à l'application (examen de l'application, fonctionnalité « Human Agent »), passer `inbox.meta_human_agent_tag` à vrai : les réponses du personnel partent alors étiquetées `HUMAN_AGENT` jusqu'à 7 jours après le dernier message (jamais celles de l'agent). Messages avec pièce jointe seulement notés « (pièce jointe sans texte) ».
 
 ## 3. Réseaux sans connecteur : relais humain
 
 YouTube, TikTok, X, fiche Google, LinkedIn, Snapchat (lecture des messages non offerte par leur API, ou accès non ouvert) : My Hub, Boîte de réception, **Relais manuel**. Coller le message ou le commentaire reçu, le pseudonyme de la personne et, au besoin, le lien de la publication ; l'agent prépare la réponse en quelques secondes ; la copier, la coller sur le réseau, puis **Marquer relayée**. Les réponses en attente sont en tête de la boîte (état « Réponse à relayer »). Une réponse de l'équipe sur ces réseaux suit le même parcours.
 
+### 3.1 Discussion du site (Tidio)
+
+Les messages des visiteurs de la discussion Tidio arrivent dans la boîte par webhook.
+
+1. Choisir un secret : `openssl rand -hex 24`. Le poser dans `.env` : `TIDIO_WEBHOOK_SECRET=<secret>`. Recréer l'API.
+2. Tidio (formule qui offre les webhooks ou les flux « Envoyer un webhook ») : URL `https://api.neomoov.net/v1/webhooks/tidio?secret=<secret>` (ou en-tête `x-tidio-secret`), événement « message du visiteur ». La lecture accepte un message seul, un objet `data` ou une liste `messages`, avec le texte (`message.content` ou `text`), l'identifiant du message, la conversation, et le visiteur (`visitor` ou `contact` : identifiant, nom, courriel, téléphone).
+3. Visiteur qui a laissé son courriel : l'agent relation client lui répond par courriel depuis contact@ (Tidio ne reçoit pas la réponse). Sans courriel : conversation « Web » remise au personnel (adresse `tidio:<visiteur>`), à qui l'on répond dans Tidio. Les messages de l'équipe et du robot Lyro sont ignorés ; un message reçu deux fois n'est gardé qu'une fois.
+4. Essai : envoyer un message depuis la page du site ; il apparaît dans My Hub, Boîte de réception. Sans secret, l'API refuse le webhook en production (400).
+
 ## 4. Appels manqués et messages vocaux
 
-À chaque rapport de fin d'appel du centre vocal (Vapi), un appel sans réservation ni transfert (raccroché avant d'avoir abouti, message vocal, panne, aucune suite) crée une conversation « Voix » (nature « Appel manqué » ou « Message vocal », résumé de l'appel), remise à l'humain : courriel au personnel, texto au fondateur si `inbox.escalation_sms` (numéro `alerts.founder_phone`), texto « nous vous rappelons » à la personne. Après `inbox.callback_reminder_minutes` (60), si la conversation est toujours ouverte, le personnel est rappelé (`alert.callback_due`). Rappeler la personne, puis répondre dans la conversation en cochant « Terminer ». Un appelant au numéro masqué n'est pas rappelable : rien n'est créé.
+À chaque rapport de fin d'appel du centre vocal (Vapi), un appel sans réservation ni transfert (raccroché avant d'avoir abouti, message vocal, panne, aucune suite) crée une conversation « Voix » (nature « Appel manqué » ou « Message vocal », résumé de l'appel), remise à l'humain : courriel au personnel, texto au fondateur si `inbox.escalation_sms` (numéro `alerts.founder_phone`), texto « nous vous rappelons » à la personne. Le rappel est inscrit dans la table `followups` (cible `missed_call`) : après `inbox.callback_reminder_minutes` (60), à la passe suivante de la file `inbox`, si la conversation est toujours ouverte, le personnel est rappelé une fois (`alert.callback_due`) ; un redémarrage de l'API ou du worker ne le perd pas. Rappeler la personne, puis répondre dans la conversation en cochant « Terminer ». Un appelant au numéro masqué n'est pas rappelable : rien n'est créé.
+
+### 4.1 Réponses des prospects
+
+Un courriel reçu d'un prospect de la direction commerciale (même adresse que sa fiche « Ventes ») ne part pas à l'agent relation client : « STOP », « désabonner », « ne plus me contacter » (ou l'équivalent anglais) le passe en « Ne plus contacter » (relances et appels annulés, HubSpot prévenu) ; toute autre réponse le passe en « A répondu » et la conversation est remise au personnel, qui reprend le fil (rendez-vous, devis).
 
 ## 5. Réglages (My Hub, Paramètres)
 
@@ -66,6 +79,8 @@ YouTube, TikTok, X, fiche Google, LinkedIn, Snapchat (lecture des messages non o
 | `inbox.quiet_hours` | `{ from: "22:00", to: "07:00", channels: ["email", "social"] }` | Heures silencieuses (heure de Montréal) : accusé seulement sur ces canaux, réponse de fond à la reprise ; retirer un canal ou vider la liste pour couper |
 | `inbox.email_from` | `Neomoov <contact@neomoov.net>` | Expéditeur et adresse de réponse des courriels de la boîte |
 | `inbox.callback_reminder_minutes` | 60 | Rappel au personnel d'un appel manqué toujours sans suite |
+| `inbox.meta_human_agent_tag` | `false` | Réponse du personnel étiquetée `HUMAN_AGENT` hors de la fenêtre de 24 heures de Meta (permission Meta requise) |
+| `inbox.account_callback_hours` | 4 | Cible de rappel des problèmes de compte ou de paiement remis à l'humain, mesurée au rapport quotidien |
 | `inbox.mailbox_poll_seconds` | 120 | Période de la file `inbox` (IMAP et rattrapage Meta) ; effet au redémarrage du worker |
 
 Les deux fournisseurs restent simulés tant que `MAILBOX_PROVIDER` et `SOCIAL_PROVIDER` ne valent pas `real` : rien n'est lu par IMAP, les webhooks Meta sont refusés hors test, le relais humain et le courriel par Brevo fonctionnent quand même. Ils ne figurent pas dans la liste stricte d'`ALLOW_MOCK_PROVIDERS` (aucun envoi silencieusement perdu : sans connecteur, aucune conversation Meta n'existe).

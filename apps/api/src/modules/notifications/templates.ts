@@ -241,6 +241,15 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Pack expiré', body: (d) => `Votre pack a expiré${Number(d['unusedRides']) > 0 ? ` avec ${str(d['unusedRides'])} course(s) non utilisée(s), reportées si vous activez un pack dans les 7 jours` : ''}.` },
     en: { title: 'Pack expired', body: (d) => `Your pack has expired${Number(d['unusedRides']) > 0 ? ` with ${str(d['unusedRides'])} unused ride(s), carried over if you activate a pack within 7 days` : ''}.` },
   },
+  // Parrainage (étape 8, avis de la finalisation du 3 octobre 2026) : crédit du parrain ou du filleul, crédit de pack du parrain chauffeur.
+  'referral.rewarded': {
+    fr: { title: 'Parrainage récompensé', body: (d, l) => (d['role'] === 'referred' ? `Bienvenue chez Neomoov : un crédit de ${money(d['amountCents'], l)} vous attend pour votre prochaine course.` : `Votre filleul a fait sa première course : un crédit de ${money(d['amountCents'], l)} vous attend pour votre prochaine course. Merci !`) },
+    en: { title: 'Referral rewarded', body: (d, l) => (d['role'] === 'referred' ? `Welcome to Neomoov: a ${money(d['amountCents'], l)} credit is waiting for your next ride.` : `Your friend took their first ride: a ${money(d['amountCents'], l)} credit is waiting for your next ride. Thank you!`) },
+  },
+  'referral.driver_rewarded': {
+    fr: { title: 'Parrainage récompensé', body: (d, l) => `Votre filleul chauffeur a atteint le nombre de courses prévu : un crédit de pack de ${money(d['amountCents'], l)} sera déduit de vos packs au prochain relevé. Merci !` },
+    en: { title: 'Referral rewarded', body: (d, l) => `The driver you referred reached the required number of rides: a ${money(d['amountCents'], l)} pack credit will be deducted from your packs on your next statement. Thank you!` },
+  },
   'guarantee.decided': {
     fr: { title: 'Garantie modèle', body: (d, l) => (d['outcome'] === 'validated' ? `Votre demande est acceptée : ${money(d['refundedCents'], l)} vous sont rendus.` : `Votre demande n'est pas retenue : ${str(d['decision'])}`) },
     en: { title: 'Model guarantee', body: (d, l) => (d['outcome'] === 'validated' ? `Your claim is accepted: ${money(d['refundedCents'], l)} is refunded to you.` : `Your claim was not accepted: ${str(d['decision'])}`) },
@@ -502,7 +511,7 @@ export function renderNotification(code: string, data: Data, language: string | 
   const deepLink: Record<string, string> = { template: code };
   for (const key of ['rideId', 'offerId', 'statementId', 'invoiceId', 'alertType', 'channelId', 'sound', 'color', 'inspectionId']) if (typeof data[key] === 'string') deepLink[key] = data[key] as string;
   // Écran nommé de l'application chauffeur quand la notification ne porte pas d'identifiant (packs, documents, planifiées).
-  const screen = code.startsWith('pack.') ? 'packs' : code.startsWith('document.') || code.startsWith('compliance.') || code.startsWith('vehicle.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled'
+  const screen = code.startsWith('pack.') || code === 'referral.driver_rewarded' ? 'packs' : code.startsWith('document.') || code.startsWith('compliance.') || code.startsWith('vehicle.') ? 'documents' : code === 'ride.scheduled_confirmed_driver' ? 'scheduled'
     // Neomoov Booster : la vérification sommaire, le rapport de performance (fin et informations de session), sinon l'accueil Booster.
     : code === 'booster.inspection' ? 'booster-inspection' : code === 'booster.session_end' || code === 'booster.session_info' ? 'booster-performance' : code.startsWith('booster.') ? 'booster' : null;
   if (screen) deepLink['screen'] = screen;

@@ -100,7 +100,8 @@ export const prospectTouches = pgTable('prospect_touches', {
 
 /**
  * Relances planifiées (agent `followups`) : cible (prospect, devis, candidat chauffeur, réservation web), canal d'origine,
- * échéance, nombre de relances faites, clôture. Une seule chaîne ouverte par cible.
+ * échéance, nombre de relances faites, clôture. Une seule chaîne ouverte par cible. Finalisation du 3 octobre 2026 : rappel
+ * d'un appel manqué de la boîte unifiée (cible `missed_call` = la conversation, canal `voice`), persistant sans Redis.
  */
 export const followups = pgTable('followups', {
   id: id(),
@@ -127,9 +128,9 @@ export const followups = pgTable('followups', {
   uniqueIndex('followups_open_target_uq').on(t.targetType, t.targetId).where(sql`${t.status} IN ('scheduled', 'sent')`),
   index('followups_due_idx').on(t.dueAt).where(sql`${t.status} = 'scheduled'`),
   index('followups_prospect_idx').on(t.prospectId),
-  check('followups_target_type', sql`${t.targetType} IN ('prospect', 'quote', 'driver_candidate', 'web_booking')`),
+  check('followups_target_type', sql`${t.targetType} IN ('prospect', 'quote', 'driver_candidate', 'web_booking', 'missed_call')`),
   check('followups_status', sql`${t.status} IN ('scheduled', 'sent', 'replied', 'closed', 'cancelled')`),
-  check('followups_channel', sql`${t.channel} IN ('email', 'whatsapp', 'sms', 'push')`),
+  check('followups_channel', sql`${t.channel} IN ('email', 'whatsapp', 'sms', 'push', 'voice')`),
   check('followups_attempts', sql`${t.attempt} >= 0 AND ${t.maxAttempts} >= 0`),
 ]);
 

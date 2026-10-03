@@ -140,6 +140,28 @@ export class ScheduledService {
     await this.db.insert(schema.rideEvents).values({ rideId: ride.id, type, fromState: ride.state, toState: ride.state, actorUserId: null, actorKind: 'system', data, occurredAt: at });
   }
 
+  /**
+   * Signal d'attribution à 60 minutes resté sans suite (revue du 2 octobre 2026, agent B ; finalisation du 3 octobre) :
+   * `scheduled.dispatch_due` est un événement non persistant ; s'il se perd (processus redémarré entre la marque et son
+   * traitement, répartition absente du processus qui l'émet), la course planifiée resterait sans attribution. Rend les
+   * courses encore demandées dont le signal date de plus de `rides.scheduled_dispatch_due_grace_seconds` (120 s) sans
+   * aucune répartition démarrée depuis ; le worker relance alors l'attribution par le service de répartition existant.
+   */
+  async dispatchDueToRecover(now = new Date(), limit = 50): Promise<string[]> {
+    const grace = await this.settings.number('rides.scheduled_dispatch_due_grace_seconds', 120);
+    const at = now.toISOString();
+    const rows = await this.db.execute<{ id: string }>(sql`
+      SELECT r.id FROM rides r
+      JOIN LATERAL (SELECT max(e.occurred_at) AS at FROM ride_events e WHERE e.ride_id = r.id AND e.type = 'scheduled_dispatch_due') due ON due.at IS NOT NULL
+      WHERE r.type = 'scheduled' AND r.state IN ('requested', 'offering') AND r.driver_id IS NULL AND r.requested_at > ${at}::timestamptz
+        AND due.at < ${at}::timestamptz - make_interval(secs => ${grace})
+        -- Marge du délai de grâce : la marque est datée par l'horloge du worker, le démarrage par celle de la base.
+        AND NOT EXISTS (SELECT 1 FROM ride_events s WHERE s.ride_id = r.id AND s.type = 'dispatch_started' AND s.occurred_at >= due.at - make_interval(secs => ${grace}))
+      ORDER BY r.requested_at ASC
+      LIMIT ${limit}`);
+    return [...rows].map((r) => r.id);
+  }
+
   /** GET /v1/driver/scheduled : courses planifiées ouvertes de la catégorie du chauffeur (ou de rang inférieur), plus celles qui lui sont attribuées. */
   async listForDriver(actor: UserActor): Promise<ScheduledRideView[]> {
     const driver = await this.requireDriver(actor);

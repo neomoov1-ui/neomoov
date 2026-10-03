@@ -11,6 +11,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { MockLlmProvider, MockPushProvider } from '../src/adapters/mock/index.js';
 import { LLM_PROVIDER, PUSH_PROVIDER } from '../src/adapters/types.js';
 import { DomainEventsService } from '../src/common/domain-events.js';
+import { AgentJobsService } from '../src/modules/agents/agent-jobs.service.js';
 import { AlertsService } from '../src/modules/booster/alerts.service.js';
 import { InspectionsService } from '../src/modules/booster/inspections.service.js';
 import { NotificationDeliveryService } from '../src/modules/notifications/notification-delivery.service.js';
@@ -307,6 +308,47 @@ describe('Neomoov Booster : vérification sommaire, performance, alertes (intég
     const manual = await post(`/v1/driver/booster/inspections/${created.body.id}/confirm`, a.tokens, { allItemsChecked: true, odometerKm: 1000 });
     expect(manual.status).toBe(200);
     expect(manual.body.severity).toBe('ok');
+  });
+
+  it('analyse asynchrone (file agents) : réponse immédiate « en cours », lisible par les routes existantes, résultat après la tâche ; tâche remplacée ignorée ; attente perdue rendue en échec', async ({ skip }) => {
+    if (!app) return skip();
+    let req = upload('/v1/driver/booster/inspections', a.tokens);
+    for (let i = 0; i < 6; i += 1) req = req.attach('photos', JPEG, `async${i}.jpg`);
+    const created = await req;
+    expect(created.status).toBe(201);
+    const id = created.body.id as string;
+    const visionCalls = () => llm.requests.filter((r) => r.schemaName === 'vehicle_inspection').length;
+    const before = visionCalls();
+    const queued = await post(`/v1/driver/booster/inspections/${id}/analyse?async=true`, a.tokens);
+    expect(queued.status, JSON.stringify(queued.body)).toBe(200);
+    expect(queued.body.analysis).toMatchObject({ status: 'pending', promptKey: 'vehicle_inspection.v1', analysedAt: null, error: null });
+    expect(queued.body.status).toBe('draft');
+    // Pas d'appel au modèle pendant la requête ; une seconde demande pendant l'attente ne relance rien.
+    expect(visionCalls()).toBe(before);
+    expect((await post(`/v1/driver/booster/inspections/${id}/analyse?async=true`, a.tokens)).body.analysis.status).toBe('pending');
+    expect((await get(`/v1/driver/booster/inspections/${id}`, a.tokens)).body.analysis.status).toBe('pending');
+    const [row] = await db(app).select({ analysisCount: schema.vehicleInspections.analysisCount }).from(schema.vehicleInspections).where(eq(schema.vehicleInspections.id, id));
+    const attempt = row!.analysisCount;
+    // Tâche d'une tentative remplacée : ignorée. Tâche attendue (traitement de la file `agents`, comme le worker) : analyse faite.
+    const inspections = app.get(InspectionsService);
+    expect(await inspections.runAnalysis(id, attempt + 5)).toBeNull();
+    await app.get(AgentJobsService).process('booster.inspection', { id, attempt });
+    const done = await get(`/v1/driver/booster/inspections/${id}`, a.tokens);
+    expect(done.body.analysis.status).toBe('done');
+    expect(done.body.status).toBe('analysed');
+    expect(done.body.odometerKm).toBe(123_456);
+    expect(visionCalls()).toBe(before + 1);
+    // Rejouée après le résultat : rien n'est refait.
+    expect(await inspections.runAnalysis(id, attempt)).toBeNull();
+    // Attente perdue (tâche jamais traitée depuis plus de 10 minutes) : échec lisible, analyse relançable.
+    const stale = { promptKey: 'vehicle_inspection.v1', model: null, analysedAt: new Date(Date.now() - 3_600_000).toISOString(), confidence: null, raw: null, error: null, pending: true, requestedAt: new Date(Date.now() - 3_600_000).toISOString(), attempt: attempt + 1 };
+    await db(app).update(schema.vehicleInspections).set({ analysis: stale, analysisCount: attempt + 1 }).where(eq(schema.vehicleInspections.id, id));
+    expect((await get(`/v1/driver/booster/inspections/${id}`, a.tokens)).body.analysis).toMatchObject({ status: 'failed', error: 'ANALYSIS_TIMEOUT' });
+    const again = await post(`/v1/driver/booster/inspections/${id}/analyse?async=true`, a.tokens);
+    expect(again.body.analysis.status).toBe('pending');
+    // Sans le paramètre, le réglage `booster.analysis_async` (faux par défaut) garde l'analyse synchrone.
+    const sync = await post(`/v1/driver/booster/inspections/${id}/analyse?async=false`, a.tokens);
+    expect(sync.body.analysis.status).toBe('done');
   });
 
   // --- Rapport de performance ----------------------------------------------------------------------------------------

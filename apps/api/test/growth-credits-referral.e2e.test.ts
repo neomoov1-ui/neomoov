@@ -219,6 +219,15 @@ describe('crédits et parrainage : consommation à la fin de course, parrainage 
     expectExpiryAround(referrerCredits[0]!.expiresAt, validityDays);
     expectExpiryAround(refereeCredits[0]!.expiresAt, validityDays);
 
+    // Avis de parrainage (finalisation du 3 octobre 2026) : un seul au parrain et un seul au filleul, même rejoué.
+    const notices = async (userId: string) => db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, userId), eq(schema.notifications.template, 'referral.rewarded')));
+    const toReferrer = await until(() => notices(referrer.user.id), (n) => n.length > 0, 'avis de parrainage au parrain');
+    const toReferee = await notices(referee.user.id);
+    expect(toReferrer).toHaveLength(1);
+    expect(toReferee).toHaveLength(1);
+    expect(toReferrer[0]).toMatchObject({ channel: 'push', data: { amountCents: referrerCents, role: 'referrer' } });
+    expect(toReferee[0]).toMatchObject({ channel: 'push', data: { amountCents: referredCents, role: 'referred' } });
+
     expect((await referralView(referrer)).stats).toEqual({ invited: 1, completed: 1, earnedCents: referrerCents });
     expect((await referralView(referee)).referredBy).toEqual({ code: view.code, status: 'completed' });
     const wallet = (await request(server()).get('/v1/me/credits').set(bearer(referee)).expect(200)).body as { availableCents: number; credits: Array<{ origin: string }> };
@@ -299,6 +308,11 @@ describe('crédits et parrainage : consommation à la fin de course, parrainage 
     expect(wallet.body.availableCents).toBe(0);
     expect(wallet.body.credits.map((c: { origin: string }) => c.origin)).toEqual(['driver_pack']);
     expect((await referralView(sponsor.tokens)).stats).toEqual({ invited: 1, completed: 1, earnedCents: sponsorCents });
+    // Avis au parrain chauffeur (crédit de pack, écran des packs) : un seul, même rejoué ; rien au filleul.
+    const sponsorNotices = await database.select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, sponsor.userId), eq(schema.notifications.template, 'referral.driver_rewarded')));
+    expect(sponsorNotices).toHaveLength(1);
+    expect(sponsorNotices[0]).toMatchObject({ channel: 'push', data: { amountCents: sponsorCents } });
+    expect(await database.select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, candidate.user.id), sql`${schema.notifications.template} LIKE 'referral.%'`))).toHaveLength(0);
     const [check] = await database.execute<{ n: number }>(sql`SELECT count(*)::int AS n FROM referrals WHERE referred_user_id = ${candidate.user.id}::uuid`);
     expect(Number(check!.n)).toBe(1);
   });

@@ -11,6 +11,7 @@ import { QueueService } from '../src/infra/queue.module.js';
 import { CustomerRelationsAgent } from '../src/modules/agents/customer-relations.agent.js';
 import { InboxJobsService } from '../src/modules/inbox/inbox-jobs.service.js';
 import { NotificationDeliveryService } from '../src/modules/notifications/notification-delivery.service.js';
+import { FollowupsService } from '../src/modules/sales/followups.service.js';
 import { bearer, cleanupTestData, createStaffAndLogin, db, startTestApp, testEmail, type StaffSession } from './helpers.js';
 
 /**
@@ -77,6 +78,8 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
           await database.delete(schema.agentRuns).where(and(eq(schema.agentRuns.agentCode, 'customer_relations'), inArray(schema.agentRuns.triggerRef, refs)));
         }
         await database.delete(schema.conversations).where(inArray(schema.conversations.id, ids));
+        // Rappels des appels manqués (cible `missed_call` = la conversation, sans clé étrangère).
+        await database.delete(schema.followups).where(and(eq(schema.followups.targetType, 'missed_call'), inArray(schema.followups.targetId, ids)));
       }
       if (callIds.length) await database.delete(schema.agentRuns).where(and(eq(schema.agentRuns.agentCode, 'voice_call_center'), inArray(schema.agentRuns.triggerRef, callIds)));
       const recipients = [...addresses, ...phones];
@@ -186,11 +189,11 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     const message = { messageId: `<imap-${rand()}@example.com>`, inReplyTo: null, references: [], from: `Paul Roy <${sender}>`, to: ['contact@neomoov.net'], subject: 'Siège enfant', text: 'Bonjour, avez-vous des sièges enfant ?', html: null, attachments: [], headers: {}, receivedAt: new Date() };
     mailbox.unseen.push(message);
     const jobs = app.get(InboxJobsService);
-    expect(await jobs.pollMailbox()).toEqual({ fetched: 1, byStatus: { queued: 1, automated: 0, duplicate: 0, ignored: 0 } });
+    expect(await jobs.pollMailbox()).toEqual({ fetched: 1, byStatus: { queued: 1, automated: 0, duplicate: 0, ignored: 0, prospect_reply: 0, opt_out: 0 } });
     const state = await until(() => conversationsOf({ address: sender }), (s) => s.messages.length === 3, 'réponse de l\'agent (IMAP)');
     expect(state.conversation).toMatchObject({ channel: 'email', subject: 'Siège enfant', displayName: 'Paul Roy' });
     mailbox.unseen.push(message, { ...message, messageId: null, from: 'sans adresse' });
-    expect(await jobs.pollMailbox()).toEqual({ fetched: 2, byStatus: { queued: 0, automated: 0, duplicate: 1, ignored: 1 } });
+    expect(await jobs.pollMailbox()).toEqual({ fetched: 2, byStatus: { queued: 0, automated: 0, duplicate: 1, ignored: 1, prospect_reply: 0, opt_out: 0 } });
   });
 
   it('Messenger : message privé → conversation social répondue par le connecteur ; commentaire Facebook négatif → escalade et réponse publique neutre', async ({ skip }) => {
@@ -242,8 +245,6 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     phones.push(phone);
     const callId = `call-d-${rand()}`;
     callIds.push(callId);
-    const queues = app.get(QueueService);
-    const added = vi.spyOn(queues, 'add');
     const report = { message: { type: 'end-of-call-report', call: { id: callId, customer: { number: phone } }, summary: 'La personne voulait un prix pour Laval et a raccroché.', endedReason: 'customer-ended-call', cost: 0.05, durationSeconds: 20 } };
     await request(server()).post('/v1/webhooks/vapi').set('x-vapi-secret', 'mock-signature').send(report).expect(200);
     const state = await until(() => conversationsOf({ phone }), (s) => s.conversation?.status === 'escalated' && s.messages.length === 2, 'conversation de l\'appel manqué');
@@ -254,25 +255,42 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     expect(state.messages[1]!.body).toContain('rappelle');
     expect(await deliverAll(phone)).toEqual(['sent']);
     expect(sms.sent.find((s) => s.to === phone)!.body).toContain('rappelle');
-    const callback = added.mock.calls.find((c) => c[0] === 'inbox' && c[1] === 'callback');
-    expect(callback?.[2]).toMatchObject({ conversationId: state.conversation!.id, minutes: 60 });
-    expect(callback?.[3]).toMatchObject({ jobId: `callback-${state.conversation!.id}`, delay: 3_600_000 });
-    added.mockRestore();
+    // Rappel inscrit dans `followups` (finalisation du 3 octobre 2026) : persistant, plus de tâche différée perdue sans Redis.
+    const conversationId = state.conversation!.id;
+    const followupsOf = () => db(app!).select().from(schema.followups).where(and(eq(schema.followups.targetType, 'missed_call'), eq(schema.followups.targetId, conversationId)));
+    const [callback] = await until(followupsOf, (f) => f.length === 1, 'rappel inscrit');
+    expect(callback).toMatchObject({ channel: 'voice', status: 'scheduled', maxAttempts: 1, prospectId: null, context: { kind: 'missed_call', minutes: 60 } });
+    expect(callback!.dueAt.getTime() - callback!.referenceAt.getTime()).toBe(3_600_000);
 
-    // Rapport rejoué : une seule conversation, un seul texto.
+    // Rapport rejoué : une seule conversation, un seul texto, un seul rappel.
     await request(server()).post('/v1/webhooks/vapi').set('x-vapi-secret', 'mock-signature').send(report).expect(200);
     await new Promise((r) => setTimeout(r, 300));
     expect(await db(app).select().from(schema.conversations).where(eq(schema.conversations.phone, phone))).toHaveLength(1);
     expect(await notificationsTo(phone)).toHaveLength(1);
+    expect(await followupsOf()).toHaveLength(1);
+    // Les relances commerciales ne voient jamais un rappel d'appel manqué.
+    expect((await app.get(FollowupsService).due(new Date(Date.now() + 2 * 3_600_000), 1_000)).some((f) => f.id === callback!.id)).toBe(false);
 
-    // Rappel : conversation toujours ouverte, le personnel est rappelé ; conversation terminée, plus rien.
+    // Passe de la file `inbox` : pas encore échu, rien ; échu, le personnel est rappelé une seule fois et le rappel est clos.
     const jobs = app.get(InboxJobsService);
-    expect(await jobs.callbackDue(state.conversation!.id, 60)).toBe(true);
-    const due = await db(app).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, operator.userId), eq(schema.notifications.template, 'alert.callback_due')));
-    expect(due.some((n) => (n.data as { conversationId: string }).conversationId === state.conversation!.id)).toBe(true);
+    const alertsFor = async () => (await db(app!).select().from(schema.notifications).where(and(eq(schema.notifications.recipientUserId, operator.userId), eq(schema.notifications.template, 'alert.callback_due'))))
+      .filter((n) => (n.data as { conversationId: string }).conversationId === conversationId);
+    await jobs.callbacksDue(new Date(Date.now() + 30 * 60_000), 1_000);
+    expect((await followupsOf())[0]!.status).toBe('scheduled');
+    expect(await alertsFor()).toHaveLength(0);
+    await jobs.callbacksDue(new Date(Date.now() + 61 * 60_000), 1_000);
+    expect((await followupsOf())[0]).toMatchObject({ status: 'closed', closeReason: 'reminded', attempt: 1 });
+    const due = await alertsFor();
+    expect(due).toHaveLength(1);
     expect(JSON.stringify(due[0]!.data)).not.toContain(phone);
-    await request(server()).post(`/v1/admin/conversations/${state.conversation!.id}/messages`).set(bearer(operator.tokens)).send({ text: 'Rappel fait, réservation prise par téléphone.', close: true }).expect(200);
-    expect(await jobs.callbackDue(state.conversation!.id, 60)).toBe(false);
+    await jobs.callbacksDue(new Date(Date.now() + 3 * 3_600_000), 1_000);
+    expect(await alertsFor()).toHaveLength(1);
+
+    // Conversation terminée : une ancienne tâche différée `callback` (d'avant la finalisation) ne rappelle plus rien.
+    await request(server()).post(`/v1/admin/conversations/${conversationId}/messages`).set(bearer(operator.tokens)).send({ text: 'Rappel fait, réservation prise par téléphone.', close: true }).expect(200);
+    expect(await jobs.callbackDue(conversationId, 60)).toBe(false);
+    await jobs.run('callback', { conversationId, minutes: 60 });
+    expect(await alertsFor()).toHaveLength(1);
   });
 
   it('relais manuel : message collé d\'un réseau sans connecteur → réponse préparée par l\'agent, à relayer puis marquée relayée', async ({ skip }) => {

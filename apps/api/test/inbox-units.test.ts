@@ -3,6 +3,7 @@ import { parseMetaWebhook } from '../src/adapters/meta-webhook.js';
 import { MockMailboxProvider, MockSocialProvider } from '../src/adapters/mock/index.js';
 import { decodeMimeText, decodeTransferEncoding, listAttachments, parseRawHeaders, pickTextPart } from '../src/adapters/real/mime.js';
 import { realMailbox, realSocial } from '../src/adapters/real/index.js';
+import { isWindowClosedError, MetaSocialProvider } from '../src/adapters/real/meta-social.js';
 import { loadEnv } from '../src/config/env.js';
 import { brevoToEmail } from '../src/modules/inbox/inbox.controller.js';
 
@@ -128,5 +129,38 @@ describe('boîte unifiée : relais entrant Brevo et adaptateurs réels', () => {
     const mailbox = realMailbox(loadEnv({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://x', MAILBOX_HOST: 'imap.example.com', MAILBOX_USER: 'contact@example.com', MAILBOX_PASSWORD: 'mot-de-passe-de-test' }, { dotenv: false }));
     expect(mailbox.name).toBe('imap');
     expect(JSON.stringify(mailbox)).not.toContain('mot-de-passe-de-test');
+  });
+});
+
+describe('boîte unifiée : fenêtre de 24 heures de Meta (finalisation du 3 octobre 2026)', () => {
+  it('réponse ordinaire (RESPONSE) ou étiquetée (MESSAGE_TAG, HUMAN_AGENT) ; refus hors fenêtre rendu en SOCIAL_WINDOW_CLOSED, autre refus en SOCIAL_PROVIDER_ERROR', async () => {
+    const payloads: Array<Record<string, unknown>> = [];
+    let answer: { status: number; body: unknown } = { status: 200, body: { message_id: 'mid.1' } };
+    const fetchImpl = (async (_url: string | URL | Request, init?: RequestInit) => {
+      payloads.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>);
+      return new Response(JSON.stringify(answer.body), { status: answer.status, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const meta = new MetaSocialProvider('jeton-de-test', 'page', 'insta', null, null, fetchImpl);
+    expect(await meta.reply({ network: 'messenger', threadId: 'psid', text: 'Bonjour' })).toEqual({ messageId: 'mid.1' });
+    expect(payloads[0]).toMatchObject({ recipient: { id: 'psid' }, messaging_type: 'RESPONSE', message: { text: 'Bonjour' } });
+    expect(payloads[0]).not.toHaveProperty('tag');
+    await meta.reply({ network: 'instagram', threadId: 'igsid', text: 'Suite', tag: 'HUMAN_AGENT' });
+    expect(payloads[1]).toMatchObject({ messaging_type: 'MESSAGE_TAG', tag: 'HUMAN_AGENT' });
+    answer = { status: 400, body: { error: { code: 10, error_subcode: 2018278, message: '(#10) This message is sent outside of allowed window.' } } };
+    await expect(meta.reply({ network: 'messenger', threadId: 'psid', text: 'Trop tard' })).rejects.toMatchObject({ code: 'SOCIAL_WINDOW_CLOSED', status: 409 });
+    answer = { status: 500, body: { error: { code: 2, message: 'Service temporairement indisponible' } } };
+    await expect(meta.reply({ network: 'messenger', threadId: 'psid', text: 'Panne' })).rejects.toMatchObject({ code: 'SOCIAL_PROVIDER_ERROR' });
+    expect(isWindowClosedError(10, 2534022, undefined)).toBe(true);
+    expect(isWindowClosedError(10, null, 'Message outside of the allowed window')).toBe(true);
+    expect(isWindowClosedError(10, null, 'Permission manquante')).toBe(false);
+    expect(isWindowClosedError(null, null, undefined)).toBe(false);
+  });
+
+  it('simulateur : un fil clos refuse la réponse ordinaire, accepte la réponse étiquetée', async () => {
+    const social = new MockSocialProvider();
+    social.closedThreads.add('clos');
+    await expect(social.reply({ network: 'messenger', threadId: 'clos', text: 'x' })).rejects.toMatchObject({ code: 'SOCIAL_WINDOW_CLOSED' });
+    expect(await social.reply({ network: 'messenger', threadId: 'clos', text: 'y', tag: 'HUMAN_AGENT' })).toHaveProperty('messageId');
+    expect(social.sent.at(-1)).toMatchObject({ threadId: 'clos', tag: 'HUMAN_AGENT' });
   });
 });

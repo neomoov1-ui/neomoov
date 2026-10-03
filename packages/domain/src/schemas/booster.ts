@@ -25,7 +25,12 @@ export const inspectionPhotoSchema = z.object({
 });
 export type InspectionPhotoView = z.infer<typeof inspectionPhotoSchema>;
 
-export const ANALYSIS_STATUSES = ['none', 'done', 'failed'] as const;
+/** `pending` : analyse confiée à la file `agents` (mode asynchrone), le résultat arrive par la lecture du rapport. */
+export const ANALYSIS_STATUSES = ['none', 'pending', 'done', 'failed'] as const;
+
+/** Analyse demandée : `async=true` la confie à la file `agents` et répond aussitôt (état `pending`), sinon selon le réglage `booster.analysis_async`. */
+export const boosterAnalyseQuerySchema = z.object({ async: z.enum(['true', 'false']).optional() });
+export type BoosterAnalyseQuery = z.infer<typeof boosterAnalyseQuerySchema>;
 
 export const inspectionAnalysisViewSchema = z.object({
   status: z.enum(ANALYSIS_STATUSES),

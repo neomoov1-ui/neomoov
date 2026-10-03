@@ -8,18 +8,21 @@ import {
   aggregatePerformance, isoWeekLabel, localDate, performanceSummary, periodBounds, prefillFromReading, type AdminPerformanceLogView, type Page, type PerformanceFigures,
   type PerformanceListQuery, type PerformanceLogInput, type PerformanceLogView, type PerformanceReading, type PerformanceRecapQuery, type PerformanceRecapView,
 } from '@neomoov/domain';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { and, count, desc, eq, gte, lte, sql, type SQL } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { STORAGE_PROVIDER, VIRUS_SCANNER, type StorageProvider, type VirusScanner } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { APP_LOGGER } from '../../common/logger.js';
-import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
+import { afterOrgScopeCommit, currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { QueueService } from '../../infra/queue.module.js';
+import { AgentJobsService } from '../agents/agent-jobs.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { BoosterJpegService } from './pdf-to-jpeg.js';
 import { DriverProfileService, type DriverRow } from '../drivers/driver-profile.service.js';
+import { ANALYSIS_TIMEOUT, analysisState, isBoosterAnalysisJob, PERFORMANCE_ANALYSIS_JOB, pendingAnalysis } from './booster-async.js';
 import { BoosterAnalysisService, PERFORMANCE_PROMPT_KEY } from './booster-analysis.service.js';
 import { intakeImages, type StoredAnalysis, type UploadedImage } from './booster-images.js';
 import { fullName } from './inspections.service.js';
@@ -47,7 +50,7 @@ function figuresOf(row: Row): PerformanceFigures {
 }
 
 @Injectable()
-export class PerformanceService {
+export class PerformanceService implements OnModuleInit {
   constructor(
     @Inject(DB) private readonly database: Database,
     @Inject(APP_LOGGER) private readonly logger: Logger,
@@ -58,10 +61,19 @@ export class PerformanceService {
     private readonly analysis: BoosterAnalysisService,
     private readonly audit: AuditService,
     private readonly jpegs: BoosterJpegService,
+    private readonly queues: QueueService,
+    private readonly agentJobs: AgentJobsService,
   ) {}
 
   private get db() {
     return this.database.db;
+  }
+
+  /** Lecture asynchrone : la tâche `booster.performance` de la file `agents` est traitée ici (API sans Redis, worker avec Redis). */
+  onModuleInit() {
+    this.agentJobs.registerHandler(PERFORMANCE_ANALYSIS_JOB, async (data) => {
+      if (isBoosterAnalysisJob(data)) await this.runAnalysis(data.id, data.attempt);
+    });
   }
 
   private async limits() {
@@ -81,7 +93,11 @@ export class PerformanceService {
 
   private readingView(row: Row): PerformanceLogView['reading'] {
     const a = row.analysis as StoredAnalysis | null;
+    const state = analysisState(a);
     if (!a) return { status: 'none', promptKey: null, model: null, analysedAt: null, confidence: null, summary: null, app: null, photosUnusable: [], error: null };
+    // Lecture confiée à la file `agents` : en cours, ou réputée perdue après 10 minutes (relançable).
+    if (state === 'pending') return { status: 'pending', promptKey: a.promptKey, model: null, analysedAt: null, confidence: null, summary: null, app: null, photosUnusable: [], error: null };
+    if (state === 'stale') return { status: 'failed', promptKey: a.promptKey, model: null, analysedAt: null, confidence: null, summary: null, app: null, photosUnusable: [], error: ANALYSIS_TIMEOUT };
     if (a.error) return { status: 'failed', promptKey: a.promptKey, model: a.model, analysedAt: a.analysedAt, confidence: null, summary: null, app: null, photosUnusable: [], error: a.error };
     const raw = a.raw as PerformanceReading;
     const prefill = prefillFromReading(raw);
@@ -165,11 +181,57 @@ export class PerformanceService {
   }
 
   /** Lecture des captures : les champs lus remplissent ceux encore vides (nuls ou à zéro) ; le chauffeur confirme ensuite. */
-  async analyse(userId: string, id: string): Promise<PerformanceLogView> {
-    const { driver, row } = await this.requireOwn(userId, id);
+  async analyse(userId: string, id: string, options: { async?: boolean } = {}): Promise<PerformanceLogView> {
+    const { row } = await this.requireOwn(userId, id);
     this.assertEditable(row);
     if (!row.screenshots.length) throw new AppError('NO_SCREENSHOTS', 'Ajoutez au moins une capture d\'écran avant la lecture', 400);
+    if (options.async ?? (await this.settings.get<unknown>('booster.analysis_async', false)) === true) return this.queueAnalysis(row);
+    return this.analyseRow(row, row.analysisCount + 1);
+  }
+
+  /** Lecture confiée à la file `agents` (finalisation du 3 octobre 2026) : état `pending`, tâche mise en file après la validation. */
+  private async queueAnalysis(row: Row): Promise<PerformanceLogView> {
+    if (analysisState(row.analysis as StoredAnalysis | null) === 'pending') return this.view(row);
     const attempt = row.analysisCount + 1;
+    const [updated] = await this.db
+      .update(schema.performanceLogs)
+      .set({ analysis: pendingAnalysis(PERFORMANCE_PROMPT_KEY, attempt), analysisCount: attempt })
+      .where(and(eq(schema.performanceLogs.id, row.id), eq(schema.performanceLogs.analysisCount, row.analysisCount)))
+      .returning();
+    if (!updated) throw AppError.conflict('ANALYSIS_IN_PROGRESS', 'Une lecture de ce rapport vient d\'être lancée');
+    afterOrgScopeCommit(() => void this.enqueueAnalysis(row.id, attempt));
+    return this.view(updated);
+  }
+
+  /** Mise en file de la tâche ; un échec de la file est consigné dans le rapport (relançable). */
+  private async enqueueAnalysis(id: string, attempt: number): Promise<void> {
+    try {
+      await this.queues.add('agents', PERFORMANCE_ANALYSIS_JOB, { id, attempt }, { jobId: `${PERFORMANCE_ANALYSIS_JOB}-${id}-${attempt}` });
+    } catch (error) {
+      this.logger.error({ err: error, logId: id }, 'Lecture des captures non confiée à la file agents');
+      const analysis: StoredAnalysis = { promptKey: PERFORMANCE_PROMPT_KEY, model: null, analysedAt: new Date().toISOString(), confidence: null, raw: null, error: 'QUEUE_UNAVAILABLE' };
+      await this.db.update(schema.performanceLogs).set({ analysis }).where(eq(schema.performanceLogs.id, id)).catch(() => undefined);
+    }
+  }
+
+  /** Tâche `booster.performance` : rapport relu au moment de la lecture ; tentative remplacée ou rapport confirmé ignorés. */
+  async runAnalysis(id: string, attempt: number): Promise<PerformanceLogView | null> {
+    const [row] = await this.db.select().from(schema.performanceLogs).where(eq(schema.performanceLogs.id, id)).limit(1);
+    const stored = row?.analysis as StoredAnalysis | null | undefined;
+    if (!row || row.status === 'confirmed' || !stored?.pending || stored.attempt !== attempt) return null;
+    try {
+      return await this.analyseRow(row, attempt);
+    } catch (error) {
+      this.logger.error({ err: error, logId: id }, 'Lecture asynchrone des captures en échec');
+      const analysis: StoredAnalysis = { promptKey: PERFORMANCE_PROMPT_KEY, model: null, analysedAt: new Date().toISOString(), confidence: null, raw: null, error: error instanceof AppError ? error.code : 'ANALYSIS_FAILED' };
+      const [updated] = await this.db.update(schema.performanceLogs).set({ analysis }).where(eq(schema.performanceLogs.id, id)).returning();
+      return updated ? this.view(updated) : null;
+    }
+  }
+
+  private async analyseRow(row: Row, attempt: number): Promise<PerformanceLogView> {
+    const id = row.id;
+    const driver = { id: row.driverId };
     const outcome = await this.analysis.readPerformance({ logId: id, driverId: driver.id, attempt, images: row.screenshots, date: row.date });
     const analysedAt = new Date().toISOString();
     if (!outcome.ok) {

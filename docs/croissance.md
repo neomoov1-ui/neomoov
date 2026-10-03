@@ -46,6 +46,5 @@ Règles en données (`promotions`) : type `percent`, `fixed`, `free_ride` ou `nt
 
 ## Reste à faire
 
-- Étape 9 : compensation des promotions, crédits de pack et tarifs protégés sur le relevé hebdomadaire.
-- Étape 13 : envoi réel des avis (`pack.low`, `pack.renewed`, `pack.expired`, `pack.renewal_failed`) ; avis de parrainage.
+- Fait (vérifié le 3 octobre 2026, finalisation U3) : compensation des promotions, crédit de pack du parrainage et tarifs protégés sur le relevé hebdomadaire (`settlement/statements.service.ts`, essais `settlement.e2e`) ; avis de pack envoyés par push (cycle des packs, matrice, file des notifications ; essais `growth-packs-promotions.e2e`, `notifications.e2e`) ; avis de parrainage `referral.rewarded` et `referral.driver_rewarded` (essais `growth-credits-referral.e2e`).
 - Écrans clients : saisie d'un code promo et d'un code de parrainage, « Mes chauffeurs » dans l'application client (les routes sont prêtes).

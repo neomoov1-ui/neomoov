@@ -192,3 +192,13 @@ export const seoTaskRejectSchema = z.object({ reason: z.string().trim().min(3).m
 export const seoPlanRequestSchema = z.object({ weekStart: localDateString.optional(), force: z.boolean().default(false) });
 export const seoPlanResultSchema = z.object({ run: agentRunSchema.nullable(), replayed: z.boolean(), created: count, applied: count });
 export type SeoPlanResult = z.infer<typeof seoPlanResultSchema>;
+
+/**
+ * Outils de l'agent `publishing` (finalisation du 3 octobre 2026) : ses actes passent par `AgentToolsService` comme ceux
+ * des autres agents (outil déclaré par l'agent, entrée validée, appel journalisé). Entrées minimisées : identifiants,
+ * jamais le texte ni l'auteur d'un commentaire reçu.
+ */
+export const socialPublishToolSchema = z.object({ itemId: uuid, at: isoDate.optional() });
+export const socialMetricsToolSchema = z.object({ itemId: uuid, at: isoDate.optional() });
+export const replyCommentToolSchema = z.object({ itemId: uuid, commentId: z.string().trim().min(1).max(200), text: z.string().trim().min(1).max(2_000) });
+export const forwardCommentToolSchema = z.object({ itemId: uuid, commentId: z.string().trim().min(1).max(200), intent: z.enum(COMMENT_INTENTS), negative: z.boolean() });

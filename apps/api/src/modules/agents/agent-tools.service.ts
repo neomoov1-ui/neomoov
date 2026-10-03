@@ -8,7 +8,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  compareDocumentIdentity, DOCUMENT_TYPES, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, financialDecision, flagAnomalyToolSchema, type FinancialDecision, issueCreditToolSchema, listStatementLinesToolSchema,
+  callbackStats, firstReplyByChannel, isAccountCallbackEscalation, type CallbackStats, type ChannelFirstReply, compareDocumentIdentity, DOCUMENT_TYPES, escalateToHumanToolSchema, extractDocumentFieldsToolSchema, financialDecision, flagAnomalyToolSchema, type FinancialDecision, issueCreditToolSchema, listStatementLinesToolSchema,
   localClock, lookupClientToolSchema, lookupDriverToolSchema, lookupRideToolSchema, openIncidentToolSchema, proposeDecisionToolSchema, queryMetricsToolSchema, redactSensitive, refundToolSchema,
   sendMessageToolSchema, compareIdentityToolSchema, proposeSanctionToolSchema, uuid, type ExtractedDocumentFields, type ToolResultView,
 } from '@neomoov/domain';
@@ -39,6 +39,8 @@ export const TOOL_NAMES = [
   // Direction commerciale (phase 1 « entreprise autonome », 2 octobre 2026) : outils fournis par le module des ventes (`register`).
   'searchProspects', 'listLeadProspects', 'createProspect', 'qualifyProspect', 'startSequence', 'scheduleCall', 'scheduleMeeting', 'createBusinessQuote',
   'openBusinessAccount', 'markDoNotContact', 'proposeSalesDecision', 'sendFollowup',
+  // Marketing, agent de diffusion (finalisation du 3 octobre 2026) : outils fournis par le module du marketing (`register`).
+  'socialPublish', 'socialMetrics', 'replyComment', 'forwardComment',
 ] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 export type ToolResult = ToolResultView;
@@ -679,6 +681,33 @@ export class AgentToolsService {
     return done({
       ...report,
       operations: { openIncidents: incidents?.n ?? 0, pendingDocuments: documents?.n ?? 0, pendingApprovals: approvals?.n ?? 0, agentRuns: spend?.runs ?? 0, agentSpendMicros: Number(spend?.micros ?? 0) },
+      inbox: await this.inboxMetrics(start, end),
     }, 'Indicateurs de la période');
+  }
+
+  /**
+   * Boîte unifiée (finalisation du 3 octobre 2026) : temps de première réponse par canal des conversations ouvertes dans la
+   * période (courriels automatiques exclus), et rappel des problèmes de compte ou de paiement remis à l'humain dans la
+   * période, mesuré contre `inbox.account_callback_hours` (première réponse du personnel après l'escalade).
+   */
+  async inboxMetrics(start: SQL, end: SQL, now = new Date()): Promise<{ firstReplyByChannel: ChannelFirstReply[]; firstReplyTargetSeconds: number; accountCallbacks: CallbackStats }> {
+    const [threshold, targetHours] = await Promise.all([this.settings.number('inbox.first_reply_seconds', 5), this.settings.number('inbox.account_callback_hours', 4)]);
+    const replies = await this.db.execute<{ channel: string; seconds: number | null }>(sql`
+      SELECT c.channel, EXTRACT(EPOCH FROM (min(m.created_at) FILTER (WHERE m.direction = 'outbound') - min(m.created_at) FILTER (WHERE m.direction = 'inbound')))::int AS seconds
+      FROM conversations c JOIN conversation_messages m ON m.conversation_id = c.id
+      WHERE c.created_at >= ${start} AND c.created_at < ${end} AND c.kind <> 'automated'
+      GROUP BY c.id, c.channel
+      LIMIT 10000`);
+    const escalations = await this.db.execute<{ escalated_at: string; escalation_reason: string | null; handled_at: string | null }>(sql`
+      SELECT c.escalated_at, c.escalation_reason,
+        (SELECT min(m.created_at) FROM conversation_messages m WHERE m.conversation_id = c.id AND m.direction = 'outbound' AND m.author = 'staff' AND m.created_at >= c.escalated_at) AS handled_at
+      FROM conversations c
+      WHERE c.escalated_at >= ${start} AND c.escalated_at < ${end} AND split_part(c.escalation_reason, ' : ', 1) IN ('account', 'payment')
+      LIMIT 5000`);
+    return {
+      firstReplyByChannel: firstReplyByChannel([...replies].map((r) => ({ channel: r.channel, firstReplySeconds: r.seconds === null ? null : Number(r.seconds) })), threshold),
+      firstReplyTargetSeconds: threshold,
+      accountCallbacks: callbackStats([...escalations].filter((e) => isAccountCallbackEscalation(e.escalation_reason)).map((e) => ({ escalatedAt: new Date(e.escalated_at), handledAt: e.handled_at ? new Date(e.handled_at) : null })), now, targetHours),
+    };
   }
 }

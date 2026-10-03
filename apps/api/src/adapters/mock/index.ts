@@ -327,10 +327,12 @@ export class MockMailboxProvider implements MailboxProvider {
  */
 export class MockSocialProvider implements SocialProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ network: string; threadId: string; text: string; messageId: string }> = [];
+  readonly sent: Array<{ network: string; threadId: string; text: string; messageId: string; tag?: 'HUMAN_AGENT' }> = [];
   readonly commentReplies: Array<{ network: string; commentId: string; text: string; messageId: string }> = [];
   readonly inbound: SocialInboundMessage[] = [];
   readonly comments: SocialInboundComment[] = [];
+  /** Fils dont la fenêtre de 24 heures est close chez « Meta » : une réponse sans étiquette y est refusée. */
+  readonly closedThreads = new Set<string>();
   constructor(private readonly webhookOptions: MockWebhookOptions = {}) {}
   verifyWebhook(query: Record<string, string | undefined>) {
     return this.webhookOptions.acceptTestSignatures !== false && query['hub.verify_token'] === 'mock-verify' ? (query['hub.challenge'] ?? null) : null;
@@ -347,7 +349,8 @@ export class MockSocialProvider implements SocialProvider {
   async listComments(since: Date) {
     return this.comments.filter((c) => c.receivedAt > since);
   }
-  async reply(input: { network: 'messenger' | 'instagram'; threadId: string; text: string }) {
+  async reply(input: { network: 'messenger' | 'instagram'; threadId: string; text: string; tag?: 'HUMAN_AGENT' }) {
+    if (this.closedThreads.has(input.threadId) && !input.tag) throw new AppError('SOCIAL_WINDOW_CLOSED', 'Réponse refusée par Meta : fenêtre de 24 heures dépassée (simulation)', 409, { code: 10, subcode: 2018278 });
     const messageId = nextId('social_mock');
     this.sent.push({ ...input, messageId });
     return { messageId };

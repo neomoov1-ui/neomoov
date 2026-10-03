@@ -1,8 +1,10 @@
 /**
  * Infolettre Brevo réelle (phase 1 « entreprise autonome ») : chaque contenu `newsletter` devient une campagne
  * courriel en brouillon (`POST /v3/emailCampaigns`, liste `BREVO_NEWSLETTER_LIST_ID`, expéditeur `BREVO_SENDER_*`) ;
- * l'envoi reste une décision humaine dans Brevo tant que le fondateur n'a pas tranché l'envoi automatique. Les mesures
- * viennent des statistiques de la campagne. La clé ne quitte jamais l'objet.
+ * l'envoi reste une décision humaine dans Brevo tant que le fondateur n'a pas tranché l'envoi automatique. Avec le réglage
+ * `marketing.newsletter_auto_send` (désactivé par défaut), la diffusion demande une publication non brouillon : la campagne
+ * est créée puis envoyée aussitôt (`POST /v3/emailCampaigns/{id}/sendNow`). Les mesures viennent des statistiques de la
+ * campagne. La clé ne quitte jamais l'objet.
  */
 import { AppError } from '../../common/app-error.js';
 import type { PublishedRef, SocialComment, SocialMetrics, SocialPublishInput, SocialPublishResult, SocialPublisher } from '../marketing.types.js';
@@ -67,7 +69,10 @@ export class BrevoNewsletterPublisher implements SocialPublisher {
     return data;
   }
 
-  /** Toujours un brouillon : la plateforme ne déclenche aucun envoi d'infolettre (décision du fondateur attendue). */
+  /**
+   * Brouillon par défaut : la plateforme ne déclenche aucun envoi d'infolettre tant que le fondateur n'a pas activé
+   * l'envoi automatique (la diffusion passe alors `draft: false` et la campagne part aussitôt).
+   */
   async publish(input: SocialPublishInput): Promise<SocialPublishResult> {
     const title = input.title ?? input.text.split('\n')[0]!.slice(0, 120);
     const data = await this.request<BrevoCampaign>('/emailCampaigns', {
@@ -77,7 +82,10 @@ export class BrevoNewsletterPublisher implements SocialPublisher {
         htmlContent: newsletterHtml(title, input.body, input.ctaUrl), recipients: { listIds: [this.options.listId] },
       },
     });
-    return { externalId: String(data.id), url: `https://app.brevo.com/marketing-campaign/classic/${data.id}/setup`, draft: true };
+    const url = `https://app.brevo.com/marketing-campaign/classic/${data.id}/setup`;
+    if (input.draft) return { externalId: String(data.id), url, draft: true };
+    await this.request(`/emailCampaigns/${data.id}/sendNow`, { method: 'POST' });
+    return { externalId: String(data.id), url, draft: false };
   }
 
   async metrics(ref: PublishedRef): Promise<SocialMetrics> {

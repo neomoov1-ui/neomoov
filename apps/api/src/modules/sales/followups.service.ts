@@ -7,7 +7,7 @@
  * coordonnées n'existe (devis anonymes), donc rien à relancer (noté dans docs/sales/prospection.md).
  */
 import { schema } from '@neomoov/db';
-import { asUntrustedData, followupDueAt, localClock, redactSensitive, type FollowupChannel, type FollowupTarget, type FollowupView, type Page, type ProspectSegment, type ProspectStage } from '@neomoov/domain';
+import { asUntrustedData, FOLLOWUP_TARGETS, followupDueAt, localClock, redactSensitive, type FollowupChannel, type FollowupTarget, type FollowupView, type Page, type ProspectSegment, type ProspectStage } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, count, desc, eq, inArray, isNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -101,10 +101,11 @@ export class FollowupsService {
   }
 
   async list(query: { page: number; pageSize: number; status?: string | undefined; targetType?: FollowupTarget | undefined }): Promise<Page<FollowupView>> {
-    const conditions: SQL[] = [];
+    // Relances commerciales seulement : les rappels d'appels manqués (cible `missed_call`) vivent dans la boîte de réception.
+    const conditions: SQL[] = [inArray(schema.followups.targetType, [...FOLLOWUP_TARGETS])];
     if (query.status) conditions.push(eq(schema.followups.status, query.status));
     if (query.targetType) conditions.push(eq(schema.followups.targetType, query.targetType));
-    const where = conditions.length ? and(...conditions) : undefined;
+    const where = and(...conditions);
     const [rows, [total]] = await Promise.all([
       this.db.select().from(schema.followups).where(where).orderBy(asc(schema.followups.dueAt)).limit(query.pageSize).offset((query.page - 1) * query.pageSize),
       this.db.select({ n: count() }).from(schema.followups).where(where),
@@ -136,9 +137,9 @@ export class FollowupsService {
     await this.db.update(schema.followups).set({ status: 'cancelled', closedAt: new Date(), closeReason: reason }).where(and(eq(schema.followups.id, id), inArray(schema.followups.status, ['scheduled', 'sent'])));
   }
 
-  /** Relances échues (les plus anciennes d'abord). */
+  /** Relances échues (les plus anciennes d'abord) ; les rappels d'appels manqués de la boîte unifiée suivent leur propre passe. */
   async due(now: Date, limit = 50): Promise<FollowupRow[]> {
-    return this.db.select().from(schema.followups).where(and(eq(schema.followups.status, 'scheduled'), lte(schema.followups.dueAt, now))).orderBy(asc(schema.followups.dueAt)).limit(limit);
+    return this.db.select().from(schema.followups).where(and(eq(schema.followups.status, 'scheduled'), lte(schema.followups.dueAt, now), inArray(schema.followups.targetType, [...FOLLOWUP_TARGETS]))).orderBy(asc(schema.followups.dueAt)).limit(limit);
   }
 
   /** Prochaine relance ouverte d'un prospect (bouton « relancer » de My Hub). */

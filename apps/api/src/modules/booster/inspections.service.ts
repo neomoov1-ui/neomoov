@@ -12,7 +12,7 @@ import {
   type InspectionCreateFields, type InspectionDownloadView, type InspectionItems, type InspectionListQuery, type InspectionUpdate, type MissingInspectionView, type Page,
   type VehicleInspectionView,
 } from '@neomoov/domain';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { and, count, desc, eq, gte, lte, notExists, sql, type SQL } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type { Logger } from 'pino';
@@ -21,13 +21,16 @@ import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { FieldCipher } from '../../common/field-cipher.js';
 import { APP_LOGGER } from '../../common/logger.js';
-import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
+import { afterOrgScopeCommit, currentOrgScope, storageKeyPrefix } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
+import { QueueService } from '../../infra/queue.module.js';
+import { AgentJobsService } from '../agents/agent-jobs.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { BoosterJpegService } from './pdf-to-jpeg.js';
 import { DriverProfileService, type DriverRow } from '../drivers/driver-profile.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
+import { ANALYSIS_TIMEOUT, analysisState, INSPECTION_ANALYSIS_JOB, isBoosterAnalysisJob, pendingAnalysis } from './booster-async.js';
 import { BoosterAnalysisService, INSPECTION_PROMPT_KEY } from './booster-analysis.service.js';
 import { intakeImages, kindsOf, type StoredAnalysis, type UploadedImage } from './booster-images.js';
 import { renderInspectionPdf } from './inspection-pdf.js';
@@ -43,7 +46,7 @@ export function fullName(first: string | null, last: string | null): string | nu
 }
 
 @Injectable()
-export class InspectionsService {
+export class InspectionsService implements OnModuleInit {
   constructor(
     @Inject(DB) private readonly database: Database,
     @Inject(APP_LOGGER) private readonly logger: Logger,
@@ -57,10 +60,19 @@ export class InspectionsService {
     private readonly audit: AuditService,
     private readonly jpegs: BoosterJpegService,
     private readonly fields: FieldCipher,
+    private readonly queues: QueueService,
+    private readonly agentJobs: AgentJobsService,
   ) {}
 
   private get db() {
     return this.database.db;
+  }
+
+  /** Analyse asynchrone : la tâche `booster.inspection` de la file `agents` est traitée ici (API sans Redis, worker avec Redis). */
+  onModuleInit() {
+    this.agentJobs.registerHandler(INSPECTION_ANALYSIS_JOB, async (data) => {
+      if (isBoosterAnalysisJob(data)) await this.runAnalysis(data.id, data.attempt);
+    });
   }
 
   private async limits() {
@@ -90,7 +102,11 @@ export class InspectionsService {
 
   private analysisView(row: Row): InspectionAnalysisView {
     const a = row.analysis as StoredAnalysis | null;
+    const state = analysisState(a);
     if (!a) return { status: 'none', promptKey: null, model: null, analysedAt: null, confidence: null, summary: null, itemsFromAnalysis: [], warningLights: [], photosUnusable: [], error: null };
+    // Analyse confiée à la file `agents` : en cours, ou réputée perdue après 10 minutes (relançable).
+    if (state === 'pending') return { status: 'pending', promptKey: a.promptKey, model: null, analysedAt: null, confidence: null, summary: null, itemsFromAnalysis: [], warningLights: [], photosUnusable: [], error: null };
+    if (state === 'stale') return { status: 'failed', promptKey: a.promptKey, model: null, analysedAt: null, confidence: null, summary: null, itemsFromAnalysis: [], warningLights: [], photosUnusable: [], error: ANALYSIS_TIMEOUT };
     if (a.error) return { status: 'failed', promptKey: a.promptKey, model: a.model, analysedAt: a.analysedAt, confidence: null, summary: null, itemsFromAnalysis: [], warningLights: [], photosUnusable: [], error: a.error };
     const raw = a.raw as InspectionAnalysis;
     const prefill = prefillFromAnalysis(raw);
@@ -202,12 +218,65 @@ export class InspectionsService {
    * Analyse des photos par le modèle : les champs lus préremplissent le rapport (sans écraser une défectuosité déjà
    * saisie par le chauffeur) ; en cas d'échec, l'analyse est consignée et le rapport reste modifiable à la main.
    */
-  async analyse(userId: string, id: string): Promise<VehicleInspectionView> {
+  async analyse(userId: string, id: string, options: { async?: boolean } = {}): Promise<VehicleInspectionView> {
     const { driver, row } = await this.requireOwn(userId, id);
     this.assertEditable(row);
     const limits = await this.limits();
     if (row.photos.length < limits.min) throw new AppError('NOT_ENOUGH_PHOTOS', `Au moins ${limits.min} photos sont nécessaires pour l'analyse`, 400, { min: limits.min, current: row.photos.length });
+    if (options.async ?? (await this.settings.get<unknown>('booster.analysis_async', false)) === true) return this.queueAnalysis(row);
+    return this.analyseRow(driver, row, row.analysisCount + 1);
+  }
+
+  /**
+   * Analyse confiée à la file `agents` (finalisation du 3 octobre 2026) : état `pending` enregistré, tâche mise en file
+   * après la validation de la transaction (le worker lit l'état enregistré) ; une analyse déjà en cours n'est pas relancée.
+   */
+  private async queueAnalysis(row: Row): Promise<VehicleInspectionView> {
+    if (analysisState(row.analysis as StoredAnalysis | null) === 'pending') return this.view(row);
     const attempt = row.analysisCount + 1;
+    const [updated] = await this.db
+      .update(schema.vehicleInspections)
+      .set({ analysis: pendingAnalysis(INSPECTION_PROMPT_KEY, attempt), analysisCount: attempt })
+      .where(and(eq(schema.vehicleInspections.id, row.id), eq(schema.vehicleInspections.analysisCount, row.analysisCount)))
+      .returning();
+    if (!updated) throw AppError.conflict('ANALYSIS_IN_PROGRESS', 'Une analyse de ce rapport vient d\'être lancée');
+    afterOrgScopeCommit(() => void this.enqueueAnalysis(row.id, attempt));
+    return this.view(updated);
+  }
+
+  /** Mise en file de la tâche ; un échec de la file est consigné dans le rapport (relançable), jamais une attente sans fin. */
+  private async enqueueAnalysis(id: string, attempt: number): Promise<void> {
+    try {
+      await this.queues.add('agents', INSPECTION_ANALYSIS_JOB, { id, attempt }, { jobId: `${INSPECTION_ANALYSIS_JOB}-${id}-${attempt}` });
+    } catch (error) {
+      this.logger.error({ err: error, inspectionId: id }, 'Analyse non confiée à la file agents');
+      const analysis: StoredAnalysis = { promptKey: INSPECTION_PROMPT_KEY, model: null, analysedAt: new Date().toISOString(), confidence: null, raw: null, error: 'QUEUE_UNAVAILABLE' };
+      await this.db.update(schema.vehicleInspections).set({ analysis }).where(eq(schema.vehicleInspections.id, id)).catch(() => undefined);
+    }
+  }
+
+  /**
+   * Tâche `booster.inspection` : rapport relu au moment de l'analyse ; une tentative remplacée par une plus récente, ou un
+   * rapport archivé, est ignorée. Une erreur est consignée dans le rapport (relançable), sans nouvel essai de la file.
+   */
+  async runAnalysis(id: string, attempt: number): Promise<VehicleInspectionView | null> {
+    const [row] = await this.db.select().from(schema.vehicleInspections).where(eq(schema.vehicleInspections.id, id)).limit(1);
+    const stored = row?.analysis as StoredAnalysis | null | undefined;
+    if (!row || row.status === 'archived' || !stored?.pending || stored.attempt !== attempt) return null;
+    try {
+      const [driver] = await this.db.select().from(schema.drivers).where(eq(schema.drivers.id, row.driverId)).limit(1);
+      if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Chauffeur introuvable');
+      return await this.analyseRow(driver, row, attempt);
+    } catch (error) {
+      this.logger.error({ err: error, inspectionId: id }, 'Analyse asynchrone de la vérification sommaire en échec');
+      const analysis: StoredAnalysis = { promptKey: INSPECTION_PROMPT_KEY, model: null, analysedAt: new Date().toISOString(), confidence: null, raw: null, error: error instanceof AppError ? error.code : 'ANALYSIS_FAILED' };
+      const [updated] = await this.db.update(schema.vehicleInspections).set({ analysis }).where(eq(schema.vehicleInspections.id, id)).returning();
+      return updated ? this.view(updated) : null;
+    }
+  }
+
+  private async analyseRow(driver: DriverRow, row: Row, attempt: number): Promise<VehicleInspectionView> {
+    const id = row.id;
     const vehicle = await this.vehicleOf(driver, row.vehicleId);
     const outcome = await this.analysis.analyseInspection({ inspectionId: id, driverId: driver.id, attempt, images: row.photos, plate: row.plate, vehicle: vehicle?.label ?? null });
     const analysedAt = new Date().toISOString();

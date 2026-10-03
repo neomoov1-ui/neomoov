@@ -71,6 +71,12 @@ export interface DomainEvents {
   };
   /** Boîte unifiée : rapport de fin d'appel du centre vocal journalisé une première fois (appels manqués et messages vocaux). */
   'voice.call_ended': { callId: string | null; phone: string | null; endedReason: string | null; summary: string | null; durationSeconds: number | null; endedAt: Date };
+  /**
+   * Boîte unifiée (finalisation du 3 octobre 2026) : réponse d'une conversation refusée définitivement par son canal
+   * (fenêtre de 24 heures de Meta, panne répétée du connecteur) ; la conversation la fait partir par un autre canal de la
+   * personne ou la remet au personnel, jamais d'erreur muette.
+   */
+  'conversation.delivery_failed': { conversationId: string; messageId: string | null; notificationId: string; channel: string; reason: string };
   /** Règlement (étape 9) : relevé hebdomadaire émis. */
   'statement.issued': { statementId: string; driverId: string; periodStart: string; netCents: number };
   /** Remboursement enregistré (carte ou crédit, garantie modèle comprise) : la facturation émet la note de crédit (étape 9). */

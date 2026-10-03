@@ -19,7 +19,11 @@ export interface StoredImage {
   uploadedAt: string;
 }
 
-/** Analyse automatique d'un rapport : sortie brute du modèle, prompt, modèle, confiance ; `error` si l'analyse a échoué. */
+/**
+ * Analyse automatique d'un rapport : sortie brute du modèle, prompt, modèle, confiance ; `error` si l'analyse a échoué.
+ * Finalisation du 3 octobre 2026 : `pending` quand l'analyse attend dans la file `agents` (mode asynchrone), avec l'heure
+ * de la demande et la tentative attendue.
+ */
 export interface StoredAnalysis {
   promptKey: string;
   model: string | null;
@@ -27,6 +31,9 @@ export interface StoredAnalysis {
   confidence: number | null;
   raw: unknown;
   error: string | null;
+  pending?: boolean;
+  requestedAt?: string;
+  attempt?: number;
 }
 
 export const vehicleInspections = pgTable('vehicle_inspections', {

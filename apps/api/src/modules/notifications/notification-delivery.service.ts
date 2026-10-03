@@ -15,6 +15,8 @@ import {
   EMAIL_PROVIDER, PUSH_PROVIDER, SMS_PROVIDER, SOCIAL_PROVIDER, STORAGE_PROVIDER, WHATSAPP_PROVIDER,
   type EmailProvider, type PushProvider, type SmsDeliveryStatus, type SmsProvider, type SocialProvider, type StorageProvider, type WhatsAppProvider,
 } from '../../adapters/types.js';
+import { AppError } from '../../common/app-error.js';
+import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { currentOrgScope } from '../../common/org-scope.context.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -50,6 +52,7 @@ export class NotificationDeliveryService {
     @Inject(SOCIAL_PROVIDER) private readonly social: SocialProvider,
     @Inject(APP_LOGGER) private readonly logger: Logger,
     private readonly branding: BrandingService,
+    private readonly events: DomainEventsService,
   ) {}
 
   private get db() {
@@ -91,16 +94,30 @@ export class NotificationDeliveryService {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn({ err: error, notificationId: id, channel: row.channel, template: row.template }, 'Notification non envoyée');
-      // Panne passagère du fournisseur : la ligne redevient disponible pour la reprise (30 s), 3 essais au plus.
+      // Panne passagère du fournisseur : la ligne redevient disponible pour la reprise (30 s), 3 essais au plus. Une réponse
+      // hors de la fenêtre de 24 heures de Meta est refusée pour de bon : aucun nouvel essai.
       const data = (row.data ?? {}) as Record<string, unknown>;
+      const windowClosed = error instanceof AppError && error.code === 'SOCIAL_WINDOW_CLOSED';
       const attempts = (typeof data['attempts'] === 'number' ? data['attempts'] : 0) + 1;
-      if (attempts < MAX_ATTEMPTS) {
+      if (!windowClosed && attempts < MAX_ATTEMPTS) {
         await this.db.update(schema.notifications).set({ providerMessageId: null, data: { ...data, attempts, lastError: message.slice(0, 200) } }).where(eq(schema.notifications.id, row.id));
         return 'deferred';
       }
-      await this.finish(row.id, { error: message.slice(0, 500), data: { ...data, attempts } });
+      await this.finish(row.id, { error: windowClosed ? 'meta_window_closed' : message.slice(0, 500), data: { ...data, attempts } });
+      this.replyFailed(row, data, windowClosed ? 'meta_window_closed' : 'send_failed');
       return 'failed';
     }
+  }
+
+  /**
+   * Réponse d'une conversation refusée pour de bon par un réseau social : la conversation est prévenue (événement), elle
+   * fait partir la réponse par un autre canal de la personne ou la remet au personnel (finalisation du 3 octobre 2026).
+   */
+  private replyFailed(row: NotificationRow, data: Record<string, unknown>, reason: string): void {
+    if (row.channel !== 'social' || typeof data['conversationId'] !== 'string') return;
+    this.events.emit('conversation.delivery_failed', {
+      conversationId: data['conversationId'], messageId: typeof data['messageId'] === 'string' ? data['messageId'] : null, notificationId: row.id, channel: row.channel, reason,
+    });
   }
 
   private async send(row: NotificationRow, now: Date): Promise<DeliveryOutcome> {
@@ -185,7 +202,7 @@ export class NotificationDeliveryService {
         const text = typeof data['text'] === 'string' && data['text'] ? data['text'] : rendered.body;
         const { messageId } = data['kind'] === 'comment'
           ? await this.social.replyComment({ network: network === 'instagram' ? 'instagram' : 'facebook', commentId: threadRef, text })
-          : await this.social.reply({ network: network === 'instagram' ? 'instagram' : 'messenger', threadId: threadRef, text });
+          : await this.social.reply({ network: network === 'instagram' ? 'instagram' : 'messenger', threadId: threadRef, text, ...(data['tag'] === 'HUMAN_AGENT' ? { tag: 'HUMAN_AGENT' as const } : {}) });
         await this.finish(row.id, { sentAt: now, providerMessageId: messageId });
         return 'sent';
       }

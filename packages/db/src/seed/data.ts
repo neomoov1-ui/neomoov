@@ -111,6 +111,7 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'rides.scheduled_max_lead_days', value: 90, description: 'Réservation planifiée : au plus 90 jours avant' },
   { key: 'rides.scheduled_assign_before_seconds', value: 3600, description: 'Attribution des planifiées 60 minutes avant' },
   { key: 'rides.scheduled_reassign_before_seconds', value: 1800, description: 'Réattribution si non confirmée 30 minutes avant' },
+  { key: 'rides.scheduled_dispatch_due_grace_seconds', value: 120, description: 'Réservation planifiée : délai après le signal d\'attribution à 60 minutes au-delà duquel le worker relance lui-même une attribution restée sans suite (signal perdu)' },
   { key: 'alerts.client_cancellations_threshold', value: 3, description: 'Annulations ou absences d\'un client qui déclenchent une alerte à l\'exploitation (5.14)' },
   { key: 'alerts.client_cancellations_window_days', value: 7, description: 'Fenêtre, en jours, du décompte des annulations et absences d\'un client' },
   { key: 'fairness.business_hours', value: { days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00' }, description: 'Charte d\'équité : heures ouvrables du délai de rappel (lundi à vendredi, 9 h à 17 h, heure de Montréal)' },
@@ -277,6 +278,7 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'booster.enabled', value: true, description: 'Neomoov Booster offert aux chauffeurs dans l\'application (vérification sommaire, rapport de performance, alertes)' },
   { key: 'booster.inspection_photos_min', value: 6, description: 'Photos exigées pour lancer l\'analyse d\'une vérification sommaire (quatre coins et deux côtés)' },
   { key: 'booster.inspection_photos_max', value: 12, description: 'Photos au plus par vérification sommaire' },
+  { key: 'booster.analysis_async', value: false, description: 'Neomoov Booster : analyse des photos et des captures par la file agents (réponse immédiate, état « en cours ») ; vrai quand l\'application chauffeur relit le rapport pendant l\'analyse' },
   { key: 'booster.performance_screenshots_max', value: 6, description: 'Captures d\'écran au plus par rapport de performance' },
   { key: 'booster.max_image_bytes', value: 10_485_760, description: 'Taille maximale d\'une photo ou d\'une capture téléversée (10 Mo)' },
   { key: 'booster.alert_tolerance_minutes', value: 5, description: 'Minutes pendant lesquelles une alerte Booster reste due après son heure (battement de la file chaque minute)' },
@@ -291,7 +293,9 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'inbox.escalation_sms', value: true, description: 'Boîte unifiée : toute escalade vers l\'humain envoie aussi un texto au fondateur (alerts.founder_phone), en plus du courriel au personnel' },
   { key: 'inbox.quiet_hours', value: { from: '22:00', to: '07:00', channels: ['email', 'social'] }, description: 'Boîte unifiée : heures silencieuses (heure de Montréal) pendant lesquelles seul l\'accusé de réception part sur les canaux listés ; la réponse de fond est reportée à la fin de la fenêtre' },
   { key: 'inbox.email_from', value: 'Neomoov <contact@neomoov.net>', description: 'Boîte unifiée : expéditeur des réponses par courriel (boîte contact@, lue par le relais entrant), sur le domaine authentifié chez le fournisseur' },
-  { key: 'inbox.callback_reminder_minutes', value: 60, description: 'Boîte unifiée : un appel manqué non traité après ce délai rappelle le personnel (tâche de rappel différée)' },
+  { key: 'inbox.callback_reminder_minutes', value: 60, description: 'Boîte unifiée : un appel manqué non traité après ce délai rappelle le personnel (rappel inscrit dans followups)' },
+  { key: 'inbox.meta_human_agent_tag', value: false, description: 'Boîte unifiée : réponse humaine hors de la fenêtre de 24 heures de Meta avec l\'étiquette HUMAN_AGENT (7 jours) ; à activer seulement quand Meta a accordé la permission « Human Agent » à l\'application' },
+  { key: 'inbox.account_callback_hours', value: 4, description: 'Boîte unifiée : cible de rappel (heures) des problèmes de compte ou de paiement remis à l\'humain, mesurée au rapport quotidien' },
   { key: 'inbox.mailbox_poll_seconds', value: 120, description: 'Boîte unifiée : période de lecture de la boîte contact@ par IMAP (repli du relais entrant Brevo), quand MAILBOX_PROVIDER=real' },
   // Direction commerciale automatisée (phase 1 « entreprise autonome », 2 octobre 2026) : prospection B2B, appels sortants, relances, grille entreprise. Valeurs proposées, à valider par le fondateur.
   { key: 'sales.prospecting_days', value: [1, 2, 3, 4, 5], description: 'Jours de la passe de prospection B2B (1 = lundi … 5 = vendredi)' },
@@ -327,6 +331,7 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
     description: 'Créneaux de publication par espace (jour 1 = lundi, heure de Montréal) ; au-delà, les jours libres de la semaine puis la semaine suivante',
   },
   { key: 'marketing.measure_days', value: [1, 7], description: 'Mesures d\'une publication (portée, interactions, clics) à J+1 puis J+7' },
+  { key: 'marketing.newsletter_auto_send', value: false, description: 'Infolettre Brevo : envoi automatique de la campagne au créneau (faux : brouillon dans Brevo, envoi humain). Décision du fondateur attendue' },
   { key: 'marketing.publish_max_attempts', value: 3, description: 'Tentatives de publication avant l\'état « en échec » définitif (relais humain)' },
   { key: 'marketing.comments_window_days', value: 7, description: 'Fenêtre de relecture des commentaires des publications (jours après la publication)' },
   { key: 'marketing.allowed_prices', value: ['48,20 $', '113,83 $'], description: 'Prix décidés par le fondateur, seuls montants admis dans un contenu public (forfait aéroport Neo Premium, formation Neomoov Chauffeur Pro)' },
@@ -359,7 +364,7 @@ export const AGENTS = [
   { code: 'followups', name: 'Relances (prospects, devis, candidatures)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: 'followups.v1', tools: ['sendFollowup', 'markDoNotContact'], thresholds: {} },
   // Phase 1 « entreprise autonome » (2 octobre 2026) : direction marketing automatisée (contenu, diffusion, référencement).
   { code: 'content', name: 'Marketing : contenu (calendrier hebdomadaire des dix espaces)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'content.v1', tools: ['queryMetrics'], thresholds: {} },
-  { code: 'publishing', name: 'Marketing : diffusion (publication, mesures, commentaires simples)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: [], thresholds: {} },
+  { code: 'publishing', name: 'Marketing : diffusion (publication, mesures, commentaires simples)', mode: 'approval', model: 'claude-opus-5-5', effort: 'low', systemPromptKey: null, tools: ['socialPublish', 'socialMetrics', 'replyComment', 'forwardComment'], thresholds: {} },
   { code: 'seo', name: 'Marketing : référencement (plan hebdomadaire)', mode: 'approval', model: 'claude-opus-5-5', effort: 'high', systemPromptKey: 'seo.v1', tools: [], thresholds: {} },
 ] as const;
 
