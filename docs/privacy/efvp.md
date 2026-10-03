@@ -5,7 +5,7 @@ Loi 25, prompt 14 tâche 3. Ce canevas décrit ce que la plateforme traite et co
 ## 1. Responsable et portée
 
 - Entreprise : Neomoov (groupe NSK Inc.). Responsable de la protection des renseignements personnels : **À compléter** (nom, titre, courriel publié sur le site).
-- Systèmes couverts : API, applications client et chauffeur, My Hub, réservation web, agents IA, agent vocal, WhatsApp.
+- Systèmes couverts : API, applications client et chauffeur, My Hub, réservation web, agents IA, agent vocal, WhatsApp ; Neomoov Academy (WordPress de neomoov.net : comptes gratuits, formation, Neomoov Booster, communauté, achats Square, courriels Brevo ; durées et droits dans `academy/docs/EXPLOITATION.md`, section « Secrets, double consentement et Loi 25 »).
 
 ## 2. Inventaire des renseignements
 
@@ -32,6 +32,13 @@ Loi 25, prompt 14 tâche 3. Ce canevas décrit ce que la plateforme traite et co
 | Meta (WhatsApp) | Numéros, messages | États-Unis | Seulement si le client écrit par WhatsApp | À compléter |
 | Vapi et Anthropic (agents) | Transcriptions, messages, données minimisées | États-Unis | Minimisation, aucun numéro de carte ni document complet, contenus traités comme des données | À compléter |
 | Google Maps | Adresses saisies | États-Unis | Aucune donnée d'identité | À compléter |
+| LWS (hébergement) | Site neomoov.net et Academy (base WordPress complète), serveurs d'application de la plateforme (API, worker, Redis, sauvegardes) | France | Accès administrateur restreint, secrets de l'Academy dans `wp-config.php` | À compléter (décision D48) |
+| Brevo | Courriel, prénom, parcours des membres Academy consentants (double consentement) | Union européenne | Contacts consentants seulement, acheteurs exclus, désabonnements respectés | À compléter |
+| Square | Nom, adresse de facturation, courriel, références de paiement (Academy et courses) | Canada, États-Unis | Aucune donnée de carte chez Neomoov, notifications signées | À compléter |
+| HubSpot | Prospects : nom, coordonnées, échanges | États-Unis | Champs minimisés | À compléter |
+| Anthropic (Neomoov Booster) | Photos de véhicule et captures d'écran, sur accord explicite à chaque analyse | États-Unis | Non conservées, valeurs confirmées par le chauffeur | À compléter |
+
+Ajout du 3 octobre 2026 (lot D de la revue) : lignes LWS, Brevo, Square, HubSpot et Anthropic (Academy). Lieux à confirmer par les accords de traitement de chaque fournisseur ; l'évaluation reste à faire par le responsable.
 
 ## 4. Mesures de protection
 

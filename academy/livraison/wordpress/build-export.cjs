@@ -4,7 +4,7 @@ let code=fs.readFileSync(root+'neomoov-academy.php','utf8').replace(/^\uFEFF/,''
 let css=fs.readFileSync(root+'academy.css','utf8').replace(/^\uFEFF/,'');
 if(!css.includes('*{box-sizing'))throw Error('CSS anchor absent');
 code=code.replace('__ACADEMY_CSS__',css.slice(css.indexOf('*{box-sizing')));
-for(const module of ['formation-attestation.php','booster.php','booster-plus.php','parcours.php','communaute.php','contract-delivery.php','square-checkout-api.php','brevo-sync.php','brevo-templates.php','sequences.php'])code+='\n'+fs.readFileSync(root+module,'utf8').replace(/^\uFEFF/,'').replace(/^<\?php\s*/,'')+'\n';
+for(const module of ['formation-attestation.php','booster.php','booster-plus.php','parcours.php','communaute.php','contract-delivery.php','square-checkout-api.php','brevo-sync.php','brevo-templates.php','sequences.php','confidentialite.php'])code+='\n'+fs.readFileSync(root+module,'utf8').replace(/^\uFEFF/,'').replace(/^<\?php\s*/,'')+'\n';
 const emails=JSON.parse(fs.readFileSync('livraison/marketing/emails_source.json','utf8'));
 const templates=emails.map(e=>({templateName:`NCP_${e.id}_${e.jour}_VENTE_20261002`,subject:e.sujet,htmlContent:fs.readFileSync(`livraison/marketing/emails_html/brevo-ready/${e.id}.html`,'utf8'),sender:{name:'Neomoov Academy',email:'contact@neomoov.net'},replyTo:'contact@neomoov.net',isActive:false,tag:'NCP_20261002'}));
 if(templates.length!==20||templates.some(t=>!t.htmlContent.includes('{{ unsubscribe }}')))throw Error('Lot Brevo invalide');

@@ -197,6 +197,21 @@ export class ConversationsService {
     return null;
   }
 
+  /** Numéro de l'entreprise qui a reçu le dernier texto de la conversation (la réponse en repart), ou null. */
+  private async lastSmsNumber(conversationId: string): Promise<string | null> {
+    const rows = await this.db
+      .select({ metadata: schema.conversationMessages.metadata })
+      .from(schema.conversationMessages)
+      .where(and(eq(schema.conversationMessages.conversationId, conversationId), eq(schema.conversationMessages.direction, 'inbound')))
+      .orderBy(desc(schema.conversationMessages.createdAt))
+      .limit(5);
+    for (const r of rows) {
+      const to = (r.metadata as { smsTo?: unknown } | null)?.smsTo;
+      if (typeof to === 'string' && to) return to;
+    }
+    return null;
+  }
+
   /** Dernier courriel reçu de la conversation : identifiant de message et références, pour répondre dans le fil. */
   private async emailThread(conversationId: string): Promise<{ inReplyTo: string | null; references: string[] }> {
     const rows = await this.db
@@ -240,6 +255,9 @@ export class ConversationsService {
       data = { ...data, emailSubject: replySubject(conversation.subject, language), emailFrom: from, emailReplyTo: from, emailHeaders: headers };
     } else if (target.channel === 'social') {
       data = { ...data, network: conversation.network, threadRef: conversation.threadRef ?? conversation.address, kind: conversation.kind };
+    } else if (target.channel === 'sms') {
+      const smsFrom = await this.lastSmsNumber(conversation.id);
+      if (smsFrom) data = { ...data, smsFrom };
     }
     await this.outbox.queue({ ...target, organizationId: conversation.organizationId, template: 'agent.reply', language, data });
     return row!.id;

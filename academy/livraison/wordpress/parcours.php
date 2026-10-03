@@ -93,7 +93,7 @@ function nma_exam_page(){
 }
 function nma_exam_admin_reset(){
     if(!current_user_can('manage_options'))return 'Accès refusé.';check_admin_referer('nma_exam_reset');
-    $uid=absint($_POST['exam_member']??0);if(!$uid||!get_user_by('id',$uid))return 'Membre introuvable.';
+    $uid=absint($_POST['exam_member']??0);if(!$uid||!get_user_by('id',$uid))return 'Membre introuvable.';nmp_staff_log('examen_reinitialise',$uid);
     $s=nma_exam_state($uid);$s['reset']=array_merge((array)($s['reset']??array()),array(array('at'=>gmdate('c'),'by'=>get_current_user_id(),'attempts'=>count($s['attempts']))));
     $s['attempts']=array();unset($s['passed_at'],$s['passed_score'],$s['passed_total'],$s['best']);update_user_meta($uid,'nma_exam',$s);delete_user_meta($uid,'nma_exam_open');
     return 'Examen réinitialisé pour le membre #'.$uid.' : essais effacés, nouvel examen possible immédiatement.';
@@ -173,6 +173,7 @@ function nma_survey_page(){
 }
 /* Synthèse administrateur : effectifs, répartition des réponses, derniers textes. */
 function nma_survey_admin(){
+    nmp_staff_log('sondages_synthese',0);
     foreach(nma_surveys() as $key=>$def){
         $ids=get_users(array('meta_key'=>'nma_survey_'.$key,'fields'=>'ID','number'=>5000));$rows=array();foreach($ids as $id){$s=nma_survey_get((int)$id,$key);if($s)$rows[(int)$id]=$s;}
         echo '<h3>'.esc_html($def['title']).' : '.count($rows).' réponse(s)</h3>';if(!$rows)continue;
@@ -246,7 +247,7 @@ function nma_member_hub($uid,$paid){
     if($att)echo '<p><a href="'.esc_url(nma_url('attestation/')).'">Mon attestation de suivi</a></p>';
     if(function_exists('nmsa_member_status'))nmsa_member_status($uid);
     echo '</div><div class="panel"><h2>Mes derniers bilans</h2>';$items=(array)get_user_meta($uid,'nma_balances',true);if(!$items)echo '<p>Aucun bilan enregistré. <a class="text-link" href="'.esc_url(nma_url('booster/')).'">Calculer ma journée</a></p>';else{echo '<div class="module-list">';foreach(array_slice($items,0,10) as $b)if(is_array($b))echo '<article><span>•</span><h3>'.nma_e(substr($b['date'],0,10)).'</h3><p>'.number_format($b['receipts']-$b['costs'],2,',',' ').' $ CA · '.nma_e($b['hours']).' h · '.nma_e($b['km']).' km</p></article>';echo '</div>';}
-    echo '</div></div><form method="post">';nma_nonce('unsubscribe');echo '<button class="text-link">Retirer mon consentement aux emails commerciaux</button></form><p class="small">Pour une copie ou une suppression des données : contact@neomoov.net.</p>';
+    echo '</div></div>';nmp_member_privacy($uid);
 }
 
 /* ---------- Devenir chauffeur Neomoov ---------- */

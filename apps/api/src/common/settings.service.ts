@@ -31,7 +31,7 @@ export class SettingsService {
 
   async string(key: string, fallback: string): Promise<string> {
     const value = await this.get<unknown>(key, fallback);
-    return typeof value === 'string' && value ? value : fallback;
+    return typeof value === 'string' && value ? unquote(value) : fallback;
   }
 
   /** Tous les réglages globaux (assemblage des règles de tarification). */
@@ -68,3 +68,14 @@ export class SettingsService {
 @Global()
 @Module({ providers: [SettingsService, CircuitBreakers, FieldCipher], exports: [SettingsService, CircuitBreakers, FieldCipher] })
 export class SettingsModule {}
+
+/** Chaîne doublement encodée (`"\"+1514…\""`, écrite par un script le 2 octobre 2026) : valeur intérieure ; sinon inchangée. */
+export function unquote(value: string): string {
+  if (value.length < 2 || !value.startsWith('"') || !value.endsWith('"')) return value;
+  try {
+    const inner: unknown = JSON.parse(value);
+    return typeof inner === 'string' && inner ? inner : value;
+  } catch {
+    return value;
+  }
+}

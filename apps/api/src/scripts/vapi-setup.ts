@@ -68,13 +68,19 @@ try {
     console.log(JSON.stringify({ inbound: redactAssistant(inboundAssistant(options)), sos: redactAssistant(sosAssistant(options)), sales: redactAssistant(salesAssistant(options)) }, null, 2));
   } else {
     const client = new VapiAdminClient(env.VAPI_API_KEY);
-    const report = await syncVapi(client, { ...options, phoneNumberId: env.VAPI_PHONE_NUMBER_ID ?? null, fromNumber: env.TWILIO_FROM_NUMBER ?? null });
+    const extraNumbers = (env.TWILIO_EXTRA_NUMBERS ?? '').split(',').map((n) => n.trim()).filter(Boolean);
+    const report = await syncVapi(client, { ...options, phoneNumberId: env.VAPI_PHONE_NUMBER_ID ?? null, fromNumber: env.TWILIO_FROM_NUMBER ?? null, extraNumbers });
     const action = (a: 'created' | 'updated') => (a === 'created' ? 'créé' : 'mis à jour');
     console.log(`Assistant d'accueil ${action(report.inbound.action)} : ${report.inbound.id}`);
     console.log(`Assistant SOS ${action(report.sos.action)} : ${report.sos.id}`);
     console.log(`Assistant commercial ${action(report.sales.action)} : ${report.sales.id}`);
     if (env.VAPI_SALES_ASSISTANT_ID !== report.sales.id) console.log(`À poser dans .env : VAPI_SALES_ASSISTANT_ID=${report.sales.id} (identifiant non secret), puis recréer api et worker.`);
-    if (!env.VAPI_SALES_PHONE_NUMBER_ID) console.log('Appels sortants : sans VAPI_SALES_PHONE_NUMBER_ID, ils partent du numéro de l\'accueil (VAPI_PHONE_NUMBER_ID).');
+    for (const n of report.otherNumbers) console.log(`Numéro ${n.number ?? n.id} : assistant d'accueil ${n.action === 'assigned' ? 'rattaché' : 'déjà rattaché'} (identifiant du numéro : ${n.id}).`);
+    for (const n of report.missingNumbers) console.warn(`Numéro ${n} introuvable chez Vapi : l'importer depuis Twilio (Phone Numbers, Import), puis relancer.`);
+    // Appels sortants commerciaux : depuis le numéro principal (TWILIO_FROM_NUMBER) quand il est importé chez Vapi.
+    const principal = [report.phoneNumber, ...report.otherNumbers].find((n) => n && (n.number ?? '').replace(/[^\d+]/g, '') === (env.TWILIO_FROM_NUMBER ?? '').replace(/[^\d+]/g, ''));
+    if (principal && env.VAPI_SALES_PHONE_NUMBER_ID !== principal.id) console.log(`À poser dans .env : VAPI_SALES_PHONE_NUMBER_ID=${principal.id} (numéro principal, identifiant non secret), puis recréer api et worker.`);
+    else if (!principal && !env.VAPI_SALES_PHONE_NUMBER_ID) console.log('Appels sortants : sans VAPI_SALES_PHONE_NUMBER_ID, ils partent du numéro de l\'accueil (VAPI_PHONE_NUMBER_ID).');
     if (report.phoneNumber) {
       console.log(`Numéro ${report.phoneNumber.number ?? report.phoneNumber.id} : assistant d'accueil ${report.phoneNumber.action === 'assigned' ? 'rattaché' : 'déjà rattaché'} (identifiant du numéro : ${report.phoneNumber.id}).`);
       if (!env.VAPI_PHONE_NUMBER_ID) console.log(`À poser dans .env : VAPI_PHONE_NUMBER_ID=${report.phoneNumber.id} (identifiant non secret), puis recréer api et worker.`);

@@ -1,5 +1,6 @@
 <?php
-/** Séquences de courriels automatiques (4 parcours × 5 courriels, J0, J1, J3, J5, J7) : planifiées à l'inscription consentie,
+/** Séquences de courriels automatiques (4 parcours × 5 courriels, J0, J1, J3, J5, J7) : planifiées à la confirmation de l'adresse
+ *  d'une inscription consentie (double consentement, confidentialite.php), jamais avant le clic sur le lien ;
  *  envoyées par l'API transactionnelle de Brevo avec les 20 modèles NCP_… déjà importés, arrêtées à l'achat, au retrait du
  *  consentement, au changement de courriel ou au désabonnement Brevo. Aucun envoi sans consentement ; aucune valeur secrète affichée. */
 if(!defined('ABSPATH'))exit;
@@ -111,7 +112,7 @@ function nms_admin_action($what){
     if(($_SERVER['REQUEST_METHOD']??'')!=='POST'||!current_user_can('manage_options'))return 'Accès refusé.';check_admin_referer('nms_admin');
     if($what==='sequences_activate')return nms_activate_templates();
     if($what==='sequences_tick'){$r=nms_tick(true);return count($r).' envoi(s) traité(s) : '.(implode(', ',array_map(function($k,$v){return $k.' '.$v;},array_keys($r),$r))?:'aucun dû');}
-    if($what==='sequences_start'){$uid=absint($_POST['nms_member']??0);if(!$uid||!get_user_by('id',$uid))return 'Membre introuvable.';$why=nms_eligible($uid);if($why!=='')return 'Membre non éligible ('.$why.').';$s=nms_state($uid);if($s&&!empty($s['stopped'])){delete_user_meta($uid,'nma_sequence');}return nms_schedule($uid,'administrator')?'Séquence planifiée pour le membre #'.$uid.'.':'Planification impossible.';}
+    if($what==='sequences_start'){$uid=absint($_POST['nms_member']??0);if(!$uid||!get_user_by('id',$uid))return 'Membre introuvable.';nmp_staff_log('sequence_planifiee',$uid);$why=nms_eligible($uid);if($why!=='')return 'Membre non éligible ('.$why.').';$s=nms_state($uid);if($s&&!empty($s['stopped'])){delete_user_meta($uid,'nma_sequence');}return nms_schedule($uid,'administrator')?'Séquence planifiée pour le membre #'.$uid.'.':'Planification impossible.';}
     return '';
 }
 function nms_admin_status(){

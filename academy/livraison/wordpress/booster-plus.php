@@ -5,7 +5,7 @@
 if(!defined('ABSPATH'))exit;
 
 /* ---------- Analyse par le modèle (clé dans wp-config.php : NMA_ANTHROPIC_API_KEY, sinon réglage, jamais affichée) ---------- */
-function nmbp_ai_key(){$o=nma_opts();$k=defined('NMA_ANTHROPIC_API_KEY')?NMA_ANTHROPIC_API_KEY:(string)($o['anthropic_key']??'');return is_string($k)&&strlen($k)>=20&&strlen($k)<=400&&!preg_match('/\s/',$k)?$k:'';}
+function nmbp_ai_key(){$k=nma_secret('anthropic_key');return is_string($k)&&strlen($k)>=20&&strlen($k)<=400&&!preg_match('/\s/',$k)?$k:'';}
 function nmbp_ai_model(){$o=nma_opts();$m=(string)($o['anthropic_model']??'');return preg_match('/^claude-[a-z0-9.-]{3,60}$/',$m)?$m:'claude-sonnet-5-5';}
 function nmbp_ai_ready(){return nmbp_ai_key()!=='';}
 function nmbp_elements_keys(){return array_keys(nmb_inspection_items());}
@@ -98,14 +98,14 @@ function nmbp_alerts_config(){if(!is_user_logged_in())return null;$uid=get_curre
 /* ---------- Réglages administrateur ---------- */
 function nmbp_save_settings($o){
     if(($_POST['nmbp_present']??'')!=='1')return $o;
-    if(!empty($_POST['nmbp_key_replace'])&&is_string($_POST['nmbp_key_new']??null)){$k=trim(wp_unslash($_POST['nmbp_key_new']));if(strlen($k)>=20&&strlen($k)<=400&&!preg_match('/\s/',$k))$o['anthropic_key']=$k;}
+    if(!nma_secret_constant('anthropic_key')&&!empty($_POST['nmbp_key_replace'])&&is_string($_POST['nmbp_key_new']??null)){$k=trim(wp_unslash($_POST['nmbp_key_new']));if(strlen($k)>=20&&strlen($k)<=400&&!preg_match('/\s/',$k))$o['anthropic_key']=$k;}
     $m=sanitize_text_field(wp_unslash($_POST['nmbp_model']??''));$o['anthropic_model']=preg_match('/^claude-[a-z0-9.-]{3,60}$/',$m)?$m:'';
     foreach(array('peak_periods','peak_zones') as $k)$o[$k]=mb_substr(sanitize_textarea_field(wp_unslash($_POST['nmbp_'.$k]??'')),0,4000);
     return $o;
 }
 function nmbp_admin_fields($o){
     $d=nmbp_default_peaks();
-    echo '<tr><th>Neomoov Booster — analyse par IA</th><td><input type="hidden" name="nmbp_present" value="1"><p>'.(defined('NMA_ANTHROPIC_API_KEY')?'Clé fournie par wp-config.php (NMA_ANTHROPIC_API_KEY), jamais affichée.':(!empty($o['anthropic_key'])?'Clé configurée, jamais affichée.':'Clé non configurée : analyse des photos désactivée (les rapports se remplissent à la main).')).'</p><label>Nouvelle clé Anthropic <input type="password" name="nmbp_key_new" value="" autocomplete="new-password"></label> <label><input type="checkbox" name="nmbp_key_replace" value="1"> Remplacer explicitement la clé</label><p><label>Modèle <input name="nmbp_model" value="'.esc_attr($o['anthropic_model']??'').'" placeholder="claude-sonnet-5-5"></label></p></td></tr>';
+    echo '<tr><th>Neomoov Booster — analyse par IA</th><td><input type="hidden" name="nmbp_present" value="1"><p>'.esc_html(nma_secret_status('anthropic_key',$o)).(nmbp_ai_ready()?'':' Sans clé, l’analyse des photos est désactivée (les rapports se remplissent à la main).').'</p>'.nma_secret_clear_field('anthropic_key',$o).(nma_secret_constant('anthropic_key')?'':'<label>Nouvelle clé Anthropic <input type="password" name="nmbp_key_new" value="" autocomplete="new-password"></label> <label><input type="checkbox" name="nmbp_key_replace" value="1"> Remplacer explicitement la clé</label>').'<p><label>Modèle <input name="nmbp_model" value="'.esc_attr($o['anthropic_model']??'').'" placeholder="claude-sonnet-5-5"></label></p></td></tr>';
     echo '<tr><th>Neomoov Booster — périodes et zones de gain</th><td><p><label>Périodes (une par ligne : jours|HH:MM-HH:MM|libellé)<br><textarea name="nmbp_peak_periods" rows="4" class="large-text">'.esc_textarea($o['peak_periods']??$d['periods']).'</textarea></label></p><p><label>Zones (une par ligne : libellé|jours|HH:MM-HH:MM)<br><textarea name="nmbp_peak_zones" rows="4" class="large-text">'.esc_textarea($o['peak_zones']??$d['zones']).'</textarea></label></p><p>Jours : 1 = lundi … 7 = dimanche, listes « 1-5 » ou « 5,6 », * = tous.</p></td></tr>';
 }
 /* ---------- Script : analyse des photos, export JPEG, alertes ---------- */

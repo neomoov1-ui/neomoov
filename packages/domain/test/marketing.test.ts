@@ -7,12 +7,12 @@ import {
 import { CONTENT_SPACES } from '../src/marketing/index.js';
 
 const TZ = 'America/Toronto';
-const OPTIONS = { allowedPrices: ['48,20 $', '113,83 $'], ctaUrls: { reserve: 'https://neomoov.net/reserver', academy: 'https://neomoov.net/academy', preregister: 'https://neomoov.net/devenir-chauffeur' }, allowedPhones: ['+1 367 763-9063'], allowedEmailDomains: ['neomoov.net'] };
+const OPTIONS = { allowedPrices: ['48,20 $', '113,83 $'], ctaUrls: { reserve: 'https://neomoov.net/reserver', academy: 'https://neomoov.net/academy', preregister: 'https://neomoov.net/chauffeurs/#candidature' }, allowedPhones: ['+1 438 900 4990'], allowedEmailDomains: ['neomoov.net'] };
 const draft = (over: Partial<ContentDraft> = {}): ContentDraft => ({ space: 'facebook', format: 'post', language: 'fr', title: null, body: 'Réservez votre transfert vers l\'aéroport au prix tout compris, affiché avant de confirmer.', caption: null, hashtags: ['#Montréal'], cta: 'reserve', ...over });
 
 describe('marketing : espaces, formats et texte composé', () => {
-  it('onze espaces avec leurs règles ; formats vidéo ; mots-clics normalisés', () => {
-    expect(CONTENT_SPACES).toHaveLength(11);
+  it('treize espaces avec leurs règles (Telegram et chaîne WhatsApp ajoutés) ; formats vidéo ; mots-clics normalisés', () => {
+    expect(CONTENT_SPACES).toHaveLength(13);
     for (const space of CONTENT_SPACES) expect(spaceRule(space).formats.length).toBeGreaterThan(0);
     expect(isVideoFormat('reel')).toBe(true);
     expect(isVideoFormat('post')).toBe(false);
@@ -61,7 +61,7 @@ describe('marketing : garde-fous des contenus', () => {
     expect(kinds('Le transfert aéroport coûte 48,20 $, prix fixe.')).not.toContain('undecided_price');
     expect(kinds('Formation à $113.83 tout compris.')).not.toContain('undecided_price');
     expect(kinds('Appelez-moi au 514 555 0199.')).toContain('personal_data');
-    expect(kinds('Écrivez-nous sur WhatsApp au +1 367 763-9063.')).not.toContain('personal_data');
+    expect(kinds('Écrivez-nous sur WhatsApp au +1 438 900 4990.')).not.toContain('personal_data');
     expect(kinds('Écrivez à jean@exemple.com.')).toContain('personal_data');
     expect(kinds('Écrivez à contact@neomoov.net.')).not.toContain('personal_data');
     expect(normalizePrice('$48.2')).toBe('48,20 $');
@@ -73,6 +73,12 @@ describe('marketing : garde-fous des contenus', () => {
     const informal = checkContent(draft({ body: 'Réserve ta course, tu verras la différence.' }), OPTIONS);
     expect(informal.find((i) => i.kind === 'informal_address')).toMatchObject({ blocking: false });
     expect(checkContent(draft({ body: 'Book your ride, you will see.', language: 'en', space: 'x' }), OPTIONS).map((i) => i.kind)).not.toContain('informal_address');
+    // Lettres accentuées : « êtes », « côte » et « sélection » ne sont ni du tutoiement ni un sujet sensible.
+    const accents = checkContent(draft({ body: 'Vous êtes attendus sur la côte, avec notre sélection de véhicules.' }), OPTIONS).map((i) => i.kind);
+    expect(accents).not.toContain('informal_address');
+    expect(accents).not.toContain('sensitive_topic');
+    expect(checkContent(draft({ body: 'Tu peux réserver.' }), OPTIONS).map((i) => i.kind)).toContain('informal_address');
+    expect(checkContent(draft({ body: 'Pendant l\'élection, réservez tôt.' }), OPTIONS).map((i) => i.kind)).toContain('sensitive_topic');
     const sensitive = checkContent(draft({ body: 'Après l\'accident de la semaine dernière, nos chauffeurs redoublent de prudence.' }), OPTIONS);
     expect(sensitive).toEqual([{ kind: 'sensitive_topic', detail: expect.stringContaining('accident'), blocking: false }]);
     expect(isSensitive(false, sensitive)).toBe(true);

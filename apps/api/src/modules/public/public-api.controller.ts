@@ -4,9 +4,10 @@
  * `public:write` (visible dans une page web : sa portée ne donne accès à rien d'autre), limitation par adresse IP,
  * protection anti-robots sur les formulaires. Le suivi partagé (`GET /public/track/{token}`) reste dans les courses.
  */
+import { isIP } from 'node:net';
 import { schema } from '@neomoov/db';
 import { autocompleteQuerySchema, autocompleteSuggestionSchema, leadCreatedSchema, leadInputSchema, placeDetailsQuerySchema, placeDetailsSchema, quoteRequestSchema, quotesResponseSchema } from '@neomoov/domain';
-import { Body, Controller, Get, HttpCode, Inject, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Inject, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { MAPS_PROVIDER, type MapsProvider } from '../../adapters/types.js';
@@ -52,9 +53,12 @@ export class PublicApiController {
   @ZodBody(leadInputSchema)
   @ZodResponse(201, leadCreatedSchema)
   @ApiErrors(400, 401, 403, 429)
-  async lead(@Body(zodPipe(leadInputSchema)) body: z.infer<typeof leadInputSchema>, @CurrentActor() actor: Actor | undefined, @ReqCtx() ctx: RequestContext) {
-    await this.limit('leads', ctx.ip);
-    if (!(await this.antiBot.verify(body.antiBotToken, ctx.ip))) throw AppError.forbidden('ANTI_BOT_FAILED', 'Vérification anti-robots échouée : réessayez');
+  async lead(@Body(zodPipe(leadInputSchema)) body: z.infer<typeof leadInputSchema>, @CurrentActor() actor: Actor | undefined, @ReqCtx() ctx: RequestContext, @Headers('x-neomoov-visitor-ip') visitorIp?: string) {
+    // Relais d'un site partenaire (clé de service) : l'adresse du visiteur transmise par le relais compte, pas celle du serveur
+    // du site (sinon tout le site partagerait une seule limite) ; sans adresse valide, ni limite par adresse ni `remoteip`.
+    const ip = actor?.kind === 'service' ? relayedVisitorIp(visitorIp) : ctx.ip;
+    await this.limit('leads', ip);
+    if (!(await this.antiBot.verify(body.antiBotToken, ip))) throw AppError.forbidden('ANTI_BOT_FAILED', 'Vérification anti-robots échouée : réessayez');
     const source = actor?.kind === 'service' ? actor.name.slice(0, 30) : 'web';
     const [row] = await this.database.db
       .insert(schema.leads)
@@ -103,4 +107,11 @@ export class PublicApiController {
     const place = await this.maps.placeDetails(query.placeId, query.sessionToken);
     return { placeId: place.placeId ?? null, address: place.formattedAddress, coordinates: { lat: place.lat, lng: place.lng } };
   }
+}
+
+/** Adresse IPv4 ou IPv6 transmise par un relais authentifié (en-tête `x-neomoov-visitor-ip`), ou null si absente ou invalide. */
+export function relayedVisitorIp(value: string | undefined): string | null {
+  const ip = (value ?? '').trim();
+  if (!ip || ip.length > 45) return null;
+  return isIP(ip) ? ip : null;
 }

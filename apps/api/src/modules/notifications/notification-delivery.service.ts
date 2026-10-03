@@ -144,7 +144,8 @@ export class NotificationDeliveryService {
       case 'sms': {
         const to = row.recipientAddress ?? recipient.phone;
         if (!to) return this.fail(row.id, 'no_phone');
-        const { messageId } = await this.sms.send({ to, body: `${brand!.displayName} : ${rendered.body}` });
+        const smsFrom = typeof data['smsFrom'] === 'string' ? data['smsFrom'] : undefined;
+        const { messageId } = await this.sms.send({ to, body: `${brand!.displayName} : ${rendered.body}`, ...(smsFrom ? { from: smsFrom } : {}) });
         await this.finish(row.id, { sentAt: now, providerMessageId: messageId });
         return 'sent';
       }

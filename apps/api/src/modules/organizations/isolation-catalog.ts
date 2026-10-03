@@ -38,7 +38,10 @@ export const PLATFORM_ONLY_TABLES: Readonly<Record<string, string>> = {
   // Phase 1 « entreprise autonome » (2 octobre 2026) : marketing de la plateforme (réseaux et site de Neomoov).
   content_items: 'Calendrier de contenu des réseaux et du site de Neomoov (agents content et publishing) : aucune donnée d\'organisation cliente.',
   content_comments: 'Commentaires reçus sur les publications de Neomoov et réponses automatiques de l\'agent de diffusion.',
+  content_groups: 'Publications multiréseau de Neomoov (composer et lots importés de My Hub, 3 octobre 2026) : aucune donnée d\'organisation cliente.',
   seo_tasks: 'Tâches de référencement de neomoov.net (agent seo) : pages du site de la plateforme.',
+  // Réseaux sociaux (3 octobre 2026) : comptes de Neomoov connectés dans My Hub.
+  social_accounts: 'Comptes des réseaux sociaux de Neomoov (un par espace) et leurs jetons chiffrés : connectés par le personnel de la plateforme, aucune donnée d\'organisation cliente.',
 };
 
 /** Vrai si la table est, par choix, réservée à la plateforme. */
