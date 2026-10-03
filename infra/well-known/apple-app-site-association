@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["DNB64CQYH6.com.neomoov.client"],
+        "components": [
+          { "/": "/c/*", "comment": "Lien de rattachement d'une organisation, application client (ecran c/[code])" }
+        ]
+      },
+      {
+        "appIDs": ["DNB64CQYH6.com.neomoov.driver"],
+        "components": [
+          { "/": "/d/*", "comment": "Lien de rattachement d'une organisation, application chauffeur (ecran d/[code])" }
+        ]
+      }
+    ]
+  }
+}

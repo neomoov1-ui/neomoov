@@ -1,7 +1,7 @@
 import type { RideView } from '@neomoov/domain';
 import { MutationCache, QueryCache, QueryClient, useQueries, useQuery } from '@tanstack/react-query';
 import { ApiError } from '@neomoov/api-client';
-import { sortInvoices } from '@/features/invoices/logic';
+import { createLimiter, INVOICE_CONCURRENCY, sortInvoices } from '@/features/invoices/logic';
 import { api } from './api';
 import { POLL_FALLBACK_MS } from './config';
 import { reportMobileError } from './observability';
@@ -67,10 +67,14 @@ export function useRides() {
   return useQuery({ queryKey: keys.rides, queryFn: async () => (await api.rides.list({ limit: 50 })).items, enabled: useSignedIn() });
 }
 
+/** Requêtes de factures en cours au plus (lots de 5, constat mobile 15). */
+const invoiceLimit = createLimiter(INVOICE_CONCURRENCY);
+
 /**
  * Factures des courses données, la plus récente d'abord : une requête par course, faute de liste des factures du client
- * dans l'API. Une course sans facture (404) donne null ; une facture émise ne change plus, seuls son PDF et ses notes de
- * crédit sont relus à l'actualisation.
+ * dans l'API, 5 au plus en même temps ; l'écran ne donne que les courses des pages ouvertes (10 par page). Une course
+ * sans facture (404) donne null ; une facture émise ne change plus, seuls son PDF et ses notes de crédit sont relus à
+ * l'actualisation.
  */
 export function useRideInvoices(rideIds: readonly string[]) {
   const signedIn = useSignedIn();
@@ -78,7 +82,7 @@ export function useRideInvoices(rideIds: readonly string[]) {
     queries: rideIds.map((rideId) => ({
       queryKey: keys.invoice(rideId),
       queryFn: () =>
-        api.invoicing.rideInvoice(rideId).catch((error: unknown) => {
+        invoiceLimit(() => api.invoicing.rideInvoice(rideId)).catch((error: unknown) => {
           if (error instanceof ApiError && error.status === 404) return null;
           throw error;
         }),

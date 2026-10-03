@@ -203,6 +203,7 @@ export const appResources = {
         details: 'Détail du prix',
         mapUnavailable: 'La carte s\'affiche dans l\'application mobile.',
         driverPosition: 'Position du chauffeur',
+        recenter: 'Recentrer',
         realtimeOff: 'Mise à jour toutes les 5 secondes.',
         messages: 'Messages',
         noMessages: 'Aucun message.',
@@ -239,6 +240,7 @@ export const appResources = {
         openCreditNote: 'Ouvrir la note de crédit',
         partial: 'Certaines factures n\'ont pas pu être chargées. Tirez vers le bas pour réessayer.',
         shareTitle: 'Facture {{number}}',
+        more: 'Voir plus de factures',
         unavailable: 'Impossible d\'ouvrir le PDF sur cet appareil.',
       },
       profile: {
@@ -514,6 +516,7 @@ export const appResources = {
         details: 'Price details',
         mapUnavailable: 'The map shows in the mobile app.',
         driverPosition: 'Driver position',
+        recenter: 'Recenter',
         realtimeOff: 'Updating every 5 seconds.',
         messages: 'Messages',
         noMessages: 'No messages.',
@@ -550,6 +553,7 @@ export const appResources = {
         openCreditNote: 'Open the credit note',
         partial: 'Some invoices could not be loaded. Pull down to try again.',
         shareTitle: 'Invoice {{number}}',
+        more: 'See more invoices',
         unavailable: 'The PDF cannot be opened on this device.',
       },
       profile: {
