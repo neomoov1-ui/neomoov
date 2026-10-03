@@ -15,13 +15,16 @@ import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
+import { ACTS_ON_KEY, ORG_WRITE_EXEMPT_KEY, OrgRequestGatesService, type ActsOn } from '../organizations/org-request-gates.js';
 import { OrgScopeService } from '../organizations/org-scope.service.js';
 import { SupportAccessService, type ActiveSupportAccess } from '../organizations/support-access.service.js';
 import { AUTHENTICATED_KEY, CAN_KEY, ORG_SCOPED_KEY, OWNS_KEY, PUBLIC_KEY, ROLES_KEY, SCOPES_KEY, isStaffRole, hasStaffRole, requestContext, type Actor, type OrgScopedOptions, type OwnsOptions, type UserActor } from './actor.js';
 import { AccessService } from './access.service.js';
 import { ApiKeysService, isApiKey } from './api-keys.service.js';
 import { TokensService } from './tokens.service.js';
-import { hasAnyPermission, type Permission, type UserRole } from '@neomoov/domain';
+import {
+  admittedPermissions, conditionFactsNeeded, hasAnyPermission, organizationWriteRefusal, sensitivePermissionsUsed, type ConditionFacts, type Permission, type UserRole,
+} from '@neomoov/domain';
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -227,6 +230,11 @@ export class OwnershipGuard implements CanActivate {
  * l'organisation et en cours, pour un membre du personnel qui détient `support.access` ; chaque requête ainsi admise est
  * journalisée dans le journal de l'organisation avec le motif. Une permission refusée faute de double authentification
  * porte `mfaRequired` dans le détail (My Hub propose alors le second facteur).
+ * Finalisation du 3 octobre 2026 : les conditions des rôles (lecture seule, montant maximal, zones) sont jugées sur
+ * l'objet de l'action (`@ActsOnRide`, `@ActsOnQuote`, `@ActsOnPlace`), 403 `PERMISSION_CONDITION_UNMET` ; sous un statut
+ * de facturation sans écriture, une écriture est refusée (403 `ORGANIZATION_READ_ONLY` ou `ORGANIZATION_SUSPENDED`), sauf
+ * sur une course en cours et sur une route `@OrgWriteExempt` ; les permissions sensibles qui ont seules admis la requête
+ * sont notées pour l'alerte au propriétaire (`req.orgSensitiveUse`).
  */
 @Injectable()
 export class OrgScopeGuard implements CanActivate {
@@ -236,6 +244,7 @@ export class OrgScopeGuard implements CanActivate {
     private readonly access: AccessService,
     private readonly support: SupportAccessService,
     private readonly audit: AuditService,
+    private readonly gates: OrgRequestGatesService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -262,11 +271,36 @@ export class OrgScopeGuard implements CanActivate {
     }
     const can = this.reflector.getAllAndOverride<Permission[]>(CAN_KEY, targets) ?? [];
     if (!can.length) throw AppError.forbidden('NO_POLICY', 'Route d\'organisation sans permission (refus par défaut)');
-    const permissions = support ? support.permissions : await this.access.permissionsIn(actor, scope.path);
+    const held = support ? { permissions: support.permissions, grants: null } : await this.access.grantsIn(actor, scope.path);
+    const permissions = held.permissions;
     // Même code d'erreur que la plateforme ; la permission manquante est donnée en détail.
     if (!hasAnyPermission(permissions, can)) {
       const mfaRequired = !support && (await this.access.mfaPermissionsIn(actor, scope.path)).some((code) => can.includes(code));
       throw AppError.forbidden('FORBIDDEN_ROLE', 'Votre rôle ne permet pas cette action', { required: can, ...(mfaRequired ? { mfaRequired: true } : {}) });
+    }
+    const write = !READ_METHODS.has(req.method);
+    const actsOn = this.reflector.getAllAndOverride<ActsOn | undefined>(ACTS_ON_KEY, targets);
+    let admitted = can.filter((code) => permissions.has(code));
+    if (held.grants) {
+      // Conditions des rôles : le montant et les zones ne limitent que les écritures.
+      const needed = write ? conditionFactsNeeded(admitted, held.grants) : { amount: false, zone: false };
+      const facts: ConditionFacts = { write, ...(await this.gates.facts(req, actsOn, scope.path, needed)) };
+      const result = admittedPermissions(admitted, held.grants, facts);
+      if (!result.admitted.length) throw AppError.forbidden('PERMISSION_CONDITION_UNMET', 'Les conditions de votre rôle ne permettent pas cette action', { required: can, refusals: result.refusals });
+      admitted = result.admitted;
+    }
+    if (write) {
+      const exempt = this.reflector.getAllAndOverride<boolean>(ORG_WRITE_EXEMPT_KEY, targets) === true;
+      const status = await this.gates.organizationStatus(scope.path);
+      const refusal = organizationWriteRefusal(status, { write, exempt, activeRide: exempt ? false : await this.gates.actsOnActiveRide(req, actsOn, scope.path) });
+      if (refusal) {
+        const code = refusal === 'read_only' ? 'ORGANIZATION_READ_ONLY' : 'ORGANIZATION_SUSPENDED';
+        throw AppError.forbidden(code, 'Le compte de l\'organisation ne permet plus de modifications : régularisez la facturation pour les reprendre', { status: refusal });
+      }
+    }
+    if (!support) {
+      const sensitive = sensitivePermissionsUsed(can, admitted);
+      if (sensitive.length) req.orgSensitiveUse = sensitive;
     }
     req.orgScope = { organizationId: scope.organizationId, path: scope.path, permissions, ...(support ? { support: { grantId: support.grantId, reason: support.reason, endsAt: support.endsAt } } : {}) };
     if (support) {

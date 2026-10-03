@@ -30,6 +30,11 @@ export const subscriptions = pgTable('subscriptions', {
   activeVehicles: integer('active_vehicles').notNull().default(0),
   cancelledAt: tz('cancelled_at'),
   cancelReason: text('cancel_reason'),
+  /**
+   * Finalisation du 3 octobre 2026 : début du report de la suspension (une course était en cours), effacé au changement
+   * de statut ; au-delà de `billing.force_suspension_after_postponed_days` (0 : jamais), la suspension s'applique.
+   */
+  suspensionPostponedAt: tz('suspension_postponed_at'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [

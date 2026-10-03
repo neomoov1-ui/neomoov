@@ -1,12 +1,13 @@
 /** Section 4.6 : paiements, packs, règlements, promotions et crédits. */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, date, index, integer, jsonb, pgTable, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, date, index, integer, jsonb, pgTable, text, uniqueIndex, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { cents, createdAt, id, tz, updatedAt } from './_helpers.js';
 import { clients } from './clients.js';
 import { drivers } from './drivers.js';
 import { collectedByEnum, creditOriginEnum, packBillingStatusEnum, packCodeEnum, packPurchaseStatusEnum, paymentMethodEnum, paymentStatusEnum, promotionTypeEnum, statementStatusEnum } from './enums.js';
 import { users } from './identity.js';
+import { organizations } from './partners.js';
 import { rides } from './rides.js';
 
 export const payments = pgTable('payments', {
@@ -54,7 +55,7 @@ export const refunds = pgTable('refunds', {
   mode: varchar('mode', { length: 10 }).notNull().default('refund'),
   amountCents: cents('amount_cents').notNull(),
   reason: varchar('reason', { length: 300 }).notNull(),
-  creditId: uuid('credit_id'),
+  creditId: uuid('credit_id').references((): AnyPgColumn => credits.id, { onDelete: 'set null' }),
   idempotencyKey: varchar('idempotency_key', { length: 120 }),
   decidedByUserId: uuid('decided_by_user_id'),
   decidedByAgentCode: varchar('decided_by_agent_code', { length: 40 }),
@@ -134,7 +135,7 @@ export const packPurchases = pgTable('pack_purchases', {
   nextPackCode: packCodeEnum('next_pack_code'),
   rolloverDone: boolean('rollover_done').notNull().default(false),
   billing: packBillingStatusEnum('billing').notNull().default('to_bill'),
-  statementId: uuid('statement_id'),
+  statementId: uuid('statement_id').references((): AnyPgColumn => weeklyStatements.id, { onDelete: 'set null' }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [index('pack_purchases_driver_idx').on(t.driverId, t.status), index('pack_purchases_expiry_idx').on(t.expiresAt).where(sql`${t.status} = 'active'`), check('pack_purchases_positive', sql`${t.pricePaidCents} >= 0 AND ${t.carriedOverRemaining} >= 0 AND (${t.ridesRemaining} IS NULL OR ${t.ridesRemaining} >= 0)`)]);
@@ -150,7 +151,7 @@ export const packConsumptions = pgTable('pack_consumptions', {
 export const weeklyStatements = pgTable('weekly_statements', {
   id: id(),
   driverId: uuid('driver_id').notNull().references(() => drivers.id),
-  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`).references((): AnyPgColumn => organizations.id, { onDelete: 'set null' }),
   periodStart: date('period_start').notNull(),
   periodEnd: date('period_end').notNull(),
   platformFaresCents: cents('platform_fares_cents').notNull().default(0),
@@ -175,7 +176,7 @@ export const weeklyStatements = pgTable('weekly_statements', {
   pdfKey: varchar('pdf_key', { length: 300 }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-}, (t) => [uniqueIndex('weekly_statements_period_unique').on(t.driverId, t.periodStart), index('weekly_statements_status_idx').on(t.status, t.periodStart), check('weekly_statements_period', sql`${t.periodEnd} = ${t.periodStart} + 6`)]);
+}, (t) => [uniqueIndex('weekly_statements_period_unique').on(t.driverId, t.periodStart), index('weekly_statements_status_idx').on(t.status, t.periodStart), index('weekly_statements_org_idx').on(t.organizationId), check('weekly_statements_period', sql`${t.periodEnd} = ${t.periodStart} + 6`)]);
 
 export const statementLines = pgTable('statement_lines', {
   id: id(),
@@ -183,7 +184,7 @@ export const statementLines = pgTable('statement_lines', {
   kind: varchar('kind', { length: 40 }).notNull(),
   amountCents: cents('amount_cents').notNull(),
   rideId: uuid('ride_id'),
-  packPurchaseId: uuid('pack_purchase_id'),
+  packPurchaseId: uuid('pack_purchase_id').references((): AnyPgColumn => packPurchases.id, { onDelete: 'set null' }),
   label: varchar('label', { length: 120 }).notNull(),
   occurredAt: tz('occurred_at').notNull(),
 }, (t) => [index('statement_lines_statement_idx').on(t.statementId), check('statement_lines_amount_positive', sql`${t.amountCents} >= 0`)]);

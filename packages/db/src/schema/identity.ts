@@ -1,7 +1,7 @@
 /** Section 4.1 : comptes et identité. */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, inet, integer, jsonb, pgTable, primaryKey, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, index, inet, integer, jsonb, pgTable, primaryKey, text, uniqueIndex, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { createdAt, id, tz, updatedAt } from './_helpers.js';
 import { consentPurposeEnum, languageEnum, userRoleEnum, userStatusEnum } from './enums.js';
 
@@ -46,7 +46,7 @@ export const userRoles = pgTable('user_roles', {
 export const sessions = pgTable('sessions', {
   id: id(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  deviceId: uuid('device_id'),
+  deviceId: uuid('device_id').references((): AnyPgColumn => devices.id, { onDelete: 'set null' }),
   refreshTokenHash: varchar('refresh_token_hash', { length: 128 }).notNull(),
   /** Famille de jetons : la réutilisation d'un jeton déjà tourné révoque toute la famille. */
   family: uuid('family').notNull(),

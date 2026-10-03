@@ -10,10 +10,12 @@
  * - Réseau (`networkPass`, tâche de la plateforme) : en mode `neomoov_network`, une course non pourvue après le délai de
  *   l'organisation repart au réseau Neomoov (`network_shared_at`) : la répartition est relancée sans le filtre de
  *   l'organisation, et le journal de la course garde exactement ce qui a été transmis (champs permis seulement).
+ * - Finalisation du 3 octobre 2026 : annulation d'une course de l'organisation par son répartiteur (même chemin que
+ *   l'annulation par l'opérateur de la plateforme) ; critères Pilote de la flotte (`organizations.settings.pilot`).
  */
 import { schema } from '@neomoov/db';
 import {
-  networkSharedRide, shouldShareToNetwork, type AdminAssign, type FleetLive, type FleetSettings, type NetworkMode, type QuoteRequest, type RideState, type RideType,
+  fleetPilotSettingsSchema, networkSharedRide, parseFleetPilotSettings, shouldShareToNetwork, type AdminAssign, type FleetPilotSettings, type FleetPilotSettingsInput, type FleetLive, type FleetSettings, type NetworkMode, type QuoteRequest, type RideState, type RideType,
   type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -110,6 +112,37 @@ export class FleetDispatchService {
   /** Réattribution : chauffeur retiré sans sanction, nouvelle recherche prioritaire parmi les chauffeurs de l'organisation. */
   reassign(rideId: string, input: { reason: string; excludeDriver: boolean }, actor: UserActor) {
     return this.dispatch.reassign(rideId, actor, input);
+  }
+
+  /** Annulation par le répartiteur de l'organisation (au nom du client) ; frais seulement si demandé ; 404 hors du sous-arbre. */
+  cancel(rideId: string, input: { reason: string; chargeFee: boolean }, actor: UserActor) {
+    return this.rides.cancelByOperator(rideId, actor, input);
+  }
+
+  // --- Critères Pilote de la flotte ---
+
+  async pilotSettings(organizationId: string): Promise<FleetPilotSettings> {
+    const [org] = await this.db.select({ settings: schema.organizations.settings }).from(schema.organizations).where(eq(schema.organizations.id, organizationId)).limit(1);
+    if (!org) throw AppError.notFound('ORGANIZATION_NOT_FOUND', 'Organisation introuvable');
+    return parseFleetPilotSettings((org.settings as Record<string, unknown> | null)?.['pilot']);
+  }
+
+  /**
+   * Critères Pilote que l'organisation applique à ses chauffeurs (zones connues seulement). Mode `default` : ceux d'un
+   * chauffeur qui n'a rien réglé ; `minimum` : en plus des siens. Jamais l'ordre des offres de la répartition.
+   */
+  async updatePilotSettings(organizationId: string, input: FleetPilotSettingsInput): Promise<FleetPilotSettings> {
+    const next = fleetPilotSettingsSchema.parse(input);
+    const zones = new Set((await this.db.select({ code: schema.zones.code }).from(schema.zones).where(eq(schema.zones.active, true))).map((z) => z.code));
+    const unknown = [...new Set([...next.criteria.originZones, ...next.criteria.destinationZones])].filter((z) => !zones.has(z));
+    if (unknown.length) throw new AppError('PILOT_UNKNOWN_ZONE', 'Zone inconnue dans les critères', 400, { zones: unknown });
+    const before = await this.pilotSettings(organizationId);
+    await this.db
+      .update(schema.organizations)
+      .set({ settings: sql`coalesce(${schema.organizations.settings}, '{}'::jsonb) || jsonb_build_object('pilot', ${JSON.stringify(next)}::jsonb)`, updatedAt: new Date() })
+      .where(eq(schema.organizations.id, organizationId));
+    this.audit.record({ action: 'fleet.pilot_settings_updated', entity: 'organizations', entityId: organizationId, before, after: next });
+    return next;
   }
 
   // --- Réglages du réseau ---

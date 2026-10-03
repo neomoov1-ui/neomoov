@@ -3,15 +3,18 @@
  * `OrgScopeGuard`, permissions du rôle dans l'organisation, transaction restreinte par `OrgScopeInterceptor` : une ligne
  * d'une autre organisation donne 404, jamais 403) et acceptation d'une invitation de chauffeur par la personne invitée.
  * Uniquement les courses Neomoov (décision D1) : aucune lecture ni action sur une autre plateforme.
+ * Finalisation du 3 octobre 2026 : annulation d'une course, suspension et réactivation d'un chauffeur, critères Pilote de
+ * la flotte ; les routes d'écriture sur une course, un devis ou un lieu déclarent leur objet (conditions des rôles).
  */
 import {
-  adminAssignSchema, adminCreateRideSchema, adminListQuerySchema, adminReassignSchema, driverAttachmentSchema, driverInvitationAcceptSchema, driverInvitationCreatedSchema,
+  adminAssignSchema, adminCancelRideSchema, adminCreateRideSchema, adminDriverDetailSchema, adminListQuerySchema, adminReassignSchema, cancellationResultSchema, driverAttachmentSchema,
+  driverInvitationAcceptSchema, driverInvitationCreatedSchema, driverSuspendSchema, fleetPilotSettingsSchema,
   driverInvitationCreateSchema, fleetDocumentSchema, fleetDriverSchema, fleetLiveSchema, fleetSettingsSchema, fleetSettingsUpdateSchema, fleetVehicleSchema, localDateString,
   maintenanceCreateSchema, orgDocumentReviewSchema, organizationStatementSchema, orgStatementDetailSchema, orgVehicleCreateSchema, orgVehicleUpdateSchema, ownerDashboardSchema,
   pageOf, payoutAccountSchema, payoutOnboardingSchema, quoteRequestSchema, quotesResponseSchema, revenueShareRuleCreateSchema, revenueShareRuleEndSchema, revenueShareRuleSchema,
   rideSchema, statementSettleOfflineSchema, uuid, vehicleAssignSchema, vehicleMaintenanceViewSchema, weeklyReportQuerySchema, weeklyReportSchema,
 } from '@neomoov/domain';
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, Res, StreamableFile } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
@@ -19,6 +22,7 @@ import { AppError } from '../../common/app-error.js';
 import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { Authenticated, Can, CurrentOrgScope, CurrentUser, OrgScoped, ReqCtx, type OrgScope, type RequestContext, type UserActor } from '../auth/actor.js';
+import { ActsOnPlace, ActsOnQuote, ActsOnRide } from '../organizations/org-request-gates.js';
 import { OrganizationStatementsService } from '../settlement/organization-statements.service.js';
 import { FleetDispatchService } from './fleet-dispatch.service.js';
 import { FleetDriversService } from './fleet-drivers.service.js';
@@ -134,8 +138,8 @@ export class FleetController {
   @ApiOperation({ summary: 'Inspections et entretien d\'un véhicule, avec les échéances (en retard, proches, à jour)' })
   @ZodResponse(200, vehicleMaintenanceViewSchema)
   @ApiErrors(401, 403, 404, 429)
-  maintenance(@Param('id', zodPipe(uuid)) id: string) {
-    return this.vehicles.maintenance(id);
+  maintenance(@Param('id', zodPipe(uuid)) id: string, @ReqCtx() ctx: RequestContext) {
+    return this.vehicles.maintenance(id, new Date(), ctx.language);
   }
 
   @Post('vehicles/:id/maintenance')
@@ -162,6 +166,7 @@ export class FleetController {
 
   @Post('quotes')
   @Can('rides.create')
+  @ActsOnPlace('origin')
   @HttpCode(201)
   @ApiOperation({ summary: 'Devis saisi par le répartiteur de l\'organisation (mêmes règles que l\'application) ; il appartient à l\'organisation' })
   @ZodBody(quoteRequestSchema)
@@ -173,6 +178,7 @@ export class FleetController {
 
   @Post('rides')
   @Can('rides.create')
+  @ActsOnQuote('quoteId')
   @HttpCode(201)
   @ApiOperation({ summary: 'Course reçue par l\'organisation, saisie par son répartiteur à partir d\'un devis de l\'organisation (compte client rattaché ou fiche minimale)' })
   @ZodBody(adminCreateRideSchema)
@@ -184,6 +190,7 @@ export class FleetController {
 
   @Post('rides/:id/assign')
   @Can('rides.assign')
+  @ActsOnRide('id')
   @HttpCode(200)
   @ApiOperation({ summary: 'Répartition interne : attribue une course de l\'organisation à l\'un de ses chauffeurs (garantie modèle vérifiée ; un chauffeur d\'une autre organisation est introuvable)' })
   @ZodBody(adminAssignSchema)
@@ -195,6 +202,7 @@ export class FleetController {
 
   @Post('rides/:id/reassign')
   @Can('rides.reassign')
+  @ActsOnRide('id')
   @HttpCode(200)
   @ApiOperation({ summary: 'Réattribution : chauffeur retiré sans sanction, nouvelle recherche prioritaire parmi les chauffeurs de l\'organisation' })
   @ZodBody(adminReassignSchema)
@@ -202,6 +210,62 @@ export class FleetController {
   @ApiErrors(400, 401, 403, 404, 409, 429)
   reassignRide(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(adminReassignSchema)) body: z.infer<typeof adminReassignSchema>, @CurrentUser() user: UserActor) {
     return this.dispatch.reassign(id, body, user);
+  }
+
+  @Post('rides/:id/cancel')
+  @Can('rides.cancel')
+  @ActsOnRide('id')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Annule une course de l\'organisation au nom du client (frais d\'annulation seulement si demandé) ; 404 hors de son sous-arbre' })
+  @ZodBody(adminCancelRideSchema)
+  @ZodResponse(200, cancellationResultSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  cancelRide(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(adminCancelRideSchema)) body: z.infer<typeof adminCancelRideSchema>, @CurrentUser() user: UserActor) {
+    return this.dispatch.cancel(id, body, user);
+  }
+
+  // --- Suspension des chauffeurs ---
+
+  @Post('drivers/:id/suspend')
+  @Can('drivers.suspend')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Suspend un chauffeur de l\'organisation (motif obligatoire) : hors ligne immédiatement, plus aucune offre ; 404 hors de son sous-arbre' })
+  @ZodBody(driverSuspendSchema)
+  @ZodResponse(200, adminDriverDetailSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  suspendDriver(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(driverSuspendSchema)) body: z.infer<typeof driverSuspendSchema>, @CurrentUser() user: UserActor) {
+    return this.drivers.suspend(id, body.reason, user);
+  }
+
+  @Post('drivers/:id/reactivate')
+  @Can('drivers.activate')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Réactive un chauffeur suspendu par l\'organisation ; 409 `SUSPENDED_BY_PLATFORM` si une suspension de la plateforme (conformité, qualité, sécurité, solde) reste en cours' })
+  @ZodResponse(200, adminDriverDetailSchema)
+  @ApiErrors(401, 403, 404, 409, 429)
+  reactivateDriver(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
+    return this.drivers.reactivate(id, user);
+  }
+
+  // --- Critères Pilote de la flotte ---
+
+  @Get('fleet/pilot')
+  @Can('drivers.read', 'drivers.programs.manage')
+  @ApiOperation({ summary: 'Critères Neomoov Pilote de la flotte : `off`, `default` (pour les chauffeurs qui n\'en ont réglé aucun) ou `minimum` (en plus des leurs) ; l\'ordre des offres ne change jamais' })
+  @ZodResponse(200, fleetPilotSettingsSchema)
+  @ApiErrors(401, 403, 404, 429)
+  pilotSettings(@CurrentOrgScope() scope: OrgScope) {
+    return this.dispatch.pilotSettings(scope.organizationId);
+  }
+
+  @Put('fleet/pilot')
+  @Can('drivers.programs.manage')
+  @ApiOperation({ summary: 'Règle les critères Neomoov Pilote de la flotte (zones connues seulement) ; ils ne décident que l\'acceptation automatique de ses chauffeurs' })
+  @ZodBody(fleetPilotSettingsSchema)
+  @ZodResponse(200, fleetPilotSettingsSchema)
+  @ApiErrors(400, 401, 403, 404, 429)
+  updatePilotSettings(@Body(zodPipe(fleetPilotSettingsSchema)) body: z.infer<typeof fleetPilotSettingsSchema>, @CurrentOrgScope() scope: OrgScope) {
+    return this.dispatch.updatePilotSettings(scope.organizationId, body);
   }
 
   @Get('fleet/settings')

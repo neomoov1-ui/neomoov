@@ -14,12 +14,15 @@
  * - Mode multi-applications : réservations planifiées seulement, seuils relevés, fenêtre de réponse allongée.
  * - Surveillance des exclusions de zones : rapport pour la plateforme et alerte au personnel, une fois par chauffeur et
  *   par zone surveillée (marqueur au journal d'audit).
+ * - Critères de la flotte (finalisation du 3 octobre 2026, « critères du chauffeur ou de la flotte ») : l'organisation
+ *   cliente du chauffeur peut fixer des critères (`organizations.settings.pilot`, modes `default` ou `minimum`), jugés avec
+ *   les siens par `evaluateOfferWithFleet` ; ils ne changent que la décision de Pilote, jamais l'ordre des offres.
  */
 import { schema } from '@neomoov/db';
 import {
-  chainAgenda, DEFAULT_PILOT_CRITERIA, evaluateOffer, netProfitability, parsePilotCriteria, parseWatchedZones, PILOT_INFORMATION_VERSION, pilotInformation,
+  chainAgenda, DEFAULT_PILOT_CRITERIA, evaluateOfferWithFleet, netProfitability, parseFleetPilotSettings, parsePilotCriteria, parseWatchedZones, PILOT_INFORMATION_VERSION, pilotInformation,
   pilotZoneExclusions, watchedZonesExcluded, type DriverAgendaView, type DriverCostsInput, type DriverCostsView, type DriverOfferView, type DriverProfitabilityView,
-  type PilotContext, type PilotCriteria, type PilotDecisionPage, type PilotDecisionsQuery, type PilotEvaluation, type PilotOffer, type PilotScoreView, type PilotSettingsUpdate,
+  type FleetPilotSettings, type PilotContext, type PilotCriteria, type PilotDecisionPage, type PilotDecisionsQuery, type PilotEvaluation, type PilotOffer, type PilotScoreView, type PilotSettingsUpdate,
   type PilotSettingsView, type PilotZoneExclusionsView, type RidePreferences, type RideView, type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
@@ -151,6 +154,16 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
     return criteria ? { ...criteria, multiAppMode: row.multiAppMode } : null;
   }
 
+  /** Critères Pilote de l'organisation cliente du chauffeur (`null` : aucune, ou mode `off`). */
+  private async fleetOf(driverId: string): Promise<FleetPilotSettings | null> {
+    const [row] = await this.db.execute<{ pilot: unknown }>(sql`
+      SELECT o.settings -> 'pilot' AS pilot FROM drivers d JOIN organizations o ON o.id = d.organization_id
+      WHERE d.id = ${driverId}::uuid AND o.parent_id IS NOT NULL`);
+    if (!row) return null;
+    const fleet = parseFleetPilotSettings(row.pilot);
+    return fleet.mode === 'off' ? null : fleet;
+  }
+
   /** Acceptation automatique permise : Pilote offert, activé par le chauffeur, consentement à la version courante. */
   private canAutoAccept(row: SettingsRow | undefined, cfg: PilotConfig): boolean {
     return Boolean(cfg.available && row?.enabled && row.consentVersion === PILOT_INFORMATION_VERSION);
@@ -244,18 +257,19 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
     return row?.average === null || row?.average === undefined ? null : Math.round(Number(row.average) * 100) / 100;
   }
 
-  private async evaluate(facts: OfferFacts, criteria: PilotCriteria | null, cfg: PilotConfig): Promise<PilotEvaluation> {
-    const input = await this.evaluationInput(facts, criteria, cfg);
-    return evaluateOffer(input.offer, criteria, input.context);
+  private async evaluate(facts: OfferFacts, criteria: PilotCriteria | null, cfg: PilotConfig, fleet: FleetPilotSettings | null): Promise<PilotEvaluation> {
+    const input = await this.evaluationInput(facts, criteria, cfg, fleet);
+    return evaluateOfferWithFleet(input.offer, criteria, fleet, input.context);
   }
 
   /** Ce que le domaine évalue : l'offre (zones, note du client) et le contexte (réservations du chauffeur, réglages). */
-  private async evaluationInput(facts: OfferFacts, criteria: PilotCriteria | null, cfg: PilotConfig): Promise<{ offer: PilotOffer; context: PilotContext }> {
+  private async evaluationInput(facts: OfferFacts, criteria: PilotCriteria | null, cfg: PilotConfig, fleet: FleetPilotSettings | null = null): Promise<{ offer: PilotOffer; context: PilotContext }> {
+    const ratingNeeded = criteria?.minClientRating != null || fleet?.criteria.minClientRating != null;
     const [originZones, destinationZones, planned, clientRating] = await Promise.all([
       this.zones.zonesOf(facts.origin).then((zones) => zones.map((z) => z.code)),
       this.zones.zonesOf(facts.destination).then((zones) => zones.map((z) => z.code)),
       this.plannedRides(facts.driverId, facts.rideId, facts.pickupAt),
-      criteria?.minClientRating != null && facts.clientId ? this.clientRating(facts.clientId) : Promise.resolve(null),
+      ratingNeeded && facts.clientId ? this.clientRating(facts.clientId) : Promise.resolve(null),
     ]);
     const offer: PilotOffer = {
       rideType: facts.rideType, negotiation: facts.negotiation, category: facts.category, driverFareCents: facts.driverFareCents,
@@ -290,15 +304,15 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
   async scoreOffers(driverUserId: string, views: DriverOfferView[]): Promise<DriverOfferView[]> {
     const driver = await this.driverOfUser(driverUserId);
     if (!driver) return views;
-    const [row, cfg] = await Promise.all([this.settingsRow(driver.id), this.config()]);
+    const [row, cfg, fleet] = await Promise.all([this.settingsRow(driver.id), this.config(), this.fleetOf(driver.id)]);
     const criteria = this.criteriaOf(row);
     const clients = new Map<string, string | null>();
-    if (criteria?.minClientRating != null) {
+    if (criteria?.minClientRating != null || fleet?.criteria.minClientRating != null) {
       const rows = await this.db.select({ id: schema.rides.id, clientId: schema.rides.clientId }).from(schema.rides).where(inArray(schema.rides.id, views.map((v) => v.rideId)));
       for (const r of rows) clients.set(r.id, r.clientId);
     }
     return Promise.all(views.map(async (view) => {
-      const evaluation = await this.evaluate(this.factsOfView(driver.id, view, clients.get(view.rideId) ?? null), criteria, cfg);
+      const evaluation = await this.evaluate(this.factsOfView(driver.id, view, clients.get(view.rideId) ?? null), criteria, cfg, fleet);
       return { ...view, pilotScore: this.scoreOf(evaluation, row, cfg, view.type) };
     }));
   }
@@ -311,10 +325,10 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
   async onOfferCreated(offer: OfferRow, ride: RideRow, driverUserId: string): Promise<PilotOfferOutcome> {
     const row = await this.settingsRow(offer.driverId);
     if (!row || (!row.enabled && !row.multiAppMode)) return { expiresAt: offer.expiresAt, notify: true };
-    const cfg = await this.config();
+    const [cfg, fleet] = await Promise.all([this.config(), this.fleetOf(offer.driverId)]);
     const criteria = this.criteriaOf(row);
-    const input = await this.evaluationInput(this.factsOfOffer(offer, ride), criteria, cfg);
-    const recorded = row.enabled ? await this.recordDecision(offer, ride, row, cfg, criteria, input) : null;
+    const input = await this.evaluationInput(this.factsOfOffer(offer, ride), criteria, cfg, fleet);
+    const recorded = row.enabled ? await this.recordDecision(offer, ride, row, cfg, criteria, input, fleet) : null;
     const decisionId = recorded?.id ?? null;
     const autoAccept = decisionId !== null && this.scoreOf(recorded!.evaluation, row, cfg, offer.type).autoAccept;
     let expiresAt = offer.expiresAt;
@@ -340,9 +354,9 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
    * courses qui se chevauchent. La décision est validée avant que l'acceptation ne commence.
    */
   private async recordDecision(
-    offer: OfferRow, ride: RideRow, row: SettingsRow, cfg: PilotConfig, criteria: PilotCriteria | null, input: { offer: PilotOffer; context: PilotContext },
+    offer: OfferRow, ride: RideRow, row: SettingsRow, cfg: PilotConfig, criteria: PilotCriteria | null, input: { offer: PilotOffer; context: PilotContext }, fleet: FleetPilotSettings | null = null,
   ): Promise<{ id: string | null; evaluation: PilotEvaluation }> {
-    let evaluation = evaluateOffer(input.offer, criteria, input.context);
+    let evaluation = evaluateOfferWithFleet(input.offer, criteria, fleet, input.context);
     return this.db.transaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`pilot-accept:${offer.driverId}`}))`);
       if (this.scoreOf(evaluation, row, cfg, offer.type).autoAccept) {
@@ -360,7 +374,7 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
             const startsAt = new Date(p.starts_at);
             return { startsAt, endsAt: new Date(startsAt.getTime() + (p.duration_seconds ?? DEFAULT_RIDE_SECONDS) * 1000) };
           });
-          evaluation = evaluateOffer(input.offer, criteria, { ...input.context, planned: [...input.context.planned, ...inFlight] });
+          evaluation = evaluateOfferWithFleet(input.offer, criteria, fleet, { ...input.context, planned: [...input.context.planned, ...inFlight] });
         }
       }
       const [inserted] = await tx

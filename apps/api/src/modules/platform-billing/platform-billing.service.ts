@@ -12,7 +12,7 @@
 import { schema } from '@neomoov/db';
 import {
   billingPeriodEnd, computePlatformInvoice, dunningSchedule, dunningSettingsFrom, dunningStep, formatPlatformInvoiceNumber, localDate, monthlyRecurringRevenueCents,
-  nextSubscriptionStatus, organizationStatusFor, planModules, QUEBEC_TAX_RATES, SUBSCRIPTION_STATUSES, targetSubscriptionStatus,
+  nextSubscriptionStatus, organizationStatusFor, planModules, QUEBEC_TAX_RATES, SUBSCRIPTION_STATUSES, suspensionForced, targetSubscriptionStatus, type BillingPortalSession,
   type BillingOverview, type BillingPeriod, type DunningSettings, type Language, type OrganizationBillingView, type PlatformInvoiceLine, type PlatformInvoiceView,
   type PlatformPlan, type PlatformPlanView, type SubscriptionStatus, type SubscriptionTransition, type SubscriptionUpsert, type SubscriptionView, type TaxRates,
 } from '@neomoov/domain';
@@ -638,13 +638,23 @@ export class PlatformBillingService {
     const settings = await this.dunningSettings();
     const target = targetSubscriptionStatus(current, unpaid.map((u) => ({ status: u.status as PlatformInvoiceView['status'], dueAt: u.dueAt, remindersSent: u.remindersSent })), now, settings);
     const activeRide = target === 'suspended' && current !== 'suspended' ? await this.hasActiveRide(row.organizationId) : false;
-    const transition = nextSubscriptionStatus(current, target, { activeRide });
+    // Finalisation du 3 octobre 2026 (proposition de la section 9, désactivée par défaut) : report trop long, suspension forcée.
+    const forceDays = await this.settings.number('billing.force_suspension_after_postponed_days', 0);
+    const forceSuspension = activeRide && suspensionForced(row.suspensionPostponedAt, now, forceDays);
+    const transition = nextSubscriptionStatus(current, target, { activeRide, forceSuspension });
     const oldest = unpaid[0];
     if (transition.postponed) {
-      await this.record({ action: 'platform_billing.suspension_postponed', entity: 'subscriptions', entityId: id, after: { reason: 'active_ride', invoice: oldest?.number ?? null, at: now.toISOString() } });
+      await this.record({ action: 'platform_billing.suspension_postponed', entity: 'subscriptions', entityId: id, after: { reason: 'active_ride', invoice: oldest?.number ?? null, at: now.toISOString(), since: (row.suspensionPostponedAt ?? now).toISOString() } });
+      if (!row.suspensionPostponedAt) await this.db.update(schema.subscriptions).set({ suspensionPostponedAt: now }).where(eq(schema.subscriptions.id, id));
+    } else if (row.suspensionPostponedAt && target !== 'suspended') {
+      // Plus de suspension visée (paiement) : le report prend fin.
+      await this.db.update(schema.subscriptions).set({ suspensionPostponedAt: null }).where(eq(schema.subscriptions.id, id));
+    }
+    if (forceSuspension && transition.status === 'suspended') {
+      await this.record({ action: 'platform_billing.suspension_forced', entity: 'subscriptions', entityId: id, after: { postponedSince: row.suspensionPostponedAt?.toISOString() ?? null, days: forceDays, invoice: oldest?.number ?? null } });
     }
     if (transition.status === current) return transition;
-    const set: Partial<typeof schema.subscriptions.$inferInsert> = { status: transition.status };
+    const set: Partial<typeof schema.subscriptions.$inferInsert> = { status: transition.status, ...(transition.postponed ? {} : { suspensionPostponedAt: null }) };
     // Sortie de suspension : aucune facture pendant la suspension ; la période en cours repart du règlement.
     if (current === 'suspended' && row.currentPeriodEnd < now) Object.assign(set, { currentPeriodEnd: now, startedAt: now });
     const [updated] = await this.db.update(schema.subscriptions).set(set).where(and(eq(schema.subscriptions.id, id), eq(schema.subscriptions.status, current))).returning();
@@ -710,9 +720,9 @@ export class PlatformBillingService {
   }
 
   /**
-   * Vue d'une organisation sur sa propre facturation : abonnement et factures, sans aucun identifiant Stripe. Prête pour
-   * la route `GET /v1/org/:organizationId/billing` (garde des organisations, branchée à la fusion) ; appelée dans le
-   * contexte restreint de l'organisation, les politiques en lecture seule de la base s'appliquent.
+   * Vue d'une organisation sur sa propre facturation : abonnement et factures, sans aucun identifiant Stripe. Route
+   * `GET /v1/org/:organizationId/billing` (garde des organisations) ; appelée dans le contexte restreint de
+   * l'organisation, les politiques en lecture seule de la base s'appliquent.
    */
   async billingForOrganization(organizationId: string): Promise<OrganizationBillingView> {
     const row = await this.currentSubscription(organizationId);
@@ -723,6 +733,21 @@ export class PlatformBillingService {
       subscription = view;
     }
     return { subscription, invoices: invoices.map((i) => { const { stripeInvoiceId: _stripe, ...view } = invoiceView(i); return view; }) };
+  }
+
+  /**
+   * Finalisation du 3 octobre 2026 : lien vers le portail client du fournisseur (Stripe Customer Portal) pour que le
+   * propriétaire enregistre une carte par défaut (prélèvement automatique des factures suivantes). Retour vers My Hub
+   * (`WEB_BASE_URL` et un chemin sous `/hub`). Sans client chez le fournisseur (aucun abonnement transmis) : 409.
+   * Simulé sans clé Stripe (`simulated`).
+   */
+  async portalSession(organizationId: string, returnPath: string | undefined): Promise<BillingPortalSession> {
+    const row = await this.currentSubscription(organizationId);
+    if (!row?.stripeCustomerId) throw AppError.conflict('BILLING_CUSTOMER_MISSING', 'Aucun abonnement transmis au fournisseur de paiement pour cette organisation');
+    const returnUrl = `${this.env.WEB_BASE_URL.replace(/\/$/, '')}${returnPath ?? '/hub/organisation'}`;
+    const session = await this.billing.createPortalSession(row.stripeCustomerId, returnUrl);
+    await this.record({ action: 'platform_billing.portal_opened', entity: 'subscriptions', entityId: row.id, after: { provider: this.billing.name } });
+    return { url: session.url, simulated: this.billing.name === 'mock' };
   }
 
   // --- Avis et journal ---

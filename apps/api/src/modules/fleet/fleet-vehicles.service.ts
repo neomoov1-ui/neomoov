@@ -3,12 +3,13 @@
  * chauffeur d'une autre organisation est introuvable : 404). Un véhicule a toujours un titulaire (`vehicles.driver_id`,
  * colonne non nulle de la V1) : la création exige un chauffeur de l'organisation et l'affectation change de titulaire.
  * Un véhicule créé par l'organisation attend l'inspection de la plateforme (`pending`), comme celui d'un chauffeur.
- * Entretien : registre `vehicle_maintenance` et échéances calculées par le domaine ; la suggestion par l'agent IA est
- * reportée (aucun point d'extension simple dans les agents actuels).
+ * Entretien : registre `vehicle_maintenance` et échéances calculées par le domaine. Finalisation du 3 octobre 2026 : la
+ * suggestion d'entretien (`aiSuggestion`) est remplie par les règles déterministes du domaine (`maintenanceSuggestion` :
+ * retards, échéances proches, inspection annuelle, pneus, freins, pneus d'hiver), sans appel au modèle.
  */
 import { schema } from '@neomoov/db';
 import {
-  deduceVehicleCategory, maintenanceDue, type CategoryRule, type FleetVehicle, type MaintenanceCreate, type MaintenanceKind, type OrgVehicleCreate, type OrgVehicleUpdate,
+  deduceVehicleCategory, maintenanceDue, maintenanceSuggestion, type CategoryRule, type FleetVehicle, type MaintenanceCreate, type MaintenanceKind, type OrgVehicleCreate, type OrgVehicleUpdate,
   type VehicleCategory,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -146,7 +147,7 @@ export class FleetVehiclesService {
 
   // --- Entretien ---
 
-  async maintenance(vehicleId: string, now = new Date()) {
+  async maintenance(vehicleId: string, now = new Date(), language: 'fr' | 'en' = 'fr') {
     const vehicle = await this.vehicle(vehicleId);
     const rows = await this.db.select().from(schema.vehicleMaintenance).where(eq(schema.vehicleMaintenance.vehicleId, vehicleId)).orderBy(desc(schema.vehicleMaintenance.performedOn), desc(schema.vehicleMaintenance.createdAt));
     const timeZone = await this.settings.string('service.time_zone', 'America/Toronto');
@@ -155,7 +156,8 @@ export class FleetVehiclesService {
       id: r.id, vehicleId: r.vehicleId, kind: r.kind as MaintenanceKind, performedOn: r.performedOn, odometerKm: r.odometerKm, costCents: r.costCents, notes: r.notes, nextDueOn: r.nextDueOn,
       nextDueKm: r.nextDueKm, createdAt: r.createdAt.toISOString(),
     }));
-    return { vehicleId, records, due: maintenanceDue(records, today, vehicle.odometerKm), aiSuggestion: null };
+    const due = maintenanceDue(records, today, vehicle.odometerKm);
+    return { vehicleId, records, due, aiSuggestion: maintenanceSuggestion(records, due, today, vehicle.odometerKm, language) };
   }
 
   async addMaintenance(vehicleId: string, input: MaintenanceCreate, actor: UserActor) {

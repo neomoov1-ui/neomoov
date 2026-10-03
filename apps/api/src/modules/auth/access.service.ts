@@ -5,10 +5,15 @@
  * qui couvrent la cible (l'organisation elle-même, ou un ancêtre avec la portée « sous-arbre »), limitée aux modules
  * activés de la cible ; les anciens rôles du personnel n'y donnent rien. Mise en cache 30 secondes par utilisateur (et par
  * cible) ; tout changement d'adhésion ou de rôle appelle `invalidate`. Une permission sensible tenue par une adhésion
- * exige une session à double authentification (`amr` contient `mfa`).
+ * exige une session à double authentification (`amr` contient `mfa`). Finalisation du 3 octobre 2026 : dans une
+ * organisation, chaque permission garde ses tenues (`grantsIn`) avec leurs conditions (`role_permissions.conditions` :
+ * lecture seule, montant maximal, zones), jugées par la garde des routes d'organisation ; une condition illisible
+ * n'accorde rien.
  */
 import { schema } from '@neomoov/db';
-import { effectivePermissions, inScope, isPermission, PERMISSIONS, type EffectiveMembership, type MembershipScope, type Permission } from '@neomoov/domain';
+import {
+  effectivePermissions, inScope, isPermission, parseRoleConditions, PERMISSIONS, type EffectiveMembership, type MembershipScope, type Permission, type RoleConditions,
+} from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull } from 'drizzle-orm';
 import { currentOrgScope, organizationIdOfPath, type OrgScopeContext } from '../../common/org-scope.context.js';
@@ -17,9 +22,15 @@ import type { UserActor } from './actor.js';
 
 const TTL_MS = 30_000;
 
+/** Permissions d'un utilisateur dans une organisation, et leurs tenues (une par rôle ; `null` : sans condition). */
+export interface OrgGrants {
+  permissions: Set<Permission>;
+  grants: Map<Permission, Array<RoleConditions | null>>;
+}
+
 @Injectable()
 export class AccessService {
-  private readonly cache = new Map<string, { at: number; permissions: Set<Permission> }>();
+  private readonly cache = new Map<string, { at: number; permissions: Set<Permission>; grants?: Map<Permission, Array<RoleConditions | null>> }>();
   /** Utilisateurs dont les droits ont changé dans une transaction restreinte (`null` : tous), revidés après sa validation. */
   private readonly afterCommit = new WeakMap<OrgScopeContext, Set<string | null>>();
 
@@ -59,15 +70,23 @@ export class AccessService {
    * lignes, seuls les modules activés comptent) et à la règle des permissions sensibles. Jamais les anciens rôles.
    */
   async permissionsIn(actor: UserActor, targetPath: string, now = new Date()): Promise<Set<Permission>> {
+    return (await this.grantsIn(actor, targetPath, now)).permissions;
+  }
+
+  /**
+   * Comme `permissionsIn`, avec les tenues de chaque permission : une entrée par adhésion qui la donne, ses conditions
+   * (`null` sans condition). Une tenue dont la condition est illisible est ignorée (refus par défaut).
+   */
+  async grantsIn(actor: UserActor, targetPath: string, now = new Date()): Promise<OrgGrants> {
     const mfa = actor.amr.includes('mfa');
     const key = `${actor.userId}:org:${targetPath}:${mfa ? 'mfa' : ''}`;
     const hit = this.cache.get(key);
-    if (hit && now.getTime() - hit.at < TTL_MS) return hit.permissions;
+    if (hit?.grants && now.getTime() - hit.at < TTL_MS) return { permissions: hit.permissions, grants: hit.grants };
     const [rows, features] = await Promise.all([
       this.database.db
         .select({
           membershipId: schema.memberships.id, status: schema.memberships.status, expiresAt: schema.memberships.expiresAt, scope: schema.memberships.scope,
-          path: schema.organizations.path, permission: schema.rolePermissions.permissionCode,
+          path: schema.organizations.path, permission: schema.rolePermissions.permissionCode, conditions: schema.rolePermissions.conditions,
         })
         .from(schema.memberships)
         .innerJoin(schema.organizations, eq(schema.organizations.id, schema.memberships.organizationId))
@@ -79,17 +98,22 @@ export class AccessService {
         .where(eq(schema.organizationFeatures.organizationId, organizationIdOfPath(targetPath))),
     ]);
     const modules = features.length ? features.filter((f) => f.enabled).map((f) => f.module) : null;
-    const byMembership = new Map<string, EffectiveMembership & { permissions: string[] }>();
+    // Mêmes règles que `effectivePermissions` (adhésion active et non expirée, modules de la cible), tenue par tenue.
+    const grants = new Map<Permission, Array<RoleConditions | null>>();
     for (const r of rows) {
       if (!inScope(targetPath, r.path, r.scope as MembershipScope)) continue;
-      if (!mfa && isPermission(r.permission) && PERMISSIONS[r.permission].sensitive) continue;
-      const m = byMembership.get(r.membershipId) ?? { permissions: [], status: r.status as 'active' | 'suspended', expiresAt: r.expiresAt, modules };
-      m.permissions.push(r.permission);
-      byMembership.set(r.membershipId, m);
+      if (r.status !== 'active' || (r.expiresAt && r.expiresAt <= now) || !isPermission(r.permission)) continue;
+      if (!mfa && PERMISSIONS[r.permission].sensitive) continue;
+      if (modules && !modules.includes(PERMISSIONS[r.permission].module)) continue;
+      const parsed = parseRoleConditions(r.conditions);
+      if (!parsed.ok) continue;
+      const held = grants.get(r.permission) ?? [];
+      held.push(parsed.conditions);
+      grants.set(r.permission, held);
     }
-    const permissions = effectivePermissions([], [...byMembership.values()], now);
-    this.cache.set(key, { at: now.getTime(), permissions });
-    return permissions;
+    const permissions = new Set(grants.keys());
+    this.cache.set(key, { at: now.getTime(), permissions, grants });
+    return { permissions, grants };
   }
 
   /**

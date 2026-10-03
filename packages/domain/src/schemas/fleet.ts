@@ -149,7 +149,7 @@ export const vehicleMaintenanceViewSchema = z.object({
   vehicleId: uuid,
   records: z.array(maintenanceRecordSchema),
   due: z.array(maintenanceDueSchema),
-  /** Suggestion d'entretien par l'agent IA : reportée (aucun point d'extension simple), toujours `null` en V1. */
+  /** Suggestion d'entretien (finalisation du 3 octobre 2026) : règles déterministes du domaine, sans appel au modèle ; `null` sans conseil. */
   aiSuggestion: z.string().nullable(),
 });
 

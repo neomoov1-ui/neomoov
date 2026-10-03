@@ -15,6 +15,7 @@ import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { Can, CurrentOrgScope, CurrentUser, OrgScoped, type OrgScope, type UserActor } from '../auth/actor.js';
 import { OrgHubService } from './org-hub.service.js';
+import { OrgWriteExempt } from './org-request-gates.js';
 import { OrganizationsService } from './organizations.service.js';
 import { SupportAccessService } from './support-access.service.js';
 
@@ -86,6 +87,7 @@ export class OrgHubController {
 
   @Delete('invitations/:invitationId')
   @Can('members.invite')
+  @OrgWriteExempt()
   @HttpCode(204)
   @ApiOperation({ summary: 'Révoque une invitation en attente de l\'organisation' })
   @ApiErrors(401, 403, 404, 409, 429)
@@ -118,6 +120,7 @@ export class OrgHubController {
 
   @Post('support-access/:grantId/approve')
   @Can('members.manage')
+  @OrgWriteExempt()
   @HttpCode(200)
   @ApiOperation({ summary: 'Approuve une demande d\'accès du support : l\'accès court dès maintenant pour la durée demandée' })
   @ZodResponse(200, supportAccessGrantSchema)
@@ -128,6 +131,7 @@ export class OrgHubController {
 
   @Post('support-access/:grantId/deny')
   @Can('members.manage')
+  @OrgWriteExempt()
   @HttpCode(200)
   @ApiOperation({ summary: 'Refuse une demande d\'accès du support' })
   @ZodResponse(200, supportAccessGrantSchema)
@@ -138,6 +142,7 @@ export class OrgHubController {
 
   @Post('support-access/:grantId/revoke')
   @Can('members.manage')
+  @OrgWriteExempt()
   @HttpCode(200)
   @ApiOperation({ summary: 'Révoque une demande ou un accès du support en cours, avec effet immédiat' })
   @ZodResponse(200, supportAccessGrantSchema)

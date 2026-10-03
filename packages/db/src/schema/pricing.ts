@@ -1,8 +1,10 @@
 /** Section 4.4 : tarification et zones. Tarifs en cents, taux en ppm. */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, date, index, integer, jsonb, pgTable, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, date, index, integer, jsonb, pgTable, uniqueIndex, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { clients } from './clients.js';
 import { users } from './identity.js';
+import { organizations } from './partners.js';
 import { cents, createdAt, geoPoint, geoPolygon, id, tz, updatedAt } from './_helpers.js';
 import { surchargeCodeEnum, vehicleCategoryEnum, zoneTypeEnum } from './enums.js';
 
@@ -68,11 +70,11 @@ export const surcharges = pgTable('surcharges', {
 
 export const quotes = pgTable('quotes', {
   id: id(),
-  clientId: uuid('client_id'),
+  clientId: uuid('client_id').references((): AnyPgColumn => clients.id, { onDelete: 'set null' }),
   /** Devis anonymes (réservation web sans compte, agent vocal) : identifiant de session. */
   sessionKey: varchar('session_key', { length: 80 }),
-  /** Organisation du devis (étape 20) : celle de la réservation. */
-  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
+  /** Organisation du devis (étape 20) : celle de la réservation. Clé étrangère : migration 0039. */
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`).references((): AnyPgColumn => organizations.id, { onDelete: 'set null' }),
   cityCode: varchar('city_code', { length: 30 }).notNull().references(() => cities.code),
   category: vehicleCategoryEnum('category').notNull(),
   originAddress: varchar('origin_address', { length: 300 }).notNull(),

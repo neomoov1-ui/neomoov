@@ -1,10 +1,11 @@
 /** Section 4.3 : chauffeurs et véhicules. */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, date, index, integer, jsonb, numeric, pgTable, real, smallint, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, date, index, integer, jsonb, numeric, pgTable, real, smallint, text, uniqueIndex, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { cents, createdAt, geoPoint, id, tz, updatedAt } from './_helpers.js';
 import { documentStatusEnum, documentTypeEnum, driverQualificationEnum, driverStatusEnum, vehicleCategoryEnum, vehicleStatusEnum } from './enums.js';
 import { users } from './identity.js';
+import { organizations } from './partners.js';
 
 export const drivers = pgTable('drivers', {
   id: id(),
@@ -47,8 +48,8 @@ export const drivers = pgTable('drivers', {
    */
   platformFeeBps: integer('platform_fee_bps').notNull().default(1000),
   isOnline: boolean('is_online').notNull().default(false),
-  currentVehicleId: uuid('current_vehicle_id'),
-  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
+  currentVehicleId: uuid('current_vehicle_id').references((): AnyPgColumn => vehicles.id, { onDelete: 'set null' }),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`).references((): AnyPgColumn => organizations.id, { onDelete: 'set null' }),
   activatedAt: tz('activated_at'),
   offboardedAt: tz('offboarded_at'),
   createdAt: createdAt(),
@@ -58,6 +59,7 @@ export const drivers = pgTable('drivers', {
   uniqueIndex('drivers_public_number_unique').on(t.publicNumber),
   uniqueIndex('drivers_stripe_connect_unique').on(t.stripeConnectAccountId).where(sql`${t.stripeConnectAccountId} IS NOT NULL`),
   index('drivers_status_online_idx').on(t.status, t.isOnline),
+  index('drivers_org_idx').on(t.organizationId),
   check('drivers_rating_range', sql`${t.ratingAverage} BETWEEN 0 AND 5`),
   check('drivers_platform_fee_bps_range', sql`${t.platformFeeBps} BETWEEN 500 AND 1000`),
 ]);
@@ -103,7 +105,7 @@ export const vehicles = pgTable('vehicles', {
   id: id(),
   driverId: uuid('driver_id').notNull().references(() => drivers.id, { onDelete: 'cascade' }),
   category: vehicleCategoryEnum('category').notNull().references(() => vehicleCategories.code),
-  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`).references((): AnyPgColumn => organizations.id, { onDelete: 'set null' }),
   make: varchar('make', { length: 60 }).notNull(),
   model: varchar('model', { length: 60 }).notNull(),
   year: smallint('year').notNull(),
@@ -117,12 +119,18 @@ export const vehicles = pgTable('vehicles', {
   status: vehicleStatusEnum('status').notNull().default('pending'),
   lastInspectionOn: date('last_inspection_on'),
   nextInspectionDueOn: date('next_inspection_due_on'),
+  /**
+   * Finalisation du 3 octobre 2026 (règle des 60 000 km) : kilométrage relevé à la dernière vérification mécanique
+   * approuvée ; la suivante est exigée dès 60 000 km de plus, même avant la date du certificat.
+   */
+  mechanicalCheckKm: integer('mechanical_check_km'),
   /** Étape 23 : propriétaire du véhicule (rôle « propriétaire de véhicule »), s'il n'est ni le chauffeur ni l'organisation. */
   ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [
   index('vehicles_driver_idx').on(t.driverId),
+  index('vehicles_org_idx').on(t.organizationId),
   uniqueIndex('vehicles_plate_unique').on(t.plate),
   uniqueIndex('vehicles_vin_unique').on(t.vin).where(sql`${t.vin} IS NOT NULL`),
   check('vehicles_electric_required', sql`${t.isElectric} = true`),

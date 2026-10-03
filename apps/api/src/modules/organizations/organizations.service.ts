@@ -11,7 +11,8 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  childPath, FORMER_OWNER_ROLE_CODE, isPermission, ORGANIZATION_PERMISSIONS, OWNER_ROLE_CODE, PERMISSION_CODES, PERMISSION_MODULES, PERMISSIONS, refusedGrants, removesLastOwner,
+  childPath, conditionsForStorage, FORMER_OWNER_ROLE_CODE, isPermission, ORGANIZATION_PERMISSIONS, OWNER_ROLE_CODE, parseRoleConditions, PERMISSION_CODES, PERMISSION_MODULES, PERMISSIONS,
+  refusedConditionGrants, refusedGrants, removesLastOwner, type RoleConditionsMap,
   type InvitationCreate, type InvitationCreated, type InvitationView, type MembershipUpdate, type MembershipView, type MyOrganization, type OrganizationCreate,
   type OrganizationHome, type OrganizationView, type OrgOrganizationCreate, type OrgPermissionView, type OwnershipTransfer, type RoleCreate, type RoleView,
 } from '@neomoov/domain';
@@ -66,10 +67,28 @@ export class OrganizationsService {
    * Droits de celui qui écrit (dans l'organisation de la route, sinon sur la plateforme), et refus de toute permission
    * qu'il n'a pas (ou réservée à la plateforme pour un client).
    */
-  private async assertGrantable(actor: UserActor, permissions: readonly string[], org: OrgRow, scope?: OrgScope): Promise<void> {
+  private async assertGrantable(actor: UserActor, permissions: readonly string[], org: OrgRow, scope?: OrgScope, conditions?: RoleConditionsMap): Promise<void> {
     const held = scope ? scope.permissions : await this.access.platformPermissions(actor);
     const refused = refusedGrants(held, permissions, org.parentId !== null);
     if (refused.length) throw AppError.forbidden('PERMISSION_ESCALATION', 'Vous ne pouvez accorder que des permissions que vous détenez', { refused });
+    const unknown = Object.keys(conditions ?? {}).filter((code) => !permissions.includes(code));
+    if (unknown.length) throw new AppError('CONDITIONS_ON_UNGRANTED_PERMISSION', 'Des conditions portent sur une permission que le rôle n\'accorde pas', 400, { permissions: unknown });
+    if (!scope) return;
+    // Finalisation du 3 octobre 2026 : pas d'escalade par les conditions (tenues lues hors de la transaction restreinte,
+    // qui cacherait les adhésions des ancêtres).
+    const { grants } = await orgScopeStorage.exit(async () => this.access.grantsIn(actor, scope.path));
+    const widened = refusedConditionGrants(grants, permissions, conditions);
+    if (widened.length) throw AppError.forbidden('PERMISSION_ESCALATION', 'Vous ne pouvez accorder une permission qu\'avec des conditions au moins aussi strictes que les vôtres', { refused: widened, conditions: true });
+  }
+
+  /** Conditions lues des liens d'un rôle (seulement celles qui restreignent vraiment). */
+  private static conditionsOf(links: Array<{ permissionCode: string; conditions: unknown }>): RoleConditionsMap {
+    const out: RoleConditionsMap = {};
+    for (const link of links) {
+      const parsed = parseRoleConditions(link.conditions);
+      if (parsed.ok && parsed.conditions) out[link.permissionCode] = parsed.conditions;
+    }
+    return out;
   }
 
   /**
@@ -159,14 +178,18 @@ export class OrganizationsService {
     return rows.map((r) => ({
       id: r.id, organizationId: r.organizationId, code: r.code, name: r.name, level: r.level, system: r.organizationId === null,
       permissions: links.filter((l) => l.roleId === r.id).map((l) => l.permissionCode).sort(),
+      conditions: OrganizationsService.conditionsOf(links.filter((l) => l.roleId === r.id)),
     }));
   }
 
   private async role(id: string): Promise<RoleView> {
     const [row] = await this.db.select().from(schema.roles).where(eq(schema.roles.id, id)).limit(1);
     if (!row) throw AppError.notFound('ROLE_NOT_FOUND', 'Rôle introuvable');
-    const links = await this.db.select({ code: schema.rolePermissions.permissionCode }).from(schema.rolePermissions).where(eq(schema.rolePermissions.roleId, id));
-    return { id: row.id, organizationId: row.organizationId, code: row.code, name: row.name, level: row.level, system: row.organizationId === null, permissions: links.map((l) => l.code).sort() };
+    const links = await this.db.select({ permissionCode: schema.rolePermissions.permissionCode, conditions: schema.rolePermissions.conditions }).from(schema.rolePermissions).where(eq(schema.rolePermissions.roleId, id));
+    return {
+      id: row.id, organizationId: row.organizationId, code: row.code, name: row.name, level: row.level, system: row.organizationId === null, permissions: links.map((l) => l.permissionCode).sort(),
+      conditions: OrganizationsService.conditionsOf(links),
+    };
   }
 
   async createRole(input: RoleCreate, actor: UserActor, scope?: OrgScope): Promise<RoleView> {
@@ -175,14 +198,14 @@ export class OrganizationsService {
     this.assertNotSupport(scope);
     const org = await this.organization(input.organizationId);
     const permissions = [...new Set(input.permissions)];
-    await this.assertGrantable(actor, permissions, org, scope);
+    await this.assertGrantable(actor, permissions, org, scope, input.conditions);
     try {
       const id = await this.db.transaction(async (tx) => {
         const [row] = await tx.insert(schema.roles).values({ organizationId: org.id, code: input.code, name: input.name, level: input.level, createdByUserId: actor.userId }).returning({ id: schema.roles.id });
-        await tx.insert(schema.rolePermissions).values(permissions.map((permissionCode) => ({ roleId: row!.id, permissionCode })));
+        await tx.insert(schema.rolePermissions).values(permissions.map((permissionCode) => ({ roleId: row!.id, permissionCode, conditions: conditionsForStorage(input.conditions?.[permissionCode]) })));
         return row!.id;
       });
-      this.audit.record({ action: 'role.created', entity: 'roles', entityId: id, after: { organizationId: org.id, code: input.code, permissions } });
+      this.audit.record({ action: 'role.created', entity: 'roles', entityId: id, after: { organizationId: org.id, code: input.code, permissions, conditions: input.conditions ?? {} } });
       return this.role(id);
     } catch (error) {
       if (uniqueViolation(error) === 'roles_org_code_unique') throw AppError.conflict('ROLE_CODE_TAKEN', 'Ce code de rôle existe déjà dans l\'organisation');
@@ -190,7 +213,7 @@ export class OrganizationsService {
     }
   }
 
-  async updateRolePermissions(roleId: string, permissions: string[], actor: UserActor, scope?: OrgScope): Promise<RoleView> {
+  async updateRolePermissions(roleId: string, permissions: string[], actor: UserActor, scope?: OrgScope, conditions?: RoleConditionsMap): Promise<RoleView> {
     const role = await this.role(roleId);
     if (role.system) throw AppError.conflict('SYSTEM_ROLE_READ_ONLY', 'Un rôle système ne se modifie pas');
     // Route d'organisation : seulement un rôle personnalisé de cette organisation (ceux des descendantes passent par leur propre route).
@@ -198,13 +221,13 @@ export class OrganizationsService {
     this.assertNotSupport(scope);
     const org = await this.organization(role.organizationId!);
     const wanted = [...new Set(permissions)];
-    await this.assertGrantable(actor, wanted, org, scope);
+    await this.assertGrantable(actor, wanted, org, scope, conditions);
     await this.db.transaction(async (tx) => {
       await tx.delete(schema.rolePermissions).where(eq(schema.rolePermissions.roleId, roleId));
-      await tx.insert(schema.rolePermissions).values(wanted.map((permissionCode) => ({ roleId, permissionCode })));
+      await tx.insert(schema.rolePermissions).values(wanted.map((permissionCode) => ({ roleId, permissionCode, conditions: conditionsForStorage(conditions?.[permissionCode]) })));
     });
     this.access.invalidate();
-    this.audit.record({ action: 'role.permissions_updated', entity: 'roles', entityId: roleId, before: { permissions: role.permissions }, after: { permissions: wanted } });
+    this.audit.record({ action: 'role.permissions_updated', entity: 'roles', entityId: roleId, before: { permissions: role.permissions, conditions: role.conditions }, after: { permissions: wanted, conditions: conditions ?? {} } });
     return this.role(roleId);
   }
 

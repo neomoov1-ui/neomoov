@@ -1,9 +1,11 @@
 /** Section 4.2 : clients. */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, integer, index, jsonb, pgTable, primaryKey, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, integer, index, jsonb, pgTable, primaryKey, text, uniqueIndex, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { cents, createdAt, geoPoint, id, tz, updatedAt } from './_helpers.js';
+import { drivers } from './drivers.js';
 import { users } from './identity.js';
+import { businessAccounts, organizations } from './partners.js';
 
 export const clients = pgTable('clients', {
   id: id(),
@@ -11,9 +13,9 @@ export const clients = pgTable('clients', {
   preferences: jsonb('preferences').notNull().default(sql`'{}'::jsonb`),
   notes: text('notes'),
   status: varchar('status', { length: 20 }).notNull().default('active'),
-  businessAccountId: uuid('business_account_id'),
-  /** Organisation du profil (étape 20) : la racine pour les clients de Neomoov. */
-  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
+  businessAccountId: uuid('business_account_id').references((): AnyPgColumn => businessAccounts.id, { onDelete: 'set null' }),
+  /** Organisation du profil (étape 20) : la racine pour les clients de Neomoov. Clé étrangère : migration 0039. */
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`).references((): AnyPgColumn => organizations.id, { onDelete: 'set null' }),
   subscriptionCode: varchar('subscription_code', { length: 40 }),
   rideCount: cents('ride_count').notNull().default(0),
   /** Solde dû après un échec de capture (5.6) : nouvelles courses refusées tant qu'il n'est pas réglé. */
@@ -61,14 +63,14 @@ export const savedPlaces = pgTable('saved_places', {
 
 export const favoriteDrivers = pgTable('favorite_drivers', {
   clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
-  driverId: uuid('driver_id').notNull(),
+  driverId: uuid('driver_id').notNull().references((): AnyPgColumn => drivers.id, { onDelete: 'cascade' }),
   addedAt: createdAt(),
 }, (t) => [primaryKey({ columns: [t.clientId, t.driverId] }), index('favorite_drivers_driver_idx').on(t.driverId)]);
 
 /** Lien client et chauffeur (D40) : « Mes chauffeurs » côté client, « Mes clients » côté chauffeur, alimenté à chaque course terminée. */
 export const clientDriverLinks = pgTable('client_driver_links', {
   clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
-  driverId: uuid('driver_id').notNull(),
+  driverId: uuid('driver_id').notNull().references((): AnyPgColumn => drivers.id, { onDelete: 'cascade' }),
   favoriteSince: tz('favorite_since'),
   ridesCount: cents('rides_count').notNull().default(0),
   lastRideAt: tz('last_ride_at'),

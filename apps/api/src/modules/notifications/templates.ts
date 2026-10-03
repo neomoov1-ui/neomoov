@@ -3,6 +3,7 @@
  * WhatsApp), objet et corps HTML (courriel). Fonctions pures, testées ; un gabarit inconnu donne un texte générique
  * plutôt qu'une erreur (une notification n'est jamais perdue pour un libellé manquant).
  */
+import { ORGANIZATION_TEMPLATES } from '../organizations/organization-templates.js';
 import { BILLING_TEMPLATES } from '../platform-billing/billing-templates.js';
 
 export type TemplateLanguage = 'fr' | 'en';
@@ -450,6 +451,8 @@ const TEMPLATES: Record<string, Template> = {
   },
   // Facturation de la plateforme (étape 25) : avis au propriétaire du compte de l'organisation.
   ...BILLING_TEMPLATES,
+  // Organisations clientes (finalisation du 3 octobre 2026) : permission sensible utilisée, échéances de la flotte.
+  ...ORGANIZATION_TEMPLATES,
 };
 
 /** Mention de retrait de la prospection B2B (Loi anti-pourriel) : dans chaque message commercial, sans exception. */

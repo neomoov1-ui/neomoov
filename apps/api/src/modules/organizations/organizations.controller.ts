@@ -77,7 +77,7 @@ export class AdminOrganizationsController {
   @ZodResponse(200, roleViewSchema)
   @ApiErrors(400, 401, 403, 404, 409, 429)
   updateRole(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(rolePermissionsUpdateSchema)) body: z.infer<typeof rolePermissionsUpdateSchema>, @CurrentUser() user: UserActor) {
-    return this.orgs.updateRolePermissions(id, body.permissions, user);
+    return this.orgs.updateRolePermissions(id, body.permissions, user, undefined, body.conditions);
   }
 
   @Get('organizations/:id/members')

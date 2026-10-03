@@ -1,11 +1,13 @@
 /** Section 4.5 : courses. */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, integer, jsonb, pgTable, smallint, text, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, check, index, integer, jsonb, pgTable, smallint, text, uniqueIndex, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { cents, createdAt, geoLine, geoPoint, id, tz, updatedAt } from './_helpers.js';
 import { clients } from './clients.js';
 import { drivers, vehicles } from './drivers.js';
 import { offerStateEnum, offerTypeEnum, paymentMethodEnum, rideStateEnum, rideTypeEnum, vehicleCategoryEnum } from './enums.js';
+import { organizations } from './partners.js';
+import { promotions } from './payments.js';
 import { cities, quotes } from './pricing.js';
 
 export const rides = pgTable('rides', {
@@ -43,7 +45,7 @@ export const rides = pgTable('rides', {
   /** Référence chez le fournisseur de paiement échelonné (plus de 150 $, V1.1). */
   installmentProviderRef: varchar('installment_provider_ref', { length: 100 }),
   tollsCents: cents('tolls_cents').notNull().default(0),
-  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
+  organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`).references((): AnyPgColumn => organizations.id, { onDelete: 'set null' }),
   maxConsentedCents: cents('max_consented_cents').notNull(),
   quotedTotalCents: cents('quoted_total_cents').notNull(),
   finalPriceCents: cents('final_price_cents'),
@@ -57,7 +59,7 @@ export const rides = pgTable('rides', {
   waitedSeconds: integer('waited_seconds').notNull().default(0),
   contactAttempts: smallint('contact_attempts').notNull().default(0),
   tipCents: cents('tip_cents').notNull().default(0),
-  promotionId: uuid('promotion_id'),
+  promotionId: uuid('promotion_id').references((): AnyPgColumn => promotions.id, { onDelete: 'set null' }),
   promotionDiscountCents: cents('promotion_discount_cents').notNull().default(0),
   /** Garantie modèle (prompt 08) : issue de la décision (`validated`, `rejected`) ; tarif du chauffeur maintenu si la faute n'est pas la sienne. */
   guaranteeOutcome: varchar('guarantee_outcome', { length: 20 }),
@@ -92,6 +94,10 @@ export const rides = pgTable('rides', {
   uniqueIndex('rides_quote_unique').on(t.quoteId).where(sql`${t.quoteId} IS NOT NULL`),
   index('rides_client_idx').on(t.clientId, t.createdAt),
   index('rides_driver_idx').on(t.driverId, t.createdAt),
+  // Finalisation du 3 octobre 2026 (rapport de charge, point 4) : course active et dernier trajet d'un chauffeur sans parcourir son historique.
+  index('rides_driver_active_idx').on(t.driverId, t.updatedAt.desc()).where(sql`${t.state} IN ('assigned', 'en_route', 'arrived', 'in_progress')`),
+  index('rides_driver_finished_idx').on(t.driverId, t.updatedAt.desc()).where(sql`${t.state} IN ('completed', 'rated')`),
+  index('rides_org_idx').on(t.organizationId),
   index('rides_state_idx').on(t.state).where(sql`${t.state} IN ('requested', 'offering', 'assigned', 'en_route', 'arrived', 'in_progress')`),
   index('rides_scheduled_idx').on(t.requestedAt).where(sql`${t.type} = 'scheduled'`),
   index('rides_origin_gist').using('gist', t.originPosition),
@@ -145,6 +151,7 @@ export const rideOffers = pgTable('ride_offers', {
   index('ride_offers_ride_idx').on(t.rideId, t.wave),
   index('ride_offers_driver_idx').on(t.driverId, t.sentAt),
   index('ride_offers_pending_idx').on(t.expiresAt).where(sql`${t.state} = 'sent'`),
+  index('ride_offers_driver_pending_idx').on(t.driverId).where(sql`${t.state} = 'sent'`),
   /** Une seule offre en attente par chauffeur, par course et par type (une contre-offre coexiste avec l'offre reçue). */
   uniqueIndex('ride_offers_pending_unique').on(t.rideId, t.driverId, t.type).where(sql`${t.state} = 'sent'`),
   check('ride_offers_fare_positive', sql`${t.driverFareCents} >= 0`),

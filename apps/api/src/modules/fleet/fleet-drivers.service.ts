@@ -4,6 +4,9 @@
  * nouveau reçoit l'organisation (un chauffeur appartient à une seule organisation à la fois : changer, c'est quitter
  * l'ancienne, avec ses relevés en brouillon émis et ses règles de partage closes). Liste enrichie de la conformité,
  * revue des documents par l'organisation (une recommandation : l'approbation finale reste à la plateforme).
+ * Finalisation du 3 octobre 2026 : suspension d'un chauffeur par l'organisation (même effet que celle de la plateforme :
+ * hors ligne, plus d'offres) et réactivation, qui ne lève que les suspensions décidées par un membre de l'organisation ;
+ * une suspension de la plateforme (conformité, qualité, sécurité, personnel) reste à la plateforme.
  */
 import { schema } from '@neomoov/db';
 import { platformFeeBpsOrDefault, PLATFORM_FEE_DEFAULT_BPS, type AdminListQuery, type DriverInvitationCreate, type FleetDocument, type FleetDriver, type Page } from '@neomoov/domain';
@@ -19,6 +22,7 @@ import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AdminDriversService } from '../admin/admin-drivers.service.js';
+import { liftSuspension } from '../drivers/driver-status.js';
 import { AuditService } from '../audit/audit.service.js';
 import { AccessService } from '../auth/access.service.js';
 import type { OrgScope, UserActor } from '../auth/actor.js';
@@ -226,6 +230,42 @@ export class FleetDriversService {
     if (!row) throw AppError.conflict('DOCUMENT_ALREADY_REVIEWED', 'Ce document a déjà été revu');
     this.audit.record({ action: 'fleet.document_reviewed', entity: 'driver_documents', entityId: documentId, after: { decision: input.decision, finalByPlatform: input.decision === 'approved' } });
     return this.documentView(row);
+  }
+
+  // --- Suspension et réactivation (routes d'organisation, transaction restreinte) ---
+
+  /** Suspension par l'organisation (motif obligatoire) : un chauffeur d'une autre organisation est introuvable (404). */
+  async suspend(driverId: string, reason: string, actor: UserActor) {
+    const [driver] = await this.db.select({ id: schema.drivers.id, status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, driverId)).limit(1);
+    if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Chauffeur introuvable');
+    if (driver.status === 'offboarded' || driver.status === 'pending') throw AppError.conflict('DRIVER_NOT_ACTIVE', 'Seul un chauffeur en service peut être suspendu', { status: driver.status });
+    const view = await this.drivers.suspend(driverId, reason, actor);
+    this.audit.record({ action: 'fleet.driver_suspended', entity: 'drivers', entityId: driverId, before: { status: driver.status }, after: { reason } });
+    return view;
+  }
+
+  /**
+   * Réactivation par l'organisation : seules les suspensions en cours décidées par un membre de son sous-arbre sont
+   * levées ; s'il en reste une de la plateforme (ou un solde impayé), 409 `SUSPENDED_BY_PLATFORM` et rien ne change.
+   */
+  async reactivate(driverId: string, actor: UserActor, now = new Date()) {
+    const [driver] = await this.db.select({ id: schema.drivers.id, status: schema.drivers.status }).from(schema.drivers).where(eq(schema.drivers.id, driverId)).limit(1);
+    if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Chauffeur introuvable');
+    if (driver.status !== 'suspended') throw AppError.conflict('DRIVER_NOT_SUSPENDED', 'Ce chauffeur n\'est pas suspendu', { status: driver.status });
+    const open = await this.db
+      .select({ id: schema.sanctions.id, decidedByUserId: schema.sanctions.decidedByUserId })
+      .from(schema.sanctions)
+      .where(and(eq(schema.sanctions.driverId, driverId), eq(schema.sanctions.type, 'suspension'), or(isNull(schema.sanctions.endsAt), sql`${schema.sanctions.endsAt} > ${now.toISOString()}`)));
+    // Membres visibles : ceux du sous-arbre de l'organisation (transaction restreinte).
+    const deciders = [...new Set(open.map((s) => s.decidedByUserId).filter((id): id is string => Boolean(id)))];
+    const members = deciders.length ? new Set((await this.db.selectDistinct({ userId: schema.memberships.userId }).from(schema.memberships).where(inArray(schema.memberships.userId, deciders))).map((m) => m.userId)) : new Set<string>();
+    const mine = open.filter((s) => s.decidedByUserId && members.has(s.decidedByUserId));
+    const [balance] = await this.db.select({ at: schema.driverBalances.suspendedForBalanceAt }).from(schema.driverBalances).where(eq(schema.driverBalances.driverId, driverId)).limit(1);
+    if (mine.length < open.length || balance?.at) throw AppError.conflict('SUSPENDED_BY_PLATFORM', 'La plateforme a suspendu ce chauffeur : seule elle peut le réactiver');
+    if (mine.length) await this.db.update(schema.sanctions).set({ endsAt: now }).where(inArray(schema.sanctions.id, mine.map((s) => s.id)));
+    const status = await liftSuspension(this.db, driverId, now);
+    this.audit.record({ action: 'fleet.driver_reactivated', entity: 'drivers', entityId: driverId, before: { status: driver.status }, after: { status, lifted: mine.length, by: actor.userId } });
+    return this.drivers.detail(driverId);
   }
 
   /** Échéances proches des chauffeurs de l'organisation (documents approuvés qui expirent dans `days` jours). */

@@ -22,6 +22,7 @@ import { AdminOverviewService } from '../admin/admin-overview.service.js';
 import { auditPageSchema, auditQuerySchema, AuditService } from '../audit/audit.service.js';
 import { Authenticated, Can, CurrentOrgScope, CurrentUser, OrgScoped, ReqCtx, type OrgScope, type RequestContext, type UserActor } from '../auth/actor.js';
 import { RidesService } from '../rides/rides.service.js';
+import { OrgWriteExempt } from './org-request-gates.js';
 import { OrganizationsService } from './organizations.service.js';
 
 type ListQuery = z.infer<typeof adminListQuerySchema>;
@@ -131,6 +132,7 @@ export class OrgController {
 
   @Patch('memberships/:id')
   @Can('members.manage')
+  @OrgWriteExempt()
   @ApiOperation({ summary: 'Change le rôle d\'un membre de l\'organisation (ou d\'une descendante) ou le suspend ; 404 hors du sous-arbre' })
   @ZodBody(membershipUpdateSchema)
   @ZodResponse(200, membershipViewSchema)
@@ -141,6 +143,7 @@ export class OrgController {
 
   @Delete('memberships/:id')
   @Can('members.manage')
+  @OrgWriteExempt()
   @HttpCode(204)
   @ApiOperation({ summary: 'Retire un membre de l\'organisation (ou d\'une descendante) ; 404 hors du sous-arbre' })
   @ApiErrors(401, 403, 404, 429)
@@ -177,7 +180,7 @@ export class OrgController {
   @ZodResponse(200, roleViewSchema)
   @ApiErrors(400, 401, 403, 404, 409, 429)
   updateRole(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(rolePermissionsUpdateSchema)) body: z.infer<typeof rolePermissionsUpdateSchema>, @CurrentUser() user: UserActor, @CurrentOrgScope() scope: OrgScope) {
-    return this.orgs.updateRolePermissions(id, body.permissions, user, scope);
+    return this.orgs.updateRolePermissions(id, body.permissions, user, scope, body.conditions);
   }
 
   // --- Journal ---
