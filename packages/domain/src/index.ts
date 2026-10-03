@@ -59,6 +59,10 @@ export * from './booster/alerts.js';
 export * from './inbox/email.js';
 export * from './inbox/quiet-hours.js';
 export * from './inbox/calls.js';
+// Finalisation (3 octobre 2026) : fenêtre de 24 heures de Meta, discussion du site (Tidio), indicateurs de la boîte.
+export * from './inbox/meta-window.js';
+export * from './inbox/tidio.js';
+export * from './inbox/metrics.js';
 // Phase 1 « entreprise autonome » (2 octobre 2026) : direction commerciale (prospection B2B, appels sortants, relances, devis).
 export * from './sales/sales.js';
 export * from './schemas/sales.js';

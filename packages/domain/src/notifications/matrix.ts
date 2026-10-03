@@ -91,6 +91,9 @@ export const NOTIFICATION_MATRIX: readonly NotificationRule[] = [
   rule('pack.renewed', 'driver', ['push']),
   rule('pack.renewal_failed', 'driver', ['push']),
   rule('pack.expired', 'driver', ['push']),
+  // Parrainage (étape 8, avis de l'étape 13) : crédit du parrain ou du filleul après la première course du filleul, crédit de pack du parrain chauffeur.
+  rule('referral.rewarded', 'client', ['push']),
+  rule('referral.driver_rewarded', 'driver', ['push']),
   // Alertes de l'exploitation : le personnel travaille dans My Hub (alertes en temps réel) et n'a pas d'application
   // mobile : hors de My Hub, courriel ; texto en plus pour le SOS (appel du fondateur en plus, par l'agent vocal).
   rule('alert.sos', 'staff', ['sms', 'email'], true),

@@ -131,7 +131,8 @@ export const openIncidentToolSchema = z.object({
   severity: z.enum(INCIDENT_SEVERITIES).default('medium'),
   description: z.string().trim().min(3).max(2000),
 });
-export const ESCALATION_REASONS = ['safety', 'hostile', 'over_limit', 'out_of_scope', 'client_request', 'other'] as const;
+/** Motifs d'escalade ; `account` et `payment` (problème de compte ou de paiement) sont rappelés sous 4 heures et mesurés au rapport quotidien. */
+export const ESCALATION_REASONS = ['safety', 'hostile', 'over_limit', 'out_of_scope', 'client_request', 'account', 'payment', 'other'] as const;
 export const escalateToHumanToolSchema = z.object({ reason: z.enum(ESCALATION_REASONS), summary: z.string().trim().min(3).max(1000) });
 export const sendMessageToolSchema = z.object({ text: z.string().trim().min(1).max(2000) });
 export const extractDocumentFieldsToolSchema = z.object({ documentId: uuid });

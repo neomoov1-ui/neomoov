@@ -301,3 +301,23 @@ export function dealStageForProspect(stage: ProspectStage): 'new' | 'contacted' 
       return 'lost';
   }
 }
+
+/**
+ * Réponse d'un prospect qui demande le retrait (Loi canadienne anti-pourriel : retrait honoré sans délai) : « STOP »,
+ * « désabonner », « ne plus me contacter », « unsubscribe », « remove me »… dans l'objet ou au début du message. Une
+ * réponse « pas intéressé » n'est pas un retrait (le prospect passe en « perdu » par l'agent ou une personne).
+ */
+const OPT_OUT_PATTERNS: readonly RegExp[] = [
+  /^\s*(stop|arr[eê]t|arr[eê]ter|unsubscribe|remove)\b/i,
+  /\b(d[ée]sabonn\w*|d[ée]sinscri\w*|unsubscrib\w*)\b/i,
+  /\bne\s+(plus|pas)\s+(me\s+|nous\s+)?(contacter|recontacter|[ée]crire|solliciter|relancer)\b/i,
+  /\b(retirez|enlevez|supprimez|rayez)[-\s](moi|nous)\b/i,
+  /\b(remove|take)\s+(me|us)\s+(from|off)\b/i,
+  /\b(do\s+not|don'?t|stop)\s+(contact|email|e-mail|emailing|write|writing\s+to)\b/i,
+];
+
+export function isOptOutReply(subject: string | null | undefined, text: string | null | undefined): boolean {
+  const head = (text ?? '').trim().slice(0, 400);
+  const title = (subject ?? '').replace(/^\s*((re|tr|fw|fwd)\s*:\s*)+/i, '').trim();
+  return OPT_OUT_PATTERNS.some((re) => re.test(title) || re.test(head));
+}
