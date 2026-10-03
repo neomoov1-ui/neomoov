@@ -124,7 +124,10 @@ leur PDF montrent déjà la ligne (libellé venu de l'API). FR et EN, vouvoiemen
     4 sur 4.
   - `dispatch`, `revue-b-dispatch`, `isolation-coverage` : 27 sur 27.
   - Deuxième lot (`settlement`, `statement-correction`, `pilot`, `driver-account`, `admin-hub`,
-    `growth-favorites-guarantee`, `fleet`, `growth-packs-promotions`, `revue-a-argent`) : voir la section 7.
+    `growth-favorites-guarantee`, `fleet`, `growth-packs-promotions`, `revue-a-argent`) : 47 sur 48 au premier passage ;
+    le seul échec venait de `driver-account` (comparaison stricte des totaux de l'accueil, qui portent désormais
+    `platformFeeCents` et `netCents`) : attente mise à jour, `driver-account` relancé seul, 7 sur 7.
+- Non lancé : la suite complète de l'API (réservée à la session principale) et les parcours Playwright ou Maestro.
 
 ## 5. Ce qui reste à décider par le fondateur
 
@@ -175,11 +178,9 @@ Rien n'a été changé ; tout est à revoir avec le fondateur avant la mise en p
   `rédaction/neomoov-etude-concurrence/01`, `02`, `applications/neomoov-plateforme/confidentiel/` (mise en service,
   synthèse de la revue, design, synthèse du mandat du 26 septembre).
 
-## 7. Résultats du second lot et pièges
+## 7. Pièges
 
-Voir le rapport final de l'agent (résultats chiffrés du second lot e2e).
-
-Pièges : la base de développement est partagée (migration 0036 appliquée sous verrou ; elle ajoute une colonne avec
+La base de développement est partagée (migration 0036 appliquée sous verrou ; elle ajoute une colonne avec
 défaut et une table, sans effet sur les autres branches) ; `test/helpers.ts` supprime désormais les lignes
 `platform_fees` avant les courses et les chauffeurs de test (clé étrangère sans cascade, voulue pour l'argent) ; un
 réglage `drivers.platform_fee_default_bps` saisi hors bornes dans Paramètres est ignoré (10 %).
