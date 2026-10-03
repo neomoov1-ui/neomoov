@@ -275,7 +275,7 @@ Le transfert aéroport Neomoov suit un déroulement précis : réservation avec 
   {
     n: 6, jour: 2, theme: 'reservation', sujet: 'Pourquoi réserver au moins 2 heures à l\'avance', cta: 'reserve',
     photo: ['client', 'Photo réelle d\'une cliente qui consulte son téléphone dans un café de Montréal (modèle, licence commerciale, crédit indiqué).'],
-    img: { facebook: 'Pourquoi 2 heures ?', instagram: 'Planifier, c\'est arriver à l\'heure', linkedin: 'Un choix de fiabilité', x: '2 h à l\'avance', tiktok: 'La question qu\'on nous pose', snapchat: 'Chauffeur confirmé', youtube: 'Réserver à l\'avance', telegram: 'Rappel de réservation', whatsapp_channel: 'Une course demain ?' },
+    img: { facebook: 'Pourquoi 2 heures ?', instagram: 'Planifier, c\'est arriver à l\'heure', linkedin: 'Un choix de fiabilité', x: '2 h à l\'avance', tiktok: 'Pourquoi deux heures d\'avance ?', snapchat: 'Chauffeur confirmé', youtube: 'Réserver à l\'avance', telegram: 'Rappel de réservation', whatsapp_channel: 'Une course demain ?' },
     fb: [`Pourquoi réserver au moins 2 heures à l'avance ?
 
 Parce que ce délai nous permet de vous confirmer un chauffeur et le véhicule que vous avez choisi, plutôt que de vous envoyer le premier véhicule disponible. Vous pouvez réserver jusqu'à 90 jours à l'avance, sur notre site, par WhatsApp au +1 438 900 4990 ou dans l'application.`, []],

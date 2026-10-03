@@ -48,7 +48,7 @@ const mot = (alternatives, drapeaux = 'giu') => new RegExp(`(?<!${L})(?:${altern
 const TIRETS_LONGS = /[–—―‒]/;
 const EMOJI = /\p{Extended_Pictographic}/gu;
 const PRIX = /(?:\$\s?\d+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?\s?\$|\d+(?:[.,]\d{1,2})?\s?(?:dollars?|CAD|\$\s?CA))/giu;
-const TELEPHONE = /\+?\d[\d\s().-]{6,}\d/g;
+const TELEPHONE = /\+?\d[\d  ().-]{6,}\d/g;
 const URL = /(?:https?:\/\/)?(?:www\.)?[\w-]+(?:\.[\w-]+)*\.(?:net|com|ca|org|me|io|ly|gl|app|co)(?:\/[^\s)»"]*)?/giu;
 const INTERDITS = [
   ['commission', mot('commissions?|commission-free|zéro commission|sans commission')],
