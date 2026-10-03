@@ -427,3 +427,84 @@ Les trois agents de développement livrent avec leur code un pas-à-pas par rés
 | 13 | Section 15 : comptes des réseaux, quand les agents de la phase 1 ont livré | « comptes ouverts » | Connecteurs réels, passage des agents en mode automatique après quatre semaines sans erreur |
 
 Après chaque étape, je relance la vérification sans affichage (`OK` ou `--` par variable) et je vous donne l'état mis à jour de la section 0.
+
+---
+
+## 17. Les comptes restants, pas à pas (ajout du 3 octobre 2026)
+
+Règle commune : chaque clé, jeton ou fichier va dans `C:\Users\PC\code\neomoov\.env` ou dans le dossier `C:\Users\PC\cles-neomoov\`, **jamais dans la conversation**. Vous me dites seulement la phrase indiquée ; je prépare alors un script d'envoi au serveur comme pour Twilio, Vapi et WhatsApp.
+
+### 17.1 Notifications sur les téléphones : Firebase (15 minutes, gratuit)
+
+Android exige un projet Firebase pour recevoir les notifications. Le code est prêt dans les deux applications et sur le serveur.
+
+1. Ouvrez https://console.firebase.google.com avec le compte Google de Neomoov, puis « Ajouter un projet ». Choisissez le projet Google Cloud existant **neomoov** s'il est proposé (sinon créez « neomoov »). Refusez Google Analytics.
+2. Dans le projet, cliquez l'icône Android (« Ajouter une application »). Nom du paquet : `com.neomoov.driver`, surnom « Neomoov Chauffeur ». Enregistrez, puis téléchargez `google-services.json` et rangez-le sous le nom `C:\Users\PC\cles-neomoov\google-services-driver.json`. Ignorez les étapes suivantes de l'assistant.
+3. Refaites l'étape 2 pour `com.neomoov.client` (surnom « Neomoov »), fichier `google-services-client.json`.
+4. Roue dentée → « Paramètres du projet » → onglet « Comptes de service » → « Générer une nouvelle clé privée ». Rangez le fichier sous `C:\Users\PC\cles-neomoov\firebase-fcm.json`.
+5. **Vous me dites :** « Firebase prêt ». **Je fais :** dépôt de la clé dans Expo (identifiants des notifications), intégration des deux fichiers, nouvelles compilations Android, `PUSH_PROVIDER=real` sur le serveur, essai d'une notification réelle.
+
+### 17.2 HubSpot (20 minutes, gratuit)
+
+Tout est décrit à la section 10 bis : étape A (devise **CAD**, langue, fuseau), étape B (les **9 portées** à cocher dans l'application privée « Plateforme Neomoov »). Si HubSpot affiche un nouveau jeton, copiez-le dans le `.env` du poste sur la ligne `HUBSPOT_ACCESS_TOKEN=`.
+**Vous me dites :** « HubSpot : devise CAD et portées ajoutées ». **Je fais :** `crm:setup`, bascule en réel, essai de bout en bout.
+
+### 17.3 Google Places : recherche automatique de prospects (5 minutes)
+
+1. https://console.cloud.google.com → projet **neomoov** → « API et services » → « Bibliothèque » → cherchez **Places API (New)** → « Activer ».
+2. « API et services » → « Identifiants » → ouvrez la clé de **serveur** des cartes (celle de `GOOGLE_MAPS_SERVER_KEY`) → « Restrictions relatives aux API » → ajoutez « Places API (New) » à la liste → « Enregistrer ». Aucune nouvelle clé n'est nécessaire.
+3. Facturation : le projet a déjà un compte de facturation (les cartes l'utilisent). Fixez une alerte de budget (« Facturation » → « Budgets et alertes », par exemple 50 $ par mois).
+4. **Vous me dites :** « Places activé ». **Je fais :** essai d'une recherche (hôtels de Montréal), puis la prospection quotidienne passe en réel (20 nouveaux prospects par jour au plus).
+
+### 17.4 Agenda Google : les rendez-vous commerciaux dans votre agenda (15 minutes)
+
+1. Même console, projet **neomoov** → « Bibliothèque » → **Google Calendar API** → « Activer ».
+2. « API et services » → « Écran d'autorisation OAuth » : type **Externe**, nom « Neomoov », adresse d'assistance `assistance@neomoov.net`. Ajoutez la portée `.../auth/calendar.events`. Puis **« Publier l'application »** (état « En production ») : sinon l'autorisation expire au bout de 7 jours. Google affichera « application non validée » lors de votre propre autorisation : c'est normal pour un usage interne, cliquez « Paramètres avancés » puis « Accéder à Neomoov ».
+3. « Identifiants » → « Créer des identifiants » → « ID client OAuth » → type **Application de bureau**, nom « Neomoov agenda ». Copiez l'**ID client** et le **code secret** dans le `.env` du poste : `GOOGLE_CALENDAR_CLIENT_ID=` et `GOOGLE_CALENDAR_CLIENT_SECRET=`.
+4. Choisissez l'agenda qui recevra les rendez-vous (le vôtre, ou un agenda « Neomoov ventes » créé dans Google Agenda) : son identifiant est dans Google Agenda → paramètres de l'agenda → « Intégrer l'agenda » → « ID de l'agenda ». Ligne `.env` : `GOOGLE_CALENDAR_ID=`.
+5. **Vous me dites :** « agenda prêt ». **Je fais :** un petit script qui ouvre votre navigateur, vous demande l'autorisation une seule fois et range le jeton de rafraîchissement dans le `.env` sans l'afficher ; puis envoi au serveur, `CALENDAR_PROVIDER=real` et un rendez-vous d'essai.
+
+### 17.5 Réseaux sociaux : LinkedIn, YouTube, Fiche Google, X, TikTok, Snapchat
+
+**Important :** pour ces six réseaux, le code des connecteurs n'est pas encore écrit (seuls le site, Facebook et Instagram publient réellement). Je l'écris réseau par réseau dès que le compte existe, parce que chaque réseau impose sa propre validation. Ordre conseillé (utilité pour Neomoov, puis délai d'approbation) :
+
+| Réseau | Ce que vous faites | Délai d'approbation | Coût |
+|---|---|---|---|
+| **Fiche Google** (Business Profile) | https://business.google.com : créez ou réclamez la fiche « Neomoov » (catégorie « Service de chauffeur », zone desservie : Montréal), validez-la (vidéo ou courrier). Puis demandez l'accès à l'API : formulaire « Business Profile API access request » (lien dans la documentation Google Business Profile APIs), avec le numéro du projet Google Cloud **neomoov**. | Validation de la fiche : quelques jours ; accès à l'API : 1 à 3 semaines | Gratuit |
+| **LinkedIn** | Page entreprise Neomoov (si elle n'existe pas) ; puis https://www.linkedin.com/developers → « Create app » rattachée à la page → onglet « Products » → demandez **Community Management API** (formulaire de vérification de l'entreprise). | 1 à 4 semaines | Gratuit |
+| **YouTube** | Chaîne YouTube « Neomoov » (compte de marque, avec le compte Google de Neomoov). Dans la console Google Cloud (projet **neomoov**) : activez **YouTube Data API v3**. Attention : tant que Google n'a pas audité le projet, les vidéos envoyées par l'API restent **privées** ; la demande d'audit (« YouTube API Services Audit and Quota Extension Form ») se fait une fois la chaîne active. | Audit : 2 à 6 semaines | Gratuit |
+| **X** | https://developer.x.com → compte développeur rattaché au compte X de Neomoov. L'écriture de publications exige une formule **payante** (vérifiez le prix affiché le jour de l'inscription). | Immédiat après paiement | Payant (mensuel) |
+| **TikTok** | Compte TikTok professionnel Neomoov ; https://developers.tiktok.com → application → produit **Content Posting API** ; la publication publique exige l'audit de l'application. | 2 à 4 semaines | Gratuit |
+| **Snapchat** | Profil public d'entreprise. La publication automatique de contenus non sponsorisés est très limitée chez Snapchat : je vous conseille de **reporter Snapchat** et de publier à la main au début. | — | — |
+
+**Vous me dites**, réseau par réseau : « Fiche Google validée, API demandée », « LinkedIn : application créée », etc. **Je fais :** le connecteur du réseau, l'essai en brouillon, puis la publication réelle par l'agent de diffusion.
+
+### 17.6 iPhone et App Store : compte Apple Developer (30 minutes, puis attente)
+
+1. **Numéro D-U-N-S** de GROUPE NSK INC. (gratuit, exigé par Apple et Google pour une entreprise) : vérifiez s'il existe avec l'outil de recherche D-U-N-S d'Apple (page « D-U-N-S Number Lookup » du site Apple Developer) ; sinon demandez-le au même endroit (Dun & Bradstreet, environ 5 jours ouvrables). Les nom et adresse doivent être exactement ceux du registre des entreprises du Québec.
+2. https://developer.apple.com/programs/enroll avec un identifiant Apple au nom de Neomoov, double authentification activée : inscription **en tant qu'organisation** (« Organization »), D-U-N-S, site `neomoov.net`, courriel `@neomoov.net`. Abonnement annuel de 99 $ US. Apple rappelle souvent pour vérifier : répondez.
+3. Une fois accepté, dans https://appstoreconnect.apple.com :
+   - « Utilisateurs et accès » → « Intégrations » → « App Store Connect API » → générez une **clé d'équipe** avec le rôle **Admin** ; téléchargez le fichier `.p8` (une seule fois possible) dans `C:\Users\PC\cles-neomoov\` ; notez dans `C:\Users\PC\cles-neomoov\apple.txt` le **Key ID**, l'**Issuer ID** et le **Team ID** (visible dans « Membership » sur developer.apple.com).
+   - Je crée moi-même les identifiants d'application (`com.neomoov.client`, `com.neomoov.driver`) et les fiches des deux applications avec cette clé.
+4. **Vous me dites :** « Apple validé, clé rangée ». **Je fais :** compilations iPhone, TestFlight (essai sur votre iPhone en quelques heures), puis la soumission à l'examen d'Apple avec les textes, captures, comptes d'examen et la vidéo de la localisation en arrière-plan (application chauffeur) que je prépare.
+
+### 17.7 Google Play (30 minutes, puis attente)
+
+1. https://play.google.com/console/signup avec le compte Google de Neomoov : type de compte **Organisation** (pas « personnel » : un compte personnel récent doit faire tester l'application par 12 personnes pendant 14 jours avant la publication). D-U-N-S (point 17.6, étape 1), frais uniques de 25 $ US, vérification d'identité.
+2. Une fois le compte validé : je crée les deux applications (« Neomoov » et « Neomoov Chauffeur ») si vous me donnez l'accès ci-dessous ; sinon créez-les vous-même avec ces noms.
+3. **Accès pour les envois automatiques** : console Google Cloud, projet **neomoov** → « IAM et administration » → « Comptes de service » → « Créer » : nom `neomoov-eas` → onglet « Clés » → « Ajouter une clé » → JSON → rangez le fichier sous `C:\Users\PC\cles-neomoov\google-play-service-account.json`. Puis dans la Play Console → « Utilisateurs et autorisations » → « Inviter » l'adresse du compte de service (elle finit par `iam.gserviceaccount.com`) avec les droits **Administrateur** des deux applications.
+4. **Vous me dites :** « Google Play validé, compte de service invité ». **Je fais :** les deux fichiers `.aab`, les tests internes (lien pour votre téléphone), les fiches du magasin (textes, captures, politique de confidentialité, déclaration de la localisation en arrière-plan), puis la soumission.
+
+### 17.8 Facturation des abonnements de la plateforme : Stripe (20 minutes)
+
+Elle sert aux clients de la plateforme (marque blanche, flottes, Pilote). Les paiements des courses et de l'Academy passent déjà par Square ; rien ne change pour eux.
+
+1. https://dashboard.stripe.com : terminez l'**activation du compte** (entreprise GROUPE NSK INC., NEQ, compte bancaire canadien, pièce d'identité du représentant). Tant que Stripe affiche « Activation en attente », on ne peut rien brancher.
+2. « Développeurs » → « Clés API » : copiez la **clé secrète** du mode réel (`sk_live_…`) dans le `.env` du poste, ligne `STRIPE_SECRET_KEY=`.
+3. « Développeurs » → « Webhooks » → « Ajouter un point de terminaison » : adresse `https://api.neomoov.net/v1/webhooks/stripe-billing`, événements `invoice.paid` et `invoice.payment_failed`. Copiez le **secret de signature** (`whsec_…`) dans la ligne `STRIPE_BILLING_WEBHOOK_SECRET=`.
+4. « Paramètres » → « Facturation » → « Factures » : nom affiché « Neomoov », adresse, numéros de TPS et de TVQ.
+5. **Vous me dites :** « Stripe activé, clés rangées ». **Je fais :** envoi au serveur, `BILLING_PROVIDER=real`, facture d'essai sur une organisation de démonstration, puis remboursement.
+
+### 17.9 Ordre conseillé pour ces comptes
+
+1. Firebase (notifications : utile tout de suite aux chauffeurs) ; 2. HubSpot ; 3. Places ; 4. Agenda ; 5. D-U-N-S, puis Apple et Google Play en parallèle (ce sont les plus longs) ; 6. Fiche Google et LinkedIn (demandes d'accès, longues) ; 7. Stripe dès l'activation ; 8. YouTube, X et TikTok selon votre stratégie de contenu.
