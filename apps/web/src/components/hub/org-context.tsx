@@ -120,6 +120,8 @@ const ORG_NAV: Array<{ group: string; items: Array<{ key: string; href: string; 
     items: [
       { key: 'dashboard', href: '/hub/organisation', permissions: ['dashboard.read', 'rides.read', 'drivers.read', 'statements.read'] },
       { key: 'rides', href: '/hub/organisation/courses', permissions: ['rides.read'] },
+      // Étape 23 : saisie d'une course par le répartiteur de l'organisation.
+      { key: 'newRide', href: '/hub/organisation/courses/nouvelle', permissions: ['rides.create'] },
       { key: 'drivers', href: '/hub/organisation/chauffeurs', permissions: ['drivers.read'] },
       { key: 'vehicles', href: '/hub/organisation/vehicules', permissions: ['vehicles.read'] },
       { key: 'statements', href: '/hub/organisation/releves', permissions: ['statements.read'] },
@@ -148,7 +150,7 @@ export function OrgNav({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
   const { can, home } = useOrg();
   const staff = isStaffUser(useHubUser().roles);
-  const active = (href: string) => (href === '/hub/organisation' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`));
+  const active = (href: string) => (href === '/hub/organisation' ? pathname === href : pathname === href || (pathname.startsWith(`${href}/`) && !pathname.startsWith(`${href}/nouvelle`)));
   const visible = (item: { key: string; permissions: string[] }) => (item.key === 'security' ? !home?.supportAccess : can(...item.permissions));
   return (
     <nav aria-label={t('org.shell.space')} className="px-2 pb-6">

@@ -7,6 +7,7 @@ import type {
   AdminDriverDetail, AdminDriverListItem, AdminListQuery, AdminRideListItem, AdminRideListQuery, AdminStatement, AdminVehicle, InvitationCreate, InvitationCreated,
   InvitationView, MembershipUpdate, MembershipView, MfaEnrollment, MyOrganization, OrganizationHome, OrganizationView, OrgOrganizationCreate, OrgOverview,
   OrgPermissionView, OrgRoleCreate, Page, RideView, RoleView, StaffLoginResponse, SupportAccessGrantView, SupportAccessRequest, SupportAccessStatus, TokensView,
+  AdminCreateRide, QuoteRequest, QuotesResponse,
 } from '@neomoov/domain';
 import type { AuditEntryView, AuditFilters } from './admin-resources.js';
 import type { Transport } from './resources.js';
@@ -30,6 +31,9 @@ export function orgResource(t: Transport) {
     vehicles: (organizationId: string, query: ListQuery = {}) => t.get<Page<AdminVehicle>>(`${base(organizationId)}/vehicles`, { query }),
     rides: (organizationId: string, query: AdminRideListQuery = {}) => t.get<Page<AdminRideListItem>>(`${base(organizationId)}/rides`, { query }),
     ride: (organizationId: string, rideId: string) => t.get<RideView>(`${base(organizationId)}/rides/${id(rideId)}`),
+    /** Étape 23 : course saisie par le répartiteur de l'organisation, devis d'abord (mêmes règles que l'application), puis course. */
+    quote: (organizationId: string, body: QuoteRequest) => t.post<QuotesResponse>(`${base(organizationId)}/quotes`, body),
+    createRide: (organizationId: string, body: AdminCreateRide) => t.post<RideView>(`${base(organizationId)}/rides`, body),
     statements: (organizationId: string, query: ListQuery = {}) => t.get<Page<AdminStatement>>(`${base(organizationId)}/statements`, { query }),
     members: (organizationId: string) => t.get<MembershipView[]>(`${base(organizationId)}/members`),
     invite: (organizationId: string, body: Partial<InvitationCreate> & Pick<InvitationCreate, 'roleId'>) => t.post<InvitationCreated>(`${base(organizationId)}/invitations`, body),

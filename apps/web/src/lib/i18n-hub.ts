@@ -16,6 +16,7 @@ const fr = {
     sales: 'Ventes',
     social: 'Réseaux sociaux',
     publish: 'Publier (réseaux)',
+    pilot: 'Pilote : zones exclues', platformBilling: 'Facturation de la plateforme',
   },
   shell: { signedInAs: 'Connecté : {{name}}', logout: 'Se déconnecter', menu: 'Menu', skip: 'Aller au contenu', live: 'Temps réel actif', polling: 'Actualisation périodique', readOnly: 'Lecture seule' },
   login: {
@@ -417,6 +418,7 @@ const en: typeof fr = {
     sales: 'Sales',
     social: 'Social networks',
     publish: 'Publish (social)',
+    pilot: 'Pilot: excluded zones', platformBilling: 'Platform billing',
   },
   shell: { signedInAs: 'Signed in: {{name}}', logout: 'Sign out', menu: 'Menu', skip: 'Skip to content', live: 'Live updates on', polling: 'Periodic refresh', readOnly: 'Read only' },
   login: {

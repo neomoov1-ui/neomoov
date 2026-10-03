@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EnumBadge, ErrorBlock, Loading, useCanWrite, useErrorText, useHubUser, useLang } from '@/components/hub/common';
 import { DocumentViewer } from '@/components/hub/document-viewer';
+import { DriverRatingsCard } from '@/components/hub/driver-ratings';
 import { VehiclesTable } from '@/components/hub/vehicles-table';
 import { Action, Card, Checkbox, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, Textarea, focus } from '@/components/ui/kit';
 import { formatDate, formatDateTime, fullName } from '@/lib/format';
@@ -184,6 +185,9 @@ export default function DriverDetailPage() {
           ) : null}
         </Card>
       </div>
+
+      {/* Charte d'équité (D7) : notes des clients et exclusion d'une note (administrateur et opérateur). */}
+      {writable ? <DriverRatingsCard driverId={id} /> : null}
 
       <DocumentViewer
         document={viewing}
