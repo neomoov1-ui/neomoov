@@ -292,6 +292,15 @@ export const envSchema = z.object({
   // Snapchat et chaîne WhatsApp : relais manuel uniquement (décision du fondateur du 3 octobre 2026, sans agrégateur) ; variables réservées.
   SNAPCHAT_ACCESS_TOKEN: optionalString,
   SNAPCHAT_PROFILE_ID: optionalString,
+  /**
+   * Réseaux sociaux (3 octobre 2026) : application Meta créée par le fondateur, pour le parcours « Connecter » de My Hub
+   * (Facebook et Instagram ; adresse de rappel `<APP_BASE_URL>/v1/social/oauth/callback/facebook`). Les autres réseaux
+   * utilisent les identifiants d'application ci-dessus (LINKEDIN_CLIENT_ID, X_CLIENT_ID, TIKTOK_CLIENT_KEY, YOUTUBE_CLIENT_ID).
+   * Les jetons obtenus sont chiffrés en base (`social_accounts`). Procédures : docs/marketing/reseaux-connexion.md.
+   */
+  META_APP_ID: optionalString,
+  /** Clé secrète de l'application Meta (Paramètres, Général) : secret. */
+  META_APP_SECRET: optionalString,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

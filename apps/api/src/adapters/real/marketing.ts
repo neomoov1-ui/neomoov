@@ -149,10 +149,10 @@ function builders(env: AppEnv, credentials: SocialCredentialsProvider, options: 
       version: env.LINKEDIN_API_VERSION, ...tokens('linkedin'), ...fetchImpl, ...clock,
     }),
     youtube: ({ values: v }) => new YouTubePublisher({
-      clientId: v['clientId']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyStatus: env.YOUTUBE_PRIVACY_STATUS as YouTubePrivacy, audited: env.YOUTUBE_API_AUDITED, ...tokens('youtube'), ...fetchImpl, ...clock,
+      clientId: v['clientId']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyStatus: env.YOUTUBE_PRIVACY_STATUS as YouTubePrivacy, audited: env.YOUTUBE_API_AUDITED || v['appApproved'] === 'on', ...tokens('youtube'), ...fetchImpl, ...clock,
     }),
     tiktok: ({ values: v }) => new TikTokPublisher({
-      clientKey: v['clientKey']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyLevel: env.TIKTOK_PRIVACY_LEVEL as TikTokPrivacy, audited: env.TIKTOK_APP_AUDITED, uploadMode: env.TIKTOK_UPLOAD_MODE,
+      clientKey: v['clientKey']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyLevel: env.TIKTOK_PRIVACY_LEVEL as TikTokPrivacy, audited: env.TIKTOK_APP_AUDITED || v['appApproved'] === 'on', uploadMode: env.TIKTOK_UPLOAD_MODE,
       ...tokens('tiktok'), ...fetchImpl, ...clock,
     }),
     google_business: ({ values: v }) => new GoogleBusinessPublisher({

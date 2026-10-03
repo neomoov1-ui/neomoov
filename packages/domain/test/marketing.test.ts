@@ -73,6 +73,12 @@ describe('marketing : garde-fous des contenus', () => {
     const informal = checkContent(draft({ body: 'Réserve ta course, tu verras la différence.' }), OPTIONS);
     expect(informal.find((i) => i.kind === 'informal_address')).toMatchObject({ blocking: false });
     expect(checkContent(draft({ body: 'Book your ride, you will see.', language: 'en', space: 'x' }), OPTIONS).map((i) => i.kind)).not.toContain('informal_address');
+    // Lettres accentuées : « êtes », « côte » et « sélection » ne sont ni du tutoiement ni un sujet sensible.
+    const accents = checkContent(draft({ body: 'Vous êtes attendus sur la côte, avec notre sélection de véhicules.' }), OPTIONS).map((i) => i.kind);
+    expect(accents).not.toContain('informal_address');
+    expect(accents).not.toContain('sensitive_topic');
+    expect(checkContent(draft({ body: 'Tu peux réserver.' }), OPTIONS).map((i) => i.kind)).toContain('informal_address');
+    expect(checkContent(draft({ body: 'Pendant l\'élection, réservez tôt.' }), OPTIONS).map((i) => i.kind)).toContain('sensitive_topic');
     const sensitive = checkContent(draft({ body: 'Après l\'accident de la semaine dernière, nos chauffeurs redoublent de prudence.' }), OPTIONS);
     expect(sensitive).toEqual([{ kind: 'sensitive_topic', detail: expect.stringContaining('accident'), blocking: false }]);
     expect(isSensitive(false, sensitive)).toBe(true);

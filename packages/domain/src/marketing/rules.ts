@@ -48,20 +48,28 @@ const REVENUE_PROMISES: readonly RegExp[] = [
   /\$\s?\d[\d,.]*\s*(a|per|\/)\s*(day|week|month|hour)\b/i,
 ];
 
+/**
+ * Mot entier, lettres accentuées comprises : `\b` de JavaScript tient « ê » ou « é » pour une limite de mot, d'où des faux
+ * positifs (« tes » dans « êtes », « te » dans « côte », « élection » dans « sélection »).
+ */
+function words(alternatives: string): RegExp {
+  return new RegExp(`(?<![\\p{L}\\p{N}_])(?:${alternatives})(?![\\p{L}\\p{N}_])`, 'iu');
+}
+
 const SENSITIVE_TOPICS: readonly RegExp[] = [
-  /\b(accident|collision|bless[ée]s?|d[ée]c[èe]s|mort|morts|tu[ée]s?)\b/i,
-  /\b(agression|harc[èe]lement|violence|menace|plainte|poursuite|litige|tribunal|proc[èe]s|police|arrestation)\b/i,
-  /\b(gr[èe]ve|manifestation|politique|[ée]lection|parti|religion|religieux|racisme|discrimination)\b/i,
-  /\b(faillite|licenciement|scandale|controverse|fraude|arnaque|enqu[êe]te)\b/i,
-  /\b(uber|lyft|eva|bolt)\b/i,
-  /\b(lawsuit|strike|accident|assault|harassment|death|scandal|fraud|police|election|politics)\b/i,
+  words('accident|collision|bless[ée]s?|d[ée]c[èe]s|mort|morts|tu[ée]s?'),
+  words('agression|harc[èe]lement|violence|menace|plainte|poursuite|litige|tribunal|proc[èe]s|police|arrestation'),
+  words('gr[èe]ve|manifestation|politique|[ée]lection|parti|religion|religieux|racisme|discrimination'),
+  words('faillite|licenciement|scandale|controverse|fraude|arnaque|enqu[êe]te'),
+  words('uber|lyft|eva|bolt'),
+  words('lawsuit|strike|accident|assault|harassment|death|scandal|fraud|police|election|politics'),
 ];
 
 /** Montants en dollars canadiens : « 48,20 $ », « 48.20$ », « $48.20 », « 49 $ ». */
 const PRICE = /(?:\$\s?\d+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?\s?\$)/g;
 const PHONE = /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g;
 const EMAIL = /[\w.+-]+@([\w-]+\.[\w.-]+)/g;
-const INFORMAL_FR = /\b(tu|t'as|t'es|te|toi|ton|tes)\b/i;
+const INFORMAL_FR = words("tu|t'as|t'es|te|toi|ton|tes");
 
 /** Montant normalisé (chiffres, virgule décimale, « $ » final) : « $48.20 » et « 48,20 $ » sont le même prix. */
 export function normalizePrice(raw: string): string {

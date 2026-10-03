@@ -12,17 +12,21 @@ import { PublicationsService } from './publications.service.js';
 import { PublishingService } from './publishing.service.js';
 import { SeoAgent } from './seo.agent.js';
 import { SeoService } from './seo.service.js';
+import { PublicSocialLinksController, SocialAccountsController, SocialOAuthController } from './social-accounts.controller.js';
+import { SocialAccountsService } from './social-accounts.service.js';
 import { VisualsService } from './visuals.service.js';
 
 /**
  * Direction marketing automatisée (phase 1 « entreprise autonome », 2 octobre 2026) : agents `content` (calendrier
  * hebdomadaire), `publishing` (diffusion, mesures, commentaires) et `seo` (plan de référencement), connecteurs des
- * espaces, file `marketing`, écran My Hub « Marketing » ; publication multiréseau (composer, lot importé, relais manuel, 3 octobre 2026).
+ * espaces, file `marketing`, écran My Hub « Marketing ». Réseaux sociaux (3 octobre 2026) : comptes des dix espaces
+ * connectés dans My Hub (`SocialAccountsService`, registre `SOCIAL_CREDENTIALS` fourni par `AdaptersModule`), liens publics ;
+ * publication multiréseau (composer, lot importé, relais manuel).
  */
 @Module({
   imports: [AgentsModule, AuditModule, RidesModule],
-  controllers: [MarketingController, PublicationsController],
-  providers: [EditorialLinesService, VisualsService, ContentService, ContentAgent, PublishingService, SeoService, SeoAgent, MarketingJobsService, PublicationsService],
-  exports: [ContentService, ContentAgent, PublishingService, SeoService, SeoAgent, MarketingJobsService, PublicationsService],
+  controllers: [MarketingController, SocialAccountsController, SocialOAuthController, PublicSocialLinksController, PublicationsController],
+  providers: [EditorialLinesService, VisualsService, ContentService, ContentAgent, PublishingService, SeoService, SeoAgent, MarketingJobsService, SocialAccountsService, PublicationsService],
+  exports: [ContentService, ContentAgent, PublishingService, SeoService, SeoAgent, MarketingJobsService, SocialAccountsService, PublicationsService],
 })
 export class MarketingModule {}

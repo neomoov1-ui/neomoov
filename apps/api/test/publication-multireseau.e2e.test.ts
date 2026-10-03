@@ -1,4 +1,7 @@
 import 'reflect-metadata';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { schema } from '@neomoov/db';
 import { VISUAL_SIZES, zonedInstant } from '@neomoov/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -215,6 +218,49 @@ describe('publication multiréseau (agent S2) : composer, visuels par réseau, r
     expect(after[1]!.items.filter((i) => i.status === 'scheduled').every((i) => day(i.scheduledAt!) === '2031-04-08')).toBe(true);
     expect(after[2]!.items.every((i) => i.status === 'draft')).toBe(true);
   });
+
+  it('lot réel du lancement (docs/marketing/lancement-50-publications.json) : import par tranches de 90 Ko, 50 publications, programmées sur 10 jours, relais manuel du premier jour', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const file = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'docs', 'marketing', 'lancement-50-publications.json'), 'utf8')) as { campaign: string; publications: unknown[] } & Record<string, unknown>;
+    const lot = { ...file, campaign: `${campaign}-reel` };
+    const parts: Array<typeof lot> = [];
+    let current: unknown[] = [];
+    for (const pub of lot.publications) {
+      if (current.length && Buffer.byteLength(JSON.stringify({ ...lot, publications: [...current, pub] })) > 90_000) {
+        parts.push({ ...lot, publications: current });
+        current = [];
+      }
+      current.push(pub);
+    }
+    parts.push({ ...lot, publications: current });
+    expect(parts.length).toBeGreaterThan(1);
+    const totals = { created: 0, items: 0, blocked: 0 };
+    for (const part of parts) {
+      const r = (await request(server()).post('/v1/admin/marketing/publications/import').set(bearer(operator.tokens)).send(part).expect(200)).body as { created: number; items: number; blocked: number; groups: Array<{ id: string }> };
+      for (const g of r.groups) groups.add(g.id);
+      totals.created += r.created; totals.items += r.items; totals.blocked += r.blocked;
+    }
+    expect(totals.created).toBe(50);
+    expect(totals.items).toBeGreaterThanOrEqual(500);
+    const listed = (await request(server()).get('/v1/admin/marketing/publications').query({ campaign: lot.campaign, limit: 200 }).set(bearer(operator.tokens)).expect(200)).body as Group[];
+    expect(listed).toHaveLength(50);
+    expect(listed[0]!.ref).toBe('P01');
+    // Chaque publication : une variante de visuel par contenu, toutes différentes, à la taille de son réseau.
+    for (const g of listed) {
+      const keys = g.items.map((i) => `${i.visual!.template}|${i.visual!.photoIndex}|${(i.visual as unknown as { accent: string }).accent}|${(i.visual as unknown as { titlePosition: string }).titlePosition}|${(i.visual as unknown as { imageText: string }).imageText}|${i.space}|${i.language}`);
+      expect(new Set(keys).size).toBe(keys.length);
+    }
+    const scheduled = (await request(server()).post('/v1/admin/marketing/publications/schedule').set(bearer(operator.tokens)).send({ campaign: lot.campaign, startDate: '2031-05-05', days: 10 }).expect(200)).body as { approved: number; relay: number; skipped: unknown[]; firstAt: string; lastAt: string };
+    expect(scheduled.approved + scheduled.skipped.length).toBe(totals.items);
+    expect(scheduled.relay).toBeGreaterThanOrEqual(100);
+    const day = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+    expect(day(scheduled.firstAt) >= '2031-05-05').toBe(true);
+    expect(day(scheduled.lastAt) <= '2031-05-14').toBe(true);
+    const relay = (await request(server()).get('/v1/admin/marketing/relay').query({ date: '2031-05-05' }).set(bearer(operator.tokens)).expect(200)).body as { tasks: Array<{ item: Item; link: string }> };
+    const mine = relay.tasks.filter((t) => listed.some((g) => g.id === (t.item as unknown as { groupId: string }).groupId));
+    expect(mine.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(mine.map((t) => t.item.space))).toEqual(new Set(['snapchat', 'whatsapp_channel']));
+  }, 300_000);
 
   it('droits : lecture seule ne compose ni n\'importe ; commentaires et messages par réseau (Telegram compris)', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');

@@ -1,6 +1,6 @@
 {
-  "id": "e4bbbf79-393a-4e92-ac11-267d24e78e0a",
-  "prevId": "78ea30a0-ea48-46d3-bd82-e103b57e88e0",
+  "id": "78ea30a0-ea48-46d3-bd82-e103b57e88e0",
+  "prevId": "89bfeb0a-da3c-40d2-91db-92c138c36a69",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -16505,43 +16505,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "delivery": {
-          "name": "delivery",
-          "type": "varchar(8)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'auto'"
-        },
-        "visual": {
-          "name": "visual",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "relayed_at": {
-          "name": "relayed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "relayed_by_user_id": {
-          "name": "relayed_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "publish_notice": {
-          "name": "publish_notice",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -16615,37 +16578,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "content_items_group_idx": {
-          "name": "content_items_group_idx",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "content_items_relay_idx": {
-          "name": "content_items_relay_idx",
-          "columns": [
-            {
-              "expression": "scheduled_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"content_items\".\"delivery\" = 'manual' AND \"content_items\".\"status\" = 'scheduled'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -16661,19 +16593,6 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
-        },
-        "content_items_group_id_content_groups_id_fk": {
-          "name": "content_items_group_id_content_groups_id_fk",
-          "tableFrom": "content_items",
-          "tableTo": "content_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -16682,11 +16601,7 @@
       "checkConstraints": {
         "content_items_space": {
           "name": "content_items_space",
-          "value": "\"content_items\".\"space\" IN ('site_blog', 'academy', 'google_business', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube', 'x', 'snapchat', 'newsletter', 'telegram', 'whatsapp_channel')"
-        },
-        "content_items_delivery": {
-          "name": "content_items_delivery",
-          "value": "\"content_items\".\"delivery\" IN ('auto', 'manual')"
+          "value": "\"content_items\".\"space\" IN ('site_blog', 'academy', 'google_business', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube', 'x', 'snapchat', 'newsletter')"
         },
         "content_items_format": {
           "name": "content_items_format",
@@ -17119,195 +17034,6 @@
         "social_accounts_validation": {
           "name": "social_accounts_validation",
           "value": "\"social_accounts\".\"validation\" IN ('not_connected', 'connected', 'invalid', 'expired', 'pending_approval')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.content_groups": {
-      "name": "content_groups",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "campaign": {
-          "name": "campaign",
-          "type": "varchar(60)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ref": {
-          "name": "ref",
-          "type": "varchar(40)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source": {
-          "name": "source",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'composer'"
-        },
-        "title": {
-          "name": "title",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "body": {
-          "name": "body",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "short_text": {
-          "name": "short_text",
-          "type": "varchar(300)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "image_text": {
-          "name": "image_text",
-          "type": "varchar(80)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cta": {
-          "name": "cta",
-          "type": "varchar(12)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'none'"
-        },
-        "hashtags": {
-          "name": "hashtags",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "photo_hints": {
-          "name": "photo_hints",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "day": {
-          "name": "day",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pillar": {
-          "name": "pillar",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "audience": {
-          "name": "audience",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sensitive": {
-          "name": "sensitive",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "input": {
-          "name": "input",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "created_by_user_id": {
-          "name": "created_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "content_groups_campaign_ref_uq": {
-          "name": "content_groups_campaign_ref_uq",
-          "columns": [
-            {
-              "expression": "campaign",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "ref",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"content_groups\".\"campaign\" IS NOT NULL AND \"content_groups\".\"ref\" IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "content_groups_created_idx": {
-          "name": "content_groups_created_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "content_groups_source": {
-          "name": "content_groups_source",
-          "value": "\"content_groups\".\"source\" IN ('composer', 'import')"
-        },
-        "content_groups_cta": {
-          "name": "content_groups_cta",
-          "value": "\"content_groups\".\"cta\" IN ('reserve', 'academy', 'preregister', 'none')"
         }
       },
       "isRLSEnabled": false
