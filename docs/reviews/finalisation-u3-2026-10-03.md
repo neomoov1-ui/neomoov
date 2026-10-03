@@ -36,7 +36,19 @@ Migration **0039_finalisation-exploitation** (rejouable, inverse dans `down/`, i
 
 ## Essais (3 octobre 2026)
 
-RESULTATS_A_COMPLETER
+| Commande | Résultat |
+|---|---|
+| `packages/domain` : `vitest run --coverage` | 46 fichiers, **618 tests verts** (dont `test/finalisation-u3.test.ts`, 9 tests) ; nouveaux fichiers `inbox/meta-window.ts`, `inbox/tidio.ts`, `inbox/metrics.ts` couverts à 100 %. Seuil global de 100 % **non atteint à cause de fichiers déjà présents sur `main`** (`marketing/publications.ts`, `marketing/social-accounts.ts`, `marketing/visuals.ts`, `schemas/publications.ts`, publication multiréseau), non touchés ici |
+| `packages/db` : `journal.test.ts`, `seed-data.test.ts`, `agent-prompts.test.ts` | 3 fichiers, 18 tests verts |
+| Migration 0039 sur la base de développement (verrou `u3-migrate`) | Appliquée ; contraintes, réglages et outils de `publishing` vérifiés par requête |
+| `apps/api` sans base : `inbox-units`, `marketing-adapters`, `connecteurs-socle`, `connecteurs-comptes`, `env`, `mock-webhooks-production` | 6 fichiers, 40 tests verts |
+| `apps/api` sous verrou, passe 1 (`u3-e2e`, 57 minutes, machine partagée très chargée) : `finalisation-u3`, `autonome-d-boite`, `booster`, `growth-credits-referral`, `autonome-e-marketing`, `connecteurs-avis`, `publication-multireseau`, `autonome-f-ventes`, `notifications`, `agents`, `voice`, `isolation-coverage` | 69 tests verts sur 73 : **`finalisation-u3.e2e` 7 sur 7**, `booster.e2e` 11 sur 11 (dont l'analyse asynchrone), `autonome-e-marketing`, `connecteurs-avis`, `autonome-f-ventes`, `agents`, `voice`, `isolation-coverage` verts. Échecs : l'essai IMAP d'`autonome-d-boite` (compteurs sans les deux nouveaux statuts : essai corrigé) ; trois délais de 120 s dépassés sous la charge (`growth-credits-referral` deux fois, matrice de `notifications`) ; délai du nettoyage final de `publication-multireseau` (ses 6 tests verts) |
+| Passe 2 (`u3-e2e-2`, délais portés à 600 s) : `autonome-d-boite`, `growth-credits-referral`, `notifications`, `publication-multireseau` | 19 tests verts sur 20 : `autonome-d-boite` 6 sur 6 (appel manqué et IMAP), `notifications` 5 sur 5, `publication-multireseau` 6 sur 6, parrainage client vert (avis vérifiés) ; parrainage chauffeur en échec sur une **panne réseau** (`getaddrinfo ENOTFOUND` du serveur de la base de développement pendant l'essai) |
+| Passe 3 (`u3-e2e-3`) : `growth-credits-referral` | RESULTAT_PASSE_3 |
+| `apps/worker` : `typecheck` ; `vitest run` | Vert ; 2 fichiers, 6 tests verts (dont `test/scheduling.test.ts`) |
+| `pnpm openapi` puis `pnpm --filter @neomoov/api-client build` et `test` | 428 chemins (webhook Tidio, paramètre `async`, motifs `account` et `payment`, état `pending`) ; client compilé ; 6 fichiers, 30 tests verts |
+| `pnpm --filter @neomoov/api typecheck` (sources et essais), `@neomoov/web typecheck`, constructions `domain`, `db` | Verts |
+| `pnpm audit --prod` | 4 vulnérabilités (2 élevées, 2 modérées), toutes dans la chaîne Expo de l'application chauffeur (voir « Dépendances ») |
 
 ## Dépendances (`pnpm audit --prod`)
 
