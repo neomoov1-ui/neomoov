@@ -68,8 +68,10 @@ export class TikTokPublisher implements SocialPublisher {
       store: options.store ?? null, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
     this.api = new SocialApi({
-      label: 'TikTok', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), errorMessage: tiktokErrorMessage,
+      label: 'TikTok', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: tiktokErrorMessage,
       rateLimited: (_status, data) => RATE_CODES.has((data as TikTokEnvelope<unknown> | null)?.error?.code ?? ''),
+      // Identifiants de vidéo en int64 : lus comme des chaînes pour ne pas être arrondis.
+      bigIntegers: true,
     });
   }
 

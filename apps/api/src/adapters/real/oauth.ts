@@ -106,6 +106,8 @@ export class OAuthSession {
   #pending: Promise<string> | null = null;
   #loaded = false;
   #problem: string | null = null;
+  /** Dernier jeton d'accès refusé (401) : jamais repris du magasin. */
+  #rejected: string | null = null;
 
   constructor(options: OAuthSessionOptions) {
     this.#options = options;
@@ -157,6 +159,7 @@ export class OAuthSession {
   /** Jeton refusé par l'API (401) : vrai si un nouvel échange est possible (le prochain appel l'obtient). */
   invalidate(): boolean {
     if (!this.#refresh) return false;
+    this.#rejected = this.#access?.value ?? null;
     this.#access = null;
     return true;
   }
@@ -181,7 +184,7 @@ export class OAuthSession {
     const stored = await store.load(this.provider).catch(() => null);
     if (!stored || stored.origin !== this.#origin || !stored.refreshToken) return;
     this.#refresh = { value: stored.refreshToken, expiresAt: stored.refreshExpiresAt };
-    if (stored.accessToken && stored.accessExpiresAt && (!this.#access?.expiresAt || stored.accessExpiresAt > this.#access.expiresAt)) {
+    if (stored.accessToken && stored.accessExpiresAt && stored.accessToken !== this.#rejected && (!this.#access?.expiresAt || stored.accessExpiresAt > this.#access.expiresAt)) {
       this.#access = { value: stored.accessToken, expiresAt: stored.accessExpiresAt };
     }
   }
@@ -243,7 +246,7 @@ export class OAuthSession {
     } catch (error) {
       throw new AppError('SOCIAL_PROVIDER_ERROR', `${this.label} : serveur d'autorisation injoignable (${error instanceof Error ? cleanDetail(error.message, 120) : 'erreur'})`, HttpStatus.BAD_GATEWAY);
     }
-    if (response.status === 429) throw socialError(this.label, 429, this.#options.tokenUrl, 'trop de demandes de jeton', response.headers);
+    if (response.status === 429) throw socialError(this.label, 429, this.#options.tokenUrl, 'trop de demandes de jeton', response.headers, this.now());
     const body = (await response.json().catch(() => ({}))) as TokenResponse;
     return { ok: response.ok, status: response.status, body };
   }
@@ -274,9 +277,9 @@ export function pathOf(url: string): string {
 }
 
 /** Erreur typée d'un appel refusé : les codes guident la diffusion (nouvel essai espacé, au délai demandé pour un 429). */
-export function socialError(label: string, status: number, url: string, detail: string | null | undefined, headers?: Headers): AppError {
+export function socialError(label: string, status: number, url: string, detail: string | null | undefined, headers?: Headers, now = Date.now()): AppError {
   const message = `${label} ${status} sur ${pathOf(url)} : ${cleanDetail(detail)}`;
-  if (status === 429) return new AppError('SOCIAL_RATE_LIMITED', message, HttpStatus.SERVICE_UNAVAILABLE, { retryAfterSeconds: headers ? retryAfterSeconds(headers) : null });
+  if (status === 429) return new AppError('SOCIAL_RATE_LIMITED', message, HttpStatus.SERVICE_UNAVAILABLE, { retryAfterSeconds: headers ? retryAfterSeconds(headers, now) : null });
   if (status === 401) return new AppError('SOCIAL_AUTH_FAILED', message, HttpStatus.BAD_GATEWAY);
   if (status === 403) return new AppError('SOCIAL_FORBIDDEN', message, HttpStatus.BAD_GATEWAY);
   if (status === 400 || status === 409 || status === 413 || status === 422) return new AppError('SOCIAL_VALIDATION_ERROR', message, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -314,6 +317,15 @@ export interface SocialApiOptions {
   /** Limite atteinte signalée autrement que par un 429 (quota quotidien de YouTube en 403, plafond de TikTok). */
   rateLimited?: (status: number, data: unknown) => boolean;
   timeoutMs?: number;
+  /** Horloge (tests) : délai d'un 429 calculé depuis `x-rate-limit-reset`. */
+  now?: () => number;
+  /** Entiers de 16 chiffres ou plus lus comme des chaînes (identifiants int64 de TikTok, sinon arrondis par JSON.parse). */
+  bigIntegers?: boolean;
+}
+
+/** Entiers trop grands pour un nombre JavaScript, mis entre guillemets avant la lecture du JSON. */
+export function quoteBigIntegers(text: string): string {
+  return text.replace(/([:[,]\s*)(-?\d{16,})(?=\s*[,\]}])/g, '$1"$2"');
 }
 
 /** Client HTTP d'un réseau : jeton Bearer, un nouvel échange après un 401, erreurs typées. */
@@ -363,14 +375,14 @@ export class SocialApi {
       const text = await response.text();
       let data: unknown = null;
       try {
-        data = text ? JSON.parse(text) : null;
+        data = text ? JSON.parse(this.options.bigIntegers ? quoteBigIntegers(text) : text) : null;
       } catch {
         data = text;
       }
       if (response.ok || request.accept?.includes(response.status)) return { status: response.status, headers: response.headers, data: data as T };
       const detail = this.options.errorMessage?.(data) ?? (typeof data === 'string' ? data : text);
       const status = response.status !== 429 && this.options.rateLimited?.(response.status, data) ? 429 : response.status;
-      throw socialError(this.options.label, status, url, detail, response.headers);
+      throw socialError(this.options.label, status, url, detail, response.headers, this.options.now?.() ?? Date.now());
     }
   }
 }

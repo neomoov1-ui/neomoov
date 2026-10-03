@@ -89,7 +89,7 @@ export class LinkedInPublisher implements SocialPublisher {
       ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
     this.api = new SocialApi({
-      label: 'LinkedIn', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), errorMessage: linkedinErrorMessage,
+      label: 'LinkedIn', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: linkedinErrorMessage,
       headers: { 'LinkedIn-Version': options.version, 'X-Restli-Protocol-Version': '2.0.0' },
     });
   }

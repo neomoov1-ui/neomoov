@@ -76,7 +76,8 @@ export class XPublisher implements SocialPublisher {
       provider: 'x', label: 'X', tokenUrl: X_TOKEN_URL, clientId: options.clientId, clientSecret: options.clientSecret, refreshToken: options.refreshToken, clientAuth: 'basic', rotates: true,
       store: options.store ?? null, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
-    this.api = new SocialApi({ label: 'X', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), errorMessage: xErrorMessage });
+    this.api = new SocialApi({
+ label: 'X', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: xErrorMessage });
   }
 
   toJSON() {

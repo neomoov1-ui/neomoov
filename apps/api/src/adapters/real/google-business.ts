@@ -79,7 +79,8 @@ export class GoogleBusinessPublisher implements SocialPublisher {
       provider: 'google-business', label: 'Fiche Google', tokenUrl: GOOGLE_TOKEN_URL, clientId: options.clientId, clientSecret: options.clientSecret, refreshToken: options.refreshToken,
       clientAuth: 'body', store: options.store ?? null, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
-    this.api = new SocialApi({ label: 'Fiche Google', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), errorMessage: googleErrorMessage });
+    this.api = new SocialApi({
+ label: 'Fiche Google', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: googleErrorMessage });
   }
 
   toJSON() {

@@ -89,7 +89,7 @@ export class YouTubePublisher implements SocialPublisher {
       clientAuth: 'body', store: options.store ?? null, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
     this.api = new SocialApi({
-      label: 'YouTube', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), errorMessage: googleErrorMessage,
+      label: 'YouTube', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: googleErrorMessage,
       // Quota quotidien épuisé : YouTube répond 403 ; traité comme une limite atteinte (nouvel essai après minuit, heure du Pacifique).
       rateLimited: (status, data) => status === 403 && QUOTA_REASONS.has(quotaReason(data) ?? ''),
     });

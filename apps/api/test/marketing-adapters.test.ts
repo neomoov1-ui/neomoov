@@ -197,11 +197,12 @@ describe('choix des connecteurs réels et durée WAV', () => {
     const real = realSocialPublishers(full);
     expect(['site_blog', 'academy', 'newsletter', 'facebook', 'instagram'].every((s) => real.get(s as never)!.configured)).toBe(true);
     expect(real.get('linkedin')!.configured).toBe(false);
-    expect(SPACE_VARIABLES.x).toEqual(['X_API_KEY', 'X_API_SECRET', 'X_ACCESS_TOKEN', 'X_ACCESS_SECRET']);
+    expect(SPACE_VARIABLES.x).toEqual(['X_CLIENT_ID', 'X_CLIENT_SECRET', 'X_REFRESH_TOKEN']);
   });
 
   it('NotConfiguredPublisher : 501 PROVIDER_NOT_CONFIGURED avec les variables attendues', async () => {
-    await expect(new NotConfiguredPublisher('tiktok').publish()).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501, message: expect.stringContaining('TIKTOK_ACCESS_TOKEN') });
+    await expect(new NotConfiguredPublisher('tiktok').publish()).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501, message: expect.stringContaining('TIKTOK_REFRESH_TOKEN') });
+    await expect(new NotConfiguredPublisher('snapchat').publish()).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', message: expect.stringContaining('SNAPCHAT_ACCESS_TOKEN') });
   });
 
   it('durée d\'un WAV PCM ; en-tête absent : null', () => {
