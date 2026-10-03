@@ -7,6 +7,7 @@
  * jamais bloquant pour les réseaux qui n'exigent pas de média. Tout est rangé dans le stockage sous `marketing/<id>/`.
  */
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,6 +21,9 @@ import { APP_LOGGER } from '../../common/logger.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 
 const run = promisify(execFile);
+
+/** Navigateur installé dans les images de l'API et du worker (Dockerfile) : utilisé quand `BROWSER_BIN` est vide. */
+export const IMAGE_BROWSER = '/usr/local/bin/neomoov-browser';
 
 export interface VisualInput {
   id: string;
@@ -112,14 +116,14 @@ ul{list-style:none;padding:0;margin:0}li{position:relative;padding-left:42px;mar
 
   /** Rendu PNG d'un gabarit HTML par le navigateur sans interface ; null quand aucun navigateur n'est configuré ou que le rendu échoue. */
   async render(html: string, size: { width: number; height: number }): Promise<Buffer | null> {
-    const bin = this.env.BROWSER_BIN;
+    const bin = this.env.BROWSER_BIN ?? (existsSync(IMAGE_BROWSER) ? IMAGE_BROWSER : null);
     if (!bin) return null;
     const dir = await mkdtemp(join(tmpdir(), 'neomoov-visual-'));
     try {
       const file = join(dir, 'visual.html');
       const png = join(dir, 'visual.png');
       await writeFile(file, html, 'utf8');
-      await run(bin, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--no-first-run', '--no-sandbox', `--user-data-dir=${join(dir, 'profile')}`, `--window-size=${size.width},${size.height}`, `--screenshot=${png}`, `file:///${file.replace(/\\/g, '/')}`], { timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
+      await run(bin, ['--headless=new', '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars', '--no-first-run', '--no-sandbox', `--user-data-dir=${join(dir, 'profile')}`, `--window-size=${size.width},${size.height}`, `--screenshot=${png}`, `file:///${file.replace(/\\/g, '/')}`], { timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
       return await readFile(png);
     } catch (error) {
       this.logger.warn({ err: error }, 'Rendu du visuel impossible : gabarit HTML gardé, PNG différé');

@@ -38,6 +38,7 @@ export default function PerformancePage() {
     { key: 'net', header: t('hub.booster.net'), className: 'text-right', cell: (l) => money(l.summary.netCents) },
     { key: 'perHour', header: t('hub.booster.perHour'), className: 'text-right', cell: (l) => money(l.summary.netPerHourCents) },
     { key: 'pdf', header: '', cell: (l) => (l.formats.includes('pdf') ? <a href={`/api/v1/admin/booster/performance/${encodeURIComponent(l.id)}/pdf`} className={`text-brand-blue-dark underline ${focus}`}>PDF</a> : null) },
+    { key: 'jpeg', header: '', cell: (l) => (l.formats.includes('jpeg') ? <a href={`/api/v1/admin/booster/performance/${encodeURIComponent(l.id)}/jpeg`} className={`text-brand-blue-dark underline ${focus}`}>JPEG</a> : null) },
   ];
   const exportUrl = `/api/v1/admin/booster/performance/export.csv${trimmed ? `?driverId=${encodeURIComponent(trimmed)}` : ''}`;
   return (

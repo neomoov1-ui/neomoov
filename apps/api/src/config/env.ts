@@ -241,6 +241,8 @@ export const envSchema = z.object({
   BROWSER_BIN: optionalString,
   /** Montage des vidéos courtes ; vide : ffmpeg du PATH, sinon montage différé. */
   FFMPEG_BIN: optionalString,
+  /** Export JPEG des rapports Booster (pages du PDF) ; vide : pdftoppm du PATH (poppler, installé dans l\'image). */
+  PDFTOPPM_BIN: optionalString,
   // Connecteurs prévus, non livrés (variables réservées) : LinkedIn, TikTok, YouTube, X, Fiche Google, Snapchat.
   LINKEDIN_ACCESS_TOKEN: optionalString,
   LINKEDIN_ORGANIZATION_ID: optionalString,

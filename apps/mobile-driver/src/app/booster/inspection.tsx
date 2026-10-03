@@ -138,11 +138,11 @@ export default function InspectionScreen() {
     }
   }
 
-  async function download() {
+  async function download(format: 'pdf' | 'jpeg' = 'pdf') {
     if (!inspection) return;
     setBusy('download');
     try {
-      const link = await api.driver.inspectionDownload(inspection.id);
+      const link = await api.driver.inspectionDownload(inspection.id, format);
       await Linking.openURL(link.url);
     } catch (e) {
       setError(errorMessage(e));
@@ -259,7 +259,8 @@ export default function InspectionScreen() {
             <Row label={t('booster.inspection.odometer')} value={inspection.odometerKm !== null ? `${inspection.odometerKm} km` : ''} />
             <Row label={t('booster.severity')} value={t(`booster.severities.${inspection.severity}`)} strong />
           </Card>
-          <Button label={t('booster.inspection.downloadPdf')} onPress={() => void download()} disabled={busy !== null} />
+          <Button label={t('booster.inspection.downloadPdf')} onPress={() => void download('pdf')} disabled={busy !== null} />
+          <Button label={t('booster.inspection.downloadJpeg')} variant="secondary" onPress={() => void download('jpeg')} disabled={busy !== null} />
           <Button label={t('booster.inspection.myReports')} variant="secondary" onPress={() => router.replace('/booster/inspections')} />
           <Body muted>{t('booster.inspection.formatsNote')}</Body>
         </>

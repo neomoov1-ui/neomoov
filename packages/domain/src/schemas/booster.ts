@@ -70,7 +70,7 @@ export const vehicleInspectionSchema = inspectionFieldsSchema.extend({
   confirmedAt: isoDate.nullable(),
   archivedAt: isoDate.nullable(),
   /** Formats téléchargeables une fois archivé : PDF seulement (aucun moteur d'image côté API, voir docs/booster.md). */
-  formats: z.array(z.enum(['pdf'])),
+  formats: z.array(z.enum(['pdf', 'jpeg'])),
   createdAt: isoDate,
   updatedAt: isoDate,
 });
@@ -150,8 +150,12 @@ export const missingInspectionSchema = z.object({
 });
 export type MissingInspectionView = z.infer<typeof missingInspectionSchema>;
 
-/** Lien signé de téléchargement (courte durée), format PDF. */
-export const inspectionDownloadSchema = z.object({ format: z.literal('pdf'), url: z.string(), expiresAt: isoDate });
+/** Formats de téléchargement d\'un rapport archivé : le PDF (pièce de référence) ou sa copie JPEG (partage). */
+export const boosterDownloadFormat = z.enum(['pdf', 'jpeg']);
+export const boosterDownloadQuerySchema = z.object({ format: boosterDownloadFormat.default('pdf') });
+
+/** Lien signé de téléchargement (courte durée), PDF ou JPEG. */
+export const inspectionDownloadSchema = z.object({ format: boosterDownloadFormat, url: z.string(), expiresAt: isoDate });
 export type InspectionDownloadView = z.infer<typeof inspectionDownloadSchema>;
 
 // --- Rapport de performance ----------------------------------------------------------------------------------------------
@@ -216,7 +220,7 @@ export const performanceLogSchema = performanceFieldsSchema.extend({
   reading: performanceReadingViewSchema,
   summary: performanceSummarySchema,
   confirmedAt: isoDate.nullable(),
-  formats: z.array(z.enum(['pdf'])),
+  formats: z.array(z.enum(['pdf', 'jpeg'])),
   createdAt: isoDate,
   updatedAt: isoDate,
 });

@@ -18,6 +18,7 @@ import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.contex
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
+import { BoosterJpegService } from './pdf-to-jpeg.js';
 import { DriverProfileService, type DriverRow } from '../drivers/driver-profile.service.js';
 import { BoosterAnalysisService, PERFORMANCE_PROMPT_KEY } from './booster-analysis.service.js';
 import { intakeImages, type StoredAnalysis, type UploadedImage } from './booster-images.js';
@@ -56,6 +57,7 @@ export class PerformanceService {
     private readonly profiles: DriverProfileService,
     private readonly analysis: BoosterAnalysisService,
     private readonly audit: AuditService,
+    private readonly jpegs: BoosterJpegService,
   ) {}
 
   private get db() {
@@ -93,7 +95,7 @@ export class PerformanceService {
       drivingMinutes: row.drivingMinutes, ridesCount: row.ridesCount, ridesCents: row.ridesCents, tipsCents: row.tipsCents, promotionsCents: row.promotionsCents, energyCents: row.energyCents,
       cleaningCents: row.cleaningCents, points: row.points, otherNotes: row.otherNotes, source: row.source as PerformanceLogView['source'],
       screenshots: row.screenshots.map((s, index) => ({ index, contentType: s.contentType, bytes: s.bytes, uploadedAt: s.uploadedAt })),
-      reading: this.readingView(row), summary: performanceSummary(figuresOf(row)), confirmedAt: row.confirmedAt?.toISOString() ?? null, formats: row.pdfKey ? ['pdf'] : [],
+      reading: this.readingView(row), summary: performanceSummary(figuresOf(row)), confirmedAt: row.confirmedAt?.toISOString() ?? null, formats: row.pdfKey ? ['pdf', 'jpeg'] : [],
       createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(),
     };
   }
@@ -260,11 +262,23 @@ export class PerformanceService {
     return this.pdfOf((await this.requireOwn(userId, id)).row);
   }
 
-  async download(userId: string, id: string) {
+  async jpeg(userId: string, id: string) {
+    return this.jpegOf((await this.requireOwn(userId, id)).row);
+  }
+
+  /** Copie JPEG du PDF confirmé (pages empilées), rendue une fois puis gardée à côté du PDF. */
+  private async jpegOf(row: Row): Promise<{ body: Buffer; contentType: string }> {
+    if (!row.pdfKey) throw AppError.conflict('PERFORMANCE_LOG_NOT_CONFIRMED', 'Le PDF n\'existe qu\'une fois le rapport confirmé');
+    const { body, contentType } = await this.jpegs.ensure(row.pdfKey);
+    return { body, contentType };
+  }
+
+  async download(userId: string, id: string, format: 'pdf' | 'jpeg' = 'pdf') {
     const { row } = await this.requireOwn(userId, id);
     if (!row.pdfKey) throw AppError.conflict('PERFORMANCE_LOG_NOT_CONFIRMED', 'Le PDF n\'existe qu\'une fois le rapport confirmé');
+    const key = format === 'jpeg' ? (await this.jpegs.ensure(row.pdfKey)).key : row.pdfKey;
     const seconds = (await this.limits()).linkSeconds;
-    return { format: 'pdf' as const, url: await this.storage.getSignedUrl(row.pdfKey, seconds), expiresAt: new Date(Date.now() + seconds * 1000).toISOString() };
+    return { format, url: await this.storage.getSignedUrl(key, seconds), expiresAt: new Date(Date.now() + seconds * 1000).toISOString() };
   }
 
   async screenshot(userId: string, id: string, index: number): Promise<{ body: Buffer; contentType: string }> {
@@ -301,6 +315,10 @@ export class PerformanceService {
 
   async adminPdf(id: string) {
     return this.pdfOf((await this.requireRow(id)).row);
+  }
+
+  async adminJpeg(id: string) {
+    return this.jpegOf((await this.requireRow(id)).row);
   }
 
   async exportCsv(query: { from?: string | undefined; to?: string | undefined; driverId?: string | undefined }): Promise<string> {

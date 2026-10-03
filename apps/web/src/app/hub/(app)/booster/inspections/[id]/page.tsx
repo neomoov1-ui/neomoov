@@ -66,6 +66,7 @@ export default function InspectionDetailPage() {
           <div className="flex items-center gap-3">
             <Badge tone={SEVERITY_TONE[r.severity]}>{t(`hub.booster.severities.${r.severity}`)}</Badge>
             {r.formats.includes('pdf') ? <a href={`/api/v1/admin/booster/inspections/${encodeURIComponent(r.id)}/pdf`} className={`rounded-md bg-brand-blue px-3 py-2 text-sm font-semibold text-white ${focus}`}>{t('hub.booster.pdf')}</a> : <span className="text-xs text-slate-500">{t('hub.booster.pdfPending')}</span>}
+            {r.formats.includes('jpeg') ? <a href={`/api/v1/admin/booster/inspections/${encodeURIComponent(r.id)}/jpeg`} className={`rounded-md border border-brand-blue px-3 py-2 text-sm font-semibold text-brand-blue-dark ${focus}`}>{t('hub.booster.jpeg')}</a> : null}
           </div>
         )}
       />

@@ -6,7 +6,7 @@
  * rapport du jour, exports CSV.
  */
 import {
-  adminInspectionListQuerySchema, adminInspectionSchema, adminPerformanceListQuerySchema, adminPerformanceLogSchema, adminPerformanceRecapQuerySchema, alertTestSchema,
+  adminInspectionListQuerySchema, adminInspectionSchema, adminPerformanceListQuerySchema, adminPerformanceLogSchema, adminPerformanceRecapQuerySchema, alertTestSchema, boosterDownloadQuerySchema,
   driverAlertSettingsUpdateSchema, driverAlertSettingsViewSchema, inspectionConfirmSchema, inspectionCreateFieldsSchema, inspectionDownloadSchema, inspectionListQuerySchema,
   inspectionPhotosFieldsSchema, inspectionUpdateSchema, missingInspectionSchema, pageOf, performanceListQuerySchema, performanceLogInputSchema, performanceLogSchema,
   performanceRecapQuerySchema, performanceRecapSchema, uuid, vehicleInspectionSchema,
@@ -147,13 +147,23 @@ export class DriverBoosterController {
     return stream(res, await this.inspections.pdf(user.userId, id), `verification-sommaire-${id.slice(0, 8)}.pdf`);
   }
 
+  @Get('inspections/:id/jpeg')
+  @NoAudit()
+  @ApiProduces('image/jpeg')
+  @ApiOperation({ summary: 'Copie JPEG du rapport archivé (pages empilées, pour le partage)' })
+  @ApiErrors(401, 403, 404, 409, 429, 503)
+  async inspectionJpeg(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor, @Res({ passthrough: true }) res: Response) {
+    return stream(res, await this.inspections.jpeg(user.userId, id), `verification-sommaire-${id.slice(0, 8)}.jpg`);
+  }
+
   @Get('inspections/:id/download')
   @NoAudit()
-  @ApiOperation({ summary: 'Lien signé de courte durée vers le PDF du rapport archivé (PDF seulement : aucun rendu PNG ou JPEG côté API, voir docs/booster.md)' })
+  @ApiOperation({ summary: 'Lien signé de courte durée vers le rapport archivé : PDF, ou sa copie JPEG (`?format=jpeg`)' })
+  @ZodQuery(boosterDownloadQuerySchema)
   @ZodResponse(200, inspectionDownloadSchema)
-  @ApiErrors(401, 403, 404, 409, 429)
-  inspectionDownload(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
-    return this.inspections.download(user.userId, id);
+  @ApiErrors(401, 403, 404, 409, 429, 503)
+  inspectionDownload(@Param('id', zodPipe(uuid)) id: string, @Query(zodPipe(boosterDownloadQuerySchema)) query: z.infer<typeof boosterDownloadQuerySchema>, @CurrentUser() user: UserActor) {
+    return this.inspections.download(user.userId, id, query.format);
   }
 
   // --- Rapport de performance ----------------------------------------------------------------------------------------
@@ -260,13 +270,23 @@ export class DriverBoosterController {
     return stream(res, await this.performance.pdf(user.userId, id), `performance-${id.slice(0, 8)}.pdf`);
   }
 
+  @Get('performance/:id/jpeg')
+  @NoAudit()
+  @ApiProduces('image/jpeg')
+  @ApiOperation({ summary: 'Copie JPEG du rapport de performance confirmé (pages empilées, pour le partage)' })
+  @ApiErrors(401, 403, 404, 409, 429, 503)
+  async performanceJpeg(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor, @Res({ passthrough: true }) res: Response) {
+    return stream(res, await this.performance.jpeg(user.userId, id), `performance-${id.slice(0, 8)}.jpg`);
+  }
+
   @Get('performance/:id/download')
   @NoAudit()
-  @ApiOperation({ summary: 'Lien signé de courte durée vers le PDF du rapport confirmé' })
+  @ApiOperation({ summary: 'Lien signé de courte durée vers le rapport confirmé : PDF, ou sa copie JPEG (`?format=jpeg`)' })
+  @ZodQuery(boosterDownloadQuerySchema)
   @ZodResponse(200, inspectionDownloadSchema)
-  @ApiErrors(401, 403, 404, 409, 429)
-  performanceDownload(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
-    return this.performance.download(user.userId, id);
+  @ApiErrors(401, 403, 404, 409, 429, 503)
+  performanceDownload(@Param('id', zodPipe(uuid)) id: string, @Query(zodPipe(boosterDownloadQuerySchema)) query: z.infer<typeof boosterDownloadQuerySchema>, @CurrentUser() user: UserActor) {
+    return this.performance.download(user.userId, id, query.format);
   }
 
   // --- Alertes ---------------------------------------------------------------------------------------------------------
@@ -374,6 +394,16 @@ export class AdminBoosterController {
     return stream(res, await this.inspections.adminPdf(id), `verification-sommaire-${id.slice(0, 8)}.pdf`);
   }
 
+  @Get('inspections/:id/jpeg')
+  @Can('documents.content.read')
+  @Audit('booster.inspection_jpeg_viewed', 'vehicle_inspections', 'id')
+  @ApiProduces('image/jpeg')
+  @ApiOperation({ summary: 'Copie JPEG du rapport archivé (consultation journalisée)' })
+  @ApiErrors(401, 403, 404, 409, 429, 503)
+  async inspectionJpeg(@Param('id', zodPipe(uuid)) id: string, @Res({ passthrough: true }) res: Response) {
+    return stream(res, await this.inspections.adminJpeg(id), `verification-sommaire-${id.slice(0, 8)}.jpg`);
+  }
+
   @Get('performance')
   @Can('documents.read')
   @NoAudit()
@@ -426,6 +456,16 @@ export class AdminBoosterController {
   @ApiErrors(401, 403, 404, 409, 429)
   async performancePdf(@Param('id', zodPipe(uuid)) id: string, @Res({ passthrough: true }) res: Response) {
     return stream(res, await this.performance.adminPdf(id), `performance-${id.slice(0, 8)}.pdf`);
+  }
+
+  @Get('performance/:id/jpeg')
+  @Can('documents.content.read')
+  @Audit('booster.performance_jpeg_viewed', 'performance_logs', 'id')
+  @ApiProduces('image/jpeg')
+  @ApiOperation({ summary: 'Copie JPEG du rapport de performance confirmé (consultation journalisée)' })
+  @ApiErrors(401, 403, 404, 409, 429, 503)
+  async performanceJpeg(@Param('id', zodPipe(uuid)) id: string, @Res({ passthrough: true }) res: Response) {
+    return stream(res, await this.performance.adminJpeg(id), `performance-${id.slice(0, 8)}.jpg`);
   }
 }
 

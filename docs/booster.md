@@ -43,7 +43,7 @@ Gravité globale (`overallSeverity`) : majeure dès qu'un élément est en défe
 
 ## Limites et suite
 
-- **PNG et JPEG** du rapport : non rendus côté API (aucun moteur HTML vers image dans la pile ; pdfkit ne produit que du PDF). Pistes : capture de la vue dans l'application (`react-native-view-shot`, non installée) ou un moteur de rendu serveur (navigateur sans tête, lourd). Décision à prendre.
+- **JPEG** du rapport (3 octobre 2026) : copie de lecture du PDF archivé, pages rendues par `pdftoppm` (poppler) puis empilées en une seule image par `ffmpeg` (`apps/api/src/modules/booster/pdf-to-jpeg.ts`), rendue à la première demande et gardée dans le stockage à côté du PDF (même nom, extension `.jpg`). Routes `GET /v1/driver/booster/{inspections,performance}/:id/jpeg`, lien signé `…/download?format=jpeg`, My Hub `GET /v1/admin/booster/{inspections,performance}/:id/jpeg` (consultation journalisée). Outils installés dans les images de l'API et du worker ; sans eux, 503 `JPEG_UNAVAILABLE` (le PDF reste disponible). Le PNG n'est pas proposé (le JPEG suffit au partage).
 - **Analyse synchrone** : l'appel au modèle se fait dans la requête (jusqu'à deux minutes avec douze photos) ; le client d'API attend trois minutes. À passer par la file `agents` si les délais gênent.
 - **Fuseau du chauffeur** : réglage par chauffeur (défaut Montréal) ; aucune détection automatique.
 - **Tables des autres agents** : aucune utilisée.

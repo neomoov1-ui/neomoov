@@ -30,6 +30,10 @@ RUN pnpm install --frozen-lockfile --prod --filter "@neomoov/worker..."
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
+# Rendu des médias : navigateur sans interface (visuels de marque HTML vers PNG), ffmpeg (vidéos courtes, empilement
+# des pages JPEG), poppler (pages des PDF de Booster en JPEG), polices avec les accents et les emoji.
+RUN apk add --no-cache chromium ffmpeg poppler-utils font-noto font-noto-emoji ttf-dejavu \
+  && ln -sf "$(command -v chromium || command -v chromium-browser)" /usr/local/bin/neomoov-browser
 WORKDIR /app
 COPY --from=prod-deps /repo ./
 COPY --from=build /repo/packages/domain/dist packages/domain/dist

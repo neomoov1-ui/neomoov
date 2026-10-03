@@ -225,7 +225,8 @@ export function driverResource(t: Transport) {
     confirmInspection: (inspectionId: string, body: InspectionConfirm) => t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/confirm`, body, { timeoutMs: 60_000 }),
     inspections: (query: Partial<InspectionListQuery> = {}) => t.get<Page<VehicleInspectionView>>('/driver/booster/inspections', { query }),
     inspection: (inspectionId: string) => t.get<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}`),
-    inspectionDownload: (inspectionId: string) => t.get<InspectionDownloadView>(`/driver/booster/inspections/${id(inspectionId)}/download`),
+    /** Lien signé : PDF (défaut) ou copie JPEG (rendue à la première demande : jusqu\'à une minute). */
+    inspectionDownload: (inspectionId: string, format: 'pdf' | 'jpeg' = 'pdf') => t.get<InspectionDownloadView>(`/driver/booster/inspections/${id(inspectionId)}/download`, { query: { format }, timeoutMs: 90_000 }),
     createPerformance: (body: PerformanceLogInput) => t.post<PerformanceLogView>('/driver/booster/performance', body),
     updatePerformance: (logId: string, body: PerformanceLogInput) => t.patch<PerformanceLogView>(`/driver/booster/performance/${id(logId)}`, body),
     addPerformanceScreenshots: (logId: string, form: FormData) => t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/screenshots`, form, { timeoutMs: 120_000 }),
@@ -234,7 +235,7 @@ export function driverResource(t: Transport) {
     performanceLogs: (query: Partial<PerformanceListQuery> = {}) => t.get<Page<PerformanceLogView>>('/driver/booster/performance', { query }),
     performanceLog: (logId: string) => t.get<PerformanceLogView>(`/driver/booster/performance/${id(logId)}`),
     performanceRecap: (query: Partial<PerformanceRecapQuery> = {}) => t.get<PerformanceRecapView>('/driver/booster/performance/recap', { query }),
-    performanceDownload: (logId: string) => t.get<InspectionDownloadView>(`/driver/booster/performance/${id(logId)}/download`),
+    performanceDownload: (logId: string, format: 'pdf' | 'jpeg' = 'pdf') => t.get<InspectionDownloadView>(`/driver/booster/performance/${id(logId)}/download`, { query: { format }, timeoutMs: 90_000 }),
     alertSettings: () => t.get<DriverAlertSettingsView>('/driver/booster/alerts'),
     updateAlertSettings: (body: DriverAlertSettingsUpdate) => t.put<DriverAlertSettingsView>('/driver/booster/alerts', body),
     testAlert: (body: AlertTestInput) => t.post<{ queued: true }>('/driver/booster/alerts/test', body),

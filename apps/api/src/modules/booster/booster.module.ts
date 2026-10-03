@@ -8,6 +8,7 @@ import { BoosterAnalysisService } from './booster-analysis.service.js';
 import { BoosterJobsService } from './booster-jobs.service.js';
 import { AdminBoosterController, DriverBoosterController } from './booster.controller.js';
 import { InspectionsService } from './inspections.service.js';
+import { BoosterJpegService } from './pdf-to-jpeg.js';
 import { PerformanceService } from './performance.service.js';
 
 /**
@@ -18,7 +19,7 @@ import { PerformanceService } from './performance.service.js';
 @Module({
   imports: [RidesModule, DriversModule, AgentsModule, AuditModule],
   controllers: [DriverBoosterController, AdminBoosterController],
-  providers: [BoosterAnalysisService, InspectionsService, PerformanceService, AlertsService, BoosterJobsService],
+  providers: [BoosterAnalysisService, BoosterJpegService, InspectionsService, PerformanceService, AlertsService, BoosterJobsService],
   exports: [InspectionsService, PerformanceService, AlertsService, BoosterJobsService],
 })
 export class BoosterModule {}

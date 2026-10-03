@@ -113889,7 +113889,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -114828,7 +114829,8 @@
                             "items": {
                               "type": "string",
                               "enum": [
-                                "pdf"
+                                "pdf",
+                                "jpeg"
                               ]
                             }
                           },
@@ -115634,7 +115636,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -116525,7 +116528,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -117733,7 +117737,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -118541,7 +118546,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -119701,7 +119707,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -120400,6 +120407,194 @@
         ]
       }
     },
+    "/v1/driver/booster/inspections/{id}/jpeg": {
+      "get": {
+        "operationId": "DriverBoosterController_inspectionJpeg",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copie JPEG du rapport archivé (pages empilées, pour le partage)",
+        "tags": [
+          "driver"
+        ]
+      }
+    },
     "/v1/driver/booster/inspections/{id}/download": {
       "get": {
         "operationId": "DriverBoosterController_inspectionDownload",
@@ -120410,6 +120605,19 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "pdf",
+              "type": "string",
+              "enum": [
+                "pdf",
+                "jpeg"
+              ]
             }
           }
         ],
@@ -120424,7 +120632,8 @@
                     "format": {
                       "type": "string",
                       "enum": [
-                        "pdf"
+                        "pdf",
+                        "jpeg"
                       ]
                     },
                     "url": {
@@ -120579,6 +120788,33 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Erreur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
           }
         },
         "security": [
@@ -120586,7 +120822,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lien signé de courte durée vers le PDF du rapport archivé (PDF seulement : aucun rendu PNG ou JPEG côté API, voir docs/booster.md)",
+        "summary": "Lien signé de courte durée vers le rapport archivé : PDF, ou sa copie JPEG (`?format=jpeg`)",
         "tags": [
           "driver"
         ]
@@ -121028,7 +121264,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -121611,7 +121848,8 @@
                             "items": {
                               "type": "string",
                               "enum": [
-                                "pdf"
+                                "pdf",
+                                "jpeg"
                               ]
                             }
                           },
@@ -122249,7 +122487,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -122809,7 +123048,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -123339,7 +123579,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -123982,7 +124223,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -124650,7 +124892,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -125318,7 +125561,8 @@
                             "items": {
                               "type": "string",
                               "enum": [
-                                "pdf"
+                                "pdf",
+                                "jpeg"
                               ]
                             }
                           },
@@ -125977,6 +126221,194 @@
         ]
       }
     },
+    "/v1/driver/booster/performance/{id}/jpeg": {
+      "get": {
+        "operationId": "DriverBoosterController_performanceJpeg",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copie JPEG du rapport de performance confirmé (pages empilées, pour le partage)",
+        "tags": [
+          "driver"
+        ]
+      }
+    },
     "/v1/driver/booster/performance/{id}/download": {
       "get": {
         "operationId": "DriverBoosterController_performanceDownload",
@@ -125987,6 +126419,19 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "pdf",
+              "type": "string",
+              "enum": [
+                "pdf",
+                "jpeg"
+              ]
             }
           }
         ],
@@ -126001,7 +126446,8 @@
                     "format": {
                       "type": "string",
                       "enum": [
-                        "pdf"
+                        "pdf",
+                        "jpeg"
                       ]
                     },
                     "url": {
@@ -126156,6 +126602,33 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Erreur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
           }
         },
         "security": [
@@ -126163,7 +126636,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lien signé de courte durée vers le PDF du rapport confirmé",
+        "summary": "Lien signé de courte durée vers le rapport confirmé : PDF, ou sa copie JPEG (`?format=jpeg`)",
         "tags": [
           "driver"
         ]
@@ -128111,7 +128584,8 @@
                             "items": {
                               "type": "string",
                               "enum": [
-                                "pdf"
+                                "pdf",
+                                "jpeg"
                               ]
                             }
                           },
@@ -129205,7 +129679,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -129870,6 +130345,194 @@
         ]
       }
     },
+    "/v1/admin/booster/inspections/{id}/jpeg": {
+      "get": {
+        "operationId": "AdminBoosterController_inspectionJpeg",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copie JPEG du rapport archivé (consultation journalisée)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/booster/performance": {
       "get": {
         "operationId": "AdminBoosterController_listPerformance",
@@ -130269,7 +130932,8 @@
                             "items": {
                               "type": "string",
                               "enum": [
-                                "pdf"
+                                "pdf",
+                                "jpeg"
                               ]
                             }
                           },
@@ -130933,7 +131597,8 @@
                             "items": {
                               "type": "string",
                               "enum": [
-                                "pdf"
+                                "pdf",
+                                "jpeg"
                               ]
                             }
                           },
@@ -131606,7 +132271,8 @@
                       "items": {
                         "type": "string",
                         "enum": [
-                          "pdf"
+                          "pdf",
+                          "jpeg"
                         ]
                       }
                     },
@@ -131947,6 +132613,194 @@
           }
         ],
         "summary": "PDF du rapport de performance confirmé (consultation journalisée)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/booster/performance/{id}/jpeg": {
+      "get": {
+        "operationId": "AdminBoosterController_performanceJpeg",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copie JPEG du rapport de performance confirmé (consultation journalisée)",
         "tags": [
           "admin"
         ]

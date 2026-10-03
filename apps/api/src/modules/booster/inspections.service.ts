@@ -25,6 +25,7 @@ import { currentOrgScope, storageKeyPrefix } from '../../common/org-scope.contex
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
+import { BoosterJpegService } from './pdf-to-jpeg.js';
 import { DriverProfileService, type DriverRow } from '../drivers/driver-profile.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { BoosterAnalysisService, INSPECTION_PROMPT_KEY } from './booster-analysis.service.js';
@@ -54,6 +55,7 @@ export class InspectionsService {
     private readonly outbox: NotificationsOutbox,
     private readonly events: DomainEventsService,
     private readonly audit: AuditService,
+    private readonly jpegs: BoosterJpegService,
     private readonly fields: FieldCipher,
   ) {}
 
@@ -106,7 +108,7 @@ export class InspectionsService {
       severity: row.severity as VehicleInspectionView['severity'], notes: row.notes,
       photos: row.photos.map((p, index) => ({ index, kind: (PHOTO_KINDS as readonly string[]).includes(p.kind) ? (p.kind as VehicleInspectionView['photos'][number]['kind']) : 'other', contentType: p.contentType, bytes: p.bytes, uploadedAt: p.uploadedAt })),
       analysis: this.analysisView(row), confirmedAt: row.confirmedAt?.toISOString() ?? null, archivedAt: row.archivedAt?.toISOString() ?? null,
-      formats: row.pdfKey ? (['pdf'] as const).slice() : [], createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(),
+      formats: row.pdfKey ? (['pdf', 'jpeg'] as const).slice() : [], createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(),
     };
   }
 
@@ -353,12 +355,24 @@ export class InspectionsService {
     return this.pdfOf((await this.requireOwn(userId, id)).row);
   }
 
-  /** Lien signé de courte durée (ouvert par l'application dans le navigateur) ; PDF seulement. */
-  async download(userId: string, id: string): Promise<InspectionDownloadView> {
+  async jpeg(userId: string, id: string) {
+    return this.jpegOf((await this.requireOwn(userId, id)).row);
+  }
+
+  /** Copie JPEG du PDF archivé (pages empilées), rendue une fois puis gardée à côté du PDF. */
+  private async jpegOf(row: Row): Promise<{ body: Buffer; contentType: string }> {
+    if (!row.pdfKey) throw AppError.conflict('INSPECTION_NOT_ARCHIVED', 'Le PDF n\'existe qu\'une fois le rapport archivé');
+    const { body, contentType } = await this.jpegs.ensure(row.pdfKey);
+    return { body, contentType };
+  }
+
+  /** Lien signé de courte durée (ouvert par l'application dans le navigateur) : PDF, ou sa copie JPEG. */
+  async download(userId: string, id: string, format: 'pdf' | 'jpeg' = 'pdf'): Promise<InspectionDownloadView> {
     const { row } = await this.requireOwn(userId, id);
     if (!row.pdfKey) throw AppError.conflict('INSPECTION_NOT_ARCHIVED', 'Le PDF n\'existe qu\'une fois le rapport archivé');
+    const key = format === 'jpeg' ? (await this.jpegs.ensure(row.pdfKey)).key : row.pdfKey;
     const seconds = (await this.limits()).linkSeconds;
-    return { format: 'pdf', url: await this.storage.getSignedUrl(row.pdfKey, seconds), expiresAt: new Date(Date.now() + seconds * 1000).toISOString() };
+    return { format, url: await this.storage.getSignedUrl(key, seconds), expiresAt: new Date(Date.now() + seconds * 1000).toISOString() };
   }
 
   /** Une inspection archivée ce jour-là (alertes, dispatch). */
@@ -394,6 +408,10 @@ export class InspectionsService {
 
   async adminPdf(id: string) {
     return this.pdfOf((await this.requireRow(id)).row);
+  }
+
+  async adminJpeg(id: string) {
+    return this.jpegOf((await this.requireRow(id)).row);
   }
 
   /** Chauffeurs en ligne sans rapport archivé aujourd'hui. */

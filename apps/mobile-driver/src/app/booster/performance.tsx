@@ -119,10 +119,10 @@ export default function PerformanceScreen() {
     }
   }
 
-  async function open(l: PerformanceLogView) {
+  async function open(l: PerformanceLogView, format: 'pdf' | 'jpeg' = 'pdf') {
     setBusy(l.id);
     try {
-      await Linking.openURL((await api.driver.performanceDownload(l.id)).url);
+      await Linking.openURL((await api.driver.performanceDownload(l.id, format)).url);
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -192,7 +192,8 @@ export default function PerformanceScreen() {
             <Text style={styles.status}>{t(`booster.statuses.${l.status}`)}</Text>
           </View>
           <Body muted>{[l.summary.basisMinutes !== null ? `${(l.summary.basisMinutes / 60).toFixed(1)} h` : null, l.summary.distanceKm !== null ? `${l.summary.distanceKm} km` : null, l.ridesCount !== null ? t('booster.performance.ridesShort', { count: l.ridesCount }) : null, `${t('booster.performance.net')} ${money(l.summary.netCents)}`].filter(Boolean).join(' · ')}</Body>
-          {l.status === 'confirmed' ? <Button label={t('booster.inspection.downloadPdf')} variant="ghost" onPress={() => void open(l)} disabled={busy !== null} /> : <Button label={t('booster.reports.resume')} variant="ghost" onPress={() => { setDraft(l); setForm(formOf(l)); }} />}
+          {l.status === 'confirmed' ? <Button label={t('booster.inspection.downloadPdf')} variant="ghost" onPress={() => void open(l, 'pdf')} disabled={busy !== null} /> : null}
+          {l.status === 'confirmed' ? <Button label={t('booster.inspection.downloadJpeg')} variant="ghost" onPress={() => void open(l, 'jpeg')} disabled={busy !== null} /> : <Button label={t('booster.reports.resume')} variant="ghost" onPress={() => { setDraft(l); setForm(formOf(l)); }} />}
         </Card>
       ))}
       {sessions.isFetched && !(sessions.data?.items ?? []).length ? <Empty message={t('booster.performance.empty')} /> : null}

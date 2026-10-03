@@ -198,7 +198,7 @@ describe('Neomoov Booster : vérification sommaire, performance, alertes (intég
     expect(res.body.severity).toBe('major');
     expect(res.body.allItemsChecked).toBe(true);
     expect(res.body.confirmedAt).not.toBeNull();
-    expect(res.body.formats).toEqual(['pdf']);
+    expect(res.body.formats).toEqual(['pdf', 'jpeg']);
     expect(archived).toEqual([{ inspectionId, severity: 'major' }]);
     const pdf = await get(`/v1/driver/booster/inspections/${inspectionId}/pdf`, a.tokens);
     expect(pdf.status).toBe(200);
@@ -208,6 +208,19 @@ describe('Neomoov Booster : vérification sommaire, performance, alertes (intég
     expect(link.status).toBe(200);
     expect(link.body.format).toBe('pdf');
     expect(link.body.url).toContain('mock://storage/');
+    // Copie JPEG : rendue par pdftoppm et ffmpeg (image de l'API) ; sans ces outils (poste de développement), 503 explicite.
+    const jpeg = await get(`/v1/driver/booster/inspections/${inspectionId}/jpeg`, a.tokens);
+    if (jpeg.status === 200) {
+      expect(jpeg.headers['content-type']).toBe('image/jpeg');
+      expect([...jpeg.body.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
+      const jpegLink = await get(`/v1/driver/booster/inspections/${inspectionId}/download?format=jpeg`, a.tokens);
+      expect(jpegLink.body).toMatchObject({ format: 'jpeg', url: expect.stringContaining('.jpg') });
+    } else {
+      expect(jpeg.status).toBe(503);
+      expect(jpeg.body.code).toBe('JPEG_UNAVAILABLE');
+      expect((await get(`/v1/driver/booster/inspections/${inspectionId}/download?format=jpeg`, a.tokens)).status).toBe(503);
+    }
+    expect((await get(`/v1/driver/booster/inspections/${inspectionId}/download?format=png`, a.tokens)).status).toBe(400);
     const photo = await get(`/v1/driver/booster/inspections/${inspectionId}/photos/0`, a.tokens);
     expect(photo.status).toBe(200);
     expect(photo.headers['content-type']).toBe('image/jpeg');
@@ -331,7 +344,7 @@ describe('Neomoov Booster : vérification sommaire, performance, alertes (intég
     expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);
     expect(confirmed.body.status).toBe('confirmed');
     expect(confirmed.body.summary).toMatchObject({ sessionMinutes: 510, basisMinutes: 480, distanceKm: 200, energyUsedPoints: 50, energyPer100Km: 25, drivingSharePercent: 63, grossCents: 27_400, costsCents: 2_000, netCents: 25_400, netPerHourCents: 3_175, netPerKmCents: 127, grossPerRideCents: 2_000, tipsPercent: 10 });
-    expect(confirmed.body.formats).toEqual(['pdf']);
+    expect(confirmed.body.formats).toEqual(['pdf', 'jpeg']);
     const pdf = await get(`/v1/driver/booster/performance/${id}/pdf`, a.tokens);
     expect(pdf.headers['content-type']).toContain('application/pdf');
     expect((await request(server()).patch(`/v1/driver/booster/performance/${id}`).set(bearer(a.tokens)).send({ tipsCents: 1 })).status).toBe(409);

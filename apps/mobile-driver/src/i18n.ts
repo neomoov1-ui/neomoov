@@ -561,7 +561,7 @@ const fr = {
       bodyZones: 'Carrosserie', zonesHint: 'Touchez les zones qui présentent un défaut (rayure, bosse, bris), puis décrivez.', zoneDescription: '{{zone}} : description', notes: 'Défectuosités et mesures prises',
       majorWarning: 'Défectuosité majeure : ne mettez pas le véhicule en service avant réparation. Le dispatch est prévenu.', confirm: 'Confirmer et archiver', archiving: 'Archivage…',
       done: 'Rapport archivé chez le dispatch et dans votre compte.', doneMajor: 'Rapport archivé. Défectuosité majeure : le véhicule ne doit pas être mis en service avant réparation.',
-      downloadPdf: 'Télécharger le PDF', myReports: 'Mes rapports', formatsNote: 'Le PDF s\'ouvre dans votre navigateur ; enregistrez-le ou partagez-le en image depuis celui-ci.', lang: 'Rapport produit en français (document légal), interface en {{lang}}.',
+      downloadPdf: 'Télécharger le PDF', downloadJpeg: 'Télécharger en image (JPEG)', myReports: 'Mes rapports', formatsNote: 'Le PDF et l\'image s\'ouvrent dans votre navigateur ; enregistrez-les ou partagez-les depuis celui-ci.', lang: 'Rapport produit en français (document légal), interface en {{lang}}.',
     },
     reports: { title: 'Mes rapports', intro: 'Rapports de vérification sommaire, les plus récents d\'abord.', new: 'Nouvelle vérification', photos: '{{count}} photo(s)', opening: 'Ouverture…', resume: 'Reprendre', empty: 'Aucun rapport pour l\'instant.' },
     performance: {
@@ -1299,7 +1299,7 @@ const en: typeof fr = {
       bodyZones: 'Body', zonesHint: 'Tap the zones with a defect (scratch, dent, crack), then describe.', zoneDescription: '{{zone}}: description', notes: 'Defects and measures taken',
       majorWarning: 'Major defect: do not put the vehicle into service before repair. Dispatch is notified.', confirm: 'Confirm and archive', archiving: 'Archiving…',
       done: 'Report archived with dispatch and in your account.', doneMajor: 'Report archived. Major defect: the vehicle must not be put into service before repair.',
-      downloadPdf: 'Download the PDF', myReports: 'My reports', formatsNote: 'The PDF opens in your browser; save it or share it as an image from there.', lang: 'Report produced in French (legal document), interface in {{lang}}.',
+      downloadPdf: 'Download the PDF', downloadJpeg: 'Download as an image (JPEG)', myReports: 'My reports', formatsNote: 'The PDF and the image open in your browser; save or share them from there.', lang: 'Report produced in French (legal document), interface in {{lang}}.',
     },
     reports: { title: 'My reports', intro: 'Pre-trip check reports, most recent first.', new: 'New check', photos: '{{count}} photo(s)', opening: 'Opening…', resume: 'Resume', empty: 'No report yet.' },
     performance: {
