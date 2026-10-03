@@ -110,6 +110,10 @@ const SQUARE_SHAPES = [
   { key: 'YOUTUBE_PRIVACY_STATUS', test: (v) => ['public', 'unlisted', 'private'].includes(v), expected: 'public, unlisted ou private' },
   { key: 'TIKTOK_PRIVACY_LEVEL', test: (v) => ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'].includes(v), expected: 'PUBLIC_TO_EVERYONE, MUTUAL_FOLLOW_FRIENDS, FOLLOWER_OF_CREATOR ou SELF_ONLY' },
   { key: 'TIKTOK_UPLOAD_MODE', test: (v) => v === 'file' || v === 'url', expected: 'file ou url' },
+  { key: 'TELEGRAM_BOT_TOKEN', test: (v) => /^\d{6,12}:[\w-]{30,}$/.test(v), expected: 'jeton de BotFather (chiffres, deux-points, puis 35 caractères environ)' },
+  { key: 'TELEGRAM_CHANNEL_ID', test: (v) => /^@[A-Za-z][\w]{4,}$|^-100\d{6,}$/.test(v), expected: '@nom du canal public, ou identifiant -100… du canal privé' },
+  { key: 'TELEGRAM_DISCUSSION_CHAT_ID', test: (v) => /^@[A-Za-z][\w]{4,}$|^-100\d{6,}$/.test(v), expected: 'identifiant -100… du groupe de discussion (ou son @nom)' },
+  ...['YOUTUBE_API_AUDITED', 'TIKTOK_APP_AUDITED'].map((key) => ({ key, test: (v) => ['on', 'off', 'true', 'false', '1', '0'].includes(v), expected: 'on ou off' })),
 ];
 /** Ce que la valeur semble être quand elle n'a pas la forme attendue (sans la montrer). */
 function squareLooksLike(value) {
@@ -132,6 +136,7 @@ const NETWORKS = [
   { name: 'YouTube', all: ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET', 'YOUTUBE_REFRESH_TOKEN'] },
   { name: 'X', all: ['X_CLIENT_ID', 'X_REFRESH_TOKEN'] },
   { name: 'TikTok', all: ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET', 'TIKTOK_REFRESH_TOKEN'] },
+  { name: 'Telegram', all: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHANNEL_ID'] },
 ];
 const isFilled = (key) => actual.get(key)?.filled ?? false;
 console.log('\nRéseaux à jeton OAuth (actifs avec MARKETING_PROVIDER=real) :');
