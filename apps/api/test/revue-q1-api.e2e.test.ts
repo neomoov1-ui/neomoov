@@ -3,13 +3,19 @@ import { schema } from '@neomoov/db';
 import { authorizationCents, type TokensView } from '@neomoov/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
+import type { AddressInfo } from 'node:net';
+import { io } from 'socket.io-client';
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockPaymentProvider } from '../src/adapters/mock/index.js';
 import { PAYMENT_PROVIDER } from '../src/adapters/types.js';
 import { AntiBotService } from '../src/common/anti-bot.service.js';
 import { RateLimitService } from '../src/common/rate-limit.service.js';
 import { SettingsService } from '../src/common/settings.service.js';
+import { AccessService } from '../src/modules/auth/access.service.js';
+import type { UserActor } from '../src/modules/auth/actor.js';
+import { TokensService } from '../src/modules/auth/tokens.service.js';
 import { StatementsService } from '../src/modules/settlement/statements.service.js';
 import {
   bearer, cleanupTestData, createDriver, createStaffAndLogin, currentPolicyVersion, db, loginByOtp, requestOtp, resetHttpLimits, startTestApp, testPhone, trackUser,
@@ -20,7 +26,9 @@ import {
  * Revue Q1 du 3 octobre 2026 (restes de la revue du 2 octobre, API) : contre-proposition acceptée au-dessus de
  * l'autorisation bancaire (métier 13), courses non réglées de plus de 8 semaines (métier 14), code SMS d'un tiers
  * (sécurité 17), session de saisie de carte à usage unique hors de l'adresse (sécurité 16), défi Turnstile exigé
- * seulement après plusieurs échecs (connexion du personnel, codes SMS d'un navigateur, devis publics du web).
+ * seulement après plusieurs échecs (connexion du personnel, codes SMS d'un navigateur, devis publics du web) ; constats
+ * « Faible » : cache des droits (13), sockets d'une session révoquée (14), limite propre des webhooks (18), bornes des
+ * réglages de sécurité et durée du drapeau de révocation (22).
  */
 const PLATEAU = { address: '4500 rue Saint-Denis, Montréal', coordinates: { lat: 45.523, lng: -73.582 } };
 const CENTRE = { address: '1000 rue De La Gauchetière Ouest, Montréal', coordinates: { lat: 45.5, lng: -73.567 } };
@@ -29,7 +37,7 @@ const SAINT_JEROME = { address: '10 rue de la Gare, Saint-Jérôme', coordinates
 const key = () => `rq1-${Math.random().toString(36).slice(2, 14)}`;
 const CONSENT = 'J\'accepte le nouveau prix maximal proposé par le chauffeur.';
 /** Adresses de documentation (RFC 5737), une par scénario du défi : les compteurs ne se mélangent pas. */
-const IP = { staff: '203.0.113.10', staffOther: '203.0.113.11', otp: '203.0.113.20', quotes: '203.0.113.30', off: '203.0.113.40' };
+const IP = { staff: '203.0.113.10', staffOther: '203.0.113.11', otp: '203.0.113.20', quotes: '203.0.113.30', off: '203.0.113.40', webhooks: '203.0.113.50' };
 type Tokens = Pick<TokensView, 'accessToken'> & { user: { id: string } };
 interface RideBody { id: string; quote: { totalCents: number }; negotiation: { agreedTotalCents: number | null } | null }
 
@@ -291,6 +299,97 @@ describe('revue Q1 du 3 octobre 2026 : argent, codes SMS, session de carte, déf
       expect(res.status).toBe(401);
     }
     await request(server()).post('/v1/auth/staff/login').set('X-Forwarded-For', IP.off).send({ email: operator.email, password: operator.password }).expect(200);
+  });
+
+  it('sécurité 13 : droits gardés en cache 5 secondes au plus (l\'invalidation ne touche que le processus qui la fait)', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const access = app.get(AccessService);
+    const actor: UserActor = { kind: 'user', userId: randomUUID(), sessionId: randomUUID(), primaryRole: 'client', roles: ['client'], amr: [] };
+    const t0 = Date.now();
+    const first = await access.platformPermissions(actor, new Date(t0));
+    expect(await access.platformPermissions(actor, new Date(t0 + 4_000))).toBe(first);
+    // Au-delà, les droits sont relus en base : un changement fait par l'autre réplica est vu en quelques secondes.
+    expect(await access.platformPermissions(actor, new Date(t0 + 6_000))).not.toBe(first);
+  });
+
+  it('sécurité 14 et 22 : un socket dont la session est révoquée est refusé puis fermé ; le drapeau de révocation survit à la durée maximale d\'un jeton', { timeout: 60_000 }, async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    await app.listen(0);
+    const { port } = app.getHttpServer().address() as AddressInfo;
+    const client = await loginByOtp(app, undefined, {}, { card: false });
+    const socket = io(`http://127.0.0.1:${port}/client`, { auth: { token: client.accessToken }, transports: ['websocket'], forceNew: true, reconnection: false });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.once('connect', () => resolve());
+        socket.once('connect_error', (e: Error) => reject(e));
+      });
+      const closed = new Promise<{ ok: false; code: string }>((resolve) => socket.once('disconnect', () => resolve({ ok: false, code: 'DISCONNECTED' })));
+      const subscribe = () => new Promise<{ ok: boolean; code?: string }>((resolve) => socket.emit('ride.subscribe', { rideId: randomUUID() }, resolve));
+      // Session valable : la demande est examinée (course inconnue).
+      const before = await subscribe();
+      expect(before.ok).toBe(false);
+      expect(before.code).not.toBe('UNAUTHENTICATED');
+      const logout = await request(server()).post('/v1/auth/logout').set(bearer(client)).send({});
+      expect(logout.status).toBeLessThan(300);
+      // Session révoquée : refusée, puis le socket est fermé par le serveur.
+      const after = await Promise.race([subscribe(), closed]);
+      expect(after.ok).toBe(false);
+      expect(['UNAUTHENTICATED', 'DISCONNECTED']).toContain(after.code);
+      await closed;
+    } finally {
+      socket.disconnect();
+    }
+    // Le drapeau de révocation vit au moins la durée maximale d'un jeton d'accès (réglage modifiable à chaud), pas la durée courante.
+    const sessionId = (JSON.parse(Buffer.from(client.accessToken.split('.')[1]!, 'base64url').toString('utf8')) as { sid: string }).sid;
+    const tokens = app.get(TokensService);
+    expect(await tokens.isSessionRevoked(sessionId)).toBe(true);
+    const now = Date.now();
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now + 30 * 60_000);
+    try {
+      expect(await tokens.isSessionRevoked(sessionId)).toBe(true);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it('sécurité 18 : les webhooks ont leur propre limite par adresse (le trafic ordinaire épuisé ne les bloque pas)', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const limits = app.get(RateLimitService);
+    const max = await app.get(SettingsService).number('ratelimit.per_ip_per_minute', 300);
+    try {
+      for (let i = 0; i < max; i += 1) await limits.hit(`ip:${IP.webhooks}`, max, 60);
+      const ordinary = await request(server()).post('/v1/payment-methods/card-session/info').set('X-Forwarded-For', IP.webhooks).send({});
+      expect(ordinary.status).toBe(429);
+      // Webhook de la même adresse : examiné (signature refusée), pas limité avec le trafic ordinaire.
+      const hook = await request(server()).post('/v1/webhooks/square').set('X-Forwarded-For', IP.webhooks).set('x-square-hmacsha256-signature', 'signature-forgee').set('content-type', 'application/json').send('{}');
+      expect(hook.status).toBe(400);
+      expect(hook.body.code).toBe('WEBHOOK_SIGNATURE_INVALID');
+    } finally {
+      await limits.reset(`ip:${IP.webhooks}`);
+      await limits.reset(`webhook-ip:${IP.webhooks}`);
+    }
+  });
+
+  it('sécurité 22 : un réglage de sécurité hors bornes est refusé (rien n\'est écrit)', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const admin = await createStaffAndLogin(app, ['admin']);
+    const keys = ['auth.otp_max_attempts', 'ratelimit.per_ip_per_minute', 'auth.access_token_ttl_seconds'];
+    const saved = await db(app).select({ key: schema.settings.key, value: schema.settings.value }).from(schema.settings).where(and(inArray(schema.settings.key, keys), eq(schema.settings.scope, 'global')));
+    const patch = (key: string, value: unknown) => request(server()).patch(`/v1/admin/settings/${key}`).set(bearer(admin.tokens)).send({ value });
+    try {
+      for (const [key, value] of [['auth.otp_max_attempts', 0], ['auth.otp_max_attempts', 50], ['auth.otp_max_attempts', 4.5], ['ratelimit.per_ip_per_minute', 1], ['auth.access_token_ttl_seconds', 86_400]] as const) {
+        if (!saved.some((s) => s.key === key)) continue;
+        const res = await patch(key, value);
+        expect(res.status, `${key} = ${value}`).toBe(400);
+        expect(res.body.code).toBe('SETTING_OUT_OF_RANGE');
+        expect(res.body.details).toMatchObject({ min: expect.any(Number), max: expect.any(Number) });
+      }
+      const after = await db(app).select({ key: schema.settings.key, value: schema.settings.value }).from(schema.settings).where(and(inArray(schema.settings.key, keys), eq(schema.settings.scope, 'global')));
+      expect(after.sort((a, b) => a.key.localeCompare(b.key))).toEqual(saved.sort((a, b) => a.key.localeCompare(b.key)));
+    } finally {
+      // Base partagée : quoi qu'il arrive, les valeurs d'avant sont remises.
+      for (const s of saved) await db(app).update(schema.settings).set({ value: s.value as object }).where(and(eq(schema.settings.key, s.key), eq(schema.settings.scope, 'global')));
+    }
   });
 
   describe('défi Turnstile après plusieurs échecs (clé secrète de test, vérification simulée)', () => {

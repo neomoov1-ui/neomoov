@@ -28,6 +28,29 @@ export class SocketAuthService {
     }
   }
 
+  /**
+   * Revue du 2 octobre 2026 (sécurité 14) : acteur du socket encore valable, la session étant relue à chaque message (une
+   * déconnexion ou une révocation par le personnel survient souvent après la poignée de main). Session révoquée : le
+   * message est refusé et le socket fermé juste après l'acquittement.
+   */
+  async current(socket: Socket): Promise<UserActor | null> {
+    const actor = (socket.data as { actor?: UserActor }).actor;
+    if (!actor) return null;
+    if (!(await this.tokens.isSessionRevoked(actor.sessionId))) return actor;
+    delete (socket.data as { actor?: UserActor }).actor;
+    setTimeout(() => socket.disconnect(true), 0);
+    return null;
+  }
+
+  /** Sockets qui ne font qu'écouter (suivi, carte de My Hub) : session relue chaque minute, fermés dès sa révocation. */
+  watch(socket: Socket, everyMs = 60_000): void {
+    const timer = setInterval(() => {
+      this.current(socket).catch(() => undefined);
+    }, everyMs);
+    timer.unref?.();
+    socket.once('disconnect', () => clearInterval(timer));
+  }
+
   async driverIdOf(userId: string): Promise<string | null> {
     const [row] = await this.database.db.select({ id: schema.drivers.id }).from(schema.drivers).where(eq(schema.drivers.userId, userId)).limit(1);
     return row?.id ?? null;

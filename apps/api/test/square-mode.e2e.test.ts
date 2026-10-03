@@ -1,6 +1,7 @@
 /**
- * Étape 26 (intégration, fournisseur simulé) : page de saisie de carte par jeton (session signée de 15 minutes,
- * expirée ou altérée refusée, confirmation par le serveur web sans jeton d'accès de l'utilisateur), carte par jeton sur
+ * Étape 26 (intégration, fournisseur simulé) : page de saisie de carte par jeton (session signée de 10 minutes à usage
+ * unique, dans le fragment de l'adresse et lue par le corps d'une requête depuis la revue du 2 octobre 2026, expirée ou
+ * altérée refusée, confirmation par le serveur web sans jeton d'accès de l'utilisateur), carte par jeton sur
  * la route authentifiée, méthode de prélèvement du chauffeur, webhook Square idempotent, et mode « Square » simulé
  * (capacités du simulateur sans SetupIntent ni Connect) : routes Connect en 409, versements hors plateforme listés et
  * exportés, clôture par settle-offline.
@@ -19,7 +20,9 @@ import { bearer, cleanupTestData, createDriver, createStaffAndLogin, db, loginBy
 
 const MOCK_CAPABILITIES = { setupIntent: true, cardToken: true, connect: true };
 const SQUARE_LIKE = { setupIntent: false, cardToken: true, connect: false };
-const sessionOf = (url: string) => new URL(url).searchParams.get('session')!;
+/** Session de la page de saisie : dans le fragment de l'adresse (`/carte?v=2#session=…`), jamais dans la chaîne de requête. */
+const sessionOf = (url: string) => new URLSearchParams(new URL(url).hash.slice(1)).get('session')!;
+const SESSION_INFO = '/v1/payment-methods/card-session/info';
 
 describe('paiements par jeton de carte et versements hors plateforme (étape 26, intégration)', () => {
   let app: NestExpressApplication | null = null;
@@ -48,25 +51,27 @@ describe('paiements par jeton de carte et versements hors plateforme (étape 26,
     const client = await loginByOtp(app, undefined, {}, { card: false });
     const setup = (await request(server()).post('/v1/payment-methods/setup-intent').set(bearer(client)).expect(201)).body;
     expect(setup).toMatchObject({ provider: 'mock', simulated: true, squareApplicationId: null, squareLocationId: null, squareEnvironment: null });
-    expect(setup.cardFormUrl).toMatch(/\/carte\?session=/);
+    expect(setup.cardFormUrl).toMatch(/\/carte\?v=2#session=/);
     const session = sessionOf(setup.cardFormUrl);
 
-    // Aucun jeton d'accès dans l'adresse : seule la session signée y figure.
+    // Aucun jeton d'accès dans l'adresse : seule la session signée y figure, dans le fragment.
     expect(setup.cardFormUrl).not.toContain(client.accessToken);
-    const info = (await request(server()).get('/v1/payment-methods/card-session').query({ session }).expect(200)).body;
+    expect(new URL(setup.cardFormUrl).searchParams.get('session')).toBeNull();
+    const info = (await request(server()).post(SESSION_INFO).send({ session }).expect(200)).body;
     expect(info).toMatchObject({ provider: 'mock', purpose: 'client_card', returnUrl: 'neomoov://carte-enregistree' });
-    expect(new Date(info.expiresAt).getTime() - Date.now()).toBeGreaterThan(14 * 60_000);
+    expect(new Date(info.expiresAt).getTime() - Date.now()).toBeGreaterThan(9 * 60_000);
+    expect(new Date(info.expiresAt).getTime() - Date.now()).toBeLessThanOrEqual(10 * 60_000);
 
     const env = app.get<AppEnv>(APP_ENV);
     const expired = signCardSession({ userId: client.user.id, purpose: 'client_card', expiresAt: new Date(Date.now() - 1_000) }, cardSessionKey(env.ENCRYPTION_KEY!));
-    expect((await request(server()).get('/v1/payment-methods/card-session').query({ session: expired }).expect(401)).body.code).toBe('CARD_SESSION_EXPIRED');
+    expect((await request(server()).post(SESSION_INFO).send({ session: expired }).expect(401)).body.code).toBe('CARD_SESSION_EXPIRED');
     const confirmExpired = await request(server()).post('/v1/payment-methods/card-session/confirm').send({ session: expired, sourceId: 'cnon:card-nonce-ok' });
     expect(confirmExpired.status).toBe(401);
     expect(confirmExpired.body.code).toBe('CARD_SESSION_EXPIRED');
     const forged = `${session.slice(0, -4)}${session.slice(-4) === 'AAAA' ? 'BBBB' : 'AAAA'}`;
-    expect((await request(server()).get('/v1/payment-methods/card-session').query({ session: forged }).expect(401)).body.code).toBe('CARD_SESSION_INVALID');
+    expect((await request(server()).post(SESSION_INFO).send({ session: forged }).expect(401)).body.code).toBe('CARD_SESSION_INVALID');
     const otherKey = signCardSession({ userId: client.user.id, purpose: 'client_card', expiresAt: new Date(Date.now() + 60_000) }, cardSessionKey('une-autre-cle-de-chiffrement-32-octets'));
-    expect((await request(server()).get('/v1/payment-methods/card-session').query({ session: otherKey }).expect(401)).body.code).toBe('CARD_SESSION_INVALID');
+    expect((await request(server()).post(SESSION_INFO).send({ session: otherKey }).expect(401)).body.code).toBe('CARD_SESSION_INVALID');
 
     // Jeton de carte refusé par le fournisseur : 402, aucune carte enregistrée.
     const refused = await request(server()).post('/v1/payment-methods/card-session/confirm').send({ session, sourceId: 'cnon:invalide' });
@@ -75,9 +80,12 @@ describe('paiements par jeton de carte et versements hors plateforme (étape 26,
 
     const saved = (await request(server()).post('/v1/payment-methods/card-session/confirm').send({ session, sourceId: 'cnon:card-nonce-ok' }).expect(201)).body;
     expect(saved).toMatchObject({ purpose: 'client_card', debitMethod: null, card: { brand: 'visa', last4: '4242', isDefault: true } });
-    // Rejouée (double envoi de la page), la confirmation reprend la même carte.
-    const again = (await request(server()).post('/v1/payment-methods/card-session/confirm').send({ session, sourceId: 'cnon:card-nonce-ok' }).expect(201)).body;
-    expect(again.card.id).toBe(saved.card.id);
+    // Rejouée (double envoi de la page, lien réutilisé) : la session a servi, la confirmation est refusée (revue du
+    // 2 octobre 2026, sécurité 16) et aucune seconde carte n'est enregistrée.
+    const again = await request(server()).post('/v1/payment-methods/card-session/confirm').send({ session, sourceId: 'cnon:card-nonce-ok' });
+    expect(again.status).toBe(401);
+    expect(again.body.code).toBe('CARD_SESSION_USED');
+    expect((await request(server()).post(SESSION_INFO).send({ session }).expect(401)).body.code).toBe('CARD_SESSION_USED');
     const methods = (await request(server()).get('/v1/payment-methods').set(bearer(client)).expect(200)).body as Array<{ id: string }>;
     expect(methods.map((m) => m.id)).toEqual([saved.card.id]);
     const [row] = await db(app).select({ provider: schema.clientPaymentMethods.provider }).from(schema.clientPaymentMethods).where(eq(schema.clientPaymentMethods.id, saved.card.id));
@@ -126,7 +134,7 @@ describe('paiements par jeton de carte et versements hors plateforme (étape 26,
     const setup = (await request(server()).post('/v1/driver/payment-method').set(bearer(driver.tokens)).expect(201)).body;
     expect(setup).toMatchObject({ setupIntentId: null, clientSecret: null });
     const session = sessionOf(setup.cardFormUrl);
-    expect((await request(server()).get('/v1/payment-methods/card-session').query({ session }).expect(200)).body).toMatchObject({ purpose: 'driver_debit', returnUrl: 'neomoov-driver://payout' });
+    expect((await request(server()).post(SESSION_INFO).send({ session }).expect(200)).body).toMatchObject({ purpose: 'driver_debit', returnUrl: 'neomoov-driver://payout' });
     const debit = (await request(server()).post('/v1/payment-methods/card-session/confirm').send({ session, sourceId: 'cnon:card-nonce-ok' }).expect(201)).body;
     expect(debit).toMatchObject({ purpose: 'driver_debit', card: null, debitMethod: { brand: 'visa', last4: '4242' } });
     expect((await request(server()).get('/v1/driver/connect/status').set(bearer(driver.tokens)).expect(200)).body.debitMethod).toEqual({ brand: 'visa', last4: '4242' });

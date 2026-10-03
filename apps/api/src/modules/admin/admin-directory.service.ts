@@ -11,6 +11,7 @@ import { SEV_STATUSES, type AdminInvoice } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, ilike, inArray, isNotNull, or, sql, type SQL } from 'drizzle-orm';
 import { AppError } from '../../common/app-error.js';
+import { securitySettingBounds } from '../../common/security-settings.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -145,12 +146,20 @@ export class AdminDirectoryService {
     return rows.map((r) => ({ key: r.key, value: r.value, description: r.description, updatedAt: r.updatedAt?.toISOString() ?? null }));
   }
 
-  /** Modification d'un réglage (admin) : même type de valeur que l'actuelle ; effective au plus une minute plus tard. */
+  /**
+   * Modification d'un réglage (admin) : même type de valeur que l'actuelle ; effective au plus une minute plus tard. Revue
+   * du 2 octobre 2026 (sécurité 22) : un réglage de sécurité (durées des jetons et des codes, tentatives, limites) reste
+   * dans ses bornes (`common/security-settings.ts`).
+   */
   async updateSetting(key: string, value: unknown, actor: UserActor) {
     const [current] = await this.db.select().from(schema.settings).where(and(eq(schema.settings.key, key), eq(schema.settings.scope, 'global'))).limit(1);
     if (!current) throw AppError.notFound('SETTING_NOT_FOUND', 'Réglage introuvable');
     const kind = (v: unknown) => (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v);
     if (kind(current.value) !== kind(value)) throw new AppError('SETTING_TYPE_MISMATCH', 'Le type de la valeur ne correspond pas au réglage', 400, { expected: kind(current.value), received: kind(value) });
+    const bounds = securitySettingBounds(key);
+    if (bounds && (typeof value !== 'number' || !Number.isInteger(value) || value < bounds[0] || value > bounds[1])) {
+      throw new AppError('SETTING_OUT_OF_RANGE', `Réglage de sécurité : nombre entier de ${bounds[0]} à ${bounds[1]}`, 400, { min: bounds[0], max: bounds[1] });
+    }
     await this.db.update(schema.settings).set({ value: value as object, updatedBy: actor.userId }).where(and(eq(schema.settings.key, key), eq(schema.settings.scope, 'global')));
     this.settings.invalidate();
     this.audit.record({ action: 'admin.setting_updated', entity: 'settings', entityId: null, before: { key, value: current.value }, after: { key, value } });

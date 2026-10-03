@@ -3,6 +3,8 @@
  * (tout). Le jeton d'accès est vérifié dans un intergiciel d'espace : la connexion n'aboutit qu'une fois l'acteur
  * résolu (le client reçoit `connect_error` avec le code sinon), et un message émis dès `connect` est déjà authentifié.
  * Chaque message est validé par Zod et acquitté `{ ok, … }`. Les origines CORS viennent de l'adaptateur (config).
+ * Revue du 2 octobre 2026 (sécurité 14) : la session est relue à chaque message et chaque minute ; révoquée, le socket est
+ * fermé.
  */
 import { driverStatusSchema, locationUpdateSchema, uuid } from '@neomoov/domain';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, type OnGatewayConnection, type OnGatewayInit } from '@nestjs/websockets';
@@ -54,13 +56,14 @@ export class ClientGateway implements OnGatewayInit, OnGatewayConnection {
     });
   }
 
-  handleConnection(): void {
-    // L'acteur est posé par l'intergiciel ; rien d'autre à faire à la connexion.
+  handleConnection(socket: Socket): void {
+    // L'acteur est posé par l'intergiciel ; la session est ensuite relue chaque minute.
+    this.auth.watch(socket);
   }
 
   @SubscribeMessage('ride.subscribe')
   async subscribe(@ConnectedSocket() socket: Socket, @MessageBody() body: { rideId?: string }): Promise<Ack> {
-    const actor = data(socket).actor;
+    const actor = await this.auth.current(socket);
     if (!actor) return unauthenticated;
     try {
       const rideId = uuid.parse(body?.rideId);
@@ -105,11 +108,12 @@ export class DriverGateway implements OnGatewayInit, OnGatewayConnection {
   async handleConnection(socket: Socket) {
     const driverId = data(socket).driverId;
     if (driverId) await socket.join(`driver:${driverId}`);
+    this.auth.watch(socket);
   }
 
   @SubscribeMessage('status.update')
   async status(@ConnectedSocket() socket: Socket, @MessageBody() body: unknown): Promise<Ack> {
-    const actor = data(socket).actor;
+    const actor = await this.auth.current(socket);
     if (!actor) return unauthenticated;
     try {
       const input = parse(driverStatusSchema, body);
@@ -122,7 +126,7 @@ export class DriverGateway implements OnGatewayInit, OnGatewayConnection {
   @SubscribeMessage('location.update')
   async location(@ConnectedSocket() socket: Socket, @MessageBody() body: unknown): Promise<Ack> {
     const driverId = data(socket).driverId;
-    if (!driverId) return unauthenticated;
+    if (!driverId || !(await this.auth.current(socket))) return unauthenticated;
     try {
       const input = parse(locationUpdateSchema, body);
       const result = await this.presence.recordForDriver(driverId, input);
@@ -134,7 +138,7 @@ export class DriverGateway implements OnGatewayInit, OnGatewayConnection {
 
   @SubscribeMessage('ride.subscribe')
   async subscribe(@ConnectedSocket() socket: Socket, @MessageBody() body: { rideId?: string }): Promise<Ack> {
-    const actor = data(socket).actor;
+    const actor = await this.auth.current(socket);
     if (!actor) return unauthenticated;
     try {
       const rideId = uuid.parse(body?.rideId);
@@ -169,11 +173,13 @@ export class AdminGateway implements OnGatewayInit, OnGatewayConnection {
 
   async handleConnection(socket: Socket) {
     await socket.join('admin');
+    this.auth.watch(socket);
   }
 
   /** Zone visible de la carte My Hub : mémorisée sur le socket pour le filtrage des positions (écran à l'étape 12). */
   @SubscribeMessage('map.subscribe')
-  subscribeMap(@ConnectedSocket() socket: Socket, @MessageBody() body: unknown): Ack {
+  async subscribeMap(@ConnectedSocket() socket: Socket, @MessageBody() body: unknown): Promise<Ack> {
+    if (!(await this.auth.current(socket))) return unauthenticated;
     (socket.data as { mapBounds?: unknown }).mapBounds = body ?? null;
     return { ok: true };
   }

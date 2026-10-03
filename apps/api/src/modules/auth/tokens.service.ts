@@ -11,6 +11,7 @@ import { SignJWT, jwtVerify, errors as joseErrors, type JWTPayload } from 'jose'
 import { AppError } from '../../common/app-error.js';
 import { randomToken, sha256Hex } from '../../common/crypto.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
+import { ACCESS_TOKEN_TTL_MAX_SECONDS, clampSecuritySetting } from '../../common/security-settings.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
@@ -61,8 +62,9 @@ export class TokensService {
     this.transientKey = new TextEncoder().encode(env.JWT_REFRESH_SECRET);
   }
 
+  /** Durée d'un jeton d'accès, ramenée dans ses bornes (revue du 2 octobre 2026, sécurité 22 : valeur posée avant les bornes). */
   async accessTtlSeconds(): Promise<number> {
-    return this.settings.number('auth.access_token_ttl_seconds', 900);
+    return clampSecuritySetting('auth.access_token_ttl_seconds', await this.settings.number('auth.access_token_ttl_seconds', 900));
   }
 
   async issueAccessToken(claims: AccessClaims): Promise<{ token: string; expiresIn: number }> {
@@ -209,9 +211,13 @@ export class TokensService {
     await Promise.all(rows.map((r) => this.flagRevoked(r.id)));
   }
 
-  /** Le drapeau vit le temps d'un jeton d'accès : au-delà, le jeton est expiré de toute façon. */
+  /**
+   * Le drapeau vit le temps du plus long jeton d'accès possible : au-delà, le jeton est expiré de toute façon. Revue du
+   * 2 octobre 2026 (sécurité 22) : la durée maximale, pas la durée courante (réglage modifiable à chaud : un jeton émis
+   * avant une baisse de la durée redevenait valable après l'expiration du drapeau).
+   */
   private async flagRevoked(sessionId: string): Promise<void> {
-    await this.store.flag(`revoked:${sessionId}`, (await this.accessTtlSeconds()) + 60);
+    await this.store.flag(`revoked:${sessionId}`, Math.max(ACCESS_TOKEN_TTL_MAX_SECONDS, await this.accessTtlSeconds()) + 60);
   }
 
   async isSessionRevoked(sessionId: string): Promise<boolean> {

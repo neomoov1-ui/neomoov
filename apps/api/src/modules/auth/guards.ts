@@ -38,7 +38,15 @@ function setRateHeaders(res: Response, limit: number, remaining: number, resetIn
   res.setHeader('X-RateLimit-Reset', String(resetIn));
 }
 
-/** Limite par adresse IP, avant toute authentification (protège la base et les fournisseurs). */
+/** Webhooks des fournisseurs (Stripe, Square, Twilio, Meta, Vapi…), signés et vérifiés par chaque route. */
+const WEBHOOK_PATH = /^\/v1\/webhooks\//;
+
+/**
+ * Limite par adresse IP, avant toute authentification (protège la base et les fournisseurs). Revue du 2 octobre 2026
+ * (sécurité 18) : les webhooks arrivent de quelques adresses partagées, parfois en rafale ; ils ont leur propre compteur
+ * et leur propre plafond (`ratelimit.webhooks_per_ip_per_minute`), pour ne pas être refusés avec le trafic ordinaire de
+ * la même adresse, ni le bloquer.
+ */
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   constructor(
@@ -53,8 +61,9 @@ export class RateLimitGuard implements CanActivate {
     const res = context.switchToHttp().getResponse<Response>();
     const { ip } = requestContext(req);
     if (!ip) return true;
-    const limit = await this.settings.number('ratelimit.per_ip_per_minute', 300);
-    const result = await this.rateLimit.hit(`ip:${ip}`, limit, 60);
+    const webhook = WEBHOOK_PATH.test(req.path ?? '');
+    const limit = webhook ? await this.settings.number('ratelimit.webhooks_per_ip_per_minute', 1_200) : await this.settings.number('ratelimit.per_ip_per_minute', 300);
+    const result = await this.rateLimit.hit(`${webhook ? 'webhook-ip' : 'ip'}:${ip}`, limit, 60);
     setRateHeaders(res, limit, result.remaining, result.resetIn);
     if (!result.allowed) {
       res.setHeader('Retry-After', String(result.resetIn));

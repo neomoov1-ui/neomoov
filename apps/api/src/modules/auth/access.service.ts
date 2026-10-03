@@ -3,7 +3,7 @@
  * permissions de ses anciens rôles (correspondance transitoire) et de ses adhésions actives à l'organisation racine. Dans
  * une organisation cible (`permissionsIn`, routes `/v1/org/:organizationId`) : union des rôles de ses adhésions actives
  * qui couvrent la cible (l'organisation elle-même, ou un ancêtre avec la portée « sous-arbre »), limitée aux modules
- * activés de la cible ; les anciens rôles du personnel n'y donnent rien. Mise en cache 30 secondes par utilisateur (et par
+ * activés de la cible ; les anciens rôles du personnel n'y donnent rien. Mise en cache 5 secondes par utilisateur (et par
  * cible) ; tout changement d'adhésion ou de rôle appelle `invalidate`. Une permission sensible tenue par une adhésion
  * exige une session à double authentification (`amr` contient `mfa`).
  */
@@ -15,7 +15,11 @@ import { currentOrgScope, organizationIdOfPath, type OrgScopeContext } from '../
 import { DB, type Database } from '../../infra/db.module.js';
 import type { UserActor } from './actor.js';
 
-const TTL_MS = 30_000;
+/**
+ * Revue du 2 octobre 2026 (sécurité 13) : `invalidate` ne vide que le cache du processus qui l'appelle ; avec deux
+ * réplicas de l'API, un droit retiré restait valable jusqu'à 30 secondes sur l'autre. 5 secondes au plus désormais.
+ */
+const TTL_MS = 5_000;
 
 @Injectable()
 export class AccessService {
@@ -115,7 +119,7 @@ export class AccessService {
   /**
    * Oublie les droits en cache (d'un utilisateur, ou de tous). Dans une transaction restreinte (route d'organisation), le
    * changement n'est visible des autres connexions qu'à la validation : une requête concurrente pourrait remettre en
-   * cache l'état d'avant pour 30 secondes ; `afterScopedCommit` vide donc le cache une seconde fois après la validation.
+   * cache l'état d'avant pour quelques secondes ; `afterScopedCommit` vide donc le cache une seconde fois après la validation.
    */
   invalidate(userId?: string): void {
     this.forget(userId);
