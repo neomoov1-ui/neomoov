@@ -17,7 +17,7 @@ import {
   adaptForSpace, asUntrustedData, awaitsManualRelay, assignSlots, composeText, imageTextFor, isSensitive, localClock, mediaFileName, normalizeHashtag, parseSlots, planVariants, publicationAdaptOutputSchema, rankPhotos,
   MANUAL_RELAY_CODES, relayLink, RELAY_ONLY_SPACES, resolveSpaces, scheduleCampaign, shiftLocalDate, SOCIAL_NETWORKS, SPACE_RULES, thumbnailSize, visualSize, weekStartOf, zonedInstant,
   type ContentIssue, type ContentSpace, type ContentVisual, type CtaTarget, type DeliveryMode, type PublicationAdaptResult, type PublicationComposeInput, type PublicationGroupView, type PublicationImportResult,
-  type PublicationInput, type PublicationItemView, type PublicationListQuery, type PublicationScheduleInput, type PublicationScheduleResult, type PublicationsImport, type PublicationVariant,
+  type PublicationInput, type PublicationItemView, type PublicationListQuery, type PublicationPublishInput, type PublicationScheduleInput, type PublicationScheduleResult, type PublicationsImport, type PublicationVariant,
   type RelayListView, type RelayTaskView, type SocialInboxSummaryView,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -258,34 +258,43 @@ export class PublicationsService {
     return updated;
   }
 
-  /**
-   * Composer : crée la publication, puis la diffuse selon `schedule` (tout de suite, à une heure, aux prochains créneaux
-   * de chaque réseau, ou brouillons). Un contenu qui touche une règle bloquante reste en brouillon, à corriger.
-   */
+  /** Composer : crée la publication, puis la diffuse selon `schedule` (`publishGroup`), ou la garde en brouillons pour l'aperçu. */
   async compose(input: PublicationComposeInput, userId: string, now = new Date()): Promise<PublicationGroupView> {
     const draft = this.normalize(input, { campaign: null, source: 'composer', position: 0, startDate: null });
-    const { group, items } = await this.createGroup(draft, userId, now);
-    const schedule = input.schedule;
-    if (schedule.mode !== 'draft') {
-      const ready = items.filter((i) => !(i.issues as ContentIssue[]).some((x) => x.blocking));
-      let instants: Date[];
-      if (schedule.mode === 'slots') {
-        const [tz, raw] = await Promise.all([this.timeZone(), this.settings.get<unknown>('marketing.slots', null)]);
-        instants = assignSlots(ready.map((r) => ({ space: r.space as ContentSpace })), weekStartOf(localClock(now, tz).date), parseSlots(raw), tz, now);
-      } else {
-        const at = schedule.mode === 'at' ? new Date(schedule.at) : now;
-        if (schedule.mode === 'at' && at.getTime() < now.getTime() - 60_000) throw new AppError('VALIDATION_ERROR', 'L\'heure de diffusion est déjà passée', 400);
-        instants = ready.map(() => at);
-      }
-      for (const [index, row] of ready.entries()) {
-        const scheduled = await this.scheduleItem(row, instants[index]!, userId, now);
-        // « Publier maintenant » : la file publie dès que le visuel est prêt (la passe de cinq minutes rattrape un échec de mise en file).
-        if (schedule.mode === 'now' && scheduled.delivery === 'auto') {
-          await this.queues.add('marketing', 'publish', { kind: 'publish', itemId: row.id }, { jobId: `marketing-publish-${row.id}` }).catch((error: unknown) => this.logger.warn({ err: error, itemId: row.id }, 'Publication immédiate non mise en file'));
-        }
+    const { group } = await this.createGroup(draft, userId, now);
+    if (input.schedule.mode === 'draft') return this.get(group.id);
+    return this.publishGroup(group.id, input.schedule, userId, now);
+  }
+
+  /**
+   * Diffuse les brouillons d'une publication (après l'aperçu des visuels, ou directement depuis le composer) : tout de
+   * suite, à une heure donnée ou aux prochains créneaux de chaque réseau. Un contenu qui touche une règle bloquante reste
+   * en brouillon, à corriger ; un contenu en relais manuel apparaît dans « À relayer » à son heure.
+   */
+  async publishGroup(groupId: string, schedule: PublicationPublishInput['schedule'], userId: string, now = new Date()): Promise<PublicationGroupView> {
+    const items = (await this.itemsOf([groupId])).filter((i) => SCHEDULABLE.includes(i.status));
+    if (!items.length) {
+      await this.get(groupId);
+      throw AppError.conflict('PUBLICATION_NOTHING_TO_PUBLISH', 'Aucun brouillon à diffuser dans cette publication');
+    }
+    const ready = items.filter((i) => !(i.issues as ContentIssue[]).some((x) => x.blocking));
+    let instants: Date[];
+    if (schedule.mode === 'slots') {
+      const [tz, raw] = await Promise.all([this.timeZone(), this.settings.get<unknown>('marketing.slots', null)]);
+      instants = assignSlots(ready.map((r) => ({ space: r.space as ContentSpace })), weekStartOf(localClock(now, tz).date), parseSlots(raw), tz, now);
+    } else {
+      const at = schedule.mode === 'at' ? new Date(schedule.at) : now;
+      if (schedule.mode === 'at' && at.getTime() < now.getTime() - 60_000) throw new AppError('VALIDATION_ERROR', 'L\'heure de diffusion est déjà passée', 400);
+      instants = ready.map(() => at);
+    }
+    for (const [index, row] of ready.entries()) {
+      const scheduled = await this.scheduleItem(row, instants[index]!, userId, now);
+      // « Publier maintenant » : la file publie dès que le visuel est prêt (la passe de cinq minutes rattrape un échec de mise en file).
+      if (schedule.mode === 'now' && scheduled.delivery === 'auto') {
+        await this.queues.add('marketing', 'publish', { kind: 'publish', itemId: row.id }, { jobId: `marketing-publish-${row.id}` }).catch((error: unknown) => this.logger.warn({ err: error, itemId: row.id }, 'Publication immédiate non mise en file'));
       }
     }
-    return this.get(group.id);
+    return this.get(groupId);
   }
 
   /** Import d'un lot (format docs/marketing/lancement-50-publications.schema.json) : brouillons groupés, rejouable sans doublon. */

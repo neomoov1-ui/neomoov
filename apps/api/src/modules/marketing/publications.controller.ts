@@ -6,7 +6,7 @@
  */
 import {
   conversationSchema, publicationAdaptRequestSchema, publicationAdaptResultSchema, publicationComposeSchema, publicationGroupSchema, publicationImportResultSchema, publicationItemSchema, publicationListQuerySchema,
-  publicationScheduleResultSchema, publicationScheduleSchema, publicationsImportSchema, relayDoneSchema, relayListQuerySchema, relayListSchema, socialInboxSummarySchema, uuid,
+  publicationPublishSchema, publicationScheduleResultSchema, publicationScheduleSchema, publicationsImportSchema, relayDoneSchema, relayListQuerySchema, relayListSchema, socialInboxSummarySchema, uuid,
 } from '@neomoov/domain';
 import { Body, Controller, Get, HttpCode, Param, Post, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
@@ -87,6 +87,17 @@ export class PublicationsController {
   @ApiErrors(401, 403, 404, 429)
   get(@Param('id', zodPipe(uuid)) id: string) {
     return this.publications.get(id);
+  }
+
+  @Post('publications/:id/publish')
+  @Can('marketing.manage')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Diffuse les brouillons d\'une publication (après l\'aperçu) : tout de suite, à une heure ou aux prochains créneaux ; un contenu bloqué reste en brouillon' })
+  @ZodBody(publicationPublishSchema)
+  @ZodResponse(200, publicationGroupSchema)
+  @ApiErrors(400, 401, 403, 404, 409, 429)
+  publish(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(publicationPublishSchema)) body: z.infer<typeof publicationPublishSchema>, @CurrentUser() user: UserActor) {
+    return this.publications.publishGroup(id, body.schedule, user.userId);
   }
 
   @Get('relay')

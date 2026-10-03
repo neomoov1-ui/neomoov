@@ -5,7 +5,7 @@
  */
 import type {
   ContentItemView, ContentListQuery, ContentPlanRequest, ContentUpdateInput, ConversationView, MarketingPlanResult, MarketingSpaceView, PublicationAdaptResult, PublicationComposeInput, PublicationGroupView,
-  PublicationImportResult, PublicationItemView, PublicationListQuery, PublicationScheduleInput, PublicationScheduleResult, PublicationsImport, RelayDoneInput, RelayListView, SeoPlanResult, SeoTaskView, SocialInboxSummaryView,
+  PublicationImportResult, PublicationItemView, PublicationListQuery, PublicationPublishInput, PublicationScheduleInput, PublicationScheduleResult, PublicationsImport, RelayDoneInput, RelayListView, SeoPlanResult, SeoTaskView, SocialInboxSummaryView,
 } from '@neomoov/domain';
 import type { Transport } from './resources.js';
 
@@ -31,6 +31,7 @@ export function marketingResource(t: Transport) {
     publications: (query: Partial<PublicationListQuery> = {}) => t.get<PublicationGroupView[]>('/admin/marketing/publications', { query }),
     publication: (groupId: string) => t.get<PublicationGroupView>(`/admin/marketing/publications/${id(groupId)}`),
     compose: (body: PublicationComposeInput) => t.post<PublicationGroupView>('/admin/marketing/publications', body, { timeoutMs: 60_000 }),
+    publishPublication: (groupId: string, body: PublicationPublishInput) => t.post<PublicationGroupView>(`/admin/marketing/publications/${id(groupId)}/publish`, body, { timeoutMs: 60_000 }),
     /** Lot au format docs/marketing/lancement-50-publications.schema.json (100 Ko au plus par appel : envoyer un gros lot par tranches, l'import est rejouable). */
     importPublications: (body: PublicationsImport) => t.post<PublicationImportResult>('/admin/marketing/publications/import', body, { timeoutMs: 120_000 }),
     schedulePublications: (body: PublicationScheduleInput) => t.post<PublicationScheduleResult>('/admin/marketing/publications/schedule', body, { timeoutMs: 120_000 }),

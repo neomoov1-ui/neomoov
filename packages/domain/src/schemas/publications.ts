@@ -83,6 +83,12 @@ export const publicationComposeSchema = publicationSchema.omit({ ref: true, day:
 }).strict();
 export type PublicationComposeInput = z.input<typeof publicationComposeSchema>;
 
+/** Diffusion des brouillons d'une publication déjà créée (après l'aperçu des visuels). */
+export const publicationPublishSchema = z.object({
+  schedule: z.discriminatedUnion('mode', [z.object({ mode: z.literal('now') }), z.object({ mode: z.literal('at'), at: isoDate }), z.object({ mode: z.literal('slots') })]),
+}).strict();
+export type PublicationPublishInput = z.infer<typeof publicationPublishSchema>;
+
 /** Visuel d'un contenu de publication : variante appliquée, taille, empreinte (toutes différentes dans une publication). */
 export const contentVisualSchema = z.object({
   template: z.enum(VISUAL_TEMPLATES),

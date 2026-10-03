@@ -167,6 +167,11 @@ describe('publication multiréseau (agent S2) : composer, visuels par réseau, r
     const youtube = ready.items.find((i) => i.space === 'youtube')!;
     expect(youtube.visual).toMatchObject({ width: 1080, height: 1920 });
     expect((youtube.visual as unknown as { thumbnailKey: string | null }).thumbnailKey).toBeTruthy();
+    // Après l'aperçu : diffusion aux prochains créneaux de chaque réseau ; Snapchat et la chaîne WhatsApp en relais manuel.
+    const published = (await request(server()).post(`/v1/admin/marketing/publications/${group.id}/publish`).set(bearer(operator.tokens)).send({ schedule: { mode: 'slots' } }).expect(200)).body as Group;
+    expect(published.items.every((i) => i.status === 'scheduled' && i.scheduledAt! > new Date().toISOString())).toBe(true);
+    expect(published.items.filter((i) => i.delivery === 'manual').map((i) => i.space).sort()).toEqual(['snapchat', 'whatsapp_channel']);
+    await request(server()).post(`/v1/admin/marketing/publications/${group.id}/publish`).set(bearer(operator.tokens)).send({ schedule: { mode: 'now' } }).expect(409);
   }, 240_000);
 
   it('import d\'un lot JSON de trois publications : brouillons groupés, règles appliquées, rejouable sans doublon ; approbation et programmation en lot sur plusieurs jours', async ({ skip }) => {
