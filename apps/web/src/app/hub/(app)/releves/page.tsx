@@ -1,6 +1,6 @@
 'use client';
 
-import type { AdminBalance, AdminStatement, OfflinePayout, StatementGeneration } from '@neomoov/domain';
+import type { AdminBalance, AdminStatement, OfflinePayout, PlatformFeeSummary, StatementGeneration } from '@neomoov/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -22,6 +22,10 @@ export default function StatementsPage() {
   const finance = useHubUser().roles.some((r) => FINANCE_ROLES.includes(r));
   const [week, setWeek] = useState('');
   const [result, setResult] = useState<StatementGeneration | null>(null);
+  // Redevance Neomoov (3 octobre 2026) : mois en cours par défaut (jours locaux).
+  const [feeFrom, setFeeFrom] = useState(() => `${new Date().toISOString().slice(0, 7)}-01`);
+  const [feeTo, setFeeTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const fees = useQuery({ queryKey: ['hub', 'platform-fees', feeFrom, feeTo], queryFn: () => hubApi.admin.platformFees({ from: feeFrom, to: feeTo }), enabled: Boolean(feeFrom && feeTo) });
   const list = usePagedList<AdminStatement>('statements', (q) => hubApi.admin.statements(q));
   const balances = useQuery({ queryKey: ['hub', 'balances'], queryFn: () => hubApi.admin.balances() });
   const offline = useQuery({ queryKey: ['hub', 'offline-payouts'], queryFn: () => hubApi.admin.offlinePayouts() });
@@ -108,6 +112,17 @@ export default function StatementsPage() {
         )}
       </Card>
 
+      <Card title={t('hub.statements.platformFeesTitle')}>
+        <p className="mb-3 text-sm text-slate-600">{t('hub.statements.platformFeesHint')}</p>
+        <div className="mb-3 flex flex-wrap items-end gap-3">
+          <Field label={t('hub.statements.platformFeesFrom')}>{(p) => <Input {...p} type="date" value={feeFrom} onChange={(e) => setFeeFrom(e.target.value)} />}</Field>
+          <Field label={t('hub.statements.platformFeesTo')}>{(p) => <Input {...p} type="date" value={feeTo} onChange={(e) => setFeeTo(e.target.value)} />}</Field>
+        </div>
+        {fees.isPending ? <Loading /> : fees.isError ? <ErrorBlock error={fees.error} onRetry={() => void fees.refetch()} /> : (
+          <PlatformFeesView summary={fees.data} lang={lang} />
+        )}
+      </Card>
+
       <Card
         title={t('hub.statements.offlinePayoutsTitle')}
         actions={<a href={`/api/v1${hubApi.admin.offlinePayoutsCsvPath()}`} download className={`rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-brand-ink hover:bg-brand-tint ${focus}`}>{t('hub.statements.offlinePayoutsCsv')}</a>}
@@ -123,6 +138,32 @@ export default function StatementsPage() {
           <DataTable caption={t('hub.statements.balancesTitle')} columns={balanceColumns} rows={balances.data} rowKey={(b) => b.driverId} empty={t('hub.statements.noBalance')} />
         )}
       </Card>
+    </div>
+  );
+}
+
+/** Total des redevances Neomoov d'une période : par mode de paiement et par taux. */
+function PlatformFeesView({ summary, lang }: { summary: PlatformFeeSummary; lang: ReturnType<typeof useLang> }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-3">
+      <dl className="grid grid-cols-[1fr_auto] gap-y-2 text-sm sm:max-w-md">
+        <dt className="font-semibold">{t('hub.statements.platformFeesTotal')}</dt><dd className="text-right font-bold" data-testid="platform-fees-total">{formatMoney(summary.totalCents, lang)}</dd>
+        <dt>{t('hub.statements.platformFeesRides')}</dt><dd className="text-right">{summary.rides}</dd>
+        <dt>{t('hub.statements.platformFeesCard')}</dt><dd className="text-right">{formatMoney(summary.platform.totalCents, lang)}</dd>
+        <dt>{t('hub.statements.platformFeesDirect')}</dt><dd className="text-right">{formatMoney(summary.direct.totalCents, lang)}</dd>
+      </dl>
+      <DataTable
+        caption={t('hub.statements.platformFeesTitle')}
+        columns={[
+          { key: 'rate', header: t('hub.statements.platformFeesRate'), cell: (r) => `${(r.rateBps / 100).toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA')} %` },
+          { key: 'rides', header: t('hub.statements.platformFeesRides'), className: 'text-right', cell: (r) => r.rides },
+          { key: 'total', header: t('hub.statements.platformFeesTotal'), className: 'text-right font-semibold', cell: (r) => formatMoney(r.totalCents, lang) },
+        ]}
+        rows={summary.byRate}
+        rowKey={(r) => String(r.rateBps)}
+        empty={t('hub.common.empty')}
+      />
     </div>
   );
 }

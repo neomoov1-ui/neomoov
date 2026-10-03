@@ -107,6 +107,7 @@ export default function CostsScreen() {
           <Row label={t('costs.totalRevenue')} value={money(p.revenue.totalCents)} strong />
           {p.neomoovSharePercent !== null ? <Body muted>{`${t('costs.share')} : ${p.neomoovSharePercent.toLocaleString(language === 'en' ? 'en-CA' : 'fr-CA')} %`}</Body> : null}
           <Row label={t('costs.packs')} value={money(p.costs.packsCents)} />
+          {p.costs.platformFeesCents > 0 ? <Row label={t('costs.platformFees')} value={money(p.costs.platformFeesCents)} /> : null}
           <Row label={t('costs.totalCosts')} value={money(p.costs.totalCents)} strong />
           <Body muted>{t('costs.commission')}</Body>
           {!p.costsEntered ? <Notice>{t('costs.noCosts')}</Notice> : null}

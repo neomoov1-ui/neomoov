@@ -6,12 +6,12 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EnumBadge, ErrorBlock, Loading, useCanWrite, useErrorText, useLang } from '@/components/hub/common';
+import { EnumBadge, ErrorBlock, Loading, useCanWrite, useErrorText, useHubUser, useLang } from '@/components/hub/common';
 import { DocumentViewer } from '@/components/hub/document-viewer';
 import { VehiclesTable } from '@/components/hub/vehicles-table';
 import { Action, Card, Checkbox, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, Textarea, focus } from '@/components/ui/kit';
 import { formatDate, formatDateTime, fullName } from '@/lib/format';
-import { hubApi } from '@/lib/hub-api';
+import { FINANCE_ROLES, hubApi } from '@/lib/hub-api';
 
 type Panel = null | 'suspend' | 'sanction';
 
@@ -27,6 +27,9 @@ export default function DriverDetailPage() {
   const [viewing, setViewing] = useState<AdminDocument | null>(null);
   const [note, setNote] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  const finance = useHubUser().roles.some((r) => FINANCE_ROLES.includes(r));
+  const [feePercent, setFeePercent] = useState('');
+  const [feeError, setFeeError] = useState<string | null>(null);
 
   const detail = useQuery({ queryKey: ['hub', 'driver', id], queryFn: () => hubApi.admin.driver(id) });
   const onDone = () => {
@@ -37,6 +40,15 @@ export default function DriverDetailPage() {
   };
   const action = useMutation({ mutationFn: (run: () => Promise<unknown>) => run(), onSuccess: onDone });
   const review = useMutation({ mutationFn: ({ documentId, body }: { documentId: string; body: DocumentReview }) => hubApi.admin.reviewDocument(documentId, body), onSuccess: onDone });
+  // Redevance Neomoov (3 octobre 2026) : taux saisi en %, envoyé en points de base, borné de 5 à 10 % (l'API refuse le reste).
+  const saveFee = useMutation({ mutationFn: (rateBps: number) => hubApi.admin.setDriverPlatformFee(id, { rateBps }), onSuccess: () => { setFeePercent(''); onDone(); } });
+  const submitFee = () => {
+    const value = Number(feePercent.replace(',', '.'));
+    const rateBps = Math.round(value * 100);
+    if (!Number.isFinite(value) || rateBps < 500 || rateBps > 1000) { setFeeError(t('hub.drivers.platformFeeInvalid')); return; }
+    setFeeError(null);
+    saveFee.mutate(rateBps);
+  };
   const addNote = useMutation({ mutationFn: () => hubApi.admin.noteDriver(id, note.trim()), onSuccess: () => { setNote(''); onDone(); } });
 
   if (detail.isPending) return <Loading />;
@@ -101,6 +113,19 @@ export default function DriverDetailPage() {
           </dl>
         </Card>
       </div>
+
+      <Card title={t('hub.drivers.platformFee')}>
+        <p className="text-sm"><strong data-testid="platform-fee-rate">{`${(d.platformFeeBps / 100).toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA')} %`}</strong></p>
+        <p className="mt-1 text-sm text-slate-600">{t('hub.drivers.platformFeeHint')}</p>
+        {finance ? (
+          <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); submitFee(); }}>
+            <Field label={t('hub.drivers.platformFeeRate')} error={feeError ?? (saveFee.isError ? errorText(saveFee.error) : undefined)}>
+              {(p) => <Input {...p} type="number" inputMode="decimal" min={5} max={10} step={0.25} value={feePercent} placeholder={String(d.platformFeeBps / 100)} onChange={(e) => setFeePercent(e.target.value)} />}
+            </Field>
+            <Action type="submit" busy={saveFee.isPending}>{t('hub.drivers.platformFeeSave')}</Action>
+          </form>
+        ) : null}
+      </Card>
 
       <Card title={t('hub.drivers.documents')}>
         <DataTable
