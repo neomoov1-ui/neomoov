@@ -36,6 +36,7 @@ import { PromotionsService } from '../pricing/promotions.service.js';
 import { DISPATCH_QUEUE, DISPATCH_START_ATTEMPTS, DISPATCH_START_JOB, dispatchStartJobId, type DispatchStartJob } from './dispatch-job.js';
 import { categoryAtLeast, currentVehicleJoin, driverEligible, loadEligibilityRules, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
+import { recordPlatformFee } from './platform-fee.js';
 import { PresenceService } from './presence.service.js';
 import { SafetyHoldService } from './safety-hold.service.js';
 import { RideContextService } from './ride-context.service.js';
@@ -901,20 +902,26 @@ export class RidesService {
     const waitChargeCents = finalQuote.lines.find((l) => l.kind === 'wait_time')?.amountCents ?? 0;
     const measuredDistance = track?.distanceMeters ?? input.measuredDistanceMeters ?? ride.distanceMeters;
     const measuredDuration = track?.durationSeconds ?? input.measuredDurationSeconds ?? ride.durationSeconds;
-    const result = await this.applyTransition(rideId, 'ride_ends', { kind: 'driver', userId: actor.userId }, {
-      data: { finalPriceCents: finalQuote.totalCents, waitChargeCents, waitedSeconds: ride.waitedSeconds, measuredDistanceMeters: measuredDistance, measuredDurationSeconds: measuredDuration },
-      set: {
-        finalPriceCents: finalQuote.totalCents,
-        waitChargeCents,
-        fareCents: finalQuote.fareCents,
-        creditsAppliedCents: finalQuote.creditsAppliedCents,
-        serviceFeeCents: finalQuote.serviceFeeCents,
-        regulatoryFeeCents: finalQuote.regulatoryFeeCents,
-        gstCents: finalQuote.gstCents,
-        qstCents: finalQuote.qstCents,
-        distanceMeters: measuredDistance,
-        durationSeconds: measuredDuration,
-      },
+    // Redevance Neomoov (3 octobre 2026) : écrite dans la même transaction que la fin de course, une seule fois.
+    const result = await this.db.transaction(async (tx) => {
+      const ended = await this.applyTransition(rideId, 'ride_ends', { kind: 'driver', userId: actor.userId }, {
+        tx,
+        data: { finalPriceCents: finalQuote.totalCents, waitChargeCents, waitedSeconds: ride.waitedSeconds, measuredDistanceMeters: measuredDistance, measuredDurationSeconds: measuredDuration },
+        set: {
+          finalPriceCents: finalQuote.totalCents,
+          waitChargeCents,
+          fareCents: finalQuote.fareCents,
+          creditsAppliedCents: finalQuote.creditsAppliedCents,
+          serviceFeeCents: finalQuote.serviceFeeCents,
+          regulatoryFeeCents: finalQuote.regulatoryFeeCents,
+          gstCents: finalQuote.gstCents,
+          qstCents: finalQuote.qstCents,
+          distanceMeters: measuredDistance,
+          durationSeconds: measuredDuration,
+        },
+      });
+      if (!ended.replayed) await recordPlatformFee(tx, ended.ride);
+      return ended;
     });
     const payload = await this.publish(result, 'ride_ends', { kind: 'driver', userId: actor.userId }, { finalPriceCents: finalQuote.totalCents });
     if (!result.replayed) {

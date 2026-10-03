@@ -5,20 +5,21 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  adminBalanceSchema, adminStatementDetailSchema, offlinePayoutSchema, organizationStatementSchema, statementAdjustSchema, statementGenerateSchema, statementGenerationSchema, statementReconcileSchema,
+  adminBalanceSchema, adminStatementDetailSchema, offlinePayoutSchema, organizationStatementSchema, platformFeeSummaryQuerySchema, platformFeeSummarySchema, statementAdjustSchema, statementGenerateSchema, statementGenerationSchema, statementReconcileSchema,
   statementSettleOfflineSchema, uuid,
 } from '@neomoov/domain';
-import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Res, StreamableFile } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Inject, Param, Post, Query, Res, StreamableFile } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { and, eq, ne } from 'drizzle-orm';
 import type { Response } from 'express';
 import { z } from 'zod';
 import { AppError } from '../../common/app-error.js';
-import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
+import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { Can, CurrentUser, NoAudit, type UserActor } from '../auth/actor.js';
 import { OrganizationStatementsService } from './organization-statements.service.js';
+import { PlatformFeesService } from './platform-fees.service.js';
 import { SettlementJobsService } from './settlement-jobs.service.js';
 import { SettlementPayoutsService } from './settlement-payouts.service.js';
 import { StatementsService } from './statements.service.js';
@@ -32,6 +33,7 @@ export class AdminSettlementController {
     private readonly payouts: SettlementPayoutsService,
     private readonly jobs: SettlementJobsService,
     private readonly organizationStatements: OrganizationStatementsService,
+    private readonly platformFees: PlatformFeesService,
     @Inject(DB) private readonly database: Database,
   ) {}
 
@@ -153,6 +155,17 @@ export class AdminSettlementController {
     res.setHeader('content-disposition', `attachment; filename="${this.payouts.offlinePayoutsFileName()}"`);
     res.setHeader('cache-control', 'private, no-store');
     return body;
+  }
+
+  @Get('platform-fees')
+  @Can('statements.read')
+  @NoAudit()
+  @ApiOperation({ summary: 'Redevance Neomoov d\'une période (jour de fin de course, heure de Montréal) : total, par mode de paiement et par taux' })
+  @ZodQuery(platformFeeSummaryQuerySchema)
+  @ZodResponse(200, platformFeeSummarySchema)
+  @ApiErrors(400, 401, 403, 429)
+  platformFeeSummary(@Query(zodPipe(platformFeeSummaryQuerySchema)) query: z.infer<typeof platformFeeSummaryQuerySchema>) {
+    return this.platformFees.summary(query.from, query.to);
   }
 
   @Get('balances')

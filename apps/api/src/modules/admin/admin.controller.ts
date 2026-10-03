@@ -9,7 +9,7 @@ import {
   adminCancelRideSchema, adminInterruptRideSchema, interruptionResultSchema, adminClientSchema, adminDashboardSchema, adminDataRequestSchema, adminDocumentSchema,
   adminDriverDetailSchema, adminDriverListItemSchema, adminIncidentSchema, adminInvoiceSchema, adminLeadSchema, adminListQuerySchema, adminPromotionSchema,
   adminReportSchema, adminRideListItemSchema, adminRideListQuerySchema, adminSettingSchema, adminStaffSchema, adminStatementSchema, adminVehicleSchema,
-  cancellationResultSchema, documentReviewSchema, driverProgramsSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
+  cancellationResultSchema, documentReviewSchema, driverPlatformFeeSchema, driverProgramsSchema, driverSuspendSchema, incidentDecisionSchema, leadStatusSchema, packSchema, pageOf,
   pricingRuleInputSchema, pricingRuleSchema, reportQuerySchema, sanctionInputSchema, settingUpdateSchema, staffNoteInputSchema, staffNoteSchema, uuid,
   vehicleReviewSchema, zoneUpdateSchema,
 } from '@neomoov/domain';
@@ -182,6 +182,17 @@ export class AdminDriversController {
   @ApiErrors(400, 401, 403, 404, 429)
   programs(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(driverProgramsSchema)) body: z.infer<typeof driverProgramsSchema>, @CurrentUser() user: UserActor) {
     return this.drivers.setPrograms(id, body, user);
+  }
+
+  @Put('drivers/:id/platform-fee')
+  @Can('statements.manage')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Redevance Neomoov du chauffeur : taux de 500 à 1000 points de base (5 à 10 %), pour les courses terminées ensuite ; ancien et nouveau taux journalisés' })
+  @ZodBody(driverPlatformFeeSchema)
+  @ZodResponse(200, adminDriverDetailSchema)
+  @ApiErrors(400, 401, 403, 404, 429)
+  platformFee(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(driverPlatformFeeSchema)) body: z.infer<typeof driverPlatformFeeSchema>, @CurrentUser() user: UserActor) {
+    return this.drivers.setPlatformFee(id, body.rateBps, user);
   }
 
   @Post('drivers/:id/sanctions')

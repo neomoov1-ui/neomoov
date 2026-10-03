@@ -9,6 +9,7 @@ import {
   admittedModels, currentDocument, daysBetween, deduceVehicleCategory, documentState, localDate, onboardingChecklist, vehicleEquipmentSchema,
   type CategoryRule, type DocumentType, type DocumentUploadFields, type DriverApply, type DriverDocumentView, type DriverDocumentsView,
   type DriverProfileUpdate, type DriverProfileView, type OnboardingView, type VehicleCategory, type VehicleInput, type VehicleView,
+  platformFeeBpsOrDefault, PLATFORM_FEE_DEFAULT_BPS,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -103,6 +104,8 @@ export class DriverProfileService {
     if (existing) return this.profileView(existing);
     // Code du parrain chauffeur (5.9) : vérifié avant la création du dossier, enregistré après.
     const referrer = input.referralCode ? await this.referrals.driverReferrerFor(userId, input.referralCode) : null;
+    // Redevance Neomoov (3 octobre 2026) : taux des nouveaux chauffeurs, réglage borné de 5 à 10 %.
+    const platformFeeBps = platformFeeBpsOrDefault(await this.settings.get<unknown>('drivers.platform_fee_default_bps', PLATFORM_FEE_DEFAULT_BPS));
     try {
       await this.db.transaction(async (tx) => {
         await tx
@@ -112,7 +115,7 @@ export class DriverProfileService {
         const [numberRow] = await tx.execute<{ n: string }>(sql`SELECT next_driver_public_number() AS n`);
         const [driver] = await tx
           .insert(schema.drivers)
-          .values({ userId, publicNumber: numberRow!.n, status: 'pending', qualification: input.qualification, spokenLanguages: input.language === 'en' ? ['en', 'fr'] : ['fr'] })
+          .values({ userId, publicNumber: numberRow!.n, status: 'pending', qualification: input.qualification, spokenLanguages: input.language === 'en' ? ['en', 'fr'] : ['fr'], platformFeeBps })
           .onConflictDoNothing()
           .returning({ id: schema.drivers.id });
         if (driver) await tx.insert(schema.driverBalances).values({ driverId: driver.id }).onConflictDoNothing();

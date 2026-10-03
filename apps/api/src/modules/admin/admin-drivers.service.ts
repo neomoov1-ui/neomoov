@@ -5,7 +5,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  maskDocumentNumber, maskEmail, maskPhone, maskTaxNumber, type AdminDocument, type AdminDriverDetail, type AdminDriverListItem, type AdminListQuery,
+  isValidPlatformFeeBps, maskDocumentNumber, maskEmail, maskPhone, maskTaxNumber, PLATFORM_FEE_MAX_BPS, PLATFORM_FEE_MIN_BPS, type AdminDocument, type AdminDriverDetail, type AdminDriverListItem, type AdminListQuery,
   type AdminVehicle, type DocumentStatus, type DocumentType, type Page, type VehicleCategory, type VehicleStatus,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -115,6 +115,7 @@ export class AdminDriversService {
         payout: { linked: Boolean(driver.stripeConnectAccountId), onboarded: driver.stripeConnectOnboarded },
         activatedAt: driver.activatedAt?.toISOString() ?? null,
         rLuxeEvTenant: driver.isRLuxeEvTenant,
+        platformFeeBps: driver.platformFeeBps,
       },
       vehicles,
       documents,
@@ -139,6 +140,21 @@ export class AdminDriversService {
     if (driver.isRLuxeEvTenant !== input.rLuxeEvTenant) {
       await this.db.update(schema.drivers).set({ isRLuxeEvTenant: input.rLuxeEvTenant }).where(eq(schema.drivers.id, id));
       this.audit.record({ action: 'admin.driver_programs', entity: 'drivers', entityId: id, before: { rLuxeEvTenant: driver.isRLuxeEvTenant }, after: { rLuxeEvTenant: input.rLuxeEvTenant } });
+    }
+    return this.detail(id);
+  }
+
+  /**
+   * Redevance Neomoov du chauffeur (3 octobre 2026) : taux de 500 à 1000 points de base (validé par le schéma, le domaine
+   * et la contrainte de la base). Vaut pour les courses terminées ensuite ; une course déjà terminée garde le taux figé à
+   * sa fin. Ancien et nouveau taux journalisés.
+   */
+  async setPlatformFee(id: string, rateBps: number, actor: UserActor) {
+    if (!isValidPlatformFeeBps(rateBps)) throw new AppError('PLATFORM_FEE_OUT_OF_RANGE', 'La redevance Neomoov est comprise entre 5 % et 10 %', 400, { rateBps, min: PLATFORM_FEE_MIN_BPS, max: PLATFORM_FEE_MAX_BPS });
+    const driver = await this.requireDriver(id);
+    if (driver.platformFeeBps !== rateBps) {
+      await this.db.update(schema.drivers).set({ platformFeeBps: rateBps }).where(eq(schema.drivers.id, id));
+      this.audit.record({ action: 'admin.driver_platform_fee', entity: 'drivers', entityId: id, before: { platformFeeBps: driver.platformFeeBps }, after: { platformFeeBps: rateBps } });
     }
     return this.detail(id);
   }

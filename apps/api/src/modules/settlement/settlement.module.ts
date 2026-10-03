@@ -8,12 +8,13 @@ import { SettlementPayoutsService } from './settlement-payouts.service.js';
 import { StatementsService } from './statements.service.js';
 import { FleetShareService } from './fleet-share.service.js';
 import { OrganizationStatementsService } from './organization-statements.service.js';
+import { PlatformFeesService } from './platform-fees.service.js';
 
 /** Règlement hebdomadaire (prompt 09) : relevés, versements et prélèvements, soldes, PDF. */
 @Module({
   imports: [RidesModule, PaymentsModule, OrgScopeModule],
   controllers: [AdminSettlementController, DriverStatementPdfController],
-  providers: [StatementsService, SettlementPayoutsService, SettlementJobsService, FleetShareService, OrganizationStatementsService],
+  providers: [StatementsService, SettlementPayoutsService, SettlementJobsService, FleetShareService, OrganizationStatementsService, PlatformFeesService],
   exports: [StatementsService, SettlementPayoutsService, SettlementJobsService, OrganizationStatementsService],
 })
 export class SettlementModule {}

@@ -504,7 +504,8 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
 
   /**
    * `GET /driver/profitability` : revenus Neomoov du mois (mêmes règles que l'écran Revenus : tarif et pourboires des
-   * courses terminées, frais d'annulation et de non-présentation), packs achetés, coûts et revenus externes saisis.
+   * courses terminées, frais d'annulation et de non-présentation), packs achetés, redevance Neomoov des courses terminées
+   * (3 octobre 2026), coûts et revenus externes saisis.
    */
   async profitability(userId: string, month?: string): Promise<DriverProfitabilityView> {
     const driver = await this.requireDriver(userId);
@@ -514,7 +515,7 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
     const start = sql`(${`${period}-01`}::date::timestamp AT TIME ZONE ${tz})`;
     const end = sql`((${`${period}-01`}::date + interval '1 month')::timestamp AT TIME ZONE ${tz})`;
     const at = sql`COALESCE(${schema.rides.stateTimestamps}->>'completed', ${schema.rides.stateTimestamps}->>'no_show', ${schema.rides.stateTimestamps}->>'cancelled_by_client')::timestamptz`;
-    const [rides, packs, costs] = await Promise.all([
+    const [rides, packs, costs, fees] = await Promise.all([
       this.db
         .select({ state: schema.rides.state, fareCents: schema.rides.fareCents, tipCents: schema.rides.tipCents, cancellationFeeCents: schema.rides.cancellationFeeCents })
         .from(schema.rides)
@@ -527,11 +528,15 @@ export class PilotService implements OfferPilot, OnModuleInit, OnModuleDestroy {
         SELECT coalesce(sum(price_paid_cents), 0)::int AS total FROM pack_purchases
         WHERE driver_id = ${driver.id}::uuid AND status <> 'cancelled' AND activated_at >= ${start} AND activated_at < ${end}`),
       this.costRow(driver.id, period),
+      this.db.execute<{ total: number | string | null }>(sql`
+        SELECT coalesce(sum(pf.amount_cents), 0)::int AS total FROM platform_fees pf JOIN rides r ON r.id = pf.ride_id
+        WHERE pf.driver_id = ${driver.id}::uuid AND (r.state_timestamps->>'completed')::timestamptz >= ${start} AND (r.state_timestamps->>'completed')::timestamptz < ${end}`),
     ]);
     const lines = rides.map((r) => (['completed', 'rated', 'disputed'].includes(r.state) ? { fareCents: r.fareCents ?? 0, tipCents: r.tipCents } : { fareCents: r.cancellationFeeCents, tipCents: r.tipCents, fee: true }));
     const result = netProfitability(lines, {
       vehicle: costs?.vehicleCents ?? 0, insurance: costs?.insuranceCents ?? 0, energy: costs?.energyCents ?? 0, maintenance: costs?.maintenanceCents ?? 0, phone: costs?.phoneCents ?? 0, other: costs?.otherCents ?? 0,
       packsCents: Number(packs[0]?.total ?? 0),
+      platformFeesCents: Number(fees[0]?.total ?? 0),
     }, costs?.externalRevenueCents ?? 0);
     return { month: period, ...result, costsEntered: Boolean(costs) };
   }
