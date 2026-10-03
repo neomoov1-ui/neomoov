@@ -4,6 +4,7 @@ import type { AdminLead, LeadStatus } from '@neomoov/domain';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CrmStatus } from '@/components/hub/crm-status';
 import { ErrorBlock, ListToolbar, Loading, pageLabels, useCanWrite, useErrorText, useLang, usePagedList } from '@/components/hub/common';
 import { Badge, Card, DataTable, Notice, PageTitle, Pagination, Select, type Column } from '@/components/ui/kit';
 import { formatDateTime, fullName } from '@/lib/format';
@@ -68,6 +69,8 @@ export default function LeadsPage() {
     { key: 'message', header: t('hub.leads.message'), cell: (l) => <span className="block max-w-72 whitespace-pre-wrap text-xs">{l.message ?? ''}</span> },
     { key: 'attestation', header: t('hub.leads.attestation'), cell: (l) => <AcademyCheck code={academyCodeOf(l.message)} /> },
     { key: 'source', header: t('hub.leads.source'), cell: (l) => l.source },
+    // Étape 25 : état CRM chargé à la demande (une requête par fiche ouverte, pas par ligne).
+    { key: 'crm', header: t('hub.crm.title'), cell: (l) => <CrmStatus kind="leads" entityId={l.id} lazy /> },
     {
       key: 'status',
       header: t('hub.common.status'),

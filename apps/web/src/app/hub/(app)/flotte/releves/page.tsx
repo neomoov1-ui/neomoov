@@ -1,14 +1,16 @@
 'use client';
 
-import type { OrganizationStatementView, RevenueShareRuleView } from '@neomoov/domain';
+import type { OrganizationStatementView, RevenueShareRuleView, StatementReconcile } from '@neomoov/domain';
 import { OFFLINE_SETTLEMENT_METHODS } from '@neomoov/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ErrorBlock, Loading, useErrorText, useLang } from '@/components/hub/common';
+import { ErrorBlock, Loading, useErrorText, useHubUser, useLang } from '@/components/hub/common';
 import { useFleetOrg } from '@/components/hub/fleet-org';
+import { ReconcileDialog } from '@/components/hub/reconcile-dialog';
 import { Action, Badge, Card, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, type Column } from '@/components/ui/kit';
 import { fleetApi } from '@/lib/fleet-api';
+import { FINANCE_ROLES, hubApi } from '@/lib/hub-api';
 import { formatDate, formatMoney, fullName, montrealDate } from '@/lib/format';
 
 /**
@@ -115,21 +117,34 @@ function NewRuleDialog({ drivers, onClose, onCreated }: { drivers: Array<{ id: s
 function OrganizationStatements() {
   const { t } = useTranslation();
   const lang = useLang();
+  const errorText = useErrorText();
   const fleet = useFleetOrg();
   const statements = useQuery({ queryKey: ['fleet', fleet.organizationId, 'organization-statements'], queryFn: () => fleetApi.organizationStatements(fleet.organizationId), enabled: fleet.can('statements.read') });
   const [settling, setSettling] = useState<OrganizationStatementView | null>(null);
+  // Revue du 2 octobre 2026 : un relevé sans réponse du prestataire (`unknown`) est tranché par les finances de la plateforme.
+  const finance = useHubUser().roles.some((r) => FINANCE_ROLES.includes(r));
+  const [reconciling, setReconciling] = useState<OrganizationStatementView | null>(null);
+  const reconcile = useMutation({
+    mutationFn: (body: StatementReconcile) => hubApi.admin.reconcileOrganizationStatement(reconciling!.id, body),
+    onSuccess: () => { setReconciling(null); void statements.refetch(); },
+  });
   const tone = { issued: 'warning', paid: 'success', failed: 'danger', settled_offline: 'info', unknown: 'danger' } as const;
   const columns: Column<OrganizationStatementView>[] = [
     { key: 'period', header: t('fleet.statements.period'), cell: (s) => `${formatDate(s.periodStart, lang)} → ${formatDate(s.periodEnd, lang)}` },
     { key: 'status', header: t('fleet.statements.status'), cell: (s) => <Badge tone={tone[s.status]}>{t(`fleet.statements.statuses.${s.status}`)}</Badge> },
     { key: 'share', header: t('fleet.statements.total'), cell: (s) => formatMoney(s.shareCents, lang) },
     { key: 'drivers', header: t('fleet.statements.drivers'), cell: (s) => s.lines.map((l) => `${l.driverName ?? l.driverPublicNumber} (${formatMoney(l.shareCents, lang)})`).join(', ') },
-    { key: 'actions', header: '', cell: (s) => (fleet.can('payouts.manage') && (s.status === 'issued' || s.status === 'failed') ? <Action tone="secondary" onClick={() => setSettling(s)}>{t('fleet.statements.settle')}</Action> : null) },
+    {
+      key: 'actions', header: <span className="sr-only">{t('hub.common.actions')}</span>, cell: (s) => (fleet.can('payouts.manage') && (s.status === 'issued' || s.status === 'failed') ? <Action tone="secondary" onClick={() => setSettling(s)}>{t('fleet.statements.settle')}</Action>
+        : finance && s.status === 'unknown' ? <Action tone="secondary" onClick={() => { setReconciling(s); reconcile.reset(); }}>{t('hub.statements.reconcile')}</Action> : null),
+    },
   ];
   if (!fleet.can('statements.read')) return null;
   return (
     <Card title={t('fleet.statements.organizationStatements')} actions={<a className="text-sm font-semibold text-brand-blue-dark underline" href={fleetApi.exportUrl(fleet.organizationId)}>{t('fleet.statements.export')}</a>}>
       {statements.isPending ? <Loading /> : statements.isError ? <ErrorBlock error={statements.error} /> : <DataTable columns={columns} rows={statements.data} rowKey={(s) => s.id} empty={t('fleet.statements.none')} caption={t('fleet.statements.organizationStatements')} />}
+      {statements.data?.some((s) => s.status === 'unknown') ? <div className="mt-3"><Notice tone="warning">{t('hub.statements.reconcileHint')}</Notice></div> : null}
+      <ReconcileDialog open={reconciling !== null} busy={reconcile.isPending} error={reconcile.isError ? errorText(reconcile.error) : null} onClose={() => setReconciling(null)} onSubmit={(body) => reconcile.mutate(body)} />
       {settling ? <SettleDialog statement={settling} onClose={() => setSettling(null)} onSettled={() => { setSettling(null); void statements.refetch(); }} /> : null}
     </Card>
   );

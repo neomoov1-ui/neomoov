@@ -101,8 +101,19 @@ describe('Charte d\'équité chauffeurs (intégration)', () => {
       const [rating] = await db(app).insert(schema.rideRatings).values({ rideId: ride.body.id, authorKind: 'client', authorUserId: clientRow!.userId, score }).returning({ id: schema.rideRatings.id });
       ratingIds.push(rating!.id);
     }
+    // Notes du chauffeur dans My Hub : sans l'identité du client ; refusées au chauffeur ; chauffeur inconnu : 404.
+    const before = await request(server()).get(`/v1/admin/drivers/${driver.driverId}/ratings`).set(bearer(first.tokens)).expect(200);
+    expect(before.body).toHaveLength(2);
+    expect(before.body.map((r: { id: string }) => r.id).sort()).toEqual([...ratingIds].sort());
+    expect(before.body[0]).toMatchObject({ excludedAt: null, excludedReason: null, tags: [], ridePublicNumber: expect.any(String) });
+    expect(before.body[0]).not.toHaveProperty('authorUserId');
+    expect((await request(server()).get(`/v1/admin/drivers/${driver.driverId}/ratings`).set(bearer(driver.tokens))).status).toBe(403);
+    expect((await request(server()).get('/v1/admin/drivers/00000000-0000-4000-8000-000000000000/ratings').set(bearer(first.tokens))).status).toBe(404);
+
     const excluded = await request(server()).post(`/v1/admin/ratings/${ratingIds[1]}/exclude`).set(bearer(first.tokens)).send({ reason: 'Client en retard de 20 minutes, établi' }).expect(200);
     expect(excluded.body.driverRating).toEqual({ average: 5, count: 1 });
+    const after = await request(server()).get(`/v1/admin/drivers/${driver.driverId}/ratings`).set(bearer(first.tokens)).expect(200);
+    expect((after.body as Array<{ id: string; excludedReason: string | null }>).find((r) => r.id === ratingIds[1])?.excludedReason).toBe('Client en retard de 20 minutes, établi');
     const replay = await request(server()).post(`/v1/admin/ratings/${ratingIds[1]}/exclude`).set(bearer(first.tokens)).send({ reason: 'Deuxième fois' }).expect(200);
     expect(replay.body.excludedAt).toBe(excluded.body.excludedAt);
     const [row] = await db(app).select().from(schema.rideRatings).where(eq(schema.rideRatings.id, ratingIds[1]!));

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ErrorBlock, ListToolbar, Loading, RideStateBadge, pageLabels, useLang, usePagedList } from '@/components/hub/common';
-import { OrgPage } from '@/components/hub/org-context';
+import { OrgPage, useOrg } from '@/components/hub/org-context';
 import { Card, DataTable, PageTitle, Pagination, cx, focus, type Column } from '@/components/ui/kit';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { hubApi } from '@/lib/hub-api';
@@ -21,6 +21,7 @@ export default function OrgRidesPage() {
 function Rides({ orgId }: { orgId: string }) {
   const { t } = useTranslation();
   const lang = useLang();
+  const { can } = useOrg();
   const [view, setView] = useState<View>('active');
   useEffect(() => {
     const initial = new URLSearchParams(window.location.search).get('view');
@@ -39,7 +40,7 @@ function Rides({ orgId }: { orgId: string }) {
   ];
   return (
     <div>
-      <PageTitle title={t('org.rides.title')} />
+      <PageTitle title={t('org.rides.title')} actions={can('rides.create') ? <Link href="/hub/organisation/courses/nouvelle" className={cx('rounded-md bg-brand-blue-dark px-3 py-2 text-sm font-semibold text-white hover:bg-brand-night', focus)}>{t('org.newRide.title')}</Link> : null} />
       <div role="tablist" aria-label={t('org.rides.title')} className="mb-3 flex gap-1">
         {VIEWS.map((v) => (
           <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)} className={cx('rounded-md px-3 py-1.5 text-sm font-semibold', focus, view === v ? 'bg-brand-night text-white' : 'bg-white text-brand-ink hover:bg-brand-tint')}>

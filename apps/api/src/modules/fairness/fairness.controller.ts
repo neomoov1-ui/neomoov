@@ -3,7 +3,7 @@
  * (administrateur et opérateur). Chaque écriture est journalisée.
  */
 import {
-  adminSanctionAppealSchema, driverSanctionSchema, ratingExclusionSchema, sanctionAppealDecisionSchema, sanctionAppealInputSchema, sanctionAppealListQuerySchema, uuid,
+  adminDriverRatingSchema, adminSanctionAppealSchema, driverSanctionSchema, ratingExclusionSchema, sanctionAppealDecisionSchema, sanctionAppealInputSchema, sanctionAppealListQuerySchema, uuid,
 } from '@neomoov/domain';
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -65,6 +65,15 @@ export class AdminFairnessController {
   @ApiErrors(400, 401, 403, 404, 409, 429)
   decide(@Param('id', zodPipe(uuid)) id: string, @Body(zodPipe(sanctionAppealDecisionSchema)) body: z.infer<typeof sanctionAppealDecisionSchema>, @CurrentUser() user: UserActor) {
     return this.fairness.decide(id, body, user);
+  }
+
+  @Get('drivers/:id/ratings')
+  @Can('fairness.appeals.decide')
+  @ApiOperation({ summary: 'Notes des clients sur les courses du chauffeur (50 dernières, exclues comprises), sans l\'identité du client' })
+  @ZodResponse(200, z.array(adminDriverRatingSchema))
+  @ApiErrors(401, 403, 404, 429)
+  driverRatings(@Param('id', zodPipe(uuid)) id: string) {
+    return this.fairness.driverRatings(id);
   }
 
   @Post('ratings/:id/exclude')

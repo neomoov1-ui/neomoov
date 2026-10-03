@@ -4,6 +4,7 @@
  * Jamais de chaîne codée en dur dans les composants. My Hub et les pages publiques ont leurs fichiers de textes.
  */
 import { enumTexts, hubTexts } from './i18n-hub';
+import { hubAdminTexts } from './i18n-hub-admin';
 import { orgTexts } from './i18n-org';
 import { fleetTexts } from './i18n-fleet';
 import { siteTexts } from './i18n-site';
@@ -23,7 +24,7 @@ export const resources = {
         hub: 'Accéder à My Hub',
         status: 'État de la plateforme',
       },
-      hub: hubTexts['fr-CA'],
+      hub: { ...hubTexts['fr-CA'], ...hubAdminTexts['fr-CA'] },
       org: orgTexts['fr-CA'],
       fleet: fleetTexts['fr-CA'],
       enum: enumTexts['fr-CA'],
@@ -44,7 +45,7 @@ export const resources = {
         hub: 'Open My Hub',
         status: 'Platform status',
       },
-      hub: hubTexts.en,
+      hub: { ...hubTexts.en, ...hubAdminTexts.en },
       org: orgTexts.en,
       fleet: fleetTexts.en,
       enum: enumTexts.en,
