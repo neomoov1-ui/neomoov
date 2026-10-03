@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CarDiagram, PhotoGuide } from '@/components/CarDiagram';
+import { BOOSTER_ASYNC_ANALYSIS, isAnalysisPending, waitForAnalysis } from '@/features/booster/analysis';
 import { inspectionForm, pickBoosterPhoto, type PickedPhoto } from '@/features/booster/photos';
 import { api, errorMessage } from '@/lib/api';
 import { keys, queryClient } from '@/lib/queries';
@@ -61,11 +62,59 @@ export default function InspectionScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(params.id));
+  /** Analyse asynchrone en cours (état `pending`, finalisation U3) : rapport relu jusqu'au résultat, sauf si le chauffeur remplit à la main. */
+  const [waiting, setWaiting] = useState(false);
+  const [slow, setSlow] = useState(false);
 
   useEffect(() => {
     if (!params.id) return;
-    api.driver.inspection(params.id).then((i) => { setInspection(i); setForm(formOf(i)); setStage(i.status === 'archived' ? 'done' : 'review'); }).catch((e) => setError(errorMessage(e))).finally(() => setLoading(false));
+    api.driver.inspection(params.id).then((i) => { setInspection(i); setForm(formOf(i)); setStage(i.status === 'archived' ? 'done' : 'review'); setWaiting(isAnalysisPending(i.analysis)); }).catch((e) => setError(errorMessage(e))).finally(() => setLoading(false));
   }, [params.id]);
+
+  // Relecture du rapport tant que l'analyse est en cours ; arrêtée en quittant l'écran ou en remplissant à la main.
+  const pendingId = waiting && inspection ? inspection.id : null;
+  useEffect(() => {
+    if (!pendingId || !inspection) return;
+    let cancelled = false;
+    waitForAnalysis(inspection, () => api.driver.inspection(pendingId), (i) => isAnalysisPending(i.analysis), { cancelled: () => cancelled })
+      .then((waited) => {
+        if (waited.outcome === 'cancelled') return;
+        setInspection(waited.result);
+        if (waited.outcome === 'ready') setForm(formOf(waited.result));
+        else setSlow(true);
+        setWaiting(false);
+        void queryClient.invalidateQueries({ queryKey: keys.boosterInspections });
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setError(errorMessage(e));
+        setWaiting(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Une seule attente par rapport : le rapport relu n'en relance pas une autre.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingId]);
+
+  /** Relecture demandée par le chauffeur après une longue attente : les champs prennent le résultat de l'analyse. */
+  async function reload() {
+    if (!inspection) return;
+    setBusy('reload');
+    setError(null);
+    try {
+      const latest = await api.driver.inspection(inspection.id);
+      setInspection(latest);
+      if (!isAnalysisPending(latest.analysis)) {
+        setForm(formOf(latest));
+        setSlow(false);
+      }
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   const taken = INSPECTION_PHOTO_STEPS.filter((s) => photos[s.kind]).length;
   const requiredTaken = INSPECTION_PHOTO_STEPS.filter((s) => s.required && photos[s.kind]).length;
@@ -84,10 +133,11 @@ export default function InspectionScreen() {
     try {
       const list = INSPECTION_PHOTO_STEPS.filter((s) => photos[s.kind]).map((s) => ({ kind: s.kind, file: photos[s.kind]! }));
       let created = await api.driver.createInspection(await inspectionForm(list));
-      if (analyse) created = await api.driver.analyseInspection(created.id);
+      if (analyse) created = await api.driver.analyseInspection(created.id, { async: BOOSTER_ASYNC_ANALYSIS });
       setInspection(created);
       setForm(formOf(created));
       setStage('review');
+      setWaiting(isAnalysisPending(created.analysis));
       void queryClient.invalidateQueries({ queryKey: keys.boosterInspections });
     } catch (e) {
       setError(errorMessage(e));
@@ -197,8 +247,21 @@ export default function InspectionScreen() {
         </>
       ) : null}
 
-      {stage === 'review' && form && inspection ? (
+      {stage === 'review' && inspection && waiting ? (
+        <Card style={styles.card}>
+          <Loading label={t('booster.inspection.analysisPending')} />
+          <Button label={t('booster.inspection.fillWithoutWaiting')} variant="ghost" onPress={() => setWaiting(false)} testID="inspection-skip-wait" />
+        </Card>
+      ) : null}
+
+      {stage === 'review' && form && inspection && !waiting ? (
         <>
+          {isAnalysisPending(inspection.analysis) ? (
+            <Card style={styles.card}>
+              <Body>{slow ? t('booster.inspection.analysisSlow') : t('booster.inspection.analysisStillPending')}</Body>
+              <Button label={t('booster.inspection.reloadAnalysis')} variant="secondary" onPress={() => void reload()} disabled={busy !== null} testID="inspection-reload" />
+            </Card>
+          ) : null}
           {inspection.analysis.status === 'done' ? <Notice tone="success">{t('booster.inspection.analysed', { percent: Math.round((inspection.analysis.confidence ?? 0) * 100) })}{inspection.analysis.summary ? `\n${inspection.analysis.summary}` : ''}</Notice> : null}
           {inspection.analysis.status === 'failed' ? <Notice tone="warning">{t('booster.inspection.analysisFailed')}</Notice> : null}
           {inspection.analysis.status === 'none' ? <Notice tone="info">{t('booster.inspection.noAnalysis')}</Notice> : null}

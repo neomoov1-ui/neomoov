@@ -1,6 +1,7 @@
 import { BODY_ZONES, INSPECTION_PHOTO_STEPS } from '@neomoov/domain';
 import { withLanguage } from '@neomoov/mobile-core/format';
 import { describe, expect, it } from 'vitest';
+import { BOOSTER_ASYNC_ANALYSIS, isAnalysisPending, waitForAnalysis } from '../src/features/booster/analysis';
 import { aimArrow, BODY_ZONE_SHAPES, CAR_OUTLINE, GUIDE_VIEWBOX, insideCar, PHOTO_VIEWPOINTS, toggleZone, viewBoxOf, ZONE_READING_ORDER } from '../src/features/booster/diagram';
 import { fleetInvitationError, fleetInvitationToken, isFleetInvitationToken } from '../src/features/fleet/invitation';
 import { canDriverCancel, nextOffer } from '../src/features/ride/steps';
@@ -111,5 +112,52 @@ describe('langue des pages web ouvertes depuis l\'application (constat mobile 25
     expect(withLanguage('https://neomoov.net/carte?session=abc', 'en')).toBe('https://neomoov.net/carte?session=abc&lang=en');
     expect(withLanguage('https://neomoov.net/carte', 'fr-CA')).toBe('https://neomoov.net/carte?lang=fr');
     expect(withLanguage('https://neomoov.net/carte?lang=en&session=abc#haut', 'fr-CA')).toBe('https://neomoov.net/carte?session=abc&lang=fr#haut');
+  });
+});
+
+describe('analyse Booster asynchrone (contrat de la finalisation U3)', () => {
+  type Report = { analysis: { status: string }; n: number };
+  const pending = (r: Report) => isAnalysisPending(r.analysis);
+  /** Horloge et attente simulées : chaque pause avance l'heure de la durée demandée. */
+  function fakeClock() {
+    let t = 0;
+    return { now: () => t, sleep: async (ms: number) => { t += ms; } };
+  }
+
+  it('demande asynchrone désactivée tant que l\'API de main n\'a pas la file ; état « pending » reconnu', () => {
+    expect(BOOSTER_ASYNC_ANALYSIS).toBe(false);
+    expect(isAnalysisPending({ status: 'pending' })).toBe(true);
+    expect(isAnalysisPending({ status: 'done' })).toBe(false);
+    expect(isAnalysisPending(null)).toBe(false);
+  });
+
+  it('relit jusqu\'au résultat, sans relire une analyse déjà faite', async () => {
+    const clock = fakeClock();
+    const answers: Report[] = [{ analysis: { status: 'pending' }, n: 1 }, { analysis: { status: 'done' }, n: 2 }];
+    let reads = 0;
+    const read = async () => answers[reads++]!;
+    const result = await waitForAnalysis<Report>({ analysis: { status: 'pending' }, n: 0 }, read, pending, { cancelled: () => false, ...clock, intervalMs: 3000, timeoutMs: 60_000 });
+    expect(result).toEqual({ outcome: 'ready', result: { analysis: { status: 'done' }, n: 2 } });
+    expect(reads).toBe(2);
+    const done = await waitForAnalysis<Report>({ analysis: { status: 'failed' }, n: 9 }, read, pending, { cancelled: () => false, ...clock });
+    expect(done).toEqual({ outcome: 'ready', result: { analysis: { status: 'failed' }, n: 9 } });
+  });
+
+  it('délai dépassé : dernier état rendu ; écran quitté : arrêt sans résultat ; erreur passagère tolérée', async () => {
+    const stillPending = async (): Promise<Report> => ({ analysis: { status: 'pending' }, n: 1 });
+    const timeout = await waitForAnalysis<Report>({ analysis: { status: 'pending' }, n: 0 }, stillPending, pending, { cancelled: () => false, ...fakeClock(), intervalMs: 3000, timeoutMs: 9000 });
+    expect(timeout).toEqual({ outcome: 'timeout', result: { analysis: { status: 'pending' }, n: 1 } });
+    let left = false;
+    const cancelled = await waitForAnalysis<Report>({ analysis: { status: 'pending' }, n: 0 }, async () => { left = true; return { analysis: { status: 'pending' }, n: 1 }; }, pending, { cancelled: () => left, ...fakeClock() });
+    expect(cancelled).toEqual({ outcome: 'cancelled' });
+    let calls = 0;
+    const flaky = async (): Promise<Report> => {
+      calls += 1;
+      if (calls === 1) throw new Error('réseau');
+      return { analysis: { status: 'done' }, n: 3 };
+    };
+    expect(await waitForAnalysis<Report>({ analysis: { status: 'pending' }, n: 0 }, flaky, pending, { cancelled: () => false, ...fakeClock() })).toEqual({ outcome: 'ready', result: { analysis: { status: 'done' }, n: 3 } });
+    const down = async (): Promise<Report> => { throw new Error('hors ligne'); };
+    await expect(waitForAnalysis<Report>({ analysis: { status: 'pending' }, n: 0 }, down, pending, { cancelled: () => false, ...fakeClock(), intervalMs: 3000, timeoutMs: 6000 })).rejects.toThrow('hors ligne');
   });
 });

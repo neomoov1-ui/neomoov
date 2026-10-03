@@ -223,8 +223,12 @@ export function driverResource(t: Transport) {
     // Neomoov Booster (phase 1, agent G) : vérification sommaire, rapport de performance, alertes.
     createInspection: (form: FormData) => t.post<VehicleInspectionView>('/driver/booster/inspections', form, { timeoutMs: 120_000 }),
     addInspectionPhotos: (inspectionId: string, form: FormData) => t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/photos`, form, { timeoutMs: 120_000 }),
-    /** Analyse des photos par le modèle : jusqu'à deux minutes. */
-    analyseInspection: (inspectionId: string) => t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/analyse`, undefined, { timeoutMs: 180_000 }),
+    /**
+     * Analyse des photos par le modèle : jusqu'à deux minutes ; `async` (API de la finalisation U3) : réponse immédiate à
+     * l'état `pending`, résultat à relire par `inspection` (une API antérieure ignore le paramètre et répond comme avant).
+     */
+    analyseInspection: (inspectionId: string, options: { async?: boolean } = {}) =>
+      t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/analyse`, undefined, { timeoutMs: 180_000, ...(options.async ? { query: { async: 'true' } } : {}) }),
     updateInspection: (inspectionId: string, body: InspectionUpdate) => t.patch<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}`, body),
     confirmInspection: (inspectionId: string, body: InspectionConfirm) => t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/confirm`, body, { timeoutMs: 60_000 }),
     inspections: (query: Partial<InspectionListQuery> = {}) => t.get<Page<VehicleInspectionView>>('/driver/booster/inspections', { query }),
@@ -234,7 +238,9 @@ export function driverResource(t: Transport) {
     createPerformance: (body: PerformanceLogInput) => t.post<PerformanceLogView>('/driver/booster/performance', body),
     updatePerformance: (logId: string, body: PerformanceLogInput) => t.patch<PerformanceLogView>(`/driver/booster/performance/${id(logId)}`, body),
     addPerformanceScreenshots: (logId: string, form: FormData) => t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/screenshots`, form, { timeoutMs: 120_000 }),
-    analysePerformance: (logId: string) => t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/analyse`, undefined, { timeoutMs: 180_000 }),
+    /** Lecture des captures : comme `analyseInspection`, `async` répond à l'état `pending`, résultat à relire par `performanceLog`. */
+    analysePerformance: (logId: string, options: { async?: boolean } = {}) =>
+      t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/analyse`, undefined, { timeoutMs: 180_000, ...(options.async ? { query: { async: 'true' } } : {}) }),
     confirmPerformance: (logId: string, body: PerformanceLogInput) => t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/confirm`, body, { timeoutMs: 60_000 }),
     performanceLogs: (query: Partial<PerformanceListQuery> = {}) => t.get<Page<PerformanceLogView>>('/driver/booster/performance', { query }),
     performanceLog: (logId: string) => t.get<PerformanceLogView>(`/driver/booster/performance/${id(logId)}`),
