@@ -213,9 +213,10 @@ export class PublishingService implements OnModuleInit {
         try {
           const result = await this.callTool(ctx, 'socialPublish', input, () => this.publishTool(input));
           if (result.ok) return result.data;
-          // Outil refusé avant d'agir (non déclaré pour l'agent, entrée invalide) : l'échec est compté comme un échec du connecteur.
-          if (!this.publishRuns.has(key)) await this.recordFailure(row, attempt, new AppError('AGENT_TOOL_REFUSED', result.message, 409), now);
           const code = (result.data as { errorCode?: unknown } | null)?.errorCode;
+          // Outil refusé avant d'agir (non déclaré pour l'agent, entrée invalide) : l'échec est compté comme un échec du
+          // connecteur ; un contenu sorti du calendrier entre-temps (rejeté, déjà publié) reste tel quel.
+          if (!this.publishRuns.has(key) && code !== 'CONTENT_NOT_SCHEDULED') await this.recordFailure(row, attempt, new AppError('AGENT_TOOL_REFUSED', result.message, 409), now);
           throw new AppError(typeof code === 'string' ? code : 'SOCIAL_PUBLISH_FAILED', result.message, 502);
         } finally {
           this.publishRuns.delete(key);
