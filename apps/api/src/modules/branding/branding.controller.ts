@@ -138,3 +138,27 @@ export class MeOrganizationsController {
     return this.branding.attach(user.userId, body.code);
   }
 }
+
+/**
+ * Finalisation du 3 octobre 2026 (étape 22, domaines des organisations) : question « ask » de Caddy avant d'émettre un
+ * certificat à la demande (`on_demand_tls`, `infra/Caddyfile.domaines-organisations`). 200 seulement pour un domaine
+ * vérifié d'une organisation ouverte, 404 sinon. Publique (Caddy n'a pas de jeton) : elle ne dit que ce que la marque
+ * publique par domaine dit déjà ; limitée par adresse comme toute route.
+ */
+@ApiTags('internal')
+@Controller('internal/tls')
+export class InternalTlsController {
+  constructor(private readonly branding: BrandingService) {}
+
+  @Get('ask')
+  @Public()
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({ summary: 'Caddy, émission TLS à la demande : 200 si le domaine est un domaine d\'organisation vérifié (organisation ouverte), 404 sinon' })
+  @ZodQuery(z.object({ domain: z.string().max(300) }))
+  @ZodResponse(200, z.object({ allowed: z.literal(true) }))
+  @ApiErrors(400, 404, 429)
+  async ask(@Query(zodPipe(z.object({ domain: z.string().trim().min(3).max(300) }))) query: { domain: string }): Promise<{ allowed: true }> {
+    if (!(await this.branding.tlsAllowed(query.domain))) throw AppError.notFound('DOMAIN_NOT_VERIFIED', 'Domaine inconnu ou non vérifié');
+    return { allowed: true };
+  }
+}

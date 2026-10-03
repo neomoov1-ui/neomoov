@@ -273,6 +273,18 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'billing.suspended_days', value: 45, description: 'Organisation suspendue après 45 jours d\'impayé, jamais pendant une course (reportée au lendemain)' },
   { key: 'billing.payment_terms_days', value: 0, description: 'Échéance d\'une facture de la plateforme après son émission (0 : payable à réception, prélèvement automatique)' },
   { key: 'billing.run_hour', value: 5, description: 'Heure de Montréal de la passe quotidienne de la facturation de la plateforme (renouvellements, relances, suspensions)' },
+  // Finalisation du 3 octobre 2026 (agent U2) : décision du fondateur attendue (docs/decisions.md, « À trancher ») ; désactivé par défaut.
+  { key: 'billing.force_suspension_after_postponed_days', value: 0, description: 'Suspension reportée (course en cours) appliquée quand même après ce nombre de jours : nouvelles courses bloquées, courses en cours finies (0 : jamais ; proposé : 7)' },
+  // Organisations clientes (finalisation du 3 octobre 2026) : alerte au propriétaire quand une permission sensible est utilisée (amendement v1.2, section 3.2).
+  { key: 'organizations.sensitive_use_alerts', value: true, description: 'Alerte au propriétaire du compte (courriel, sinon texto) quand un membre utilise une permission sensible de l\'organisation' },
+  { key: 'organizations.sensitive_alert_cooldown_minutes', value: 60, description: 'Une alerte de permission sensible au plus par membre, par permission et par organisation pendant ce délai (minutes)' },
+  // Flotte (finalisation du 3 octobre 2026) : relevé quotidien des échéances au gestionnaire de flotte.
+  { key: 'fleet.manager_notices', value: true, description: 'Relevé quotidien des échéances (documents, vérifications, inspections, entretiens) aux gestionnaires, propriétaires et administrateurs d\'une flotte' },
+  { key: 'fleet.manager_notice_hour', value: 7, description: 'Heure de Montréal du relevé quotidien des échéances de la flotte' },
+  { key: 'fleet.manager_notice_days', value: 14, description: 'Horizon du relevé des échéances de la flotte, en jours' },
+  // Conformité (finalisation du 3 octobre 2026) : renouvellement de la vérification des antécédents judiciaires (« selon la loi », section 5.12).
+  { key: 'compliance.background_check_tracked', value: false, description: 'Suivre l\'échéance de la vérification des antécédents judiciaires (rappels J-30, J-7, J-1 puis suspension) ; désactivé tant que la durée légale n\'est pas confirmée' },
+  { key: 'compliance.background_check_validity_months', value: 0, description: 'Validité d\'une vérification des antécédents sans date d\'échéance, en mois depuis son dépôt (0 : seule la date du document compte ; à confirmer par le fondateur)' },
   // Neomoov Booster (phase 1, agent G, 2 octobre 2026) : vérification sommaire par caméra, rapport de performance, alertes de la journée.
   { key: 'booster.enabled', value: true, description: 'Neomoov Booster offert aux chauffeurs dans l\'application (vérification sommaire, rapport de performance, alertes)' },
   { key: 'booster.inspection_photos_min', value: 6, description: 'Photos exigées pour lancer l\'analyse d\'une vérification sommaire (quatre coins et deux côtés)' },

@@ -1,0 +1,54 @@
+# Domaines des organisations clientes (étape 22, finalisation du 3 octobre 2026) : PROPOSITION, NON DÉPLOYÉE.
+#
+# Une organisation cliente peut servir la réservation web ou My Hub sous son propre domaine (reservation.taxi-exemple.ca).
+# Caddy émet alors le certificat TLS à la première visite (« TLS à la demande »), mais seulement après avoir demandé à
+# l'API si le domaine est un domaine d'organisation vérifié : GET /v1/internal/tls/ask?domain=<nom> répond 200 pour un
+# domaine vérifié d'une organisation ouverte, 404 sinon. Sans cette question, n'importe quel nom pointé vers le serveur
+# ferait émettre un certificat (quotas de Let's Encrypt, usurpation).
+#
+# Mise en service (à faire par Christopher ou la session principale, jamais par un agent) :
+#   1. Le client pose chez son fournisseur DNS un enregistrement CNAME (ou A) de son domaine vers le serveur, et le TXT de
+#      vérification affiché par My Hub ; la plateforme vérifie le TXT puis marque le domaine vérifié
+#      (POST /v1/admin/organizations/:id/domains/:domainId/verify, permission domains.verify).
+#   2. Fusionner les deux blocs ci-dessous dans infra/Caddyfile : l'option globale `on_demand_tls` dans le bloc global
+#      existant (en tête du fichier), et le bloc de site `https://` À LA FIN du fichier (les sites nommés de neomoov.net
+#      restent prioritaires).
+#   3. Recharger Caddy (`docker compose -f infra/compose.prod.yml exec caddy caddy reload --config /etc/caddy/Caddyfile`),
+#      puis ouvrir https://<domaine-du-client>/ : le premier accès prend quelques secondes (émission du certificat).
+#
+# --- 1. Dans le bloc global { ... } existant ---
+#
+#	on_demand_tls {
+#		# Question posée à l'API par le réseau interne de Docker (le nom « api » désigne les réplicas de l'API).
+#		ask http://api:4000/v1/internal/tls/ask
+#	}
+#
+# --- 2. À la fin du fichier : tout autre domaine, servi seulement s'il est vérifié ---
+#
+# https:// {
+#	tls {
+#		on_demand
+#	}
+#	encode zstd gzip
+#	log {
+#		output stdout
+#		format json
+#	}
+#	header {
+#		Strict-Transport-Security "max-age=31536000"
+#		-Server
+#	}
+#	request_body {
+#		max_size 25MB
+#	}
+#	# L'application web lit l'en-tête Host pour charger la marque de l'organisation (GET /v1/public/brand?domain=...).
+#	reverse_proxy web:3000 {
+#		header_up X-Forwarded-Proto https
+#		lb_try_duration 30s
+#		lb_try_interval 500ms
+#		fail_duration 10s
+#		transport http {
+#			dial_timeout 5s
+#		}
+#	}
+# }

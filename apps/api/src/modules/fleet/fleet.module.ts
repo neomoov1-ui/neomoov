@@ -9,6 +9,7 @@ import { FleetDispatchService } from './fleet-dispatch.service.js';
 import { FleetDriversService } from './fleet-drivers.service.js';
 import { FleetFinanceService } from './fleet-finance.service.js';
 import { FleetJobsService } from './fleet-jobs.service.js';
+import { FleetNoticesService } from './fleet-notices.service.js';
 import { FleetVehiclesService } from './fleet-vehicles.service.js';
 import { DriverInvitationsController, FleetController } from './fleet.controller.js';
 
@@ -21,7 +22,7 @@ import { DriverInvitationsController, FleetController } from './fleet.controller
 @Module({
   imports: [AdminModule, OrganizationsModule, PricingModule, RidesModule, SettlementModule, UsersModule],
   controllers: [FleetController, DriverInvitationsController],
-  providers: [FleetDriversService, FleetVehiclesService, FleetDispatchService, FleetFinanceService, FleetJobsService],
-  exports: [FleetDispatchService, FleetJobsService],
+  providers: [FleetDriversService, FleetVehiclesService, FleetDispatchService, FleetFinanceService, FleetJobsService, FleetNoticesService],
+  exports: [FleetDispatchService, FleetJobsService, FleetNoticesService],
 })
 export class FleetModule {}

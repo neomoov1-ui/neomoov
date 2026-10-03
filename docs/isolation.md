@@ -35,7 +35,7 @@ Migrations : `0021_organization-isolation` (socle : rôle, fonction, politiques)
 
 | Famille | Tables | Règle |
 |---|---|---|
-| Colonne directe | `drivers`, `vehicles`, `rides`, `clients`, `quotes`, `weekly_statements`, `memberships`, `invitations`, `organization_features`, `audit_log`, `conversations`, `notifications`, `incidents`, `credits`, `leads`, `brands`, `organization_domains` | `app_scope_allows(organization_id)` en lecture et en écriture |
+| Colonne directe | `drivers`, `vehicles`, `rides`, `clients`, `quotes`, `weekly_statements`, `memberships`, `invitations`, `organization_features`, `audit_log`, `conversations`, `notifications`, `incidents`, `credits`, `leads`, `brands`, `organization_domains`, `support_access_grants` (0027, accès temporaire du support, étape 21) | `app_scope_allows(organization_id)` en lecture et en écriture |
 | Par course | `ride_events`, `ride_messages`, `ride_ratings`, `ride_offers`, `ride_dispatches`, `ride_tracks`, `invoices`, `payments`, `scheduled_assignments`, `pack_consumptions`, `credit_uses`, `redevance_ledger`, `promotion_uses`, `tax_ledger`, `platform_fees` (0036, redevance Neomoov) | Organisation de la course |
 | Par chauffeur | `driver_documents`, `driver_locations` (partitionnée), `driver_presence`, `driver_scores`, `driver_shifts`, `driver_training_results`, `driver_balances`, `pack_purchases`, `sanctions`, `sanction_appeals` | Organisation du chauffeur |
 | Par chauffeur ou véhicule | `compliance_checks` (0022) | Organisation du chauffeur ou du véhicule de l'échéance |
@@ -94,7 +94,7 @@ Aucune ligne visible sous contexte (sécurité activée, aucune politique pour l
 ## Fichiers, caches et files
 
 - **Stockage** : sous le contexte d'une organisation cliente, les documents des chauffeurs, les PDF des relevés et des factures sont rangés sous `org/<identifiant>/` (`storageKeyPrefix`) ; les fichiers de la plateforme gardent leurs clés. Les fichiers existants ne sont pas déplacés (leur clé est en base).
-- **Restent globaux** (aucune donnée d'une organisation n'y est lisible par une autre, mais les clés ne sont pas préfixées) : la présence des chauffeurs dans Redis (`presence:geo`), les limites de requêtes (`RateLimitService`), le canal des événements de domaine (`neomoov:events`), les identifiants des tâches BullMQ (des identifiants de lignes, uniques), le cache des réglages (seulement les réglages `global`, sans organisation), le cache des droits (par utilisateur, agent A). À préfixer quand une organisation aura sa propre répartition (réseau isolé) ou ses propres réglages.
+- **Restent globaux** (aucune donnée d'une organisation n'y est lisible par une autre, mais les clés ne sont pas préfixées) : la présence des chauffeurs dans Redis (`presence:geo`), les limites de requêtes (`RateLimitService`), le canal des événements de domaine (`neomoov:events`), les identifiants des tâches BullMQ (des identifiants de lignes, uniques), le cache des réglages (seulement les réglages `global`, sans organisation), le cache des droits (par utilisateur, agent A). À préfixer quand une organisation aura sa propre répartition (réseau isolé) ou ses propres réglages. Revu le 3 octobre 2026 (agent U2) : aucune de ces clés ne range une donnée d'organisation sous un nom partagé ; le préfixe n'est pas posé (voir `docs/decisions.md`).
 
 ## Ajouter une table
 
@@ -116,4 +116,5 @@ Aucune ligne visible sous contexte (sécurité activée, aucune politique pour l
 - **Lots longs** : un lot d'organisation est une transaction ; pour une grande flotte, la passe des relevés y fait aussi les versements Stripe (clés d'idempotence par relevé, donc sans doublon si le lot est rejoué par la plateforme). Passer à une transaction par chauffeur si les lots grossissent.
 - **Contexte imbriqué d'une autre organisation** : une seconde connexion du pool ; à éviter dans une boucle (un pool saturé de transactions qui en attendent une seconde se bloquerait).
 - **`FORCE ROW LEVEL SECURITY`** n'est pas posé : le propriétaire des tables (rôle de l'API) n'est pas soumis aux politiques, par choix (critère 2 : plans inchangés hors contexte). La barrière est le passage au rôle restreint.
+- **Clés étrangères vers `organizations`** (migration 0039) : `drivers`, `vehicles`, `rides`, `clients`, `quotes`, `weekly_statements` ; la suppression d'une organisation (jamais en production, seulement dans les essais) remet ces lignes à la plateforme (`ON DELETE SET NULL`). Le journal d'audit, en ajout seul, n'en a pas.
 - **Coût hors contexte** : les déclencheurs de dérivation font au plus quelques lectures par clé primaire à l'insertion d'une ligne sans organisation ; les politiques ne s'appliquent qu'au rôle restreint.

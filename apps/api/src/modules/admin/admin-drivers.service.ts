@@ -250,7 +250,7 @@ export class AdminDriversService {
   }
 
   /** Revue humaine d'un document (5.12) : approbation (avec l'échéance lue sur le document) ou refus motivé. */
-  async reviewDocument(id: string, input: { decision: 'approved' | 'rejected'; reason?: string | undefined; expiresOn?: string | undefined; number?: string | undefined }, actor: UserActor): Promise<AdminDocument> {
+  async reviewDocument(id: string, input: { decision: 'approved' | 'rejected'; reason?: string | undefined; expiresOn?: string | undefined; number?: string | undefined; odometerKm?: number | undefined }, actor: UserActor): Promise<AdminDocument> {
     const [doc] = await this.db.select().from(schema.driverDocuments).where(eq(schema.driverDocuments.id, id)).limit(1);
     if (!doc) throw AppError.notFound('DOCUMENT_NOT_FOUND', 'Document introuvable');
     await this.db
@@ -261,6 +261,15 @@ export class AdminDriversService {
       })
       .where(eq(schema.driverDocuments.id, id));
     this.audit.record({ action: `admin.document_${input.decision}`, entity: 'driver_documents', entityId: id, before: { status: doc.status }, after: { status: input.decision, reason: input.reason ?? null } });
+    // Finalisation du 3 octobre 2026 (règle des 60 000 km) : kilométrage à la vérification mécanique approuvée, sur le
+    // véhicule courant du chauffeur (celui du certificat, sinon le kilométrage déclaré).
+    if (input.decision === 'approved' && doc.type === 'mechanical_check') {
+      const [driver] = await this.db.select({ vehicleId: schema.drivers.currentVehicleId }).from(schema.drivers).where(eq(schema.drivers.id, doc.driverId)).limit(1);
+      if (driver?.vehicleId) {
+        await this.db.update(schema.vehicles).set({ mechanicalCheckKm: input.odometerKm !== undefined ? input.odometerKm : sql`${schema.vehicles.odometerKm}` }).where(eq(schema.vehicles.id, driver.vehicleId));
+        this.audit.record({ action: 'admin.vehicle_mechanical_check_km', entity: 'vehicles', entityId: driver.vehicleId, after: { documentId: id, odometerKm: input.odometerKm ?? 'déclaré' } });
+      }
+    }
     // Étape 14 : un document approuvé met à jour les échéances et lève aussitôt une suspension de conformité.
     if (input.decision === 'approved') await this.compliance.refreshDriver(doc.driverId);
     const [view] = (await this.documentsOf([doc.driverId])).filter((d) => d.id === id);

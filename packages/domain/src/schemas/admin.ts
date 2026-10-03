@@ -150,6 +150,11 @@ export const documentReviewSchema = z
     reason: z.string().trim().min(3).max(300).optional(),
     expiresOn: localDateString.optional(),
     number: z.string().trim().max(60).optional(),
+    /**
+     * Finalisation du 3 octobre 2026 (règle des 60 000 km) : kilométrage lu sur le certificat de vérification mécanique
+     * approuvé ; absent, le kilométrage déclaré du véhicule est retenu.
+     */
+    odometerKm: z.number().int().min(0).max(2_000_000).optional(),
   })
   .refine((r) => r.decision === 'approved' || r.reason !== undefined, { message: 'Un motif est requis pour refuser un document', path: ['reason'] });
 

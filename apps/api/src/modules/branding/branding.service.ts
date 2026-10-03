@@ -7,7 +7,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  applyBrandUpdate, BRAND_COLOR_KEYS, brandContrastIssues, brandSummary, dnsVerificationRecord, isHexColor, NEOMOOV_BRAND, resolveBrand,
+  applyBrandUpdate, BRAND_COLOR_KEYS, brandContrastIssues, brandSummary, dnsVerificationRecord, isHexColor, NEOMOOV_BRAND, normalizeDomain, resolveBrand,
   type AttachOrganizationResult, type Brand, type BrandUpdate, type BrandView, type OrganizationDomainCreate, type OrganizationDomainCreated, type OrganizationDomainView,
   type OrganizationSummary, type PublicBrand,
 } from '@neomoov/domain';
@@ -150,6 +150,23 @@ export class BrandingService {
     const [org] = await this.db.select().from(schema.organizations).where(eq(schema.organizations.joinCode, code)).limit(1);
     if (!org || !OPEN_STATUSES.includes(org.status)) throw AppError.notFound('ORGANIZATION_CODE_NOT_FOUND', 'Aucune organisation pour ce code');
     return this.publicView(org, await this.brandFor(org.id));
+  }
+
+  /**
+   * Finalisation du 3 octobre 2026 : un certificat TLS peut-il être émis pour ce domaine (question « ask » de Caddy,
+   * émission à la demande) ? Seulement pour un domaine d'organisation vérifié, d'une organisation ouverte : un nom
+   * quelconque pointé vers le serveur ne déclenche jamais d'émission (quotas de Let's Encrypt, usurpation).
+   */
+  async tlsAllowed(raw: string): Promise<boolean> {
+    const domain = normalizeDomain(raw);
+    if (!domain) return false;
+    const [row] = await this.db
+      .select({ status: schema.organizations.status })
+      .from(schema.organizationDomains)
+      .innerJoin(schema.organizations, eq(schema.organizations.id, schema.organizationDomains.organizationId))
+      .where(and(eq(schema.organizationDomains.domain, domain), isNotNull(schema.organizationDomains.verifiedAt)))
+      .limit(1);
+    return Boolean(row && OPEN_STATUSES.includes(row.status));
   }
 
   /** Par domaine vérifié seulement : un domaine déclaré mais non contrôlé ne sert aucune marque. */

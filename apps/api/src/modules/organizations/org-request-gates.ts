@@ -83,9 +83,10 @@ export class OrgRequestGatesService {
     const place = body[actsOn.place] as { coordinates?: { lat?: unknown; lng?: unknown } } | undefined;
     const lat = place?.coordinates?.lat;
     const lng = place?.coordinates?.lng;
-    // Lieu illisible : le schéma du corps le refusera (400) ; une action sur un lieu n'a pas de montant connu.
+    // Lieu illisible : le schéma du corps le refusera (400). Une action sur un lieu (un devis) n'engage aucun montant : le
+    // plafond ne s'y applique pas (il s'applique à la course créée ensuite à partir du devis).
     if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) return {};
-    return pick(null, await this.zonesAt(sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography`));
+    return needed.zone ? { zones: await this.zonesAt(sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography`) } : {};
   }
 
   /** Vrai si la route agit sur une course en cours du sous-arbre (jamais bloquée par la facturation). */

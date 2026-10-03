@@ -7,7 +7,7 @@
  * Aucune suspension définitive n'est automatique : ces suspensions tombent d'elles-mêmes à la régularisation.
  */
 import { schema } from '@neomoov/db';
-import { addMonths, complianceStep, currentDocument, localDate, mechanicalInspectionDueOn, type DocumentType } from '@neomoov/domain';
+import { addMonths, backgroundCheckDueOn, complianceStep, currentDocument, localDate, mechanicalCertificateDueOn, mechanicalInspectionDueOn, type DocumentType } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, isNull, like, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -130,6 +130,11 @@ export class ComplianceService {
         .innerJoin(schema.drivers, eq(schema.drivers.currentVehicleId, schema.vehicles.id))
         .where(and(inArray(schema.vehicles.driverId, ids), inArray(schema.vehicles.status, ['active', 'non_compliant']))),
     ]);
+    // Finalisation du 3 octobre 2026 : renouvellement des antécédents judiciaires suivi sur réglage (désactivé par défaut,
+    // durée légale à confirmer par le fondateur) : date du document approuvé, sinon dépôt plus la durée de validité.
+    const [trackBackground, backgroundMonths] = await Promise.all([
+      this.settings.get<unknown>('compliance.background_check_tracked', false), this.settings.number('compliance.background_check_validity_months', 0),
+    ]);
     const desired: DesiredCheck[] = [];
     for (const driverId of ids) {
       const mine = docs.filter((d) => d.driverId === driverId).map((d) => ({ ...d, type: d.type as DocumentType }));
@@ -137,12 +142,18 @@ export class ComplianceService {
         const { current } = currentDocument(mine, type, today);
         if (current?.status === 'approved' && current.expiresOn) desired.push({ entityType: 'driver', entityId: driverId, type: `document:${type}`, dueOn: current.expiresOn, driverId });
       }
+      if (trackBackground === true && !required.includes('background_check')) {
+        const { current } = currentDocument(mine, 'background_check', today);
+        const dueOn = current?.status === 'approved' ? backgroundCheckDueOn({ expiresOn: current.expiresOn, depositedOn: current.createdAt.toISOString().slice(0, 10) }, backgroundMonths) : null;
+        if (dueOn) desired.push({ entityType: 'driver', entityId: driverId, type: 'document:background_check', dueOn, driverId });
+      }
       const vehicle = vehicles.find((v) => v.vehicles.driverId === driverId)?.vehicles;
       if (!vehicle) continue;
-      // Vérification mécanique : le certificat approuvé fait foi ; sans certificat, la règle (4 ans ou 80 000 km).
+      // Vérification mécanique : le certificat approuvé fait foi, avec la règle des 60 000 km depuis le kilométrage relevé
+      // à cette vérification (finalisation du 3 octobre 2026) ; sans certificat, la règle (4 ans ou 80 000 km).
       const { current: certificate } = currentDocument(mine, 'mechanical_check', today);
       const mechanicalDue = certificate?.status === 'approved' && certificate.expiresOn
-        ? certificate.expiresOn
+        ? mechanicalCertificateDueOn(certificate.expiresOn, vehicle.odometerKm, vehicle.mechanicalCheckKm, today)
         : mechanicalInspectionDueOn({ year: vehicle.year, odometerKm: vehicle.odometerKm, lastInspectionOn: null, lastInspectionKm: null }, today);
       desired.push({ entityType: 'vehicle', entityId: vehicle.id, type: 'mechanical_inspection', dueOn: mechanicalDue, driverId });
       const since = vehicle.lastInspectionOn ?? vehicle.createdAt.toISOString().slice(0, 10);
