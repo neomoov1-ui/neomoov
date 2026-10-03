@@ -22,6 +22,7 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel se li
 | Publier une version des applications mobiles | `publication-mobile.md` |
 | Inviter les testeurs, collecter et trier les retours de la bêta | `../beta/procedure.md` |
 | Déployer une nouvelle version du serveur, retour arrière | `deploiement-lws.md` |
+| Déployer sans connexion `root` (utilisateur `deploy`, clé limitée à `git push`) | `utilisateur-deploiement.md` |
 | Comptes du personnel, second facteur perdu, clés de service | `personnel-my-hub.md` |
 | Une alerte Sentry ou Better Stack, lire les métriques, suivre une requête (identifiant de corrélation) | `observabilite.md` |
 | Brancher la boîte contact@ (Brevo entrant, IMAP), Messenger, Facebook et Instagram, relayer les autres réseaux, rappeler un appel manqué | `boite-unifiee.md` |
@@ -32,7 +33,8 @@ Procédures pas à pas pour exploiter la plateforme Neomoov. Chaque manuel se li
 |---|---|---|
 | `deploiement-lws.md` | DNS, préparation du VPS LWS (`infra/server-setup.sh`, tâches planifiées, `ALLOW_MOCK_PROVIDERS`), déploiement par `git push lws main` (`infra/deploy.sh`) ou par GitHub Actions (`deploy.yml`, approbation), images GHCR, vérification, journaux, retour arrière | Écrit le 24 septembre 2026 ; mis à jour à la revue finale (26 septembre) |
 | `personnel-my-hub.md` | Premier administrateur (`create-staff`), connexion avec second facteur, codes de secours, autres membres du personnel, téléphone perdu, clés de service, journal d'audit | Écrit le 25 septembre 2026 |
-| `sauvegardes.md` | Sauvegarde logique chiffrée quotidienne (`infra/scripts/backup.sh`), vérification, confirmation qui autorise les purges de conservation, restauration (`restore.sh`) dans une base de secours ou en production, restauration par Supabase | Écrit le 26 septembre 2026 ; essai de restauration à faire sur le serveur |
+| `sauvegardes.md` | Sauvegarde logique chiffrée quotidienne des schémas de Neomoov (`infra/scripts/backup.sh`), copie hors site, alerte, empreinte authentifiée, confirmation qui autorise les purges de conservation, restauration (`restore.sh`) dans une base de secours ou en production, essai mensuel dans un conteneur jetable (`restore-test.sh`), restauration par Supabase | Écrit le 26 septembre 2026 ; mis à jour le 3 octobre 2026 (revue du 2 octobre) ; premier essai de restauration à faire sur le serveur |
+| `utilisateur-deploiement.md` | Utilisateur `deploy` (git-shell, clés `restrict`, groupe docker, sans sudo) à la place de `root` pour `git push` et GitHub Actions, bascule et retour arrière | Écrit le 3 octobre 2026 (revue du 2 octobre, constat web 16) ; à lancer par le fondateur |
 | `base-de-donnees.md` | Migrations à chaque déploiement et à la main, liste des migrations appliquées, retour arrière, données de départ, interdits | Écrit le 26 septembre 2026 (étape 16) |
 | `degraded-mode.md` | Ce qui continue quand un fournisseur tombe, ce que voit et fait l'exploitation, disjoncteurs et santé, redémarrage du worker | Écrit le 26 septembre 2026 |
 | `redemarrer-un-service.md` | Lecture de l'état (`ps`, `/v1/health`, journaux), redémarrage de l'API sans coupure, du worker, du web, de Redis, de Caddy, prise en compte d'une modification de `.env`, redémarrage du serveur, commandes interdites | Écrit le 26 septembre 2026 (étape 16) |

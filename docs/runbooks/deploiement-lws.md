@@ -20,7 +20,7 @@ Depuis le poste, après avoir déposé la clé publique SSH dans `/root/.ssh/aut
 ssh root@<ip> 'bash -s' < infra/server-setup.sh
 ```
 
-Le script installe Docker, le pare-feu (22, 80, 443), fail2ban, les mises à jour automatiques, passe SSH en clé seulement, crée le dépôt de déploiement `/opt/neomoov.git` (crochet `post-receive`), `/opt/neomoov/.env` avec des secrets générés, et deux tâches planifiées : la sauvegarde quotidienne chiffrée (`/etc/cron.d/neomoov-backup`, 3 h 30, active dès que `BACKUP_PASSPHRASE` est dans `.env`, `sauvegardes.md`) et la relance des conteneurs malades (`/etc/cron.d/neomoov-restart-unhealthy`, toutes les 5 minutes, `redemarrer-un-service.md`).
+Le script installe Docker (dépôt APT signé de Docker), rclone, le pare-feu (22, 80, 443), fail2ban, les mises à jour automatiques, passe SSH en clé seulement, crée le dépôt de déploiement `/opt/neomoov.git` (crochet `post-receive`), `/opt/neomoov/.env` avec des secrets générés, et deux tâches planifiées : la sauvegarde quotidienne chiffrée (`/etc/cron.d/neomoov-backup`, 3 h 30, active dès que `BACKUP_PASSPHRASE` est dans `.env`, `sauvegardes.md`) l'essai de restauration mensuel dans un conteneur jetable (`/etc/cron.d/neomoov-restore-test`, le 2 du mois, `sauvegardes.md`) et la relance des conteneurs malades (`/etc/cron.d/neomoov-restart-unhealthy`, toutes les 5 minutes, suspendue pendant un déploiement, `redemarrer-un-service.md`), avec la rotation hebdomadaire de leurs journaux.
 
 Puis compléter `/opt/neomoov/.env` sur le serveur :
 
@@ -29,6 +29,8 @@ Puis compléter `/opt/neomoov/.env` sur le serveur :
 - `ALLOW_MOCK_PROVIDERS` : le fichier créé met les fournisseurs à `mock`, et l'API refuse de démarrer en production avec un fournisseur simulé non déclaré. Pour un premier démarrage technique sans clé : `ALLOW_MOCK_PROVIDERS=payment,maps,sms,email,push,whatsapp,voice,llm,sev,storage,antivirus,crm,billing,calendar,marketing` ; ensuite, chaque fournisseur passe à `real` avec ses clés et son nom sort de la liste (bêta proposée : `payment,sev,whatsapp,voice`). Détail : `docs/operations/acces-a-fournir.md`, « Démarrage de l'API en production ».
 
 Si l'API ne démarre pas après un changement de `.env`, le motif est dans son journal : `docker compose -f infra/compose.prod.yml logs --tail=50 api` (« Configuration invalide… » nomme la variable à corriger).
+
+Connexion sans `root` pour le déploiement (clé limitée à `git push`, recommandée une fois le serveur stable) : `utilisateur-deploiement.md`.
 
 ## 3. Déployer (à chaque version)
 
@@ -44,7 +46,7 @@ Puis à chaque déploiement :
 git push lws main
 ```
 
-Le crochet extrait le code dans `/opt/neomoov` et lance `infra/deploy.sh build`, qui : construit les trois images sur le serveur, applique les migrations (une seule fois, hors des instances), démarre les conteneurs, attend que les deux instances de l'API soient saines (120 s au plus), et revient automatiquement à la version précédente si ce n'est pas le cas.
+Le crochet extrait le code dans `/opt/neomoov` et lance `infra/deploy.sh build`, qui : construit les trois images sur le serveur, applique les migrations (une seule fois, hors des instances), démarre les conteneurs, attend (180 s au plus) que les deux instances de l'API soient saines et servent la nouvelle version, et que le web et le worker soient sains sur les nouvelles images, puis revient automatiquement à la version précédente si ce n'est pas le cas (la version annoncée par `/v1/health` redevient alors la précédente, ce qui fait échouer le workflow GitHub). Pendant ce temps, Caddy fait patienter les requêtes jusqu'à 30 s au lieu de les refuser, et la relance automatique des conteneurs malades est suspendue (verrou `infra/.deploy.lock`).
 
 Variante avec images publiées par GitHub Actions sur GHCR (`.github/workflows/images.yml`) : sur le serveur, `docker login ghcr.io` avec un jeton de lecture des paquets, `IMAGE_PREFIX=ghcr.io/neomoov1-ui/neomoov` dans `.env`, puis `infra/deploy.sh pull <sha>`. Les images du web publiées ainsi reçoivent la clé Turnstile et le DSN Sentry des variables GitHub, pas de `/opt/neomoov/.env` (`docs/operations/acces-a-fournir.md`, section 4). Avec cette voie, avant toute commande `docker compose` tapée à la main (qui ne lit pas `.env` pour choisir les images), taper `set -a; . ./.env; set +a; export IMAGE_TAG=$(cat infra/.deploy-state)` dans `/opt/neomoov` : sinon Compose cherche les images `neomoov-*:local` et les reconstruit.
 
