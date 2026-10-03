@@ -35,7 +35,19 @@ export interface SocialCredentialsProvider {
   get(space: string): Promise<SocialCredentials | null>;
   /** Identifiant refusé par le réseau (jeton révoqué ou expiré) : le compte est à reconnecter ; `reason` sans secret. */
   markInvalid(space: string, reason: string): Promise<void>;
+  /**
+   * Facultatif (extension du contrat par Q4) : jetons renouvelés par le connecteur, fusionnés dans les valeurs du compte
+   * (`refreshToken`, `refreshTokenExpiresAt`, `accessToken`, `accessTokenExpiresAt`, dates en ISO 8601). Indispensable
+   * pour X et TikTok, qui remplacent le jeton de rafraîchissement à chaque échange : le connecteur relit le compte avant
+   * chaque échange et y écrit le nouveau jeton, de sorte qu'un seul jeton valable existe (connecteur, validation de S1,
+   * API et worker). Sans cette méthode (variables d'environnement), le connecteur garde ses jetons renouvelés dans le
+   * réglage chiffré `oauth.<réseau>` de la base.
+   */
+  update?(space: string, values: Record<string, string>): Promise<void>;
 }
+
+/** Valeurs de jeton gérées par le connecteur (renouvelées sans nouvelle connexion du fondateur). */
+export const TOKEN_FIELDS: readonly string[] = ['accessToken', 'accessTokenExpiresAt', 'refreshToken', 'refreshTokenExpiresAt'];
 
 export interface CredentialField {
   /** Clé dans `SocialCredentials.values`. */
