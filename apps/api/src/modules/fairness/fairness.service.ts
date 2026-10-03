@@ -7,7 +7,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  appealOverdue, canDecideAppeal, DEFAULT_RATING_WINDOW, parseBusinessHours, precautionaryReviewOverdue, type AdminSanctionAppealView, type AppealKind,
+  appealOverdue, canDecideAppeal, DEFAULT_RATING_WINDOW, parseBusinessHours, precautionaryReviewOverdue, type AdminDriverRatingView, type AdminSanctionAppealView, type AppealKind,
   type AppealStatus, type DriverSanctionView, type SanctionAppealDecision, type SanctionAppealInput, type SanctionType,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
@@ -177,6 +177,24 @@ export class FairnessService {
       driverRating = d ? { average: Number(d.average), count: d.count } : null;
     }
     return { id: ratingId, excludedAt: excludedAt.toISOString(), driverRating };
+  }
+
+  /** Notes des clients sur les courses du chauffeur, les plus récentes d'abord, exclues comprises (My Hub). */
+  async driverRatings(driverId: string, limit = 50): Promise<AdminDriverRatingView[]> {
+    const [driver] = await this.db.select({ id: schema.drivers.id }).from(schema.drivers).where(eq(schema.drivers.id, driverId)).limit(1);
+    if (!driver) throw AppError.notFound('DRIVER_NOT_FOUND', 'Chauffeur introuvable');
+    const rows = await this.db
+      .select({ rating: schema.rideRatings, publicNumber: schema.rides.publicNumber })
+      .from(schema.rideRatings)
+      .innerJoin(schema.rides, eq(schema.rides.id, schema.rideRatings.rideId))
+      .where(and(eq(schema.rides.driverId, driverId), eq(schema.rideRatings.authorKind, 'client')))
+      .orderBy(desc(schema.rideRatings.createdAt))
+      .limit(limit);
+    return rows.map(({ rating: r, publicNumber }) => ({
+      id: r.id, rideId: r.rideId, ridePublicNumber: publicNumber, score: r.score,
+      tags: Array.isArray(r.tags) ? r.tags.filter((tag): tag is string => typeof tag === 'string') : [],
+      comment: r.comment, createdAt: r.createdAt.toISOString(), excludedAt: r.excludedAt?.toISOString() ?? null, excludedReason: r.excludedReason,
+    }));
   }
 
   private async alreadyAlerted(action: string, entityIds: string[]): Promise<Set<string>> {

@@ -13,7 +13,7 @@ import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
 import type { AdminBalance, AdminStatementDetail, DriverPlatformFeeInput, OfflinePayout, PlatformFeeSummary, OrganizationStatementView, StatementAdjust, StatementGenerate, StatementGeneration, StatementReconcile, StatementSettleOffline } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
-import type { AdminSanctionAppealView, AppealStatus, SanctionAppealDecision } from '@neomoov/domain';
+import type { AdminDriverRatingView, AdminSanctionAppealView, AppealStatus, CrmRecordsView, SanctionAppealDecision } from '@neomoov/domain';
 import type { InvitationCreate, InvitationCreated, MembershipUpdate, MembershipView, OrganizationCreate, OrganizationView, RoleCreate, RoleView } from '@neomoov/domain';
 import type { AdminIncidentCreate, ApiKeyCreate, ApiKeyCreated, ApiKeyView, MeView, PrivacyBreachInput, PrivacyBreachView, StaffCreate } from '@neomoov/domain';
 import type { PilotZoneExclusionsView } from '@neomoov/domain';
@@ -64,6 +64,8 @@ export interface StuckRideView { rideId: string; publicNumber: string; state: st
 /** Filtres du journal d'audit (liste et export CSV) ; `from` et `to` sont des instants ISO. */
 export type AuditFilters = { entity?: string; action?: string; actorUserId?: string; actorAgentCode?: string; from?: string; to?: string };
 type ListQuery = Partial<AdminListQuery>;
+/** Types de fiche dont My Hub lit l'état CRM (segment de `GET /admin/crm/:kind/:id`). */
+export type CrmRecordKind = 'leads' | 'prospects' | 'organizations' | 'business-accounts';
 
 export function staffAuthResource(t: Transport) {
   return {
@@ -223,6 +225,10 @@ export function adminResource(t: Transport) {
     updateMembership: (membershipId: string, body: MembershipUpdate) => t.patch<MembershipView>(`/admin/memberships/${id(membershipId)}`, body),
     removeMembership: (membershipId: string) => t.delete<void>(`/admin/memberships/${id(membershipId)}`),
     excludeRating: (ratingId: string, reason: string) => t.post<{ id: string; excludedAt: string; driverRating: { average: number; count: number } | null }>(`/admin/ratings/${id(ratingId)}/exclude`, { reason }),
+    /** Notes des clients sur les courses d'un chauffeur (50 dernières, exclues comprises), pour en exclure une. */
+    driverRatings: (driverId: string) => t.get<AdminDriverRatingView[]>(`/admin/drivers/${id(driverId)}/ratings`),
+    /** État CRM d'une fiche (étape 25) : prospect du web, prospect d'affaires, organisation ou compte d'affaires. */
+    crmRecords: (kind: CrmRecordKind, entityId: string) => t.get<CrmRecordsView>(`/admin/crm/${kind}/${id(entityId)}`),
     /** Ventes (phase 1 « entreprise autonome ») : prospects B2B, fiche, import CSV, actions, relances, appels sortants, passes à la demande. */
     salesProspects: (query: Partial<ProspectListQuery> = {}) => t.get<Page<ProspectView>>('/admin/sales/prospects', { query }),
     salesProspect: (prospectId: string) => t.get<ProspectDetailView>(`/admin/sales/prospects/${id(prospectId)}`),

@@ -2,7 +2,7 @@
 
 import { NEOMOOV_BRAND, type MfaEnrollment, type StaffLoginResponse } from '@neomoov/domain';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrandMark, useWebBrand } from '@/components/brand-context';
 import { LanguageSwitch } from '@/components/language-switch';
@@ -48,6 +48,17 @@ export function HubLogin({ language }: { language: Language }) {
   const requested = params.get('next');
   const next = requested && /^\/hub(\/[\w/-]*)?$/.test(requested) ? requested : '/hub';
   const visual: Visual = step.kind === 'password' ? 'login' : step.kind === 'code' ? 'mfa' : step.kind === 'enroll' ? 'enroll' : 'backup';
+  const TABS: Tab[] = ['staff', 'organization'];
+  // Onglets WAI-ARIA : seul l'onglet actif reçoit le focus par Tab ; les flèches, Origine et Fin changent d'onglet.
+  const onTabKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const index = TABS.indexOf(tab);
+    const target = e.key === 'ArrowRight' ? TABS[(index + 1) % TABS.length] : e.key === 'ArrowLeft' ? TABS[(index + TABS.length - 1) % TABS.length] : e.key === 'Home' ? TABS[0] : e.key === 'End' ? TABS[TABS.length - 1] : null;
+    if (!target) return;
+    e.preventDefault();
+    setTab(target);
+    setError(null);
+    document.getElementById(`login-tab-${target}`)?.focus();
+  };
 
   const fail = (e: unknown) => {
     if (!(e instanceof ApiError)) return setError(t('hub.login.errors.generic'));
@@ -148,24 +159,28 @@ export function HubLogin({ language }: { language: Language }) {
             {params.get('expired') === '1' && step.kind === 'password' && !error ? <div className="mb-3"><Notice tone="warning">{t('hub.login.expired')}</Notice></div> : null}
             {step.kind === 'password' ? (
               <div role="tablist" aria-label={t('hub.login.title')} className="mb-4 grid grid-cols-2 gap-1 rounded-md bg-slate-100 p-1">
-                {(['staff', 'organization'] as const).map((v) => (
-                  <button key={v} type="button" role="tab" aria-selected={tab === v} onClick={() => { setTab(v); setError(null); }} className={cx('rounded px-3 py-1.5 text-sm font-semibold', focus, tab === v ? 'bg-white text-brand-night shadow-sm' : 'text-slate-700 hover:bg-white/60')}>
+                {TABS.map((v) => (
+                  <button key={v} id={`login-tab-${v}`} type="button" role="tab" aria-selected={tab === v} aria-controls="login-panel" tabIndex={tab === v ? 0 : -1} onKeyDown={onTabKey} onClick={() => { setTab(v); setError(null); }} className={cx('rounded px-3 py-1.5 text-sm font-semibold', focus, tab === v ? 'bg-white text-brand-night shadow-sm' : 'text-slate-700 hover:bg-white/60')}>
                     {t(`org.login.tabs.${v}`)}
                   </button>
                 ))}
               </div>
             ) : null}
             {step.kind === 'password' && tab === 'organization' ? (
-              <OrgLogin onSignedIn={() => { router.replace(next.startsWith('/hub/organisation') ? next : '/hub/organisation'); router.refresh(); }} />
+              <div id="login-panel" role="tabpanel" aria-labelledby="login-tab-organization">
+                <OrgLogin onSignedIn={() => { router.replace(next.startsWith('/hub/organisation') ? next : '/hub/organisation'); router.refresh(); }} />
+              </div>
             ) : null}
             {step.kind === 'password' && tab === 'staff' ? (
-              <form onSubmit={submitPassword} className="flex flex-col gap-4">
-                {heading(t('hub.login.title'), t('hub.login.subtitle'))}
-                <Field label={t('hub.login.email')}>{(p) => <Input {...p} type="email" name="email" autoComplete="username" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
-                <Field label={t('hub.login.password')}>{(p) => <Input {...p} type="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />}</Field>
-                {error ? <Notice tone="danger">{error}</Notice> : null}
-                <Action type="submit" busy={busy} disabled={busy}>{t('hub.login.submit')}</Action>
-              </form>
+              <div id="login-panel" role="tabpanel" aria-labelledby="login-tab-staff">
+                <form onSubmit={submitPassword} className="flex flex-col gap-4">
+                  {heading(t('hub.login.title'), t('hub.login.subtitle'))}
+                  <Field label={t('hub.login.email')}>{(p) => <Input {...p} type="email" name="email" autoComplete="username" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
+                  <Field label={t('hub.login.password')}>{(p) => <Input {...p} type="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />}</Field>
+                  {error ? <Notice tone="danger">{error}</Notice> : null}
+                  <Action type="submit" busy={busy} disabled={busy}>{t('hub.login.submit')}</Action>
+                </form>
+              </div>
             ) : null}
 
             {step.kind === 'code' ? (
@@ -182,7 +197,7 @@ export function HubLogin({ language }: { language: Language }) {
               <form onSubmit={submitCode} className="flex flex-col gap-4">
                 {heading(t('hub.login.enrollTitle'), t('hub.login.enrollSubtitle'))}
                 {/* SVG produit par l'API (bibliothèque de QR côté serveur), jamais par une saisie. */}
-                <div role="img" aria-label="QR" className="mx-auto w-48 [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: step.enrollment.qrSvg }} />
+                <div role="img" aria-label={t('hub.login.qr')} className="mx-auto w-48 [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: step.enrollment.qrSvg }} />
                 <div>
                   <p className="text-xs font-semibold text-slate-700">{t('hub.login.enrollSecret')}</p>
                   <code className="mt-1 block break-all rounded bg-slate-100 p-2 text-sm" data-testid="totp-secret">{step.enrollment.secret}</code>
@@ -223,7 +238,7 @@ function AuthVisual({ kind }: { kind: Visual }) {
         <p className="font-heading text-2xl font-bold leading-tight lg:text-4xl">{t(`hub.login.visual.${kind}.title`)}</p>
         <p className="mt-1 text-sm text-white/85 lg:mt-2 lg:text-lg">{t(`hub.login.visual.${kind}.subtitle`)}</p>
       </div>
-      <span className="absolute right-3 top-3 rounded bg-black/35 px-1.5 py-0.5 text-[10px] text-white/75">{t('hub.login.visual.caption')}</span>
+      <span className="absolute right-3 top-3 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">{t('hub.login.visual.caption')}</span>
     </aside>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import type { AdminBalance, AdminStatement, OfflinePayout, PlatformFeeSummary, StatementGeneration } from '@neomoov/domain';
+import { STATEMENT_STATUSES, type AdminBalance, type AdminStatement, type OfflinePayout, type PlatformFeeSummary, type StatementGeneration } from '@neomoov/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -103,7 +103,8 @@ export default function StatementsPage() {
       ) : null}
 
       <Card>
-        <ListToolbar filters={list.filters} setQ={list.setQ} />
+        {/* Filtre d'état : « Sans réponse du prestataire » retrouve les relevés à réconcilier (revue du 2 octobre 2026). */}
+        <ListToolbar filters={list.filters} setQ={list.setQ} setStatus={list.setStatus} statuses={STATEMENT_STATUSES.map((v) => ({ value: v, label: t(`enum.statementStatus.${v}`) }))} />
         {list.query.isPending ? <Loading /> : list.query.isError ? <ErrorBlock error={list.query.error} onRetry={() => void list.query.refetch()} /> : (
           <>
             <DataTable caption={t('hub.statements.title')} columns={columns} rows={list.query.data.items} rowKey={(s) => s.id} empty={t('hub.common.empty')} />

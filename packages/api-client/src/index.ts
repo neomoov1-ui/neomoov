@@ -6,8 +6,9 @@
  */
 export { ApiClient, createApiClient } from './client.js';
 export type { ApiClientOptions, HttpMethod, Language, Query, QueryValue, RequestOptions, ResponseTiming, TokenProvider } from './client.js';
-export type { AuditEntryView, AuditFilters, ComplianceCheckView, ComplianceRunReport, FailedJobView, InspectionInput, QueueStatsView, RetentionJobView, StuckRideView } from './admin-resources.js';
+export type { AuditEntryView, AuditFilters, ComplianceCheckView, CrmRecordKind, ComplianceRunReport, FailedJobView, InspectionInput, QueueStatsView, RetentionJobView, StuckRideView } from './admin-resources.js';
 export type { OrgAuditEntryView, SupportAccessDecision } from './org-resources.js';
+export type { SubscriptionUpsertResult } from './platform-billing-resources.js';
 export { ApiError } from './errors.js';
 export { OfflineQueue } from './offline.js';
 export type { EnqueueResult, FlushReport, OfflineStorage, QueuedWrite } from './offline.js';

@@ -6,6 +6,7 @@ import { ledgersResource } from './ledger-resources.js';
 import { marketingResource } from './marketing-resources.js';
 import { socialResource } from './social-resources.js';
 import { memberMfaResource, orgResource, supportAccessResource } from './org-resources.js';
+import { platformBillingResource } from './platform-billing-resources.js';
 import { authResource, configResource, driverResource, meResource, paymentsResource, placesResource, quotesResource, ridesResource } from './resources.js';
 import type { HealthReport } from './types.js';
 
@@ -165,6 +166,8 @@ export class ApiClient {
   readonly marketing = marketingResource(this);
   /** Réseaux sociaux (3 octobre 2026) : comptes connectés dans My Hub, liens publics de la page Contact. */
   readonly social = socialResource(this);
+  /** Facturation de la plateforme (étape 25) : formules, abonnements des organisations, factures, règlement hors plateforme. */
+  readonly platformBilling = platformBillingResource(this);
 
   /** Santé de l'API : base, Redis, files (`GET /v1/health`). */
   readonly health = {

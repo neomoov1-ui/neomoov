@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EnumBadge, ErrorBlock, Loading, useErrorText, useHubUser, useLang } from '@/components/hub/common';
+import { ReconcileDialog } from '@/components/hub/reconcile-dialog';
 import { Action, Card, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, focus, type Column } from '@/components/ui/kit';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 import { FINANCE_ROLES, hubApi } from '@/lib/hub-api';
@@ -123,37 +124,6 @@ export default function StatementDetailPage() {
 }
 
 /** Réconciliation d'un relevé « sans réponse du prestataire » : rejeu avec la même clé, mouvement constaté (référence exigée) ou rien d'exécuté. */
-function ReconcileDialog({ open, busy, error, onClose, onSubmit }: { open: boolean; busy: boolean; error: string | null; onClose: () => void; onSubmit: (body: StatementReconcile) => void }) {
-  const { t } = useTranslation();
-  const [outcome, setOutcome] = useState<StatementReconcile['outcome']>('replay');
-  const [reference, setReference] = useState('');
-  const [note, setNote] = useState('');
-  const needsReference = outcome === 'executed';
-  return (
-    <Dialog open={open} title={t('hub.statements.reconcile')} onClose={onClose}>
-      <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); onSubmit({ outcome, ...(reference.trim() ? { reference: reference.trim() } : {}), ...(note.trim() ? { note: note.trim() } : {}) }); }}>
-        <Notice tone="info">{t('hub.statements.reconcileHint')}</Notice>
-        <Field label={t('hub.statements.reconcileOutcome')}>
-          {(p) => (
-            <Select {...p} value={outcome} onChange={(e) => setOutcome(e.target.value as StatementReconcile['outcome'])}>
-              <option value="replay">{t('hub.statements.outcomeReplay')}</option>
-              <option value="executed">{t('hub.statements.outcomeExecuted')}</option>
-              <option value="not_executed">{t('hub.statements.outcomeNotExecuted')}</option>
-            </Select>
-          )}
-        </Field>
-        <Field label={t('hub.statements.reconcileReference')}>{(p) => <Input {...p} required={needsReference} minLength={2} maxLength={120} value={reference} onChange={(e) => setReference(e.target.value)} />}</Field>
-        <Field label={t('hub.statements.offlineNote')}>{(p) => <Input {...p} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />}</Field>
-        {error ? <Notice tone="danger">{error}</Notice> : null}
-        <div className="flex justify-end gap-2">
-          <Action tone="secondary" onClick={onClose}>{t('hub.common.cancel')}</Action>
-          <Action type="submit" busy={busy} disabled={needsReference && reference.trim().length < 2}>{t('hub.common.confirm')}</Action>
-        </div>
-      </form>
-    </Dialog>
-  );
-}
-
 function OfflineDialog({ open, netCents, busy, error, onClose, onSubmit }: { open: boolean; netCents: number; busy: boolean; error: string | null; onClose: () => void; onSubmit: (body: StatementSettleOffline) => void }) {
   const { t } = useTranslation();
   const lang = useLang();

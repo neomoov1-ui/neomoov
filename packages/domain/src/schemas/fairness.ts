@@ -60,3 +60,20 @@ export const sanctionAppealListQuerySchema = z.object({ status: z.enum(APPEAL_ST
 
 /** Exclusion d'une note du calcul par une personne (réponse du chauffeur admise, cause extérieure établie). */
 export const ratingExclusionSchema = z.object({ reason: z.string().trim().min(3).max(500) });
+
+/**
+ * Note d'un client sur une course du chauffeur, vue dans My Hub pour l'exclure du calcul (Charte d'équité). Sans
+ * l'identité du client : le numéro de la course suffit pour retrouver le contexte.
+ */
+export const adminDriverRatingSchema = z.object({
+  id: uuid,
+  rideId: uuid,
+  ridePublicNumber: z.string(),
+  score: z.number().int().min(1).max(5),
+  tags: z.array(z.string()),
+  comment: z.string().nullable(),
+  createdAt: isoDate,
+  excludedAt: isoDate.nullable(),
+  excludedReason: z.string().nullable(),
+});
+export type AdminDriverRatingView = z.infer<typeof adminDriverRatingSchema>;

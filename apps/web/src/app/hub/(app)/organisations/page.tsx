@@ -8,12 +8,17 @@ import { useTranslation } from 'react-i18next';
 import { ErrorBlock, Loading, useErrorText } from '@/components/hub/common';
 import { Action, Badge, Card, Checkbox, DataTable, Dialog, Field, Input, Notice, PageTitle, Select, cx, focus, type Column } from '@/components/ui/kit';
 import { hubApi } from '@/lib/hub-api';
+import { OrgBillingPanel } from '@/components/hub/org-billing';
+import { OrgBrandPanel } from '@/components/hub/org-brand';
 
 type Permission = { code: string; module: string; description: string; sensitive: boolean; platformOnly: boolean };
+/** Onglets d'une organisation : la marque et l'abonnement ne concernent que les organisations clientes (pas la racine). */
+type Tab = 'members' | 'roles' | 'brand' | 'billing';
 
 /**
  * Organisations et accès (étape 19) : arbre des organisations, membres et invitations à usage unique, rôles système et
- * personnalisés. L'API refuse toute permission que la personne connectée ne détient pas (pas d'escalade).
+ * personnalisés ; marque et domaines (étape 22) et abonnement à la plateforme (étape 25) d'une organisation cliente.
+ * L'API refuse toute permission que la personne connectée ne détient pas (pas d'escalade).
  */
 export default function OrganizationsPage() {
   const { t } = useTranslation();
@@ -21,11 +26,12 @@ export default function OrganizationsPage() {
   const queryClient = useQueryClient();
   const orgs = useQuery({ queryKey: ['hub', 'orgs'], queryFn: () => hubApi.admin.organizations() });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tab, setTab] = useState<'members' | 'roles'>('members');
+  const [tab, setTab] = useState<Tab>('members');
   const [creating, setCreating] = useState(false);
   const root = orgs.data?.find((o) => o.parentId === null) ?? null;
   const selected = orgs.data?.find((o) => o.id === (selectedId ?? root?.id)) ?? null;
   const depth = (o: OrganizationView) => o.path.split('/').filter(Boolean).length - 1;
+  const client = selected !== null && selected.parentId !== null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -46,12 +52,14 @@ export default function OrganizationsPage() {
           </Card>
           {selected ? (
             <Card title={selected.name} actions={(
-              <div className="flex gap-2">
-                <Action tone={tab === 'members' ? 'primary' : 'secondary'} onClick={() => setTab('members')}>{t('hub.orgs.members')}</Action>
-                <Action tone={tab === 'roles' ? 'primary' : 'secondary'} onClick={() => setTab('roles')}>{t('hub.orgs.roles')}</Action>
+              <div className="flex flex-wrap gap-2">
+                <Action tone={tab === 'members' ? 'primary' : 'secondary'} aria-pressed={tab === 'members'} onClick={() => setTab('members')}>{t('hub.orgs.members')}</Action>
+                <Action tone={tab === 'roles' ? 'primary' : 'secondary'} aria-pressed={tab === 'roles'} onClick={() => setTab('roles')}>{t('hub.orgs.roles')}</Action>
+                {client ? <Action tone={tab === 'brand' ? 'primary' : 'secondary'} aria-pressed={tab === 'brand'} onClick={() => setTab('brand')}>{t('hub.brand.tab')}</Action> : null}
+                {client ? <Action tone={tab === 'billing' ? 'primary' : 'secondary'} aria-pressed={tab === 'billing'} onClick={() => setTab('billing')}>{t('hub.billing.tab')}</Action> : null}
               </div>
             )}>
-              {tab === 'members' ? <Members org={selected} /> : <Roles org={selected} />}
+              {tab === 'roles' ? <Roles org={selected} /> : tab === 'brand' && client ? <OrgBrandPanel key={selected.id} org={selected} /> : tab === 'billing' && client ? <OrgBillingPanel key={selected.id} org={selected} /> : <Members org={selected} />}
             </Card>
           ) : null}
         </div>

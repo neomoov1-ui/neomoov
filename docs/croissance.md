@@ -48,4 +48,4 @@ Règles en données (`promotions`) : type `percent`, `fixed`, `free_ride` ou `nt
 
 - Étape 9 : compensation des promotions, crédits de pack et tarifs protégés sur le relevé hebdomadaire.
 - Étape 13 : envoi réel des avis (`pack.low`, `pack.renewed`, `pack.expired`, `pack.renewal_failed`) ; avis de parrainage.
-- Écrans clients : faits le 3 octobre 2026 (finalisation U4) dans l'application client : code promo à l'écran des prix (`options.promoCode` du devis, motif du refus traduit), parrainage dans le profil (code, partage, saisie du code d'un parrain), « Mes chauffeurs » (réserver avec un favori, retirer ; ajout proposé après une course notée). La réservation web et My Hub n'ont pas encore la saisie du code promo.
+- Écrans clients : faits le 3 octobre 2026 (finalisation U4) dans l'application client : code promo à l'écran des prix (`options.promoCode` du devis, motif du refus traduit), parrainage dans le profil (code, partage, saisie du code d'un parrain), « Mes chauffeurs » (réserver avec un favori, retirer ; ajout proposé après une course notée). La réservation web a le code promo et le code de parrainage depuis la finalisation U1.

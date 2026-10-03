@@ -23,6 +23,12 @@ const fr = {
     groups: { activity: 'Activité', team: 'Équipe et accès', admin: 'Administration' },
     dashboard: 'Tableau de bord', rides: 'Courses', drivers: 'Chauffeurs', vehicles: 'Véhicules', statements: 'Relevés', members: 'Membres', roles: 'Rôles',
     organizations: 'Sous-organisations', audit: 'Journal', support: 'Accès du support', security: 'Sécurité du compte',
+    newRide: 'Nouvelle course',
+  },
+  newRide: {
+    title: 'Nouvelle course',
+    subtitle: 'Course reçue par téléphone ou au comptoir : prix garanti du devis, paiement au chauffeur. Elle est proposée d\'abord aux chauffeurs de l\'organisation.',
+    guestOnly: 'Le client est enregistré par une fiche minimale (nom, téléphone, langue) : les comptes clients de la plateforme ne sont pas consultables depuis une organisation.',
   },
   dashboard: {
     title: 'Tableau de bord', ridesToday: 'Courses du jour', ridesActive: 'Courses en cours', completedToday: 'Terminées aujourd\'hui', revenueToday: 'Montant du jour',
@@ -84,6 +90,12 @@ const en: typeof fr = {
     groups: { activity: 'Activity', team: 'Team and access', admin: 'Administration' },
     dashboard: 'Dashboard', rides: 'Rides', drivers: 'Drivers', vehicles: 'Vehicles', statements: 'Statements', members: 'Members', roles: 'Roles',
     organizations: 'Sub-organizations', audit: 'Log', support: 'Support access', security: 'Account security',
+    newRide: 'New ride',
+  },
+  newRide: {
+    title: 'New ride',
+    subtitle: 'Ride taken by phone or at the counter: guaranteed price from the quote, paid to the driver. It is offered first to the organization\'s drivers.',
+    guestOnly: 'The customer is recorded with a minimal profile (name, phone, language): platform customer accounts cannot be browsed from an organization.',
   },
   dashboard: {
     title: 'Dashboard', ridesToday: 'Rides today', ridesActive: 'Rides in progress', completedToday: 'Completed today', revenueToday: 'Today\'s amount',

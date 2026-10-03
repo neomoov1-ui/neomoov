@@ -43,7 +43,7 @@ function nmbp_rest_analyse($req){
     $r=wp_remote_post('https://api.anthropic.com/v1/messages',array('timeout'=>90,'redirection'=>0,'limit_response_size'=>524288,'headers'=>array('x-api-key'=>nmbp_ai_key(),'anthropic-version'=>'2023-06-01','content-type'=>'application/json'),'body'=>wp_json_encode(array('model'=>nmbp_ai_model(),'max_tokens'=>1500,'temperature'=>0,'system'=>nmbp_system(),'messages'=>array(array('role'=>'user','content'=>$parts))))));
     if(is_wp_error($r))return $out('UPSTREAM','Service d’analyse injoignable ; remplissez le rapport à la main.',502);
     $http=(int)wp_remote_retrieve_response_code($r);$d=json_decode((string)wp_remote_retrieve_body($r),true);
-    if($http!==200||!is_array($d))return $out('UPSTREAM','Analyse refusée par le service ('.$http.') ; remplissez le rapport à la main.',502);
+    if($http!==200||!is_array($d)){$det=current_user_can('manage_options')&&is_array($d)&&is_array($d['error']??null)?' Détail pour l’administrateur : '.nmbp_txt($d['error']['type']??'',40).', '.nmbp_txt($d['error']['message']??'',240):'';return $out('UPSTREAM','Analyse refusée par le service ('.$http.') ; remplissez le rapport à la main.'.$det,502);}
     $text='';foreach((array)($d['content']??array()) as $c)if(is_array($c)&&($c['type']??'')==='text')$text.=(string)($c['text']??'');
     $json=nmbp_extract_json($text);if(!$json)return $out('PARSE','Réponse d’analyse illisible ; réessayez avec des photos plus nettes.',502);
     $q['n']=(int)$q['n']+1;update_user_meta($uid,'nmbp_quota',$q);

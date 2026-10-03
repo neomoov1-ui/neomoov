@@ -179,7 +179,7 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'company.address', value: 'Montréal (Québec)', description: 'Adresse de Neomoov sur les factures, à confirmer' },
   { key: 'company.gst_number', value: '', description: 'Numéro de TPS de Neomoov (vide tant que non fourni)' },
   { key: 'company.qst_number', value: '', description: 'Numéro de TVQ de Neomoov (vide tant que non fourni)' },
-  { key: 'invoices.legal_notice', value: 'Le transport est fourni et facturé par le chauffeur indiqué ; les frais de service et la redevance sont facturés par Neomoov. Contenu à confirmer avec le fournisseur du SEV certifié et le comptable.', description: '5.13 : mention légale des factures' },
+  { key: 'invoices.legal_notice', value: 'Le transport est fourni et facturé par le chauffeur indiqué ; les frais de service et la redevance sont facturés par Neomoov.', description: '5.13 : mention légale des factures (texte à confirmer avec le fournisseur du SEV certifié et le comptable)' },
   { key: 'invoices.verification_base_url', value: 'https://neomoov.net/verifier-facture', description: 'Adresse de vérification publique d\'une facture (code QR)' },
   { key: 'invoices.catchup_days', value: 2, description: 'Reprise des factures manquantes (événement perdu) : courses terminées depuis moins de 2 jours' },
   { key: 'sev.retry_delay_seconds', value: 60, description: 'Délai avant de reprendre une transmission au SEV en attente' },
