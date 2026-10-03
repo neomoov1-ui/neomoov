@@ -147,6 +147,18 @@ export class DriverGateway implements OnGatewayInit, OnGatewayConnection {
       return fail(error);
     }
   }
+
+  /**
+   * Fin du suivi d'une course à l'écran (revue du 2 octobre 2026, constat mobile 24) : le socket quitte la salle de la
+   * course, plus aucun message de cette course ne lui parvient ; les événements adressés au chauffeur (salle `driver:`)
+   * continuent d'arriver.
+   */
+  @SubscribeMessage('ride.unsubscribe')
+  async unsubscribe(@ConnectedSocket() socket: Socket, @MessageBody() body: { rideId?: string }): Promise<Ack> {
+    if (!data(socket).driverId) return unauthenticated;
+    if (typeof body?.rideId === 'string') await socket.leave(`ride:${body.rideId}`);
+    return { ok: true };
+  }
 }
 
 @WebSocketGateway({ namespace: '/admin' })

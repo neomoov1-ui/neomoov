@@ -58,6 +58,16 @@ export function offerDeadline(offer: { sentAt: string; expiresAt: string }, cloc
   return expiresAt;
 }
 
+/**
+ * Offre suivante de la file (revue du 2 octobre 2026, constat mobile 23) : un seul écran d'offre à la fois ; quand
+ * l'offre affichée est déclinée ou expire, la plus ancienne offre encore valable s'affiche à sa place, sinon aucune.
+ * `deadlineOf` : échéance à l'heure du téléphone (`offerDeadlineOf`).
+ */
+export function nextOffer<O extends { id: string; sentAt: string }>(offers: readonly O[], currentId: string, deadlineOf: (offer: O) => number, now: number): O | null {
+  const live = offers.filter((o) => o.id !== currentId && deadlineOf(o) - now > 1000);
+  return [...live].sort((a, b) => a.sentAt.localeCompare(b.sentAt))[0] ?? null;
+}
+
 /** Attente sur place depuis l'arrivée (compteur affiché), en secondes. */
 export function waitedSeconds(arrivedAt: string | undefined, now: number): number {
   if (!arrivedAt) return 0;

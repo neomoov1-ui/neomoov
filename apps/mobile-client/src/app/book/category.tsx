@@ -131,7 +131,7 @@ export default function CategoryScreen() {
       {draft.stops.map((stop, index) => (
         <View key={`${stop.address}-${index}`} style={styles.stop}>
           <Text style={styles.stopText}>{`${t('category.stopLabel', { n: index + 1 })} · ${stop.address}`}</Text>
-          <Pressable accessibilityRole="button" onPress={() => void requote({ stops: draft.stops.filter((_, i) => i !== index) })} hitSlop={8}>
+          <Pressable accessibilityRole="button" onPress={() => void requote({ stops: draft.stops.filter((_, i) => i !== index) })} style={styles.target}>
             <Text style={styles.link}>{t('category.removeStop')}</Text>
           </Pressable>
         </View>
@@ -149,7 +149,7 @@ export default function CategoryScreen() {
           }}
         />
       ) : draft.stops.length < MAX_QUOTE_STOPS ? (
-        <Pressable accessibilityRole="button" onPress={() => setAddingStop(true)}>
+        <Pressable accessibilityRole="button" onPress={() => setAddingStop(true)} style={styles.target}>
           <Text style={styles.link}>{t('category.addStop')}</Text>
         </Pressable>
       ) : (
@@ -207,6 +207,8 @@ function VehicleOption({ vehicle, label, selected, onPress }: { vehicle?: Availa
 const styles = StyleSheet.create({
   cards: { gap: spacing.sm },
   promoButtons: { flexDirection: 'row', gap: spacing.sm },
+  // Cible de 44 points pour les liens texte (constat mobile 19).
+  target: { minHeight: 44, justifyContent: 'center' },
   flex: { flex: 1 },
   hint: { fontSize: typography.sizes.xs, color: colors.muted },
   link: { color: colors.blueDark, fontWeight: '700', paddingVertical: spacing.xs },

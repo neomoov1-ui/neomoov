@@ -3,7 +3,7 @@ import { withLanguage } from '@neomoov/mobile-core/format';
 import { describe, expect, it } from 'vitest';
 import { aimArrow, BODY_ZONE_SHAPES, CAR_OUTLINE, GUIDE_VIEWBOX, insideCar, PHOTO_VIEWPOINTS, toggleZone, viewBoxOf, ZONE_READING_ORDER } from '../src/features/booster/diagram';
 import { fleetInvitationError, fleetInvitationToken, isFleetInvitationToken } from '../src/features/fleet/invitation';
-import { canDriverCancel } from '../src/features/ride/steps';
+import { canDriverCancel, nextOffer } from '../src/features/ride/steps';
 
 describe('invitation de flotte (étape 23)', () => {
   const token = 'drv_AbC123xyz_-0987654321';
@@ -38,6 +38,19 @@ describe('annulation par le chauffeur (revue du 2 octobre 2026 B)', () => {
     expect(canDriverCancel('arrived', true)).toBe(true);
     expect(canDriverCancel('in_progress', true)).toBe(false);
     expect(canDriverCancel('completed', true)).toBe(false);
+  });
+});
+
+describe('offres multiples (constat mobile 23)', () => {
+  it('un seul écran : l\'offre suivante est la plus ancienne encore valable, jamais celle affichée', () => {
+    const now = Date.parse('2026-10-03T12:00:00Z');
+    const offer = (id: string, sentAt: string, deadline: number) => ({ id, sentAt, deadline });
+    const queue = [offer('b', '2026-10-03T11:59:58Z', now + 9000), offer('a', '2026-10-03T11:59:50Z', now + 4000), offer('c', '2026-10-03T11:59:40Z', now + 500)];
+    const deadlineOf = (o: { deadline: number }) => o.deadline;
+    expect(nextOffer(queue, 'x', deadlineOf, now)?.id).toBe('a');
+    expect(nextOffer(queue, 'a', deadlineOf, now)?.id).toBe('b');
+    expect(nextOffer([queue[2]!], 'x', deadlineOf, now)).toBeNull();
+    expect(nextOffer([], 'x', deadlineOf, now)).toBeNull();
   });
 });
 

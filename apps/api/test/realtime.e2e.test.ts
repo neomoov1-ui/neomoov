@@ -154,6 +154,22 @@ describe('temps réel Socket.IO (intégration)', () => {
 
     const badLocation = await emitAck<{ ok: boolean; code?: string }>(driverSocket, 'location.update', { coordinates: { lat: 95, lng: 0 } });
     expect(badLocation).toMatchObject({ ok: false, code: 'VALIDATION_ERROR' });
+
+    // Constat mobile 24 : le chauffeur quitte l'écran de la course, le socket quitte la salle ; le client reçoit toujours.
+    expect(await emitAck<{ ok: boolean }>(driverSocket, 'ride.unsubscribe', { rideId: ride.id })).toEqual({ ok: true });
+    const driverGotMessage = new Promise<boolean>((resolve) => {
+      driverSocket.once('message.received', () => resolve(true));
+      setTimeout(() => resolve(false), 1500);
+    });
+    const clientGotMessage = waitFor<{ body: string }>(clientSocket, 'message.received');
+    await request(server()).post(`/v1/rides/${ride.id}/messages`).set(bearer(client)).send({ body: 'Je suis devant la porte' }).expect(201);
+    expect((await clientGotMessage).body).toBe('Je suis devant la porte');
+    expect(await driverGotMessage).toBe(false);
+    // Nouvel abonnement : les messages de la course reviennent.
+    expect((await emitAck<{ ok: boolean }>(driverSocket, 'ride.subscribe', { rideId: ride.id })).ok).toBe(true);
+    const driverMessageAgain = waitFor<{ body: string }>(driverSocket, 'message.received');
+    await request(server()).post(`/v1/rides/${ride.id}/messages`).set(bearer(client)).send({ body: 'Merci' }).expect(201);
+    expect((await driverMessageAgain).body).toBe('Merci');
   });
 
   it('charge légère : plusieurs chauffeurs envoient des positions en continu sans perte', { timeout: 180_000 }, async ({ skip }) => {

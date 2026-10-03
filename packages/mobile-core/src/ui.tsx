@@ -93,6 +93,19 @@ export function Choices<T extends string | number>({ options, value, onChange, l
   );
 }
 
+/**
+ * Pastille à cocher (étiquettes d'une évaluation…) : case à cocher pour les lecteurs d'écran, et non bouton radio
+ * (revue du 2 octobre 2026, constat mobile 19) ; cible de 44 points.
+ */
+export function ToggleChip({ label, checked, onToggle }: { label: string; checked: boolean; onToggle: () => void }) {
+  const brand = useBrandColors();
+  return (
+    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onToggle} style={[styles.chip, checked && { backgroundColor: brand.blue, borderColor: brand.blue }]}>
+      <Text style={[styles.chipText, checked && styles.chipTextSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 /** Interrupteur avec son libellé et une aide facultative : toute la ligne se touche (cible large, un seul élément accessible). */
 export function ToggleRow({ label, hint, value, onChange, testID }: { label: string; hint?: string; value: boolean; onChange: (value: boolean) => void; testID?: string }) {
   const brand = useBrandColors();

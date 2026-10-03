@@ -20,7 +20,7 @@ export function PriceBreakdown({ quote, paymentChoice = null, initiallyOpen = fa
   const creditsWithheld = paymentChoice === 'pay_driver_after' && quote.creditsPrepaidOnly && quote.creditsAppliedCents > 0;
   return (
     <View style={styles.box}>
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((v) => !v)} hitSlop={8}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((v) => !v)} style={styles.target}>
         <Text style={styles.toggle}>{open ? t('category.hideDetails') : t('category.showDetails')}</Text>
       </Pressable>
       {open ? (
@@ -41,6 +41,7 @@ const styles = StyleSheet.create({
   box: { gap: spacing.xs },
   toggle: { color: colors.blueDark, fontWeight: '700', paddingVertical: spacing.xs },
   lines: { gap: 2 },
+  target: { minHeight: 44, justifyContent: 'center' },
   note: { color: colors.muted, fontSize: typography.sizes.xs },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: spacing.xs },
 });
