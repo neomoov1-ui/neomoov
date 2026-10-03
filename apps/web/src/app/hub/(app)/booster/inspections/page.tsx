@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AnalysisBadge, analysisRefetchInterval, PendingAnalysisNotice } from '@/components/hub/booster-analysis';
 import { ErrorBlock, Loading, pageLabels, useLang } from '@/components/hub/common';
 import { Action, Badge, Card, Checkbox, DataTable, Field, Input, Notice, PageTitle, Pagination, focus, type Column } from '@/components/ui/kit';
 import { formatDateTime } from '@/lib/format';
@@ -17,6 +18,7 @@ const SEVERITY_TONE = { ok: 'success', minor: 'warning', major: 'danger' } as co
 /**
  * Neomoov Booster (phase 1, agent G) : rapports de vérification sommaire par chauffeur et par jour (filtre : gravité
  * majeure), chauffeurs en ligne sans rapport du jour, export CSV. Le détail (photos, PDF) est sur la page du rapport.
+ * Tant qu'une analyse de la page est en cours (file `agents`), la liste se relit d'elle-même.
  */
 export default function InspectionsPage() {
   const { t } = useTranslation();
@@ -27,7 +29,12 @@ export default function InspectionsPage() {
   const [majorOnly, setMajorOnly] = useState(false);
   const [page, setPage] = useState(1);
   const query = { page, pageSize: PAGE_SIZE, majorOnly, ...(driverId.trim() ? { driverId: driverId.trim() } : {}), ...(date ? { date } : {}) };
-  const list = useQuery({ queryKey: ['hub', 'booster-inspections', query], queryFn: () => hubApi.admin.boosterInspections(query), placeholderData: keepPreviousData });
+  const list = useQuery({
+    queryKey: ['hub', 'booster-inspections', query],
+    queryFn: () => hubApi.admin.boosterInspections(query),
+    placeholderData: keepPreviousData,
+    refetchInterval: (q) => analysisRefetchInterval(q.state.data?.items.map((i) => i.analysis.status)),
+  });
   const missing = useQuery({ queryKey: ['hub', 'booster-missing'], queryFn: () => hubApi.admin.boosterMissingToday(), refetchInterval: 60_000 });
   const columns: Column<AdminInspectionView>[] = [
     { key: 'date', header: t('hub.booster.date'), cell: (i) => <Link href={`/hub/booster/inspections/${i.id}`} className={`text-brand-blue-dark underline ${focus}`}>{formatDateTime(i.inspectedAt, lang)}</Link> },
@@ -36,6 +43,7 @@ export default function InspectionsPage() {
     { key: 'odometer', header: t('hub.booster.odometer'), className: 'text-right', cell: (i) => (i.odometerKm !== null ? `${i.odometerKm.toLocaleString(lang)} km` : '') },
     { key: 'severity', header: t('hub.booster.severity'), cell: (i) => <Badge tone={SEVERITY_TONE[i.severity]}>{t(`hub.booster.severities.${i.severity}`)}</Badge> },
     { key: 'status', header: t('hub.booster.status'), cell: (i) => t(`hub.booster.statuses.${i.status}`) },
+    { key: 'analysis', header: t('hub.booster.analysis'), cell: (i) => <AnalysisBadge status={i.analysis.status} /> },
     { key: 'photos', header: t('hub.booster.photos'), className: 'text-right', cell: (i) => i.photos.length },
     { key: 'archived', header: t('hub.booster.archivedAt'), cell: (i) => (i.archivedAt ? formatDateTime(i.archivedAt, lang) : '') },
   ];
@@ -66,6 +74,7 @@ export default function InspectionsPage() {
       >
         {list.isPending ? <Loading /> : list.isError ? <ErrorBlock error={list.error} onRetry={() => void list.refetch()} /> : (
           <>
+            <PendingAnalysisNotice count={list.data.items.filter((i) => i.analysis.status === 'pending').length} />
             <DataTable caption={t('hub.booster.inspectionsTitle')} columns={columns} rows={list.data.items} rowKey={(i) => i.id} empty={t('hub.common.empty')} />
             <Pagination page={page} pageSize={PAGE_SIZE} total={list.data.total} onPage={setPage} labels={pageLabels(t, page, PAGE_SIZE, list.data.total)} />
           </>

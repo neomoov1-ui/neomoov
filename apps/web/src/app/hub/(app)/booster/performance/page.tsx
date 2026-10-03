@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AnalysisBadge, analysisRefetchInterval, PendingAnalysisNotice } from '@/components/hub/booster-analysis';
 import { ErrorBlock, Loading, pageLabels, useLang } from '@/components/hub/common';
 import { Action, Card, DataTable, Field, Input, Notice, PageTitle, Pagination, Select, Stat, focus, type Column } from '@/components/ui/kit';
 import { formatDate, formatMoney } from '@/lib/format';
@@ -13,7 +14,10 @@ import { hubApi } from '@/lib/hub-api';
 
 const PAGE_SIZE = 25;
 
-/** Neomoov Booster (phase 1, agent G) : rapports de performance des chauffeurs (liste, PDF) et récapitulatif par chauffeur. */
+/**
+ * Neomoov Booster (phase 1, agent G) : rapports de performance des chauffeurs (liste, PDF) et récapitulatif par chauffeur.
+ * Tant qu'une lecture des captures de la page est en cours (file `agents`), la liste se relit d'elle-même.
+ */
 export default function PerformancePage() {
   const { t } = useTranslation();
   const lang = useLang();
@@ -23,7 +27,12 @@ export default function PerformancePage() {
   const [period, setPeriod] = useState<'week' | 'month'>('week');
   const [date, setDate] = useState('');
   const trimmed = driverId.trim();
-  const list = useQuery({ queryKey: ['hub', 'booster-performance', trimmed, page], queryFn: () => hubApi.admin.boosterPerformanceLogs({ page, pageSize: PAGE_SIZE, ...(trimmed ? { driverId: trimmed } : {}) }), placeholderData: keepPreviousData });
+  const list = useQuery({
+    queryKey: ['hub', 'booster-performance', trimmed, page],
+    queryFn: () => hubApi.admin.boosterPerformanceLogs({ page, pageSize: PAGE_SIZE, ...(trimmed ? { driverId: trimmed } : {}) }),
+    placeholderData: keepPreviousData,
+    refetchInterval: (q) => analysisRefetchInterval(q.state.data?.items.map((l) => l.reading.status)),
+  });
   const recap = useQuery({ queryKey: ['hub', 'booster-recap', trimmed, period, date], queryFn: () => hubApi.admin.boosterPerformanceRecap({ driverId: trimmed, period, ...(date ? { date } : {}) }), enabled: trimmed.length === 36 });
   const money = (cents: number | null) => (cents === null ? '' : formatMoney(cents, lang));
   const columns: Column<AdminPerformanceLogView>[] = [
@@ -31,6 +40,7 @@ export default function PerformancePage() {
     { key: 'driver', header: t('hub.booster.driver'), cell: (l) => <Link href={`/hub/chauffeurs/${l.driverId}`} className={`underline ${focus}`}>{l.driverFullName ?? l.driverPublicNumber} · {l.driverPublicNumber}</Link> },
     { key: 'status', header: t('hub.booster.status'), cell: (l) => t(`hub.booster.statuses.${l.status}`) },
     { key: 'source', header: t('hub.booster.source'), cell: (l) => t(`hub.booster.sources.${l.source}`) },
+    { key: 'reading', header: t('hub.booster.reading'), cell: (l) => <AnalysisBadge status={l.reading.status} /> },
     { key: 'minutes', header: t('hub.booster.minutes'), className: 'text-right', cell: (l) => l.summary.basisMinutes ?? '' },
     { key: 'km', header: t('hub.booster.km'), className: 'text-right', cell: (l) => l.summary.distanceKm ?? '' },
     { key: 'rides', header: t('hub.booster.rides'), className: 'text-right', cell: (l) => l.ridesCount ?? '' },
@@ -63,6 +73,7 @@ export default function PerformancePage() {
       <Card title={t('hub.booster.performance')}>
         {list.isPending ? <Loading /> : list.isError ? <ErrorBlock error={list.error} onRetry={() => void list.refetch()} /> : (
           <>
+            <PendingAnalysisNotice count={list.data.items.filter((l) => l.reading.status === 'pending').length} />
             <DataTable caption={t('hub.booster.performanceTitle')} columns={columns} rows={list.data.items} rowKey={(l) => l.id} empty={t('hub.common.empty')} />
             <Pagination page={page} pageSize={PAGE_SIZE} total={list.data.total} onPage={setPage} labels={pageLabels(t, page, PAGE_SIZE, list.data.total)} />
           </>

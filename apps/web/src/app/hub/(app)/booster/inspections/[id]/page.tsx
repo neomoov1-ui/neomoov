@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { analysisRefetchInterval, InspectionAnalysisText } from '@/components/hub/booster-analysis';
 import { ErrorBlock, Loading, useLang } from '@/components/hub/common';
 import { Badge, Card, DataTable, Notice, PageTitle, focus, type Column } from '@/components/ui/kit';
 import { formatDateTime } from '@/lib/format';
@@ -38,13 +39,20 @@ function PrivateImage({ src, alt }: { src: string; alt: string }) {
   return <img src={url} alt={alt} className="h-40 w-full rounded-md object-cover" />;
 }
 
-/** Détail d'un rapport de vérification sommaire : identification, éléments de l'article 65, zones, analyse, photos, PDF. */
+/**
+ * Détail d'un rapport de vérification sommaire : identification, éléments de l'article 65, zones, analyse, photos, PDF.
+ * Analyse en cours (file `agents`) : le rapport se relit de lui-même jusqu'au résultat.
+ */
 export default function InspectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const lang = useLang();
   const labelLang = i18n.language === 'en' ? 'en' : 'fr';
-  const detail = useQuery({ queryKey: ['hub', 'booster-inspection', id], queryFn: () => hubApi.admin.boosterInspection(id) });
+  const detail = useQuery({
+    queryKey: ['hub', 'booster-inspection', id],
+    queryFn: () => hubApi.admin.boosterInspection(id),
+    refetchInterval: (q) => analysisRefetchInterval(q.state.data ? [q.state.data.analysis.status] : undefined),
+  });
   if (detail.isPending) return <Loading />;
   if (detail.isError) return <ErrorBlock error={detail.error} onRetry={() => void detail.refetch()} />;
   const r: AdminInspectionView = detail.data;
@@ -96,10 +104,7 @@ export default function InspectionDetailPage() {
           <h3 className="mt-4 text-sm font-semibold">{t('hub.booster.notes')}</h3>
           <p className="whitespace-pre-wrap text-sm text-slate-700">{r.notes ?? t('hub.booster.none')}</p>
           <h3 className="mt-4 text-sm font-semibold">{t('hub.booster.analysis')}</h3>
-          <p className="text-sm text-slate-700">
-            {r.analysis.status === 'done' ? t('hub.booster.analysisDone', { percent: Math.round((r.analysis.confidence ?? 0) * 100) }) : r.analysis.status === 'failed' ? t('hub.booster.analysisFailed') : t('hub.booster.analysisNone')}
-            {r.analysis.summary ? <><br />{r.analysis.summary}</> : null}
-          </p>
+          <InspectionAnalysisText analysis={r.analysis} />
         </Card>
       </div>
       <Card title={t('hub.booster.items')}>
