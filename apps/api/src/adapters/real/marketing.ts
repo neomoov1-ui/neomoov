@@ -29,6 +29,9 @@ export const SPACE_VARIABLES: Readonly<Record<ContentSpace, readonly string[]>> 
   x: ['X_API_KEY', 'X_API_SECRET', 'X_ACCESS_TOKEN', 'X_ACCESS_SECRET'],
   snapchat: ['SNAPCHAT_ACCESS_TOKEN', 'SNAPCHAT_PROFILE_ID'],
   newsletter: ['BREVO_API_KEY', 'BREVO_NEWSLETTER_LIST_ID', 'BREVO_SENDER_EMAIL'],
+  telegram: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHANNEL_ID'],
+  // Chaîne WhatsApp : aucune API de publication, relais manuel depuis My Hub (vue « À relayer »).
+  whatsapp_channel: [],
 };
 
 const notConfigured = (what: string, variables: readonly string[]) =>

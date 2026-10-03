@@ -11,8 +11,8 @@ const OPTIONS = { allowedPrices: ['48,20 $', '113,83 $'], ctaUrls: { reserve: 'h
 const draft = (over: Partial<ContentDraft> = {}): ContentDraft => ({ space: 'facebook', format: 'post', language: 'fr', title: null, body: 'Réservez votre transfert vers l\'aéroport au prix tout compris, affiché avant de confirmer.', caption: null, hashtags: ['#Montréal'], cta: 'reserve', ...over });
 
 describe('marketing : espaces, formats et texte composé', () => {
-  it('onze espaces avec leurs règles ; formats vidéo ; mots-clics normalisés', () => {
-    expect(CONTENT_SPACES).toHaveLength(11);
+  it('treize espaces avec leurs règles (Telegram et chaîne WhatsApp ajoutés) ; formats vidéo ; mots-clics normalisés', () => {
+    expect(CONTENT_SPACES).toHaveLength(13);
     for (const space of CONTENT_SPACES) expect(spaceRule(space).formats.length).toBeGreaterThan(0);
     expect(isVideoFormat('reel')).toBe(true);
     expect(isVideoFormat('post')).toBe(false);

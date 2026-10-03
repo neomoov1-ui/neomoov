@@ -65,3 +65,5 @@ export * from './schemas/sales.js';
 // Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : espaces, règles des contenus, calendrier, commentaires, référencement, et schémas de l'API.
 export * from './marketing/index.js';
 export * from './schemas/marketing.js';
+// Publication multiréseau (3 octobre 2026) : composer, lot importé, variantes d'image par réseau, relais manuel.
+export * from './schemas/publications.js';

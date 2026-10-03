@@ -156,10 +156,11 @@ export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
  */
 export const CONVERSATION_KINDS = ['message', 'comment', 'missed_call', 'voicemail', 'automated'] as const;
 export type ConversationKind = (typeof CONVERSATION_KINDS)[number];
-/** Réseaux sociaux de la boîte unifiée : Meta par connecteur (Messenger, Facebook, Instagram), les autres par relais humain. */
-export const SOCIAL_NETWORKS = ['messenger', 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat'] as const;
+/** Réseaux sociaux de la boîte unifiée : Meta par connecteur (Messenger, Facebook, Instagram), les autres par relais humain
+ * (Telegram ajouté le 3 octobre 2026 : commentaires du groupe de discussion lié au canal). */
+export const SOCIAL_NETWORKS = ['messenger', 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat', 'telegram'] as const;
 export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
-export const RELAY_NETWORKS: readonly SocialNetwork[] = ['youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat'];
+export const RELAY_NETWORKS: readonly SocialNetwork[] = ['youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat', 'telegram'];
 export function isRelayNetwork(network: string | null | undefined): boolean {
   return (RELAY_NETWORKS as readonly string[]).includes(network ?? '');
 }
