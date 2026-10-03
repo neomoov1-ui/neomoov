@@ -155,7 +155,8 @@ export class ScheduledService {
       JOIN LATERAL (SELECT max(e.occurred_at) AS at FROM ride_events e WHERE e.ride_id = r.id AND e.type = 'scheduled_dispatch_due') due ON due.at IS NOT NULL
       WHERE r.type = 'scheduled' AND r.state IN ('requested', 'offering') AND r.driver_id IS NULL AND r.requested_at > ${at}::timestamptz
         AND due.at < ${at}::timestamptz - make_interval(secs => ${grace})
-        AND NOT EXISTS (SELECT 1 FROM ride_events s WHERE s.ride_id = r.id AND s.type = 'dispatch_started' AND s.occurred_at >= due.at)
+        -- Marge du délai de grâce : la marque est datée par l'horloge du worker, le démarrage par celle de la base.
+        AND NOT EXISTS (SELECT 1 FROM ride_events s WHERE s.ride_id = r.id AND s.type = 'dispatch_started' AND s.occurred_at >= due.at - make_interval(secs => ${grace}))
       ORDER BY r.requested_at ASC
       LIMIT ${limit}`);
     return [...rows].map((r) => r.id);
