@@ -40,6 +40,7 @@ import { QueueService } from '../../infra/queue.module.js';
 import { REDIS } from '../../infra/redis.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { UserActor } from '../auth/actor.js';
+import { PaymentsService } from '../payments/payments.service.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { ZonesService } from '../pricing/zones.service.js';
 import { DISPATCH_QUEUE, DISPATCH_START_JOB, type DispatchStartJob } from './dispatch-job.js';
@@ -201,6 +202,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     private readonly context: RideContextService,
     private readonly pilot: PilotHook,
     private readonly queues: QueueService,
+    private readonly payments: PaymentsService,
   ) {}
 
   private get db() {
@@ -1230,6 +1232,9 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       if (agreed.explicitConsentRequired) {
         if (!this.env.FEATURE_NEGOTIATION_ABOVE_MAX) throw AppError.conflict('ABOVE_MAX_DISABLED', 'Une offre au-dessus du prix affiché ne peut pas être acceptée');
         if (!consentText) throw new AppError('CONSENT_TEXT_REQUIRED', 'L\'acceptation écrite du nouveau prix maximal est requise', 400, { totalCents: agreed.totalCents });
+        // Revue du 2 octobre 2026 (constat métier 13) : l'autorisation bancaire est portée au nouveau plafond avant tout
+        // changement ; un refus de la banque refuse l'acceptation (402), la course et l'offre restent telles quelles.
+        await this.payments.coverConsent(rideId, agreed.totalCents);
         await this.rides.mark(rideId, 'negotiation_above_max_accepted', actorRef, { offerId, totalCents: agreed.totalCents, previousMaxConsentedCents: ride.maxConsentedCents, consentText, acceptedAt: now.toISOString(), reason: offer.reason, reasonText: offer.reasonText });
         await this.db.update(schema.rides).set({ maxConsentedCents: agreed.totalCents }).where(eq(schema.rides.id, rideId));
         this.audit.record({ action: 'ride.max_consented_raised', entity: 'rides', entityId: rideId, before: { maxConsentedCents: ride.maxConsentedCents }, after: { maxConsentedCents: agreed.totalCents, offerId } });

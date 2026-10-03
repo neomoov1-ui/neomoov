@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Action, Card, Notice } from '@/components/ui/kit';
+import { cardLinkOf } from '@/lib/card-link';
 import type { CardSessionState } from '@/lib/server/card-session';
 
 interface SquareTokenResult {
@@ -56,6 +57,45 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
+type Loaded = { language: 'fr-CA' | 'en'; state: CardSessionState; session: string | null };
+
+/**
+ * Revue du 2 octobre 2026 (sécurité 16) : la session est lue dans le fragment de l'adresse (jamais envoyé au serveur),
+ * effacée aussitôt de la barre d'adresse et de l'historique, puis vérifiée par l'API au travers du serveur web, dans le
+ * corps d'une requête. La langue transmise par l'application (`&lang=…`) suit la session dans le fragment.
+ */
+export function CardPage({ language }: { language: 'fr-CA' | 'en' }) {
+  const { i18n } = useTranslation();
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  // Lu une seule fois : l'adresse est effacée après la lecture (double exécution des effets en développement).
+  const link = useRef<ReturnType<typeof cardLinkOf> | null>(null);
+
+  useEffect(() => {
+    link.current ??= cardLinkOf(window.location.hash, window.location.search);
+    if (window.location.hash || window.location.search) window.history.replaceState(null, '', window.location.pathname);
+    const { session, lang } = link.current;
+    const chosen = lang === 'en' ? 'en' : lang === 'fr' || lang === 'fr-CA' ? 'fr-CA' : language;
+    let cancelled = false;
+    const done = (state: CardSessionState) => {
+      if (!cancelled) setLoaded({ language: chosen, state, session: state.state === 'ok' ? session : null });
+    };
+    if (!session) {
+      done({ state: 'missing' });
+      return;
+    }
+    fetch('/api/carte/session', { method: 'POST', headers: { 'content-type': 'application/json', 'x-neomoov-card': '1' }, body: JSON.stringify({ session }) })
+      .then(async (res) => (res.ok ? ((await res.json()) as CardSessionState) : ({ state: 'unavailable' } as const)))
+      .catch(() => ({ state: 'unavailable' }) as const)
+      .then(done);
+    return () => {
+      cancelled = true;
+    };
+  }, [language]);
+
+  if (!loaded) return <p role="status" className="text-sm text-slate-600">{i18n.getFixedT(language)('cardForm.loading')}</p>;
+  return <CardEntry language={loaded.language} state={loaded.state} session={loaded.session} />;
+}
+
 export function CardEntry({ language, state, session }: { language: 'fr-CA' | 'en'; state: CardSessionState; session: string | null }) {
   const { i18n } = useTranslation();
   const t = i18n.getFixedT(language);
@@ -63,7 +103,8 @@ export function CardEntry({ language, state, session }: { language: 'fr-CA' | 'e
   const square = info?.provider === 'square' && info.squareApplicationId && info.squareLocationId && info.squareEnvironment ? info : null;
   const [phase, setPhase] = useState<Phase>(square ? 'loading' : 'ready');
   const [error, setError] = useState<string | null>(null);
-  const [expired, setExpired] = useState(false);
+  // Session close pendant la saisie : expirée, ou déjà utilisée (revue du 2 octobre 2026, sécurité 16).
+  const [closed, setClosed] = useState<'expired' | 'used' | null>(null);
   const [saved, setSaved] = useState<{ brand: string; last4: string } | null>(null);
   const cardRef = useRef<SquareCard | null>(null);
 
@@ -124,8 +165,8 @@ export function CardEntry({ language, state, session }: { language: 'fr-CA' | 'e
       window.setTimeout(() => window.location.assign(info.returnUrl), 1_500);
       return;
     }
-    if (body?.code === 'CARD_SESSION_EXPIRED') {
-      setExpired(true);
+    if (body?.code === 'CARD_SESSION_EXPIRED' || body?.code === 'CARD_SESSION_USED') {
+      setClosed(body.code === 'CARD_SESSION_USED' ? 'used' : 'expired');
       setPhase('failed');
       return;
     }
@@ -141,7 +182,7 @@ export function CardEntry({ language, state, session }: { language: 'fr-CA' | 'e
         {info ? <p className="text-sm text-slate-600">{info.purpose === 'driver_debit' ? t('cardForm.subtitleDriver') : t('cardForm.subtitle')}</p> : null}
       </div>
       {state.state !== 'ok' ? <Notice tone={state.state === 'unavailable' ? 'danger' : 'warning'}>{t(`cardForm.${state.state}`)}</Notice> : null}
-      {expired ? <Notice tone="warning">{t('cardForm.expired')}</Notice> : null}
+      {closed ? <Notice tone="warning">{t(`cardForm.${closed}`)}</Notice> : null}
       {info && info.provider !== 'square' && info.provider !== 'mock' ? <Notice tone="warning">{t('cardForm.notSupported')}</Notice> : null}
       {info && phase === 'saved' ? (
         <Card>
@@ -150,7 +191,7 @@ export function CardEntry({ language, state, session }: { language: 'fr-CA' | 'e
           <a className="mt-3 inline-block font-semibold text-brand-blue underline" href={info.returnUrl}>{t('cardForm.back')}</a>
         </Card>
       ) : null}
-      {info && !expired && phase !== 'saved' && (square || info.provider === 'mock') ? (
+      {info && !closed && phase !== 'saved' && (square || info.provider === 'mock') ? (
         <Card>
           {square ? <div id="card-container" className="min-h-24" aria-busy={phase === 'loading'} /> : <Notice>{t('cardForm.testMode')}</Notice>}
           {phase === 'loading' ? <p role="status" className="text-sm text-slate-600">{t('common.loading')}</p> : null}

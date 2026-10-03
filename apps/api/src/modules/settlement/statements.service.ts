@@ -25,7 +25,12 @@ import { FleetShareService } from './fleet-share.service.js';
 type Executor = Pick<Database['db'], 'insert' | 'update' | 'select' | 'execute' | 'delete'>;
 type StatementRow = typeof schema.weeklyStatements.$inferSelect;
 
-/** Une course ou un pack non réglé depuis plus longtemps n'est plus repris automatiquement (reprise manuelle). */
+/**
+ * Fenêtre de reprise ordinaire (8 semaines avant la période). Revue du 2 octobre 2026 (constat métier 14) : plus rien
+ * n'est perdu au-delà. Une course terminée jamais portée par un relevé émis est reprise quel que soit son âge, une course
+ * réglée qui peut encore porter un élément tardif (pourboire, garantie modèle) est relue quel que soit son âge ; un
+ * rattrapage plus ancien que cette fenêtre est signalé à l'exploitation (`alert.settlement_late_rides`).
+ */
 const LOOKBACK_DAYS = 56;
 const NO_STATEMENT = '00000000-0000-4000-8000-000000000000';
 const ADJUSTMENTS = new Set(['adjustment_positive', 'adjustment_negative']);
@@ -147,15 +152,30 @@ export class StatementsService {
         if (!lines.length && !existing && !(input.allowEmpty && input.driverId)) return null;
         const statement = buildStatement(driverId, period, lines);
         if (input.preview) return { skipped: false, view: this.previewOf(driver, statement) };
+        // Courses déjà sur ce brouillon : un rattrapage tardif n'est signalé qu'à sa première inscription (rejouable).
+        const known = existing ? new Set((await tx.select({ rideId: schema.statementLines.rideId }).from(schema.statementLines).where(eq(schema.statementLines.statementId, existing.id))).map((l) => l.rideId)) : new Set<string | null>();
         const saved = await this.save(tx, driver, period, statement, existing ?? null);
-        return { skipped: false, view: await this.computedOf(tx, saved, driver) };
+        const lateBefore = new Date(`${shift(period.startDate, -LOOKBACK_DAYS)}T00:00:00Z`);
+        const late = new Set(lines.filter((l) => l.rideId && !known.has(l.rideId) && l.occurredAt < lateBefore).map((l) => l.rideId!));
+        return { skipped: false, view: await this.computedOf(tx, saved, driver), late: [...late] };
       });
       if (!computed) continue;
       if (computed.skipped) result.skipped += 1;
       else result.generated += 1;
       result.statements.push(computed.view);
+      if ('late' in computed && computed.late.length && computed.view.id) await this.signalLateRides(computed.view.id, driver, computed.late);
     }
     return result;
+  }
+
+  /**
+   * Revue du 2 octobre 2026 (constat 14) : courses plus anciennes que la fenêtre ordinaire reprises sur un relevé
+   * (jamais réglées, ou élément tardif). Rien n'est perdu ; l'exploitation est avertie pour vérifier ces montants
+   * avant l'émission (journal d'audit et avis au personnel).
+   */
+  private async signalLateRides(statementId: string, driver: DriverInfo, rideIds: string[]): Promise<void> {
+    this.audit.record({ action: 'statement.late_rides_caught_up', entity: 'weekly_statements', entityId: statementId, after: { driverId: driver.id, rideIds, count: rideIds.length } });
+    await this.outbox.queueForStaff('alert.settlement_late_rides', { statementId, driverPublicNumber: driver.publicNumber, count: rideIds.length });
   }
 
   /**
@@ -164,19 +184,18 @@ export class StatementsService {
    */
   private async candidateDrivers(period: StatementPeriod): Promise<string[]> {
     const end = shift(period.endDate, 1);
-    const from = shift(period.startDate, -LOOKBACK_DAYS);
+    // Revue du 2 octobre 2026 (constat 14) : ni la course jamais réglée ni l'élément tardif n'ont de limite d'âge.
     const rows = await this.db.execute<{ driver_id: string }>(sql`
       SELECT DISTINCT r.driver_id FROM rides r
       WHERE r.driver_id IS NOT NULL
         AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('no_show', 'cancelled_by_client') AND r.cancellation_fee_cents > 0))
         AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})
-        AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
         AND NOT EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND ws.status <> 'draft')
       UNION
       SELECT DISTINCT r.driver_id FROM rides r
       WHERE r.driver_id IS NOT NULL AND r.state IN ('completed', 'rated', 'disputed')
+        AND (r.tip_cents > 0 OR r.guarantee_outcome = 'validated')
         AND (r.state_timestamps->>'completed')::timestamptz < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})
-        AND (r.state_timestamps->>'completed')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
         AND EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND ws.status <> 'draft')
         AND (
           r.tip_cents > COALESCE((SELECT sum(sl.amount_cents) FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.kind = 'tip_platform' AND ws.status <> 'draft'), 0)
@@ -206,25 +225,31 @@ export class StatementsService {
   }
 
   /**
-   * Lignes d'un relevé : courses et packs non encore pris par un autre relevé (jusqu'à la fin de la période, 8 semaines
-   * en arrière au plus), crédit de pack du parrainage appliqué aux packs facturés, ajustements manuels du brouillon.
+   * Lignes d'un relevé : courses et packs non encore pris par un autre relevé (jusqu'à la fin de la période), crédit de
+   * pack du parrainage appliqué aux packs facturés, ajustements manuels du brouillon. Les courses de la fenêtre ordinaire
+   * (8 semaines) sont toutes relues ; au-delà, seulement celles jamais réglées ou qui peuvent porter un élément tardif
+   * (revue du 2 octobre 2026, constat 14). Rejouable : ce que portent les relevés émis n'est jamais repris deux fois.
    */
   private async collectLines(tx: Executor, driver: DriverInfo, period: StatementPeriod, rates: TaxRates, statementId: string | null): Promise<StatementLine[]> {
     const end = shift(period.endDate, 1);
     const from = shift(period.startDate, -LOOKBACK_DAYS);
     const self = statementId ?? NO_STATEMENT;
+    const issuedLine = sql`EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.statement_id <> ${self}::uuid AND ws.status <> 'draft')`;
     const rides = await tx.execute<RideRow>(sql`
       SELECT r.id, r.public_number, r.state, r.payment_choice, r.fare_cents, r.service_fee_cents, r.regulatory_fee_cents, r.gst_cents, r.qst_cents, r.tip_cents,
         r.promotion_discount_cents, r.tolls_cents, r.cancellation_fee_cents, r.guarantee_outcome, r.driver_fare_protected,
         pf.amount_cents AS platform_fee_cents, pf.rate_bps AS platform_fee_bps,
         COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client') AS at,
-        EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.statement_id <> ${self}::uuid AND ws.status <> 'draft') AS on_issued
+        ${issuedLine} AS on_issued
       FROM rides r
       LEFT JOIN platform_fees pf ON pf.ride_id = r.id
       WHERE r.driver_id = ${driver.id}::uuid
         AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('no_show', 'cancelled_by_client') AND r.cancellation_fee_cents > 0))
         AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})
-        AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
+        AND (
+          COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
+          OR NOT ${issuedLine} OR r.tip_cents > 0 OR r.guarantee_outcome = 'validated'
+        )
         AND NOT EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.statement_id <> ${self}::uuid AND ws.status = 'draft')`);
     // Ce que les relevés émis portent déjà pour les éléments tardifs des courses réglées.
     const settled = [...rides].filter((r) => r.on_issued).map((r) => r.id);
@@ -455,8 +480,9 @@ export class StatementsService {
   }
 
   /**
-   * Étape 20 : chauffeurs d'une organisation cliente qui ont, depuis le début de la fenêtre de reprise d'une période, une
-   * course réglable d'une autre organisation (la plateforme, une organisation sœur). Le contexte de leur organisation ne voit
+   * Étape 20 : chauffeurs d'une organisation cliente qui ont, depuis le début de la fenêtre de reprise d'une période (ou
+   * jamais réglée, quel que soit son âge : revue du 2 octobre 2026, constat 14), une course réglable d'une autre
+   * organisation (la plateforme, une organisation sœur). Le contexte de leur organisation ne voit
    * pas ces courses : leur relevé reste fait par la plateforme, complet, comme avant. Lu par la plateforme, hors contexte.
    */
   async driversWithForeignRides(period: StatementPeriod): Promise<Set<string>> {
@@ -468,7 +494,10 @@ export class StatementsService {
       LEFT JOIN organizations ro ON ro.id = r.organization_id
       WHERE od.parent_id IS NOT NULL
         AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('no_show', 'cancelled_by_client') AND r.cancellation_fee_cents > 0))
-        AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
+        AND (
+          COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz >= (${from}::date::timestamp AT TIME ZONE ${period.timeZone})
+          OR NOT EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND ws.status <> 'draft')
+        )
         AND (ro.path IS NULL OR ro.path NOT LIKE od.path || '%')`));
     return new Set([...rows].map((r) => r.driver_id));
   }

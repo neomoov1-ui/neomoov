@@ -5,7 +5,7 @@
 import { schema } from '@neomoov/db';
 import type { Language } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gt, isNull, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { SMS_PROVIDER, type SmsProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
@@ -71,11 +71,10 @@ export class OtpService {
     const review = this.reviewCode(phone);
     const code = review ?? randomDigits(6);
     const expiresAt = new Date(Date.now() + ttl * 1000);
-    await this.database.db.transaction(async (tx) => {
-      // Un seul code actif par numéro : les précédents sont consommés.
-      await tx.update(schema.otpCodes).set({ consumedAt: new Date() }).where(and(eq(schema.otpCodes.phone, phone), isNull(schema.otpCodes.consumedAt)));
-      await tx.insert(schema.otpCodes).values({ phone, codeHash: this.hash(phone, code), expiresAt });
-    });
+    // Revue du 2 octobre 2026 (sécurité 17) : un nouveau code ne consomme plus les précédents. Un tiers qui demande un
+    // code pour ce numéro n'invalide pas celui que son titulaire est en train de saisir ; chaque code reste valide jusqu'à
+    // son expiration, et les tentatives se comptent sur tous les codes du numéro à la fois (voir `verify`).
+    await this.database.db.insert(schema.otpCodes).values({ phone, codeHash: this.hash(phone, code), expiresAt });
     if (review) {
       // Compte d'examen des magasins : aucun texto (le numéro n'est pas joignable), code connu des examinateurs.
       this.logger.info({ phone: maskPhone(phone) }, 'Code de connexion d\'un compte d\'examen des magasins');
@@ -93,35 +92,38 @@ export class OtpService {
    */
   async verify(phone: string, code: string): Promise<void> {
     const maxAttempts = await this.settings.number('auth.otp_max_attempts', 5);
-    const [row] = await this.database.db
-      .select()
-      .from(schema.otpCodes)
-      .where(and(eq(schema.otpCodes.phone, phone), isNull(schema.otpCodes.consumedAt), gt(schema.otpCodes.expiresAt, new Date())))
-      .orderBy(desc(schema.otpCodes.createdAt))
-      .limit(1);
-    if (!row) throw new AppError('OTP_EXPIRED', 'Aucun code valide pour ce numéro : demandez-en un nouveau', 400);
+    const valid = () => and(eq(schema.otpCodes.phone, phone), isNull(schema.otpCodes.consumedAt), gt(schema.otpCodes.expiresAt, new Date()));
+    // Codes valides du numéro (revue du 2 octobre 2026, sécurité 17), bornés par la limite d'envoi par numéro.
+    const rows = await this.database.db.select().from(schema.otpCodes).where(valid()).orderBy(desc(schema.otpCodes.createdAt)).limit(10);
+    if (!rows.length) throw new AppError('OTP_EXPIRED', 'Aucun code valide pour ce numéro : demandez-en un nouveau', 400);
     const expired = () => new AppError('OTP_EXPIRED', 'Aucun code valide pour ce numéro : demandez-en un nouveau', 400);
-    if (!constantTimeEqual(row.codeHash, this.hash(phone, code))) {
-      // Au dernier échec, le code est consommé dans la même instruction : la tentative suivante ne trouve plus de code
-      // valide (OTP_EXPIRED).
-      const [counted] = await this.database.db
+    const hash = this.hash(phone, code);
+    const match = rows.find((row) => constantTimeEqual(row.codeHash, hash));
+    if (!match) {
+      // Une tentative comptée sur chaque code valide du numéro (le plafond vaut pour le numéro) ; au dernier échec, le code
+      // est consommé dans la même instruction : la tentative suivante ne trouve plus de code valide (OTP_EXPIRED). Le code
+      // le plus récent porte le moins de tentatives : il donne celles qui restent.
+      const counted = await this.database.db
         .update(schema.otpCodes)
         .set({
           attempts: sql`${schema.otpCodes.attempts} + 1`,
           consumedAt: sql`CASE WHEN ${schema.otpCodes.attempts} + 1 >= ${maxAttempts} THEN now() ELSE NULL END`,
         })
-        .where(and(eq(schema.otpCodes.id, row.id), isNull(schema.otpCodes.consumedAt)))
+        .where(and(valid(), inArray(schema.otpCodes.id, rows.map((r) => r.id))))
         .returning({ attempts: schema.otpCodes.attempts });
-      if (!counted) throw expired();
-      if (counted.attempts >= maxAttempts) throw new AppError('OTP_LOCKED', 'Trop de tentatives : demandez un nouveau code', 429, { attemptsLeft: 0 });
-      throw new AppError('OTP_INVALID', 'Code incorrect', 400, { attemptsLeft: maxAttempts - counted.attempts });
+      if (!counted.length) throw expired();
+      const fewest = Math.min(...counted.map((c) => c.attempts));
+      if (fewest >= maxAttempts) throw new AppError('OTP_LOCKED', 'Trop de tentatives : demandez un nouveau code', 429, { attemptsLeft: 0 });
+      throw new AppError('OTP_INVALID', 'Code incorrect', 400, { attemptsLeft: maxAttempts - fewest });
     }
     const consumed = await this.database.db
       .update(schema.otpCodes)
       .set({ consumedAt: new Date() })
-      .where(and(eq(schema.otpCodes.id, row.id), isNull(schema.otpCodes.consumedAt), lt(schema.otpCodes.attempts, maxAttempts)))
+      .where(and(eq(schema.otpCodes.id, match.id), isNull(schema.otpCodes.consumedAt), lt(schema.otpCodes.attempts, maxAttempts)))
       .returning({ id: schema.otpCodes.id });
     if (!consumed.length) throw expired();
+    // Une vérification réussie clôt les autres codes du numéro : aucun ne rouvre une session ensuite.
+    await this.database.db.update(schema.otpCodes).set({ consumedAt: new Date() }).where(and(eq(schema.otpCodes.phone, phone), isNull(schema.otpCodes.consumedAt)));
   }
 }
 

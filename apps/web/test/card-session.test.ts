@@ -1,9 +1,11 @@
 /**
  * Page de saisie de carte `/carte` (étape 26), côté serveur web : session lue auprès de l'API (expirée, altérée ou
  * absente refusée), confirmation relayée par le serveur avec la session et le jeton de carte seulement, jamais avec un
- * jeton d'accès de l'utilisateur.
+ * jeton d'accès de l'utilisateur. Revue du 2 octobre 2026 (sécurité 16) : la session part dans un corps de requête, jamais
+ * dans une adresse ; la page la lit dans le fragment ; une session déjà utilisée est signalée.
  */
 import { describe, expect, it } from 'vitest';
+import { cardLinkOf } from '../src/lib/card-link';
 import { cardPageLanguage, confirmCardSession, loadCardSession } from '../src/lib/server/card-session';
 
 const API = 'http://api.test';
@@ -23,7 +25,10 @@ describe('page de saisie de carte (serveur web)', () => {
   it('session valide : informations publiques du formulaire, lues sans autorisation', async () => {
     const { calls, impl } = fakeFetch(200, INFO);
     expect(await loadCardSession(SESSION, { apiUrl: API, fetchImpl: impl, headers: { 'accept-language': 'en' } })).toEqual({ state: 'ok', info: INFO });
-    expect(calls[0]!.url).toBe(`${API}/v1/payment-methods/card-session?session=${SESSION}`);
+    expect(calls[0]!.url).toBe(`${API}/v1/payment-methods/card-session/info`);
+    expect(calls[0]!.url).not.toContain(SESSION);
+    expect(calls[0]!.init!.method).toBe('POST');
+    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ session: SESSION });
     const headers = calls[0]!.init!.headers as Record<string, string>;
     expect(headers['accept-language']).toBe('en');
     expect(Object.keys(headers).map((k) => k.toLowerCase())).not.toContain('authorization');
@@ -32,6 +37,7 @@ describe('page de saisie de carte (serveur web)', () => {
   it('session expirée, altérée, absente ou mal formée : refusée ; API injoignable : indisponible', async () => {
     expect(await loadCardSession(SESSION, { apiUrl: API, fetchImpl: fakeFetch(401, { code: 'CARD_SESSION_EXPIRED' }).impl })).toEqual({ state: 'expired' });
     expect(await loadCardSession(SESSION, { apiUrl: API, fetchImpl: fakeFetch(401, { code: 'CARD_SESSION_INVALID' }).impl })).toEqual({ state: 'invalid' });
+    expect(await loadCardSession(SESSION, { apiUrl: API, fetchImpl: fakeFetch(401, { code: 'CARD_SESSION_USED' }).impl })).toEqual({ state: 'used' });
     expect(await loadCardSession(SESSION, { apiUrl: API, fetchImpl: fakeFetch(503, {}).impl })).toEqual({ state: 'unavailable' });
     const unreachable = (async () => {
       throw new Error('réseau');
@@ -72,5 +78,12 @@ describe('page de saisie de carte (serveur web)', () => {
     expect(cardPageLanguage(null, 'en-US,en;q=0.9')).toBe('en');
     expect(cardPageLanguage(undefined, 'fr-CA,fr;q=0.9,en;q=0.8')).toBe('fr-CA');
     expect(cardPageLanguage('de', null)).toBe('fr-CA');
+  });
+
+  it('lien de la page : session et langue dans le fragment, ancienne adresse encore lue', () => {
+    expect(cardLinkOf(`#session=${SESSION}&lang=en`, '?v=2')).toEqual({ session: SESSION, lang: 'en' });
+    expect(cardLinkOf(`#session=${SESSION}`, '?v=2&lang=fr')).toEqual({ session: SESSION, lang: 'fr' });
+    expect(cardLinkOf('', `?session=${SESSION}&lang=en`)).toEqual({ session: SESSION, lang: 'en' });
+    expect(cardLinkOf('', '?v=2')).toEqual({ session: null, lang: null });
   });
 });

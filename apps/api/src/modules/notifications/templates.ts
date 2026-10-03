@@ -379,6 +379,11 @@ const TEMPLATES: Record<string, Template> = {
     fr: { title: 'Alerte : règlement sans réponse du prestataire', body: (d, l) => `Le règlement d'un relevé (${money(d['netCents'], l)}) est resté sans réponse du prestataire de paiement : réconciliez-le dans My Hub avant toute nouvelle tentative.` },
     en: { title: 'Alert: settlement outcome unknown', body: (d, l) => `A statement settlement (${money(d['netCents'], l)}) got no answer from the payment provider: reconcile it in My Hub before any retry.` },
   },
+  // Revue du 2 octobre 2026 (constat 14) : courses de plus de 8 semaines reprises sur un relevé, à vérifier avant l'émission.
+  'alert.settlement_late_rides': {
+    fr: { title: 'Alerte : courses anciennes reprises sur un relevé', body: (d) => `${str(d['count'])} course(s) de plus de 8 semaines, jamais réglée(s) ou avec un élément tardif, figurent sur le relevé du chauffeur ${str(d['driverPublicNumber'])} : vérifiez-le dans My Hub avant l'émission.` },
+    en: { title: 'Alert: old rides caught up on a statement', body: (d) => `${str(d['count'])} ride(s) older than 8 weeks, never settled or with a late item, are on the statement of driver ${str(d['driverPublicNumber'])}: check it in My Hub before it is issued.` },
+  },
   // Agents IA (étape 13) : réponse de l'assistance au client (texte rédigé par l'agent ou accusé de réception), rapport au
   // fondateur, alertes de l'exploitation (conversation escaladée, plafond de dépense atteint).
   'agent.reply': {

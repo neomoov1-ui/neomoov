@@ -1,18 +1,26 @@
 /**
  * Session de saisie de carte (étape 26) : jeton court signé qui ouvre la page `/carte` du web pour un utilisateur donné,
- * pendant 15 minutes, sans jamais exposer son jeton d'accès dans une adresse. Signé en HMAC-SHA256 avec une clé dérivée
- * par HKDF de `ENCRYPTION_KEY` sous une étiquette propre (même approche que les liens de vérification des factures).
+ * sans jamais exposer son jeton d'accès dans une adresse. Signé en HMAC-SHA256 avec une clé dérivée par HKDF de
+ * `ENCRYPTION_KEY` sous une étiquette propre (même approche que les liens de vérification des factures).
  * Jeton de 46 octets en base64url : version (1), objet (1 : carte du client ou méthode de prélèvement du chauffeur),
  * identifiant de l'utilisateur (16), expiration en secondes (4), aléa (8), 16 premiers octets de la signature.
+ * Revue du 2 octobre 2026 (sécurité 16) : 10 minutes au lieu de 15, usage unique (consommée par la première
+ * confirmation réussie, voir `PaymentsService.confirmCardSession`), transportée dans le fragment de l'adresse (jamais
+ * envoyé à un serveur) puis dans le corps des requêtes, et désignée dans le magasin d'usage par son empreinte seulement.
  */
-import { createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
 
 const VERSION = 1;
 const LABEL = 'neomoov/card-session/v1';
 const MAC_BYTES = 16;
 const BODY_BYTES = 1 + 1 + 16 + 4 + 8;
-/** Durée de validité d'une session (15 minutes). */
-export const CARD_SESSION_TTL_MS = 15 * 60_000;
+/** Durée de validité d'une session (10 minutes : saisie et vérification 3-D Secure comprises). */
+export const CARD_SESSION_TTL_MS = 10 * 60_000;
+
+/** Empreinte d'une session (SHA-256) : clé de son usage unique, jamais le jeton lui-même. */
+export function cardSessionFingerprint(token: string): string {
+  return createHash('sha256').update(token).digest('hex').slice(0, 32);
+}
 
 export const CARD_SESSION_PURPOSES = ['client_card', 'driver_debit'] as const;
 export type CardSessionPurpose = (typeof CARD_SESSION_PURPOSES)[number];

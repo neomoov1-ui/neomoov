@@ -34,6 +34,23 @@ export class RateLimitService {
     return count === 1;
   }
 
+  /** Vrai si `key` a déjà été réservée par `claimOnce` et que la réservation court encore (lecture seule). */
+  async isClaimed(key: string): Promise<boolean> {
+    const full = `once:${key}`;
+    if (this.redis) return (await this.redis.exists(full)) === 1;
+    const entry = this.memory.get(full);
+    return Boolean(entry && entry.expiresAt > Date.now());
+  }
+
+  /** Libère une réservation de `claimOnce` (opération échouée, à refaire). */
+  async release(key: string): Promise<void> {
+    if (this.redis) {
+      await this.redis.del(`once:${key}`);
+      return;
+    }
+    this.memory.delete(`once:${key}`);
+  }
+
   /** Lecture sans incrément (affichage du délai restant). */
   async peek(key: string): Promise<{ count: number; resetIn: number }> {
     const full = `rl:${key}`;

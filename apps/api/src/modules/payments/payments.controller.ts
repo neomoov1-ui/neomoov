@@ -3,12 +3,12 @@ import {
   balanceSchema, cardSessionConfirmSchema, cardSessionInfoSchema, cardSessionQuerySchema, cardSessionResultSchema, connectStatusSchema, paymentMethodViewSchema, paymentViewSchema,
   refundInputSchema, refundViewSchema, settleInputSchema, settleResultSchema, setupIntentConfirmSchema, setupIntentResponseSchema, tipInputSchema, uuid,
 } from '@neomoov/domain';
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Query, Req, type RawBodyRequest } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Req, type RawBodyRequest } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { AppError } from '../../common/app-error.js';
-import { ApiErrors, ZodBody, ZodQuery, ZodResponse } from '../../common/openapi.js';
+import { ApiErrors, ZodBody, ZodResponse } from '../../common/openapi.js';
 import { zodPipe } from '../../common/zod-validation.pipe.js';
 import { Can, Audit, Authenticated, CurrentUser, NoAudit, Owns, Public, type UserActor } from '../auth/actor.js';
 import { DriverPaymentsService } from './driver-payments.service.js';
@@ -138,31 +138,34 @@ export class DriverPaymentsController {
 }
 
 /**
- * Page de saisie de carte du web (`/carte?session=…`, étape 26) : la session est un jeton signé de 15 minutes lié à
+ * Page de saisie de carte du web (`/carte?v=2#session=…`, étape 26) : la session est un jeton signé de 10 minutes lié à
  * l'utilisateur, remis par `setup-intent` (`cardFormUrl`) ; le jeton d'accès de l'utilisateur ne transite jamais par
- * l'adresse. La confirmation est faite par le serveur web avec le jeton de carte du Web Payments SDK.
+ * l'adresse. Revue du 2 octobre 2026 (sécurité 16) : la session voyage dans le fragment de l'adresse (jamais envoyé au
+ * serveur) puis dans le corps des requêtes, jamais dans une chaîne de requête ; elle ne sert qu'une fois. La
+ * confirmation est faite par le serveur web avec le jeton de carte du Web Payments SDK.
  */
 @ApiTags('payments')
 @Controller('payment-methods/card-session')
 export class CardSessionController {
   constructor(private readonly payments: PaymentsService) {}
 
-  @Get()
+  @Post('info')
   @Public()
   @NoAudit()
-  @ApiOperation({ summary: 'Session de saisie de carte : fournisseur, identifiants publics du Web Payments SDK, lien de retour ; 401 si la session est expirée ou altérée' })
-  @ZodQuery(cardSessionQuerySchema)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Session de saisie de carte (dans le corps) : fournisseur, identifiants publics du Web Payments SDK, lien de retour ; 401 si la session est expirée, altérée ou déjà utilisée' })
+  @ZodBody(cardSessionQuerySchema)
   @ZodResponse(200, cardSessionInfoSchema)
   @ApiErrors(400, 401, 409, 429)
-  info(@Query(zodPipe(cardSessionQuerySchema)) query: z.infer<typeof cardSessionQuerySchema>) {
-    return this.payments.cardSessionInfo(query.session);
+  info(@Body(zodPipe(cardSessionQuerySchema)) body: z.infer<typeof cardSessionQuerySchema>) {
+    return this.payments.cardSessionInfo(body.session);
   }
 
   @Post('confirm')
   @Public()
   @HttpCode(201)
   @Audit('payment_method.confirmed', 'client_payment_methods')
-  @ApiOperation({ summary: 'Enregistre la carte du jeton de carte (Square) pour l\'utilisateur de la session : carte du client ou méthode de prélèvement du chauffeur' })
+  @ApiOperation({ summary: 'Enregistre la carte du jeton de carte (Square) pour l\'utilisateur de la session : carte du client ou méthode de prélèvement du chauffeur ; la session ne sert qu\'une fois (401 `CARD_SESSION_USED` ensuite)' })
   @ZodBody(cardSessionConfirmSchema)
   @ZodResponse(201, cardSessionResultSchema)
   @ApiErrors(400, 401, 402, 403, 404, 409, 429)

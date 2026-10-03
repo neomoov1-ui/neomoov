@@ -22,12 +22,13 @@ import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { organizationIdFor, withoutOrgScope } from '../../common/org-scope.context.js';
+import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, squareConfig, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
-import { CARD_SESSION_TTL_MS, cardSessionKey, signCardSession, verifyCardSession, type CardSession, type CardSessionPurpose } from './card-session.js';
+import { CARD_SESSION_TTL_MS, cardSessionFingerprint, cardSessionKey, signCardSession, verifyCardSession, type CardSession, type CardSessionPurpose } from './card-session.js';
 
 type PaymentRow = typeof schema.payments.$inferSelect;
 type MethodRow = typeof schema.clientPaymentMethods.$inferSelect;
@@ -56,6 +57,7 @@ export class PaymentsService {
     private readonly audit: AuditService,
     private readonly events: DomainEventsService,
     private readonly outbox: NotificationsOutbox,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   private get db() {
@@ -104,7 +106,7 @@ export class PaymentsService {
   /**
    * Enregistrement d'une carte (client) ou de la méthode de prélèvement (chauffeur, relevés négatifs) : SetupIntent pour
    * la feuille de paiement Stripe, et, pour un fournisseur par jeton de carte (Square, simulé), l'adresse de la page de
-   * saisie du web avec une session signée de 15 minutes liée à l'utilisateur (étape 26).
+   * saisie du web avec une session signée de 10 minutes, à usage unique, liée à l'utilisateur (étape 26).
    */
   async newSetupIntent(userId: string, purpose: CardSessionPurpose = 'client_card'): Promise<SetupIntentResponse> {
     const customerId = await this.customerFor(userId);
@@ -182,16 +184,27 @@ export class PaymentsService {
     return this.sessionKey;
   }
 
+  /**
+   * Adresse de la page de saisie : la session dans le fragment (`#session=…`), que le navigateur n'envoie à aucun
+   * serveur (ni journal d'accès, ni référent) ; `v=2` annonce ce format, et la langue que les applications ajoutent en
+   * fin d'adresse (`&lang=…`) tombe dans le même fragment (revue du 2 octobre 2026, sécurité 16).
+   */
   private cardFormUrl(token: string): string {
     const url = new URL('/carte', this.env.WEB_BASE_URL);
-    url.searchParams.set('session', token);
+    url.searchParams.set('v', '2');
+    url.hash = `session=${token}`;
     return url.toString();
   }
 
-  /** Session signée de 15 minutes, liée à l'utilisateur et à son objet (carte du client, prélèvement du chauffeur). */
+  /** Session signée de 10 minutes, liée à l'utilisateur et à son objet (carte du client, prélèvement du chauffeur). */
   cardSession(userId: string, purpose: CardSessionPurpose): { token: string; expiresAt: Date } {
     const expiresAt = new Date(Date.now() + CARD_SESSION_TTL_MS);
     return { token: signCardSession({ userId, purpose, expiresAt }, this.cardSessionKey), expiresAt };
+  }
+
+  /** Clé d'usage unique d'une session : son empreinte, jamais le jeton (magasin de limitation, Redis partagé). */
+  private static usedKey(token: string): string {
+    return `card-session:${cardSessionFingerprint(token)}`;
   }
 
   private sessionOf(token: string): CardSession {
@@ -204,9 +217,14 @@ export class PaymentsService {
     return check.session;
   }
 
-  /** Ce que la page `/carte` doit savoir pour charger le Web Payments SDK (jamais de secret). */
+  private static used(): AppError {
+    return AppError.unauthorized('CARD_SESSION_USED', 'Ce lien de saisie a déjà servi : relancez l\'ajout de carte depuis l\'application');
+  }
+
+  /** Ce que la page `/carte` doit savoir pour charger le Web Payments SDK (jamais de secret) ; une session déjà utilisée est refusée. */
   async cardSessionInfo(token: string): Promise<CardSessionInfo> {
     const session = this.sessionOf(token);
+    if (await this.rateLimit.isClaimed(PaymentsService.usedKey(token))) throw PaymentsService.used();
     const square = this.provider.name === 'square' ? squareConfig(this.env) : null;
     return {
       provider: this.providerName, purpose: session.purpose, expiresAt: session.expiresAt.toISOString(),
@@ -214,9 +232,26 @@ export class PaymentsService {
     };
   }
 
-  /** Confirmation faite par le serveur web avec le jeton de carte : carte du client, ou méthode de prélèvement du chauffeur. */
+  /**
+   * Confirmation faite par le serveur web avec le jeton de carte : carte du client, ou méthode de prélèvement du chauffeur.
+   * Usage unique (revue du 2 octobre 2026, sécurité 16) : la session est réservée avant l'appel au fournisseur (deux
+   * confirmations simultanées : une seule passe) et le reste après une réussite, jusqu'à son expiration ; un échec (carte
+   * refusée, jeton de carte invalide) la libère pour un nouvel essai sur la même page.
+   */
   async confirmCardSession(input: CardSessionConfirm): Promise<CardSessionResult> {
     const session = this.sessionOf(input.session);
+    const key = PaymentsService.usedKey(input.session);
+    const ttlSeconds = Math.max(1, Math.ceil((session.expiresAt.getTime() - Date.now()) / 1000) + 60);
+    if (!(await this.rateLimit.claimOnce(key, ttlSeconds))) throw PaymentsService.used();
+    try {
+      return await this.storeSessionCard(session, input);
+    } catch (error) {
+      await this.rateLimit.release(key);
+      throw error;
+    }
+  }
+
+  private async storeSessionCard(session: CardSession, input: CardSessionConfirm): Promise<CardSessionResult> {
     const card = await this.cardFrom(session.userId, { sourceId: input.sourceId, ...(input.verificationToken ? { verificationToken: input.verificationToken } : {}) });
     if (session.purpose === 'driver_debit') {
       const [driver] = await this.db.select({ id: schema.drivers.id }).from(schema.drivers).where(eq(schema.drivers.userId, session.userId)).limit(1);
@@ -307,6 +342,49 @@ export class PaymentsService {
   /** Autorisation annulée quand la course n'a finalement pas été créée (devis déjà utilisé, erreur). */
   async releaseAuthorization(intentId: string): Promise<void> {
     await this.provider.cancel(intentId, `release:${intentId}`).catch((error: unknown) => this.logger.error({ err: error, intentId }, 'Autorisation non annulée'));
+  }
+
+  /**
+   * Prix maximal consenti relevé avant l'attribution (contre-proposition acceptée au-dessus du prix affiché, revue du
+   * 2 octobre 2026, constat métier 13) : l'autorisation en place doit couvrir le nouveau plafond et sa marge, sinon la
+   * capture de fin de course serait plafonnée (reste en solde dû, incident). Nouvelle autorisation sur la carte de la
+   * course, puis annulation de l'ancienne : la ligne de paiement ne désigne qu'une empreinte, une seule capture est
+   * possible. Clé d'idempotence fixée par la course et le montant : une acceptation rejouée ne pose pas de seconde
+   * empreinte. Refus de la banque : erreur de paiement, rien n'est modifié (l'acceptation est refusée). Sans autorisation
+   * en place (paiement au chauffeur, planifiée pas encore autorisée), rien à faire : l'autorisation à l'attribution lit
+   * le nouveau plafond.
+   */
+  async coverConsent(rideId: string, maxConsentedCents: number): Promise<void> {
+    const payment = await this.ridePayment(rideId);
+    if (!payment || payment.status !== 'authorized' || !payment.stripePaymentIntentId || !payment.stripePaymentMethodId) return;
+    const amount = authorizationCents(maxConsentedCents, await this.authorizationRules());
+    if (amount <= payment.authorizedCents) return;
+    const ride = await this.rideOf(rideId);
+    const [client] = ride.clientId ? await this.db.select({ userId: schema.clients.userId }).from(schema.clients).where(eq(schema.clients.id, ride.clientId)).limit(1) : [];
+    if (!client) throw AppError.conflict('PAYMENT_REAUTHORIZATION_IMPOSSIBLE', 'Course sans compte client : le prix ne peut pas dépasser l\'autorisation en place');
+    const auth = await this.provider.authorize({
+      amountCents: amount, currency: 'CAD', customerRef: await this.customerFor(client.userId), paymentMethodRef: payment.stripePaymentMethodId,
+      idempotencyKey: `ride-reauth:${rideId}:${amount}`, metadata: { ride_id: rideId, public_number: ride.publicNumber },
+    });
+    if (auth.status !== 'authorized') {
+      await this.journal(rideId, 'payment_reauthorization_failed', { amountCents: amount, previousCents: payment.authorizedCents, code: auth.failureCode ?? auth.status });
+      if (auth.intentId) await this.releaseAuthorization(auth.intentId);
+      this.declined(auth);
+    }
+    const previous = payment.stripePaymentIntentId;
+    const [moved] = await this.db
+      .update(schema.payments)
+      .set({ stripePaymentIntentId: auth.intentId, authorizedCents: amount })
+      .where(and(eq(schema.payments.id, payment.id), eq(schema.payments.status, 'authorized'), eq(schema.payments.stripePaymentIntentId, previous)))
+      .returning({ id: schema.payments.id });
+    if (!moved) {
+      // Ligne changée entre-temps (course close, autre remplacement) : la nouvelle empreinte est levée, l'acceptation refusée.
+      await this.releaseAuthorization(auth.intentId);
+      throw AppError.conflict('PAYMENT_STATE_CHANGED', 'Le paiement de la course a changé : réessayez');
+    }
+    await this.journal(rideId, 'payment_reauthorized', { previousCents: payment.authorizedCents, amountCents: amount });
+    // L'ancienne empreinte n'est plus désignée par aucune ligne : jamais capturée ; un échec d'annulation la laisse expirer.
+    await this.releaseAuthorization(previous);
   }
 
   /** Ligne de paiement de la course, dans la transaction qui la crée (une seule par course : clé `ride:<id>`). */
