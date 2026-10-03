@@ -1,0 +1,25 @@
+# Revue du 2 octobre 2026 B, finalisation du 3 octobre 2026 : une fois arrivé sur place, le bouton « Annuler la
+# course » n'est proposé que si le réglage drivers.cancel_after_arrival_enabled est vrai (faux par défaut, décision du
+# fondateur attendue). Avec le réglage par défaut : bouton présent en route, absent une fois arrivé ; la course se
+# poursuit (non-présentation ou « Client à bord »). Une course réservée côté client est attendue (comme le parcours 8).
+appId: com.neomoov.driver
+---
+- launchApp
+- tapOn: "Accueil"
+- extendedWaitUntil:
+    visible:
+      id: "offer-accept"
+    timeout: 120000
+- tapOn:
+    id: "offer-accept"
+- tapOn:
+    id: "action-depart"
+- assertVisible:
+    id: "ride-cancel"
+- tapOn:
+    id: "action-arrive"
+- assertVisible:
+    id: "action-start"
+- assertNotVisible:
+    id: "ride-cancel"
+- assertVisible: "Signaler un incident"

@@ -1,0 +1,25 @@
+# Neomoov Booster, finalisation du 3 octobre 2026 : consignes illustrées du parcours de photos (conseils écrits, schéma
+# de la position à prendre pour chaque vue) et schéma de carrosserie à l'écran de confirmation (rapport rempli à la main,
+# sans photo ni analyse ; rien n'est archivé par ce parcours).
+appId: com.neomoov.driver
+---
+- launchApp
+- tapOn: "Profil"
+- tapOn: "Neomoov Booster"
+- tapOn: "Vérification sommaire"
+- assertVisible: "Avant de commencer"
+- assertVisible: "Véhicule stationné, moteur à l'arrêt : jamais de photo en conduisant."
+- assertVisible: "Schéma de la vue Avant gauche : placez-vous au point indiqué et visez dans le sens de la flèche."
+- scrollUntilVisible:
+    element: "Remplir à la main sans analyse"
+- tapOn: "Remplir à la main sans analyse"
+- scrollUntilVisible:
+    element: "Carrosserie"
+- assertVisible: "Touchez les zones qui présentent un défaut (rayure, bosse, bris), puis décrivez."
+# Liste des zones sous le schéma (voie accessible) : la zone choisie demande une description.
+- scrollUntilVisible:
+    element: "Avant gauche"
+- tapOn: "Avant gauche"
+- assertVisible: "Avant gauche : description"
+- tapOn: "Avant gauche"
+- assertNotVisible: "Avant gauche : description"
