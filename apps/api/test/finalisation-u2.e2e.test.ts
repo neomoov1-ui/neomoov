@@ -98,11 +98,13 @@ describe('finalisation U2 : organisations, flotte et facturation (intégration)'
     B = await createOrg('B', root);
     C = await createOrg('C', root);
     const ownerRoleId = await systemRoleId('org_owner');
-    const first = await loginByOtp(app, testPhone(), { email: testEmail('u2-proprio') }, { card: false });
+    const first = await loginByOtp(app, testPhone(), {}, { card: false });
     await addMembership(first.user.id, A.id, ownerRoleId, 'subtree');
     await addMembership(first.user.id, C.id, ownerRoleId);
     owner = await enrollMemberMfa(first);
-    owner2 = await loginByOtp(app, testPhone(), { email: testEmail('u2-proprio2') }, { card: false });
+    owner2 = await loginByOtp(app, testPhone(), {}, { card: false });
+    // Propriétaires joignables par courriel (l'alerte part par courriel, sinon par texto).
+    for (const id of [first.user.id, owner2.user.id]) await db(app).update(schema.users).set({ email: testEmail('u2-proprio') }).where(eq(schema.users.id, id));
     await addMembership(owner2.user.id, A.id, ownerRoleId);
     agent = await loginByOtp(app, testPhone(), {}, { card: false });
     client = await loginByOtp(app, testPhone(), {}, { card: false });

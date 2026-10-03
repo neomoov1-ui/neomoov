@@ -179,6 +179,39 @@ describe('conformité : 60 000 km et antécédents judiciaires', () => {
   });
 });
 
+describe('cas limites (couverture complète du domaine)', () => {
+  it('conditions : plafond seul, lecture seule seule', () => {
+    expect(parseRoleConditions({ maxAmountCents: 10 })).toEqual({ ok: true, conditions: { maxAmountCents: 10 } });
+    expect(parseRoleConditions({ readOnly: true })).toEqual({ ok: true, conditions: { readOnly: true } });
+  });
+
+  it('entretien : pneus jamais remplacés, plusieurs remplacements, kilométrage inconnu au remplacement', () => {
+    const r = (kind: MaintenanceRecord['kind'], performedOn: string, odometerKm: number | null = null): MaintenanceRecord => ({ kind, performedOn, odometerKm, nextDueOn: null, nextDueKm: null });
+    const base = [r('inspection', '2026-05-01'), r('brakes', '2026-05-01')];
+    expect(maintenanceSuggestion(base, [], '2026-06-01', 45_000)).toContain('Pneus : vérifiez l\'usure');
+    expect(maintenanceSuggestion([...base, r('tires', '2025-01-01', 1_000), r('tires', '2026-04-01', 30_000)], [], '2026-06-01', 45_000)).toBeNull();
+    expect(maintenanceSuggestion([...base, r('tires', '2026-04-01')], [], '2026-06-01', 45_000)).toContain('Pneus');
+  });
+
+  it('Pilote, mode minimum : la décision la plus prudente, quel que soit le côté qui refuse', () => {
+    const offer: PilotOffer = {
+      rideType: 'scheduled', negotiation: false, category: 'neo_premium', driverFareCents: 3000, pickupMeters: null, pickupSeconds: null, tripMeters: 10_000, tripSeconds: 1200,
+      pickupAt: new Date('2026-10-05T14:00:00Z'), originZones: ['plateau'], destinationZones: ['centre-ville'], clientRating: 4.8, assistanceAnimal: false, accessibility: false,
+    };
+    const context: PilotContext = { timeZone: 'America/Toronto', multiAppFactor: 1.25, nearMissPercent: 0, planned: [] };
+    const strictDriver = evaluateOfferWithFleet(offer, pilotCriteriaSchema.parse({ minFareCents: 5000 }), fleetPilotSettingsSchema.parse({ mode: 'minimum' }), context);
+    expect(strictDriver.decision).toBe('reject');
+    expect(strictDriver.reasons.map((x) => x.code)).toEqual(['fare_below_min']);
+    const strictFleet = evaluateOfferWithFleet(offer, pilotCriteriaSchema.parse({}), fleetPilotSettingsSchema.parse({ mode: 'minimum', criteria: { minFareCents: 5000 } }), context);
+    expect(strictFleet.decision).toBe('reject');
+    expect(strictFleet.reasons.map((x) => x.code)).toEqual(['fare_below_min']);
+  });
+
+  it('statut inconnu suivi d\'un statut connu : l\'inconnu reste le plus restrictif', () => {
+    expect(restrictiveOrganizationStatus(['inconnu', 'suspended'])).toBe('inconnu');
+  });
+});
+
 describe('facturation de la plateforme : écritures des organisations', () => {
   it('statut le plus restrictif de l\'organisation et de ses ancêtres', () => {
     expect(restrictiveOrganizationStatus([])).toBe('active');
