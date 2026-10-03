@@ -101,6 +101,25 @@ const SQUARE_SHAPES = [
   // Cloudflare Turnstile (revue Q1 du 3 octobre 2026) : clés de la forme 0x… (1x, 2x ou 3x pour les clés de test de Cloudflare).
   { key: 'TURNSTILE_SECRET_KEY', test: (v) => /^[0-3]x[A-Za-z0-9_-]{20,}$/.test(v), expected: 'clé secrète Turnstile (0x suivi d\'au moins 20 caractères)' },
   { key: 'NEXT_PUBLIC_TURNSTILE_SITE_KEY', test: (v) => /^[0-3]x[A-Za-z0-9_-]{20,}$/.test(v), expected: 'clé de site Turnstile (0x suivi d\'au moins 20 caractères)' },
+  // Réseaux à jeton OAuth (3 octobre 2026) : forme des identifiants Google, des numéros de page et des réglages, sans afficher la valeur.
+  ...['GOOGLE_BUSINESS_CLIENT_ID', 'YOUTUBE_CLIENT_ID', 'GOOGLE_CALENDAR_CLIENT_ID'].map((key) => ({ key, test: (v) => /^[\w-]+\.apps\.googleusercontent\.com$/.test(v), expected: 'ID client OAuth Google (se termine par .apps.googleusercontent.com)' })),
+  ...['GOOGLE_BUSINESS_CLIENT_SECRET', 'YOUTUBE_CLIENT_SECRET', 'GOOGLE_CALENDAR_CLIENT_SECRET'].map((key) => ({ key, test: (v) => /^GOCSPX-[\w-]+$/.test(v), expected: 'code secret du client OAuth Google (commence par GOCSPX-)' })),
+  ...['GOOGLE_BUSINESS_REFRESH_TOKEN', 'YOUTUBE_REFRESH_TOKEN', 'GOOGLE_CALENDAR_REFRESH_TOKEN'].map((key) => ({ key, test: (v) => /^1\/\/[\w-]{20,}$/.test(v), expected: 'jeton de rafraîchissement Google (commence par 1//)' })),
+  { key: 'GOOGLE_BUSINESS_ACCOUNT_ID', test: (v) => /^(accounts\/)?\d+$/.test(v), expected: 'identifiant numérique du compte (chiffres, ou accounts/ suivi des chiffres)' },
+  { key: 'GOOGLE_BUSINESS_LOCATION_ID', test: (v) => /^(accounts\/\d+\/)?(locations\/)?\d+$/.test(v), expected: 'identifiant numérique de l\'établissement (chiffres, ou locations/ suivi des chiffres)' },
+  { key: 'LINKEDIN_ORGANIZATION_ID', test: (v) => /^(urn:li:organization:)?\d+$/.test(v), expected: 'identifiant numérique de la page entreprise (chiffres)' },
+  { key: 'LINKEDIN_ACCESS_TOKEN_EXPIRES_AT', test: (v) => /^\d{4}-\d{2}-\d{2}/.test(v) && !Number.isNaN(Date.parse(v)), expected: 'date d\'échéance AAAA-MM-JJ' },
+  { key: 'LINKEDIN_API_VERSION', test: (v) => /^20\d{4}$/.test(v), expected: 'version AAAAMM, par exemple 202606' },
+  { key: 'YOUTUBE_PRIVACY_STATUS', test: (v) => ['public', 'unlisted', 'private'].includes(v), expected: 'public, unlisted ou private' },
+  { key: 'TIKTOK_PRIVACY_LEVEL', test: (v) => ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'].includes(v), expected: 'PUBLIC_TO_EVERYONE, MUTUAL_FOLLOW_FRIENDS, FOLLOWER_OF_CREATOR ou SELF_ONLY' },
+  { key: 'TIKTOK_UPLOAD_MODE', test: (v) => v === 'file' || v === 'url', expected: 'file ou url' },
+  { key: 'TELEGRAM_BOT_TOKEN', test: (v) => /^\d{6,12}:[\w-]{30,}$/.test(v), expected: 'jeton de BotFather (chiffres, deux-points, puis 35 caractères environ)' },
+  { key: 'TELEGRAM_CHANNEL_ID', test: (v) => /^@[A-Za-z][\w]{4,}$|^-100\d{6,}$/.test(v), expected: '@nom du canal public, ou identifiant -100… du canal privé' },
+  { key: 'TELEGRAM_DISCUSSION_CHAT_ID', test: (v) => /^@[A-Za-z][\w]{4,}$|^-100\d{6,}$/.test(v), expected: 'identifiant -100… du groupe de discussion (ou son @nom)' },
+  ...['YOUTUBE_API_AUDITED', 'TIKTOK_APP_AUDITED'].map((key) => ({ key, test: (v) => ['on', 'off', 'true', 'false', '1', '0'].includes(v), expected: 'on ou off' })),
+  // Réseaux sociaux (3 octobre 2026) : identifiants des applications OAuth, même contrôle de forme.
+  { key: 'META_APP_ID', test: (v) => /^\d{10,20}$/.test(v), expected: 'identifiant d\'application Meta (10 à 20 chiffres)' },
+  { key: 'META_APP_SECRET', test: (v) => /^[0-9a-f]{32}$/.test(v), expected: 'clé secrète de l\'application Meta (32 caractères hexadécimaux)' },
 ];
 /** Ce que la valeur semble être quand elle n'a pas la forme attendue (sans la montrer). */
 function squareLooksLike(value) {
@@ -110,7 +129,31 @@ function squareLooksLike(value) {
   if (/^sq0csp-|^sandbox-sq0csb-/.test(value)) return 'elle ressemble à un secret OAuth d\'application, pas à un jeton d\'accès';
   if (/^SK[0-9a-f]{32}$/.test(value)) return 'elle ressemble à une clé d\'API Twilio (SK…), pas à l\'Account SID (AC…)';
   if (/^\+?1?[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{4}$/.test(value)) return 'numéro avec espaces ou ponctuation : écrire +1 puis les 10 chiffres collés';
+  if (/^ya29\./.test(value)) return 'elle ressemble à un jeton d\'accès Google (valable une heure), pas à un jeton de rafraîchissement (1//…)';
+  if (/^GOCSPX-/.test(value)) return 'elle ressemble à un code secret de client Google, pas à un ID client';
+  if (/\.apps\.googleusercontent\.com$/.test(value)) return 'elle ressemble à un ID client Google, pas à un code secret';
   return 'forme inconnue';
+}
+
+/** Réseaux à jeton OAuth : variables qui rendent chaque connecteur réel (noms seulement). */
+const NETWORKS = [
+  { name: 'Fiche Google', all: ['GOOGLE_BUSINESS_CLIENT_ID', 'GOOGLE_BUSINESS_CLIENT_SECRET', 'GOOGLE_BUSINESS_REFRESH_TOKEN', 'GOOGLE_BUSINESS_ACCOUNT_ID', 'GOOGLE_BUSINESS_LOCATION_ID'] },
+  { name: 'LinkedIn', all: ['LINKEDIN_ORGANIZATION_ID'], oneOf: [['LINKEDIN_ACCESS_TOKEN'], ['LINKEDIN_REFRESH_TOKEN', 'LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET']] },
+  { name: 'YouTube', all: ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET', 'YOUTUBE_REFRESH_TOKEN'] },
+  { name: 'X', all: ['X_CLIENT_ID', 'X_REFRESH_TOKEN'] },
+  { name: 'TikTok', all: ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET', 'TIKTOK_REFRESH_TOKEN'] },
+  { name: 'Telegram', all: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHANNEL_ID'] },
+];
+const isFilled = (key) => actual.get(key)?.filled ?? false;
+console.log('\nRéseaux à jeton OAuth (actifs avec MARKETING_PROVIDER=real) :');
+for (const network of NETWORKS) {
+  const missing = network.all.filter((key) => !isFilled(key));
+  const alternative = network.oneOf ? network.oneOf.find((group) => group.every(isFilled)) : [];
+  if (!missing.length && alternative) console.log(`  OK  ${network.name} : prêt`);
+  else {
+    const absent = [...missing, ...(alternative ? [] : [network.oneOf.map((group) => group.join(' + ')).join(' ou ')])];
+    console.log(`  --  ${network.name} : manque ${absent.join(', ')}`);
+  }
 }
 const squareProblems = SQUARE_SHAPES.filter(({ key, test }) => actual.get(key)?.filled && !test(actual.get(key).value));
 if (squareProblems.length) {

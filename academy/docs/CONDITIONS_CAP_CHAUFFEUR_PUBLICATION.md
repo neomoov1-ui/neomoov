@@ -10,7 +10,7 @@ Le vendeur de la formation Neomoov Chauffeur Pro est **GROUPE NOUVEAU SYSTEME KA
 
 **TPS/TVH : 755212438 RT0001. TVQ : 1233281863 TQ0001.**
 
-Adresse : **204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada**. Courriel : **contact@neomoov.net**. Téléphone : **+1 367 763-9063**. Site : [neomoov.net](https://neomoov.net/).
+Adresse : **204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada**. Courriel : **contact@neomoov.net**. Téléphone : **+1 438 900 4990**. Site : [neomoov.net](https://neomoov.net/).
 
 **Information sur le paiement :** le parcours de règlement Square et le reçu peuvent afficher le nom **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.**, qui est le vendeur de la formation commercialisée sous la marque Neomoov.
 

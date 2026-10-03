@@ -130,7 +130,7 @@ function CalendarTab() {
               {(p) => (
                 <Select {...p} value={space} onChange={(e) => setSpace(e.target.value)}>
                   <option value="">{t('hub.marketing.allSpaces')}</option>
-                  {(['site_blog', 'academy', 'google_business', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube', 'x', 'snapchat', 'newsletter'] as const).map((s) => <option key={s} value={s}>{t(`enum.contentSpace.${s}`)}</option>)}
+                  {(['site_blog', 'academy', 'google_business', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube', 'x', 'snapchat', 'newsletter', 'telegram', 'whatsapp_channel'] as const).map((s) => <option key={s} value={s}>{t(`enum.contentSpace.${s}`)}</option>)}
                 </Select>
               )}
             </Field>

@@ -1,10 +1,10 @@
 /**
- * Marketing (phase 1 « Neomoov entreprise autonome », 2 octobre 2026) : les onze espaces de diffusion (dix réseaux et
- * sites, plus l'infolettre), leurs formats, leurs limites de longueur et de mots-clics (règles des réseaux, pas des
+ * Marketing (phase 1 « Neomoov entreprise autonome », 2 octobre 2026) : les espaces de diffusion (réseaux, sites et
+ * infolettre ; Telegram et la chaîne WhatsApp ajoutés le 3 octobre 2026), leurs formats, leurs limites de longueur et de mots-clics (règles des réseaux, pas des
  * règles métier), les états d'un contenu et les appels à l'action. Fonctions pures, sans dépendance d'infrastructure.
  */
 
-export const CONTENT_SPACES = ['site_blog', 'academy', 'google_business', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube', 'x', 'snapchat', 'newsletter'] as const;
+export const CONTENT_SPACES = ['site_blog', 'academy', 'google_business', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube', 'x', 'snapchat', 'newsletter', 'telegram', 'whatsapp_channel'] as const;
 export type ContentSpace = (typeof CONTENT_SPACES)[number];
 
 export const CONTENT_FORMATS = ['post', 'article', 'reel', 'story', 'video', 'short', 'newsletter'] as const;
@@ -59,6 +59,10 @@ export const SPACE_RULES: Readonly<Record<ContentSpace, SpaceRule>> = {
   x: { name: 'X', formats: ['post'], maxChars: 280, maxHashtags: 3, languages: ['fr', 'en'], requiresTitle: false, requiresMedia: false, clickableLinks: true },
   snapchat: { name: 'Snapchat', formats: ['story', 'short'], maxChars: 250, maxHashtags: 3, languages: ['fr'], requiresTitle: false, requiresMedia: true, clickableLinks: false },
   newsletter: { name: 'Infolettre (Brevo)', formats: ['newsletter'], maxChars: 20_000, maxHashtags: 0, languages: ['fr'], requiresTitle: true, requiresMedia: false, clickableLinks: true },
+  // Légende d'une photo envoyée par le bot : 1 024 caractères au plus (Bot API, sendPhoto).
+  telegram: { name: 'Telegram (canal)', formats: ['post'], maxChars: 1_024, maxHashtags: 5, languages: ['fr'], requiresTitle: false, requiresMedia: false, clickableLinks: true },
+  // Relais manuel (aucune API de publication) : texte court, mots-clics inutiles sur une chaîne.
+  whatsapp_channel: { name: 'Chaîne WhatsApp', formats: ['post'], maxChars: 1_000, maxHashtags: 0, languages: ['fr'], requiresTitle: false, requiresMedia: false, clickableLinks: true },
 };
 
 export function spaceRule(space: ContentSpace): SpaceRule {

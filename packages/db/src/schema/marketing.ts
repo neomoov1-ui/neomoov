@@ -9,6 +9,42 @@ import { boolean, check, date, index, integer, jsonb, pgTable, smallint, text, u
 import { createdAt, id, tz, updatedAt } from './_helpers.js';
 import { agentRuns } from './agents.js';
 
+/**
+ * Publication multiréseau (3 octobre 2026) : un sujet décliné en un contenu par réseau (composer de My Hub ou lot importé),
+ * texte de base gardé pour relire et réadapter. Campagne et référence rendent l'import rejouable sans doublon.
+ */
+export const contentGroups = pgTable('content_groups', {
+  id: id(),
+  campaign: varchar('campaign', { length: 60 }),
+  ref: varchar('ref', { length: 40 }),
+  /** `composer` (My Hub) ou `import` (fichier JSON au format docs/marketing/lancement-50-publications.schema.json). */
+  source: varchar('source', { length: 10 }).notNull().default('composer'),
+  title: varchar('title', { length: 200 }).notNull(),
+  body: text('body').notNull(),
+  shortText: varchar('short_text', { length: 300 }).notNull(),
+  imageText: varchar('image_text', { length: 80 }),
+  cta: varchar('cta', { length: 12 }).notNull().default('none'),
+  hashtags: jsonb('hashtags').notNull().default(sql`'[]'::jsonb`),
+  photoHints: jsonb('photo_hints').notNull().default(sql`'[]'::jsonb`),
+  /** Jour relatif demandé dans le lot (1 = premier jour), ou nul. */
+  day: smallint('day'),
+  pillar: varchar('pillar', { length: 20 }),
+  audience: varchar('audience', { length: 20 }),
+  notes: text('notes'),
+  /** Signalée sensible par l'auteur : jamais approuvée en lot. */
+  sensitive: boolean('sensitive').notNull().default(false),
+  /** Saisie d'origine (réseaux visés, variantes par réseau), pour réadapter sans perte. */
+  input: jsonb('input').notNull().default(sql`'{}'::jsonb`),
+  createdByUserId: uuid('created_by_user_id'),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [
+  uniqueIndex('content_groups_campaign_ref_uq').on(t.campaign, t.ref).where(sql`${t.campaign} IS NOT NULL AND ${t.ref} IS NOT NULL`),
+  index('content_groups_created_idx').on(t.createdAt),
+  check('content_groups_source', sql`${t.source} IN ('composer', 'import')`),
+  check('content_groups_cta', sql`${t.cta} IN ('reserve', 'academy', 'preregister', 'none')`),
+]);
+
 export const contentItems = pgTable('content_items', {
   id: id(),
   /** Lundi de la semaine planifiée (calendrier produit le vendredi pour la semaine suivante). */
@@ -52,13 +88,26 @@ export const contentItems = pgTable('content_items', {
   measureDueAt: tz('measure_due_at'),
   /** Dernière lecture des commentaires (fenêtre de relecture). */
   commentsCheckedAt: tz('comments_checked_at'),
+  /** Publication multiréseau dont le contenu fait partie (nul pour le calendrier de l'agent contenu). */
+  groupId: uuid('group_id').references(() => contentGroups.id, { onDelete: 'cascade' }),
+  /** `auto` : publié par le connecteur ; `manual` : relais manuel (vue « À relayer » de My Hub). */
+  delivery: varchar('delivery', { length: 8 }).notNull().default('auto'),
+  /** Variante du visuel (gabarit, photo, recadrage, accent, texte, taille, empreinte), toutes différentes dans une publication. */
+  visual: jsonb('visual'),
+  relayedAt: tz('relayed_at'),
+  /** Mention renvoyée par le connecteur à la publication (vidéo YouTube ou TikTok privée tant que l'audit n'est pas accordé). */
+  publishNotice: varchar('publish_notice', { length: 500 }),
+  relayedByUserId: uuid('relayed_by_user_id'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }, (t) => [
   index('content_items_week_idx').on(t.weekOf, t.space),
   index('content_items_status_idx').on(t.status, t.scheduledAt),
   index('content_items_measure_idx').on(t.measureDueAt).where(sql`${t.status} = 'published'`),
-  check('content_items_space', sql`${t.space} IN ('site_blog', 'academy', 'google_business', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube', 'x', 'snapchat', 'newsletter')`),
+  index('content_items_group_idx').on(t.groupId),
+  index('content_items_relay_idx').on(t.scheduledAt).where(sql`${t.delivery} = 'manual' AND ${t.status} = 'scheduled'`),
+  check('content_items_space', sql`${t.space} IN ('site_blog', 'academy', 'google_business', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube', 'x', 'snapchat', 'newsletter', 'telegram', 'whatsapp_channel')`),
+  check('content_items_delivery', sql`${t.delivery} IN ('auto', 'manual')`),
   check('content_items_format', sql`${t.format} IN ('post', 'article', 'reel', 'story', 'video', 'short', 'newsletter')`),
   check('content_items_language', sql`${t.language} IN ('fr', 'en')`),
   check('content_items_cta', sql`${t.cta} IN ('reserve', 'academy', 'preregister', 'none')`),

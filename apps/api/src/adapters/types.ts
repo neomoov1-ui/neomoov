@@ -142,7 +142,8 @@ export interface SmsDeliveryStatus {
 
 export interface SmsProvider {
   readonly name: string;
-  send(input: { to: string; body: string; idempotencyKey?: string }): Promise<{ messageId: string }>;
+  /** `from` : un des numéros de l'entreprise (réponse depuis le numéro qui a reçu le texto) ; inconnu ou absent : numéro principal. */
+  send(input: { to: string; body: string; idempotencyKey?: string; from?: string | undefined }): Promise<{ messageId: string }>;
   /** Signature du webhook de statut (Twilio : `X-Twilio-Signature` sur l'adresse et les paramètres). */
   verifyStatusWebhook(input: { url: string; params: Record<string, string>; signature: string }): boolean;
   parseStatus(params: Record<string, string>): SmsDeliveryStatus | null;

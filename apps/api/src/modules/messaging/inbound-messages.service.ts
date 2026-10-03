@@ -15,6 +15,8 @@ import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 export interface InboundText {
   channel: 'sms' | 'whatsapp';
   from: string;
+  /** Numéro de l'entreprise qui a reçu le texto (principal ou secondaire) : la réponse part de ce numéro. */
+  to?: string | undefined;
   text: string;
   externalId: string;
   receivedAt?: Date;
@@ -55,6 +57,7 @@ export class InboundMessagesService {
     const [user] = await this.db.select({ id: schema.users.id, language: schema.users.language }).from(schema.users).where(eq(schema.users.phone, message.from)).limit(1);
     this.events.emit('conversation.inbound', {
       channel: message.channel, externalId: message.externalId, userId: user?.id ?? null, phone: message.from, text, language: user?.language ?? null, rideId: null, receivedAt,
+      ...(message.channel === 'sms' && message.to ? { metadata: { smsTo: message.to } } : {}),
     });
     return { routedTo: 'agent', rideId: null };
   }

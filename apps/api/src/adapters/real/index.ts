@@ -113,7 +113,8 @@ export const realSms = (env: AppEnv): SmsProvider => {
   requireKey('textos (Twilio)', 'TWILIO_ACCOUNT_SID', env);
   requireKey('textos (Twilio)', 'TWILIO_AUTH_TOKEN', env);
   requireKey('textos (Twilio)', 'TWILIO_FROM_NUMBER', env);
-  return new TwilioSmsProvider(env.TWILIO_ACCOUNT_SID!, env.TWILIO_AUTH_TOKEN!, env.TWILIO_FROM_NUMBER!, `${env.APP_BASE_URL.replace(/\/+$/, '')}/v1/webhooks/twilio/status`);
+  const extra = (env.TWILIO_EXTRA_NUMBERS ?? '').split(',').map((n) => n.trim()).filter(Boolean);
+  return new TwilioSmsProvider(env.TWILIO_ACCOUNT_SID!, env.TWILIO_AUTH_TOKEN!, env.TWILIO_FROM_NUMBER!, `${env.APP_BASE_URL.replace(/\/+$/, '')}/v1/webhooks/twilio/status`, fetch, extra);
 };
 export const realEmail = (env: AppEnv): EmailProvider => {
   if (!env.RESEND_API_KEY && env.BREVO_API_KEY) return build(RealEmailProvider, 'brevo', 'courriels (Brevo, non livré : utiliser Resend)', 'BREVO_API_KEY', env);

@@ -1,0 +1,47 @@
+{
+  "$schema": "./lancement-50-publications.schema.json",
+  "version": 1,
+  "campaign": "exemple-format",
+  "title": "Exemple du format (deux publications)",
+  "startDate": "2026-10-05",
+  "defaults": {
+    "spaces": "all",
+    "cta": "reserve",
+    "hashtags": ["Neomoov", "Montréal", "VéhiculeÉlectrique"],
+    "language": "fr"
+  },
+  "publications": [
+    {
+      "ref": "P01",
+      "pillar": "aeroport",
+      "audience": "clients",
+      "title": "Montréal-Trudeau sans stress, en véhicule électrique",
+      "body": "Votre vol part tôt demain ? Réservez votre trajet vers l'aéroport Montréal-Trudeau au moins 2 heures à l'avance : chauffeur professionnel vérifié, véhicule 100 % électrique récent et prix tout compris affiché avant de confirmer. Forfait Neo Premium à 48,20 $ depuis le centre-ville.",
+      "short": "Vers Montréal-Trudeau en véhicule 100 % électrique, prix tout compris affiché avant de confirmer. Réservez au moins 2 heures à l'avance.",
+      "imageText": "L'aéroport, sans stress",
+      "photoHints": ["aéroport", "véhicule"],
+      "day": 1,
+      "variants": {
+        "linkedin": {
+          "body": "Déplacements d'affaires vers Montréal-Trudeau : Neomoov propose des trajets en véhicules 100 % électriques récents, avec chauffeurs professionnels vérifiés et prix tout compris affiché à la réservation.",
+          "imageText": "Vos déplacements d'affaires, électriques",
+          "en": { "body": "Business travel to Montréal-Trudeau: Neomoov offers rides in recent 100% electric vehicles, with vetted professional drivers and an all-inclusive price shown before you book." }
+        },
+        "instagram": { "imageText": "Direction YUL", "hashtags": ["Neomoov", "Montréal", "YUL", "VéhiculeÉlectrique"] },
+        "x": { "imageText": "YUL en électrique" }
+      }
+    },
+    {
+      "ref": "P02",
+      "pillar": "academy",
+      "audience": "chauffeurs",
+      "title": "Neomoov Chauffeur Pro : sept modules pour exceller",
+      "body": "Vous êtes chauffeur professionnel à Montréal ? La formation Neomoov Chauffeur Pro de la Neomoov Academy compte sept modules en ligne, des quiz et une attestation. Accueil, sécurité, conduite électrique, service à la clientèle : tout ce qui fait une course réussie.",
+      "short": "Neomoov Chauffeur Pro : sept modules en ligne, des quiz et une attestation pour les chauffeurs professionnels de Montréal.",
+      "cta": "academy",
+      "spaces": ["facebook", "instagram", "linkedin", "tiktok", "telegram", "whatsapp_channel"],
+      "photoHints": ["chauffeur", "formation"],
+      "day": 2
+    }
+  ]
+}

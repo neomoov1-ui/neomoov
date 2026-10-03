@@ -424,10 +424,10 @@ describe('phase 1 autonome, agent E : calendrier de contenu, diffusion, mesures,
     expect(await app.get(MarketingJobsService).seoDue(new Date('2031-03-31T09:00:00Z'))).toBeNull();
   });
 
-  it('espaces : onze connecteurs simulés configurés, créneaux et formats ; passe complète sans erreur', async ({ skip }) => {
+  it('espaces : treize connecteurs simulés configurés (Telegram et chaîne WhatsApp compris), créneaux et formats ; passe complète sans erreur', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const spaces = (await request(server()).get('/v1/admin/marketing/spaces').set(bearer(operator.tokens)).expect(200)).body as Array<{ space: string; configured: boolean; provider: string; slots: unknown[]; formats: string[] }>;
-    expect(spaces).toHaveLength(11);
+    expect(spaces).toHaveLength(13);
     expect(spaces.every((s) => s.configured && s.provider === 'mock' && s.slots.length > 0 && s.formats.length > 0)).toBe(true);
     const report = await app.get(MarketingJobsService).tick(new Date('2031-03-18T20:00:00Z'));
     expect(report.content).toBeNull();

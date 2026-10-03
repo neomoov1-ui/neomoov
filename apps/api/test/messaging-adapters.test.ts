@@ -38,6 +38,22 @@ describe('adaptateurs réels des messages (sans réseau)', () => {
     await expect(refused.send({ to: 'bad', body: 'x' })).rejects.toMatchObject({ code: 'SMS_SEND_FAILED', details: { code: 21211 } });
   });
 
+  it('Twilio : réponse depuis le numéro qui a reçu le texto (numéros de l\'entreprise seulement), sinon le principal', async () => {
+    const bodies: string[] = [];
+    const impl = (async (_url: string, init?: RequestInit) => {
+      bodies.push(String(init?.body ?? ''));
+      return new Response(JSON.stringify({ sid: `SM${bodies.length}` }), { status: 201, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const sms = new TwilioSmsProvider('AC1', 'secret-token', '+14389004990', null, impl, ['+14388057974']);
+    expect(sms.senderFor('+1 438 805-7974')).toBe('+14388057974');
+    expect(sms.senderFor('+15145559999')).toBe('+14389004990');
+    expect(sms.senderFor(undefined)).toBe('+14389004990');
+    await sms.send({ to: '+15145550123', body: 'Bonjour', from: '+14388057974' });
+    await sms.send({ to: '+15145550123', body: 'Bonjour', from: '+15145559999' });
+    await sms.send({ to: '+15145550123', body: 'Bonjour' });
+    expect(bodies.map((b) => new URLSearchParams(b).get('From'))).toEqual(['+14388057974', '+14389004990', '+14389004990']);
+  });
+
   it('Twilio : signature du webhook de statut (exemple de la documentation Twilio) et lecture du statut', () => {
     // Exemple publié par Twilio pour valider une implémentation de la signature.
     const url = 'https://mycompany.com/myapp.php?foo=1&bar=2';

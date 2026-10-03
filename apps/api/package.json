@@ -25,7 +25,8 @@
     "seed:e2e": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/seed-e2e.js",
     "load:fixtures": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/load-fixtures.js",
     "crm:setup": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/crm-setup.js",
-    "vapi:setup": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/vapi-setup.js"
+    "vapi:setup": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/vapi-setup.js",
+    "oauth:jeton": "tsc -p tsconfig.build.json && node --enable-source-maps dist/scripts/oauth-jeton.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.128.0",
