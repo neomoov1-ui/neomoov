@@ -11,11 +11,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { i18n } from '@/i18n';
 import { offlineQueue } from '@/lib/api';
-import { initObservability } from '@/lib/observability';
+import { initObservability, reportMobileError } from '@/lib/observability';
 import { usePendingJoin } from '@/lib/pending-join';
 import { listenToNotificationTaps, registerForPush } from '@/lib/push';
 import { queryClient, useAppConfig } from '@/lib/queries';
 import { useSession } from '@/lib/session';
+// Sortie de session complète sur refus du jeton : branchée au chargement de l'application.
+import '@/lib/session-end';
 
 // Suivi des erreurs (Sentry) : seulement si EXPO_PUBLIC_SENTRY_DSN est renseignée au build.
 initObservability();
@@ -70,8 +72,9 @@ export default function RootLayout() {
       usePendingJoin.getState().set(null);
       router.push({ pathname: '/join', params: { code: pendingCode } });
     }
-    // Push : l'appareil est déclaré à chaque ouverture de session (le jeton peut changer) ; un échec n'empêche rien.
-    void registerForPush().catch(() => undefined);
+    // Push : l'appareil est déclaré à chaque ouverture de session (le jeton peut changer) ; un échec n'empêche rien mais
+    // est signalé au suivi des erreurs (jeton refusé, Firebase absent du build Android).
+    void registerForPush().catch((error: unknown) => reportMobileError(error, { source: 'push' }));
     const stopTaps = listenToNotificationTaps();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') void offlineQueue.flush();

@@ -11,7 +11,7 @@ import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { i18n } from '@/i18n';
 import { api } from './api';
-import { handleLocations, thinLocations, type PositionStore, type Presence, type QueuedPosition, type RawLocation } from './location-buffer';
+import { createSerialQueue, handleLocations, thinLocations, type PositionStore, type Presence, type QueuedPosition, type RawLocation } from './location-buffer';
 import { useSession } from './session';
 import { driverStorage } from './storage';
 
@@ -29,7 +29,10 @@ async function writePresence(presence: Presence): Promise<void> {
   await driverStorage.setItem(PRESENCE_KEY, presence);
 }
 
-/** File des positions non envoyées : un fichier de l'application (hors trousseau, trop petit pour une file). */
+/**
+ * File des positions non envoyées : un fichier de l'application (hors trousseau, trop petit pour une file). Vide, le
+ * fichier est supprimé (revue du 2 octobre 2026, constat mobile 22) : aucune position ne reste sur le téléphone.
+ */
 function fileStore(): PositionStore {
   let memory: QueuedPosition[] = [];
   if (Platform.OS === 'web') return { read: async () => memory, write: async (p) => void (memory = p) };
@@ -43,13 +46,15 @@ function fileStore(): PositionStore {
       }
     },
     async write(positions) {
-      if (!positions.length && !file.exists) return;
-      file.write(JSON.stringify(positions));
+      if (positions.length) file.write(JSON.stringify(positions));
+      else if (file.exists) file.delete();
     },
   };
 }
 
 const store = fileStore();
+/** Lectures, envois et effacement de la file un à un (constat mobile 9). */
+const serial = createSerialQueue();
 
 async function sendBatch(batch: QueuedPosition[]): Promise<void> {
   // Relancée par le système dans un contexte neuf, la tâche relit d'abord la session enregistrée.
@@ -60,13 +65,18 @@ async function sendBatch(batch: QueuedPosition[]): Promise<void> {
 
 let lastKept: RawLocation | null = null;
 
-/** Traite les positions reçues, selon le statut enregistré ; hors ligne, arrête aussi la tâche. */
-export async function processLocations(locations: readonly RawLocation[]): Promise<void> {
-  const presence = await readPresence();
-  const thinned = thinLocations(locations, lastKept);
-  lastKept = thinned.last;
-  await handleLocations({ presence, locations: thinned.kept, store, send: sendBatch });
-  if (presence === 'offline') await stopUpdates();
+/**
+ * Traite les positions reçues, selon le statut enregistré ; hors ligne, arrête aussi la tâche. Une salve à la fois, dans
+ * l'ordre de réception : la suivante attend la fin de l'envoi en cours.
+ */
+export function processLocations(locations: readonly RawLocation[]): Promise<void> {
+  return serial(async () => {
+    const presence = await readPresence();
+    const thinned = thinLocations(locations, lastKept);
+    lastKept = thinned.last;
+    await handleLocations({ presence, locations: thinned.kept, store, send: sendBatch, stillActive: async () => (await readPresence()) !== 'offline' });
+    if (presence === 'offline') await stopUpdates();
+  });
 }
 
 if (Platform.OS !== 'web') {
@@ -150,11 +160,21 @@ export async function startLocationUpdates(presence: Exclude<Presence, 'offline'
   });
 }
 
-/** Hors ligne : statut enregistré d'abord (la tâche en cours n'enverra plus rien), puis arrêt et file vidée. */
+/**
+ * Hors ligne (et sortie de session) : statut enregistré d'abord (l'envoi en cours s'arrête au lot suivant), puis arrêt
+ * de la tâche et file effacée après l'envoi en cours, jamais réécrite ensuite. L'arrêt a lieu même si le statut n'a pas
+ * pu être enregistré.
+ */
 export async function stopLocationUpdates(): Promise<void> {
-  await writePresence('offline');
-  await stopUpdates();
-  await store.write([]);
+  try {
+    await writePresence('offline');
+  } finally {
+    await stopUpdates();
+    await serial(async () => {
+      lastKept = null;
+      await store.write([]);
+    });
+  }
 }
 
 export async function isTracking(): Promise<boolean> {

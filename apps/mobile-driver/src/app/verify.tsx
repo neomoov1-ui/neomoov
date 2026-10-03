@@ -88,6 +88,8 @@ export default function VerifyScreen() {
           </Pressable>
         </View>
       ) : null}
+      {/* Configuration illisible (version de la politique à accepter) : erreur expliquée et nouvel essai, au lieu d'un bouton grisé sans raison (revue du 2 octobre 2026, constat mobile 7). */}
+      {config.isError && !config.data ? <ErrorState message={errorMessage(config.error)} onRetry={() => void config.refetch()} /> : null}
       {error ? <ErrorState message={error} /> : null}
       {wait > 0 ? <Body muted>{t('auth.resendIn', { seconds: wait })}</Body> : <Button label={t('auth.resend')} variant="ghost" onPress={() => void resend()} />}
       <Button label={t('auth.changeNumber')} variant="ghost" onPress={() => router.back()} />

@@ -71,13 +71,16 @@ export function toQueuedPosition(location: RawLocation): QueuedPosition {
 
 /**
  * Traite les positions livrées par le système. `send` envoie un lot à l'API (`POST /driver/locations`) et rejette en
- * cas d'échec ; il n'est jamais appelé hors ligne.
+ * cas d'échec ; il n'est jamais appelé hors ligne. `stillActive` est relu avant chaque lot et avant d'enregistrer la
+ * file : passé hors ligne pendant l'envoi (déconnexion, session perdue), plus rien ne part et la file est effacée au
+ * lieu d'être réécrite.
  */
 export async function handleLocations(input: {
   presence: Presence;
   locations: readonly RawLocation[];
   store: PositionStore;
   send: (batch: QueuedPosition[]) => Promise<void>;
+  stillActive?: () => Promise<boolean>;
   max?: number;
 }): Promise<FlushOutcome> {
   const max = input.max ?? 500;
@@ -86,11 +89,12 @@ export async function handleLocations(input: {
     if (pending.length) await input.store.write([]);
     return { sent: 0, kept: 0, dropped: pending.length + input.locations.length };
   }
+  const active = input.stillActive ?? (async () => true);
   const queued = [...(await input.store.read()), ...input.locations.map(toQueuedPosition)].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   const dropped = Math.max(0, queued.length - max);
   let pending = queued.slice(dropped);
   let sent = 0;
-  while (pending.length) {
+  while (pending.length && (await active())) {
     const batch = pending.slice(0, API_BATCH_MAX);
     try {
       await input.send(batch);
@@ -100,6 +104,24 @@ export async function handleLocations(input: {
     sent += batch.length;
     pending = pending.slice(batch.length);
   }
+  if (!(await active())) {
+    await input.store.write([]);
+    return { sent, kept: 0, dropped: dropped + pending.length };
+  }
   await input.store.write(pending);
   return { sent, kept: pending.length, dropped };
+}
+
+/**
+ * Traitements un par un, dans l'ordre d'arrivée (revue du 2 octobre 2026, constat mobile 9) : deux salves de positions
+ * livrées rapprochées ne lisent ni n'écrivent la file en même temps (pas de perte ni de doublon), un seul envoi en vol.
+ * Un traitement en échec ne bloque pas les suivants.
+ */
+export function createSerialQueue(): <T>(task: () => Promise<T>) => Promise<T> {
+  let chain: Promise<unknown> = Promise.resolve();
+  return <T>(task: () => Promise<T>): Promise<T> => {
+    const run = chain.then(task, task);
+    chain = run.catch(() => undefined);
+    return run;
+  };
 }

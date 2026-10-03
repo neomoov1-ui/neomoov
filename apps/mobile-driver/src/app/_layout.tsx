@@ -13,7 +13,9 @@ import { i18n } from '@/i18n';
 import { api } from '@/lib/api';
 // La tâche de localisation doit être déclarée au chargement de l'application, avant tout démarrage par le système.
 import '@/lib/location';
-import { initObservability } from '@/lib/observability';
+// Sortie de session complète sur refus du jeton (aussi depuis la tâche de localisation) : branchée au chargement.
+import '@/lib/session-end';
+import { initObservability, reportMobileError } from '@/lib/observability';
 import { usePendingJoin } from '@/lib/pending-join';
 import { usePreferences } from '@/lib/preferences';
 import { restorePresence } from '@/lib/presence';
@@ -83,7 +85,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (status !== 'loading') void SplashScreen.hideAsync();
     if (status !== 'signedIn' || !isDriver) return;
-    void registerForPush().catch(() => undefined);
+    // Échec d'inscription (jeton refusé, Firebase absent du build Android) signalé au suivi des erreurs, sans bloquer.
+    void registerForPush().catch((error: unknown) => reportMobileError(error, { source: 'push' }));
     const stopTaps = listenToNotificationTaps();
     void (async () => {
       await restorePresence();

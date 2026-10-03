@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { API_BATCH_MAX, handleLocations, thinLocations, toQueuedPosition, type PositionStore, type QueuedPosition, type RawLocation } from '../src/lib/location-buffer';
+import { API_BATCH_MAX, createSerialQueue, handleLocations, thinLocations, toQueuedPosition, type PositionStore, type QueuedPosition, type RawLocation } from '../src/lib/location-buffer';
 
 const at = (seconds: number, north = 0, speed: number | null = 10): RawLocation => ({
   timestamp: Date.UTC(2026, 8, 26, 12, 0, 0) + seconds * 1000,
@@ -67,5 +67,45 @@ describe('positions du chauffeur', () => {
     // La dernière position gardée d'un lot précédent sert de référence.
     const previous = at(0);
     expect(thinLocations([at(2), at(6)], previous).kept.map((l) => l.timestamp)).toEqual([at(6).timestamp]);
+  });
+
+  it('passé hors ligne pendant l\'envoi (déconnexion, session perdue) : plus aucun lot, la file est effacée et non réécrite', async () => {
+    const store = memoryStore();
+    let online = true;
+    const batches: number[] = [];
+    const send = vi.fn(async (b: QueuedPosition[]) => {
+      batches.push(b.length);
+      online = false;
+    });
+    const outcome = await handleLocations({ presence: 'online', locations: Array.from({ length: 150 }, (_, i) => at(i * 5)), store, send, stillActive: async () => online });
+    expect(batches).toEqual([API_BATCH_MAX]);
+    expect(store.data).toEqual([]);
+    expect(outcome).toEqual({ sent: API_BATCH_MAX, kept: 0, dropped: 50 });
+  });
+
+  it('salves traitées une à une, dans l\'ordre d\'arrivée, sans perte ni doublon (constat mobile 9)', async () => {
+    const serial = createSerialQueue();
+    const store = memoryStore();
+    const received: string[][] = [];
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const send = async (batch: QueuedPosition[]) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      received.push(batch.map((p) => p.recordedAt));
+      inFlight -= 1;
+    };
+    // Trois salves livrées sans attendre la fin de la précédente.
+    await Promise.all([0, 1, 2].map((n) => serial(() => handleLocations({ presence: 'online', locations: [at(n * 10)], store, send }))));
+    expect(maxInFlight).toBe(1);
+    expect(received.flat()).toEqual([0, 1, 2].map((n) => new Date(at(n * 10).timestamp).toISOString()));
+    expect(store.data).toEqual([]);
+  });
+
+  it('file sérialisée : un traitement en échec ne bloque pas les suivants', async () => {
+    const serial = createSerialQueue();
+    await expect(serial(async () => Promise.reject(new Error('stockage')))).rejects.toThrow('stockage');
+    await expect(serial(async () => 'suivant')).resolves.toBe('suivant');
   });
 });

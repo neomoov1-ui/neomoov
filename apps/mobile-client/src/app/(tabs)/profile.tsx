@@ -6,12 +6,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddressField } from '@/components/AddressField';
 import { Choices, ErrorState, Notice, Row, Screen, SectionTitle, ToggleRow } from '@/components/ui';
-import { api, errorMessage, offlineQueue } from '@/lib/api';
+import { api, errorMessage } from '@/lib/api';
 import { displayPhone } from '@/lib/phone';
 import { keys, queryClient, useAppConfig, useConsents, usePlaces, usePreferences } from '@/lib/queries';
-import { unregisterPush } from '@/lib/push';
-import { disconnectRealtime } from '@/lib/realtime';
 import { useSession } from '@/lib/session';
+import { endSession } from '@/lib/session-end';
 
 /**
  * Profil : langue, préférences de confort, lieux enregistrés, consentements, droits (copie des données), moyens de paiement, factures,
@@ -79,25 +78,18 @@ export default function ProfileScreen() {
       await queryClient.invalidateQueries({ queryKey: keys.consents });
     });
 
+  // Sortie par la routine unique (revue du 2 octobre 2026, constat mobile 13) : notifications, session révoquée, file
+  // hors ligne, socket, cache, brouillon et session effacés.
   const logout = () =>
     run(async () => {
-      const refreshToken = useSession.getState().refreshToken;
-      await unregisterPush();
-      await api.auth.logout(refreshToken ? { refreshToken } : {}).catch(() => undefined);
-      await offlineQueue.clear();
-      disconnectRealtime();
-      queryClient.clear();
-      await useSession.getState().signOut();
+      await endSession('logout');
       router.replace('/');
     });
 
   const deleteAccount = () =>
     run(async () => {
       await api.me.remove();
-      await offlineQueue.clear();
-      disconnectRealtime();
-      queryClient.clear();
-      await useSession.getState().signOut();
+      await endSession('deleted');
       router.replace('/');
     });
 

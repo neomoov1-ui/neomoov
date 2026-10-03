@@ -2,7 +2,7 @@ import { clientCancellationFeeCents, type RideView } from '@neomoov/domain';
 import { Body, Button, Card, Sheet } from '@neomoov/mobile-core/components';
 import { colors, spacing, typography } from '@neomoov/mobile-core/theme';
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Share, StyleSheet, Text, View } from 'react-native';
 import { RideMap } from '@/components/RideMap';
@@ -10,7 +10,9 @@ import { ErrorState, Loading, Notice, Row, Screen } from '@/components/ui';
 import { MessagesPanel } from '@/features/ride/MessagesPanel';
 import { NegotiationPanel } from '@/features/ride/NegotiationPanel';
 import { RatingForm } from '@/features/ride/RatingForm';
+import { sosCoordinates, type Coordinates } from '@/features/ride/sos';
 import { api, errorMessage } from '@/lib/api';
+import { devicePositionForAlert } from '@/lib/device-position';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
 import { isClosed, keys, queryClient, useAppConfig, useRide } from '@/lib/queries';
 import { useRideLive } from '@/lib/realtime';
@@ -37,6 +39,8 @@ export default function RideScreen() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Position du téléphone demandée dès l'ouverture de l'urgence, prête à la confirmation (constat mobile 8). */
+  const sosPosition = useRef<Promise<Coordinates | null> | null>(null);
 
   const ride = query.data;
   if (query.isLoading) return <Loading />;
@@ -76,7 +80,11 @@ export default function RideScreen() {
 
   const sos = () =>
     run(async () => {
-      await api.rides.sos(rideId, realtime.driverPosition ? { coordinates: { lat: realtime.driverPosition.lat, lng: realtime.driverPosition.lng } } : {});
+      // Position du client (téléphone) ; celle du chauffeur seulement client à bord, faute de mieux.
+      const device = await (sosPosition.current ?? devicePositionForAlert());
+      const driver = realtime.driverPosition ? { lat: realtime.driverPosition.lat, lng: realtime.driverPosition.lng } : null;
+      const coordinates = sosCoordinates({ device, driver, rideState: ride.state });
+      await api.rides.sos(rideId, coordinates ? { coordinates } : {});
       setSheet(null);
       setNotice(t('ride.sosSent'));
     });
@@ -118,7 +126,10 @@ export default function RideScreen() {
         <View style={styles.actions}>
           {ride.driver ? <Button label={t('ride.message')} variant="ghost" onPress={() => setMessagesOpen((v) => !v)} /> : null}
           <Button label={t('ride.share')} variant="ghost" onPress={() => void share()} disabled={busy} />
-          {ACTIVE.includes(ride.state) ? <Button label={t('ride.sos')} variant="danger" onPress={() => setSheet('sos')} /> : null}
+          {ACTIVE.includes(ride.state) ? <Button label={t('ride.sos')} variant="danger" onPress={() => {
+            sosPosition.current = devicePositionForAlert();
+            setSheet('sos');
+          }} /> : null}
           {CANCELLABLE.includes(ride.state) ? <Button label={t('ride.cancel')} variant="ghost" onPress={() => setSheet('cancel')} /> : null}
         </View>
       ) : null}

@@ -40,12 +40,30 @@ export async function registerForPush(): Promise<string | null> {
   return token;
 }
 
-/** Avant la déconnexion : l'appareil est retiré du compte (plus de notifications de ce compte sur ce téléphone). */
+/**
+ * Déconnexion demandée : l'appareil est retiré du compte par l'API (plus de notifications de ce compte sur ce
+ * téléphone). Si l'API ne répond pas, le téléphone se désinscrit lui-même (`forgetPush`).
+ */
 export async function unregisterPush(): Promise<void> {
   const deviceId = await secureStorage.getItem(DEVICE_KEY);
   if (!deviceId) return;
-  await api.me.removeDevice(deviceId).catch(() => undefined);
+  const removed = await api.me.removeDevice(deviceId).then(
+    () => true,
+    () => false,
+  );
+  if (removed) await secureStorage.removeItem(DEVICE_KEY);
+  else await forgetPush();
+}
+
+/**
+ * Session perdue ou compte supprimé (revue du 2 octobre 2026, constat mobile 13) : l'API ne peut plus retirer
+ * l'appareil. Le téléphone se désinscrit lui-même des notifications (celles de l'ancien compte ne lui parviennent plus ;
+ * l'API efface le jeton mort au prochain envoi) ; la prochaine connexion le réinscrit avec un nouveau jeton.
+ */
+export async function forgetPush(): Promise<void> {
   await secureStorage.removeItem(DEVICE_KEY);
+  if (Platform.OS === 'web' || !Device.isDevice) return;
+  await Notifications.unregisterForNotificationsAsync();
 }
 
 /** Toucher une notification qui porte `rideId` ouvre la course (application ouverte, en arrière-plan ou fermée). */
