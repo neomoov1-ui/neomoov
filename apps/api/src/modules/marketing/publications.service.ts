@@ -351,10 +351,13 @@ export class PublicationsService {
     const first = groups[0]!.input as { startDate?: string | null };
     const startDate = input.startDate ?? first.startDate ?? localClock(now, tz).date;
     const perDay = input.perDay ?? (input.days ? Math.ceil(plan.length / input.days) : await this.settings.number('marketing.publications_per_day', 5));
+    // Jours du lot ramenés aux `days` jours demandés quand le lot en prévoit davantage (ordre et proportions gardés).
+    const lastDay = Math.max(0, ...plan.map(({ group }) => group.day ?? 0));
+    const dayOf = (day: number | null) => (day !== null && input.days && lastDay > input.days ? Math.max(1, Math.ceil((day * input.days) / lastDay)) : day);
     const instants = scheduleCampaign(
       plan.map(({ group, rows }) => {
         const at = (group.input as { scheduledAt?: string | null }).scheduledAt;
-        return { day: group.day ?? null, at: at && new Date(at).getTime() > now.getTime() ? new Date(at) : null, spaces: rows.map((r) => r.space as ContentSpace) };
+        return { day: dayOf(group.day ?? null), at: at && new Date(at).getTime() > now.getTime() ? new Date(at) : null, spaces: rows.map((r) => r.space as ContentSpace) };
       }),
       startDate, parseSlots(raw), tz, now, perDay,
     );
