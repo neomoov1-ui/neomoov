@@ -15,6 +15,7 @@ import { MockSearchConsoleProvider, MockSiteConnector, MockTtsProvider, mockSoci
 import { realSearchConsole, realSiteConnector, realSocialPublishers, realTts } from './real/marketing.js';
 import { oauthTokenStore } from './real/oauth-store.js';
 import { DB, type Database } from '../infra/db.module.js';
+import { EnvSocialCredentialsProvider, SOCIAL_CREDENTIALS, type SocialCredentialsProvider } from '../modules/marketing/social-credentials.js';
 
 type Mode = 'mock' | 'real';
 const choose = <T>(token: symbol, key: keyof AppEnv, mock: (env: AppEnv) => T, real: (env: AppEnv) => T): Provider => ({
@@ -50,6 +51,9 @@ const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 
     choose<PlacesProvider>(PLACES_PROVIDER, 'MAPS_PROVIDER', () => new MockPlacesProvider(), realPlaces),
     choose<CalendarProvider>(CALENDAR_PROVIDER, 'CALENDAR_PROVIDER', () => new MockCalendarProvider(), realCalendar),
     // Marketing automatisé (phase 1 « entreprise autonome ») : un seul interrupteur pour les onze espaces, le site, la voix et la Search Console.
+    // Identifiants des comptes des réseaux (contrat du 3 octobre 2026) : variables d'environnement par défaut ; S1 remplace
+    // cette fabrique par la table `social_accounts` (repli sur les variables).
+    { provide: SOCIAL_CREDENTIALS, inject: [APP_ENV], useFactory: (env: AppEnv): SocialCredentialsProvider => new EnvSocialCredentialsProvider(env) },
     // Jetons OAuth renouvelés (X, TikTok) gardés chiffrés dans la base, partagés par l'API et le worker (sans base : en mémoire).
     {
       provide: SOCIAL_PUBLISHERS,
@@ -60,6 +64,6 @@ const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 
     choose<TtsProvider>(TTS_PROVIDER, 'MARKETING_PROVIDER', () => new MockTtsProvider(), realTts),
     choose<SearchConsoleProvider>(SEARCH_CONSOLE_PROVIDER, 'MARKETING_PROVIDER', () => new MockSearchConsoleProvider(), realSearchConsole),
   ],
-  exports: [MAPS_PROVIDER, PAYMENT_PROVIDER, SMS_PROVIDER, EMAIL_PROVIDER, PUSH_PROVIDER, WHATSAPP_PROVIDER, VOICE_PROVIDER, SEV_PROVIDER, LLM_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, CRM_PROVIDER, BILLING_PROVIDER, MAILBOX_PROVIDER, SOCIAL_PROVIDER, PLACES_PROVIDER, CALENDAR_PROVIDER, SOCIAL_PUBLISHERS, SITE_CONNECTOR, TTS_PROVIDER, SEARCH_CONSOLE_PROVIDER],
+  exports: [MAPS_PROVIDER, PAYMENT_PROVIDER, SMS_PROVIDER, EMAIL_PROVIDER, PUSH_PROVIDER, WHATSAPP_PROVIDER, VOICE_PROVIDER, SEV_PROVIDER, LLM_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, CRM_PROVIDER, BILLING_PROVIDER, MAILBOX_PROVIDER, SOCIAL_PROVIDER, PLACES_PROVIDER, CALENDAR_PROVIDER, SOCIAL_CREDENTIALS, SOCIAL_PUBLISHERS, SITE_CONNECTOR, TTS_PROVIDER, SEARCH_CONSOLE_PROVIDER],
 })
 export class AdaptersModule {}

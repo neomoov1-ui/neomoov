@@ -279,7 +279,11 @@ export const envSchema = z.object({
   TIKTOK_PRIVACY_LEVEL: z.enum(['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY']).default('PUBLIC_TO_EVERYONE'),
   /** Envoi de la vidéo : `file` (téléversement par morceaux, défaut) ou `url` (TikTok télécharge l'adresse signée ; domaine du stockage à vérifier chez TikTok). */
   TIKTOK_UPLOAD_MODE: z.enum(['file', 'url']).default('file'),
-  // Snapchat : reporté par décision du fondateur (variables réservées, aucun connecteur).
+  /** Canal Telegram : jeton du bot (BotFather, administrateur du canal), canal (`@nom` ou `-100…`), groupe de discussion lié (facultatif). */
+  TELEGRAM_BOT_TOKEN: optionalString,
+  TELEGRAM_CHANNEL_ID: optionalString,
+  TELEGRAM_DISCUSSION_CHAT_ID: optionalString,
+  // Snapchat et chaîne WhatsApp : relais manuel uniquement (décision du fondateur du 3 octobre 2026, sans agrégateur) ; variables réservées.
   SNAPCHAT_ACCESS_TOKEN: optionalString,
   SNAPCHAT_PROFILE_ID: optionalString,
 });
