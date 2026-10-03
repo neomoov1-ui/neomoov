@@ -9,6 +9,7 @@
 export default [
   {
     n: 1, jour: 0, theme: 'lancement', sujet: 'Neomoov arrive à Montréal', cta: 'reserve',
+    sensible: 'Prix publié (48,20 $) dans le texte du blogue : sujet « argent », approbation humaine prévue par les lignes éditoriales.',
     photo: ['ville', 'Photo réelle du centre-ville de Montréal au lever du jour, vue depuis le belvédère du mont Royal (médiathèque, crédit indiqué).'],
     img: { site_blog: 'Neomoov arrive à Montréal', facebook: 'Bienvenue à bord', instagram: 'Montréal, en électrique', linkedin: 'Un nouveau service à Montréal', x: 'Neomoov est lancé', tiktok: 'Voici Neomoov', snapchat: 'Nouveau à Montréal', youtube: 'Le lancement en vidéo', telegram: 'Le premier jour', whatsapp_channel: 'Neomoov démarre' },
     imgEn: { linkedin: 'Now live in Montréal', x: 'Neomoov is live' },

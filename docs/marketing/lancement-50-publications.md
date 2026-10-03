@@ -10,7 +10,7 @@ Règles appliquées : lignes éditoriales v1.1 (vouvoiement, français du Québe
 
 | N° | Date proposée | Thème | Sujet | Réseaux | Photo réelle | Approbation |
 |---|---|---|---|---|---|---|
-| P01 | mardi 6 octobre 2026 | Lancement de la marque et slogan | Neomoov arrive à Montréal : avancez vers demain | les 10 (blogue compris) | Ville | standard |
+| P01 | mardi 6 octobre 2026 | Lancement de la marque et slogan | Neomoov arrive à Montréal : avancez vers demain | les 10 (blogue compris) | Ville | humaine requise |
 | P02 | mardi 6 octobre 2026 | Lancement de la marque et slogan | La signature « Avancez vers demain. » | 9 (sans le blogue) | Véhicule électrique | standard |
 | P03 | mercredi 7 octobre 2026 | Service aéroport Montréal-Trudeau | Forfait aéroport Neo Premium depuis le centre-ville | 9 (sans le blogue) | Aéroport | humaine requise |
 | P04 | mercredi 7 octobre 2026 | Véhicules 100 % électriques | Une flotte 100 % électrique | 9 (sans le blogue) | Véhicule électrique | standard |
@@ -84,6 +84,7 @@ Réglage `marketing.slots` (packages/db/src/seed/data.ts ; Telegram et chaîne W
 
 - Photo réelle (ville) : Photo réelle du centre-ville de Montréal au lever du jour, vue depuis le belvédère du mont Royal (médiathèque, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
+- Approbation humaine requise : Prix publié (48,20 $) dans le texte du blogue : sujet « argent », approbation humaine prévue par les lignes éditoriales.
 
 #### Blogue neomoov.net · 10 h 00 · titre d'image : « Neomoov arrive à Montréal »
 
@@ -4940,7 +4941,7 @@ Description :
 
 > Chauffeurs : l'expérience client commence avant la première parole.
 >
-> Dans Neomoov Chauffeur Pro, le module « L'expérience client et le kit du bon chauffeur » vous aide à préparer votre véhicule et votre accueil, avec une fiche pratique au principe simple : utile avant luxueux.
+> Dans Neomoov Chauffeur Pro, le module « L'expérience client et le kit du bon chauffeur » vous aide à préparer votre habitacle et votre accueil. La formation comprend aussi la fiche pratique « Le kit du bon chauffeur : utile avant luxueux ».
 >
 > Formation complémentaire en ligne : sept modules, quiz et attestation de suivi.
 >
@@ -4952,7 +4953,7 @@ Description :
 
 > Le kit du bon chauffeur 🎓
 >
-> Utile avant luxueux : c'est le principe de la fiche pratique du module 4 de Neomoov Chauffeur Pro. Préparez votre véhicule et votre accueil, à votre rythme.
+> Utile avant luxueux : c'est le principe de la fiche pratique « Le kit du bon chauffeur » de Neomoov Chauffeur Pro. Préparez votre habitacle et votre accueil, à votre rythme.
 >
 > Lien dans la bio.
 >
@@ -4962,7 +4963,7 @@ Description :
 
 > Formation des chauffeurs : l'expérience client se prépare.
 >
-> Le module 4 de Neomoov Chauffeur Pro, « L'expérience client et le kit du bon chauffeur », aborde l'accueil, la préparation du véhicule et l'équipement utile, avec une fiche pratique au principe simple : utile avant luxueux.
+> Le module 4 de Neomoov Chauffeur Pro, « L'expérience client et le kit du bon chauffeur », aborde l'habitacle que le client découvre, l'accueil et l'équipement utile. La formation comprend aussi une fiche pratique au principe simple : utile avant luxueux.
 >
 > https://neomoov.net/academy
 >
@@ -4970,7 +4971,7 @@ Description :
 
 #### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Welcoming takes preparation »
 
-> Driver training: customer experience takes preparation. Module 4 of Neomoov Chauffeur Pro, on customer experience and the good driver's kit, covers welcoming passengers, preparing the vehicle and useful equipment, with a practical sheet built on a simple rule: useful before luxurious.
+> Driver training: customer experience takes preparation. Module 4 of Neomoov Chauffeur Pro, on customer experience and the good driver's kit, covers the cabin passengers discover, welcoming them and useful equipment. The course also includes a practical sheet built on a simple rule: useful before luxurious.
 >
 > https://neomoov.net/academy
 >
@@ -4978,7 +4979,7 @@ Description :
 
 #### X · 09 h 30 · titre d'image : « Module 4 »
 
-> Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Le principe de la fiche pratique : utile avant luxueux.
+> Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Et une fiche pratique au principe simple : utile avant luxueux.
 >
 > https://neomoov.net/academy
 >
@@ -4986,7 +4987,7 @@ Description :
 
 #### X (version anglaise) · 09 h 30 · titre d'image : « The good driver's kit »
 
-> Neomoov Chauffeur Pro, module 4: customer experience and the good driver's kit. The rule of the practical sheet: useful before luxurious.
+> Neomoov Chauffeur Pro, module 4: customer experience and the good driver's kit. Plus a practical sheet with a simple rule: useful before luxurious.
 >
 > https://neomoov.net/academy
 >
@@ -5036,8 +5037,8 @@ Titre : Le kit du bon chauffeur : utile avant luxueux
 Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Dans Neomoov Chauffeur Pro, le module 4 porte sur l'expérience client.
-2. Il aborde l'accueil et la préparation du véhicule.
-3. Sa fiche pratique a un principe simple : utile avant luxueux.
+2. Il aborde l'habitacle que le client découvre et l'accueil.
+3. La fiche pratique du kit a un principe simple : utile avant luxueux.
 4. Une formation complémentaire en ligne, à votre rythme.
 
 Description :

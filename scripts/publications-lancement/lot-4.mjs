@@ -245,21 +245,21 @@ Chez Neomoov, chaque véhicule a cinq ans ou moins et est inspecté à l'inscrip
     imgEn: { linkedin: 'Welcoming takes preparation', x: 'The good driver\'s kit' },
     fb: [`Chauffeurs : l'expérience client commence avant la première parole.
 
-Dans Neomoov Chauffeur Pro, le module « L'expérience client et le kit du bon chauffeur » vous aide à préparer votre véhicule et votre accueil, avec une fiche pratique au principe simple : utile avant luxueux.
+Dans Neomoov Chauffeur Pro, le module « L'expérience client et le kit du bon chauffeur » vous aide à préparer votre habitacle et votre accueil. La formation comprend aussi la fiche pratique « Le kit du bon chauffeur : utile avant luxueux ».
 
 Formation complémentaire en ligne : sept modules, quiz et attestation de suivi.`, ['#NeomoovAcademy']],
     ig: [`Le kit du bon chauffeur 🎓
 
-Utile avant luxueux : c'est le principe de la fiche pratique du module 4 de Neomoov Chauffeur Pro. Préparez votre véhicule et votre accueil, à votre rythme.
+Utile avant luxueux : c'est le principe de la fiche pratique « Le kit du bon chauffeur » de Neomoov Chauffeur Pro. Préparez votre habitacle et votre accueil, à votre rythme.
 
 Lien dans la bio.`, ['#NeomoovAcademy', '#ChauffeurPro', '#Taxi', '#VTC', '#ExpérienceClient']],
     li: [`Formation des chauffeurs : l'expérience client se prépare.
 
-Le module 4 de Neomoov Chauffeur Pro, « L'expérience client et le kit du bon chauffeur », aborde l'accueil, la préparation du véhicule et l'équipement utile, avec une fiche pratique au principe simple : utile avant luxueux.`, `Driver training: customer experience takes preparation. Module 4 of Neomoov Chauffeur Pro, on customer experience and the good driver's kit, covers welcoming passengers, preparing the vehicle and useful equipment, with a practical sheet built on a simple rule: useful before luxurious.`, ['#Formation', '#NeomoovAcademy', '#ServiceClient']],
-    x: [`Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Le principe de la fiche pratique : utile avant luxueux.`, `Neomoov Chauffeur Pro, module 4: customer experience and the good driver's kit. The rule of the practical sheet: useful before luxurious.`, ['#NeomoovAcademy']],
+Le module 4 de Neomoov Chauffeur Pro, « L'expérience client et le kit du bon chauffeur », aborde l'habitacle que le client découvre, l'accueil et l'équipement utile. La formation comprend aussi une fiche pratique au principe simple : utile avant luxueux.`, `Driver training: customer experience takes preparation. Module 4 of Neomoov Chauffeur Pro, on customer experience and the good driver's kit, covers the cabin passengers discover, welcoming them and useful equipment. The course also includes a practical sheet built on a simple rule: useful before luxurious.`, ['#Formation', '#NeomoovAcademy', '#ServiceClient']],
+    x: [`Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Et une fiche pratique au principe simple : utile avant luxueux.`, `Neomoov Chauffeur Pro, module 4: customer experience and the good driver's kit. Plus a practical sheet with a simple rule: useful before luxurious.`, ['#NeomoovAcademy']],
     tt: [[`Chauffeurs, votre kit d'accueil est prêt ?`, `Le module 4 de Neomoov Chauffeur Pro en parle.`, `L'expérience client et le kit du bon chauffeur.`, `Le principe : utile avant luxueux.`], `Préparez votre accueil 🎓 neomoov.net/academy`, ['#NeomoovAcademy', '#ChauffeurPro', '#Taxi', '#VTC']],
     sc: [[`Votre kit d'accueil ?`, `Utile avant luxueux.`, `Module 4, Chauffeur Pro.`], `Neomoov Academy 🎓 neomoov.net/academy`, ['#NeomoovAcademy', '#Formation']],
-    yt: [`Le kit du bon chauffeur : utile avant luxueux`, [`Dans Neomoov Chauffeur Pro, le module 4 porte sur l'expérience client.`, `Il aborde l'accueil et la préparation du véhicule.`, `Sa fiche pratique a un principe simple : utile avant luxueux.`, `Une formation complémentaire en ligne, à votre rythme.`], `Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Formation pratique complémentaire pour les chauffeurs de taxi et de VTC, par Neomoov Academy.`, ['#NeomoovAcademy', '#ChauffeurPro', '#Shorts']],
+    yt: [`Le kit du bon chauffeur : utile avant luxueux`, [`Dans Neomoov Chauffeur Pro, le module 4 porte sur l'expérience client.`, `Il aborde l'habitacle que le client découvre et l'accueil.`, `La fiche pratique du kit a un principe simple : utile avant luxueux.`, `Une formation complémentaire en ligne, à votre rythme.`], `Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Formation pratique complémentaire pour les chauffeurs de taxi et de VTC, par Neomoov Academy.`, ['#NeomoovAcademy', '#ChauffeurPro', '#Shorts']],
     tg: `Neomoov Chauffeur Pro, module 4 : l'expérience client et le kit du bon chauffeur. Utile avant luxueux.`,
     wa: `Chauffeurs : préparez votre accueil avec le module 4 de Neomoov Chauffeur Pro, l'expérience client et le kit du bon chauffeur :`,
   },
