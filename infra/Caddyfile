@@ -12,15 +12,39 @@
 	}
 }
 
-api.neomoov.net {
-	encode zstd gzip
-	# Journal d'accès JSON (sans corps ni en-têtes d'autorisation), conservé par Docker (rotation 20 Mo × 5).
+# Journal d'accès JSON conservé par Docker (rotation 20 Mo × 5), sans donnée personnelle (Loi 25, constat web 10) :
+# adresses IP tronquées (/16 en IPv4, /32 en IPv6), en-têtes de requête et de réponse retirés (agent, référent, témoins,
+# redirections), chaîne de requête masquée (recherches de My Hub, session de carte) et jetons des chemins publics masqués
+# (suivi partagé, vérification de facture, liens /c et /d). Restent : méthode, hôte, chemin, statut, taille et durée.
+(journal_acces) {
 	log {
 		output stdout
-		format json
+		format filter {
+			fields {
+				request>remote_ip ip_mask {
+					ipv4 16
+					ipv6 32
+				}
+				request>client_ip ip_mask {
+					ipv4 16
+					ipv6 32
+				}
+				request>remote_port delete
+				request>headers delete
+				resp_headers delete
+				request>uri regexp "(/(?:suivi|track|verify|c|d)/)[^/?]+|[?].*" "$1…"
+			}
+			wrap json
+		}
 	}
+}
+
+api.neomoov.net {
+	encode zstd gzip
+	import journal_acces
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# Même durée que l'en-tête du web (next.config.ts) : deux ans, sous-domaines compris.
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		X-Content-Type-Options nosniff
 		-Server
 	}
@@ -43,12 +67,9 @@ api.neomoov.net {
 
 hub.neomoov.net, reserver.neomoov.net {
 	encode zstd gzip
-	log {
-		output stdout
-		format json
-	}
+	import journal_acces
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		-Server
 	}
 	request_body {

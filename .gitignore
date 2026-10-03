@@ -43,6 +43,10 @@ logs/
 apps/web/e2e/.auth/
 apps/web/e2e/.state.json
 
+# État du déploiement sur le serveur (version en service, verrou partagé avec la relance des conteneurs)
+infra/.deploy-state
+infra/.deploy.lock
+
 # Résultats des tests de charge (générés par k6)
 tests/load/results/
 academy/livraison/formation/ebook/*.html

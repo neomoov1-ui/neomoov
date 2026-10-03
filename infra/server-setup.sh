@@ -2,9 +2,11 @@
 # Préparation du VPS LWS (Ubuntu 24.04 ou Debian 12+), à exécuter une seule fois en root, après avoir déposé la clé
 # SSH du poste dans /root/.ssh/authorized_keys :
 #   ssh root@<ip> 'bash -s' < infra/server-setup.sh
-# Fait : mises à jour, Docker et Compose, pare-feu (22, 80, 443), fail2ban, mises à jour automatiques, SSH par clé
-# seulement, fuseau America/Toronto, mémoire d'échange, dépôt Git de déploiement (/opt/neomoov.git → /opt/neomoov),
-# fichier .env de production avec des secrets générés (les clés externes restent à remplir).
+# Fait : mises à jour, Docker et Compose (dépôt APT signé de Docker), rclone (copie hors site des sauvegardes), pare-feu
+# (22, 80, 443), fail2ban, mises à jour automatiques, SSH par clé seulement, fuseau America/Toronto, mémoire d'échange,
+# dépôt Git de déploiement (/opt/neomoov.git → /opt/neomoov), tâches planifiées (sauvegarde quotidienne, essai de
+# restauration mensuel, relance des conteneurs malades), rotation des journaux, fichier .env de production avec des
+# secrets générés (les clés externes restent à remplir). Rejouable : chaque étape vérifie l'état avant d'agir.
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
@@ -13,11 +15,19 @@ log() { printf '\n== %s ==\n' "$*"; }
 log "paquets"
 apt-get update -q
 apt-get upgrade -yq
-apt-get install -yq ca-certificates curl git ufw fail2ban unattended-upgrades openssl
+apt-get install -yq ca-certificates curl git ufw fail2ban unattended-upgrades openssl rclone
 
 log "Docker"
+# Dépôt APT officiel de Docker, signé par sa clé (revue du 2 octobre 2026, constat web 17 : plus de `curl | sh`).
 if ! command -v docker >/dev/null 2>&1; then
-  curl -fsSL https://get.docker.com | sh
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL "https://download.docker.com/linux/${ID}/gpg" -o /etc/apt/keyrings/docker.asc
+  chmod a+r /etc/apt/keyrings/docker.asc
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${ID} ${VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
+  apt-get update -q
+  apt-get install -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 systemctl enable --now docker
 docker compose version
@@ -93,11 +103,29 @@ cat > /etc/cron.d/neomoov-backup <<'EOF'
 EOF
 chmod 644 /etc/cron.d/neomoov-backup
 
+log "essai de restauration mensuel (le 2 de chaque mois, 4 h 30, dans un conteneur jetable)"
+cat > /etc/cron.d/neomoov-restore-test <<'EOF'
+30 4 2 * * root cd /opt/neomoov && grep -q "^BACKUP_PASSPHRASE=." .env && set -a && . ./.env && set +a && infra/scripts/restore-test.sh >> /var/log/neomoov-restore-test.log 2>&1
+EOF
+chmod 644 /etc/cron.d/neomoov-restore-test
+
 log "relance automatique des conteneurs malades (toutes les 5 minutes)"
 cat > /etc/cron.d/neomoov-restart-unhealthy <<'EOF'
 */5 * * * * root [ -x /opt/neomoov/infra/scripts/restart-unhealthy.sh ] && /opt/neomoov/infra/scripts/restart-unhealthy.sh >> /var/log/neomoov-restart.log 2>&1
 EOF
 chmod 644 /etc/cron.d/neomoov-restart-unhealthy
+
+log "rotation des journaux des tâches planifiées"
+cat > /etc/logrotate.d/neomoov <<'EOF'
+/var/log/neomoov-*.log {
+  weekly
+  rotate 8
+  compress
+  delaycompress
+  missingok
+  notifempty
+}
+EOF
 
 log "fichier .env de production"
 if [ ! -f /opt/neomoov/.env ]; then

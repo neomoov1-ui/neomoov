@@ -2,8 +2,8 @@
 # Déploiement sur le VPS LWS (décision D48). S'exécute sur le serveur, dans /opt/neomoov :
 #   infra/deploy.sh build [nouvelle-ref] [ancienne-ref]   construit les images depuis l'arbre de travail (défaut)
 #   infra/deploy.sh pull <tag> [ancien-tag]               tire les images publiées sur GHCR (IMAGE_PREFIX requis dans .env)
-# Étapes : images, migrations (une seule fois, hors des instances), démarrage, vérification de santé, retour arrière
-# automatique sur la version précédente si l'API n'est pas saine.
+# Étapes : images, migrations (une seule fois, hors des instances), démarrage, vérification de santé (API à la bonne
+# version, web et worker sains sur la nouvelle image), retour arrière automatique sur la version précédente sinon.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -74,25 +74,37 @@ fi
 log "démarrage"
 COMPOSE_PARALLEL_LIMIT=1 compose up -d --remove-orphans
 
-healthy() {
-  local ids status
-  ids="$(compose ps -q api)"
+# Tous les conteneurs du service sont sains (sonde Docker) et tournent sur l'image que l'on vient de construire ou de tirer.
+service_healthy() {
+  local service="$1" ids id status expected
+  ids="$(compose ps -q "$service")"
   [ -n "$ids" ] || return 1
+  expected="$(docker image inspect --format '{{.Id}}' "${IMAGE_PREFIX}-${service}:${IMAGE_TAG}" 2>/dev/null || echo "")"
   for id in $ids; do
     status="$(docker inspect --format '{{.State.Health.Status}}' "$id" 2>/dev/null || echo "inconnu")"
     [ "$status" = "healthy" ] || return 1
+    [ -z "$expected" ] || [ "$(docker inspect --format '{{.Image}}' "$id" 2>/dev/null)" = "$expected" ] || return 1
   done
+}
+
+healthy() {
+  local ids id version
+  service_healthy api || return 1
   # La version servie doit être celle que l'on déploie : un conteneur sain d'une ancienne version ne compte pas (constat web 5).
+  ids="$(compose ps -q api)"
   for id in $ids; do
     version="$(docker exec "$id" node -e 'fetch("http://127.0.0.1:4000/v1/health").then(r=>r.json()).then(j=>console.log(j.version||"")).catch(()=>console.log(""))' 2>/dev/null || echo "")"
     [ "$version" = "$APP_VERSION" ] || return 1
   done
+  # Le web et le worker aussi (constat web 21) : un site en panne ou des tâches arrêtées valent une API en panne.
+  service_healthy web || return 1
+  service_healthy worker || return 1
   return 0
 }
 
-log "vérification de santé et de version (jusqu'à 120 s)"
+log "vérification de santé et de version : API, web, worker (jusqu'à 180 s ; premier battement du worker en moins d'une minute et demie)"
 ok=0
-for _ in $(seq 1 24); do
+for _ in $(seq 1 36); do
   if healthy; then ok=1; break; fi
   sleep 5
 done
@@ -105,12 +117,16 @@ if [ "$ok" = "1" ]; then
   exit 0
 fi
 
-log "API non saine : retour arrière"
-compose logs --tail=80 api || true
+log "version non saine (API, web ou worker) : retour arrière"
+compose ps || true
+compose logs --tail=80 api web worker || true
 if [ -z "$PREVIOUS" ] || [ "$PREVIOUS" = "$NEW_REF" ]; then
   log "aucune version précédente connue : conteneurs laissés en l'état pour diagnostic"
   exit 1
 fi
+# La version annoncée par /v1/health et Sentry redevient la précédente : sinon le contrôle du workflow verrait la version
+# refusée en service (constat web 21).
+export APP_VERSION="${PREVIOUS:0:12}"
 if [ "$MODE" = "pull" ]; then
   export IMAGE_TAG="$PREVIOUS"
   compose pull --quiet
@@ -118,6 +134,6 @@ else
   checkout_ref "$PREVIOUS"
   compose build
 fi
-compose up -d --remove-orphans
+COMPOSE_PARALLEL_LIMIT=1 compose up -d --remove-orphans
 log "version précédente relancée : $PREVIOUS (les migrations ne sont pas annulées ; voir docs/runbooks/base-de-donnees.md)"
 exit 1
