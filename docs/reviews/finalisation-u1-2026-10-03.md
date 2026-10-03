@@ -24,7 +24,7 @@ Agent U1, copie `neomoov-wt22`, branche `finalisation-u1-myhub` créée depuis `
 | 8. Accessibilité des formulaires de réservation et de connexion | fait | combobox des adresses (liste reliée seulement ouverte, champ obligatoire annoncé, nombre de suggestions annoncé), détail du prix hors du libellé du bouton radio, prix annoncés, focus visible des boutons radio, onglets de connexion au clavier (flèches, Origine, Fin) reliés à leur panneau, nom du code QR, contraste de la légende du visuel |
 | 8. Essai automatisé d'accessibilité | fait, sans axe | aucun outil présent (ni axe, ni jsdom) : contrôle maison du balisage rendu (`test/support/markup.ts`, `test/forms-a11y.test.ts`) ; `@axe-core/playwright` à décider (nouvelle dépendance) |
 | 9. Tests des écrans ajoutés | fait | tests de rendu sans navigateur ni base (`react-dom/server`) : `test/hub-screens.test.ts`, `test/forms-a11y.test.ts` |
-| 9. Playwright et captures | non fait | les essais Playwright démarrent l'API sur la base partagée (interdit aux agents U) ; captures des nouveaux écrans de My Hub impossibles sans API ni données |
+| 9. Playwright et captures | partiel | suite Playwright du dépôt non lancée (elle démarre l'API sur la base partagée) ; essai Edge sans base des pages publiques et de la connexion (section Essais) et capture de la réservation ; captures des nouveaux écrans de My Hub impossibles sans API ni données |
 
 ## Choix
 
@@ -40,12 +40,15 @@ Agent U1, copie `neomoov-wt22`, branche `finalisation-u1-myhub` créée depuis `
 - API, sous le verrou `db-lock` : `test/fairness.e2e.test.ts` et `test/crm.e2e.test.ts`, 2 fichiers, 9 tests verts.
 - Web : `pnpm --filter @neomoov/web typecheck` sans erreur ; `vitest run` : 10 fichiers, 41 tests verts (dont `hub-screens`, `forms-a11y`, `booking-codes`, `csp-nonce`, `card-csp` ; mêmes résultats après la fusion de `main`).
 - OpenAPI : `pnpm openapi` (compile l'API avec `tsc -p tsconfig.build.json`, sans erreur), 432 chemins, 5 nouveaux (`/v1/admin/drivers/{id}/ratings`, `/v1/admin/crm/{leads,prospects,organizations,business-accounts}/{id}`) ; `pnpm --filter @neomoov/api-client build` sans erreur.
-- Build de production du web et vérification de la politique : RESULTATS_BUILD.
+- Build de production du web : un premier `next build` complet a compilé (18,9 minutes, poste saturé) puis a été arrêté par ma limite de temps pendant sa vérification des types (déjà faite par `typecheck`) ; `next build --experimental-build-mode=compile` a réussi : toutes les routes à la demande (ƒ), proxy reconnu, `next.config.ts` et son import de `src/lib/security-headers.ts` chargés.
+- Serveur de production local (`next start` sur 127.0.0.1:3150, sans API ni base, arrêté ensuite) : 8 pages contrôlées (`/`, `/reserver`, `/hub/connexion`, `/chauffeurs`, `/droits`, `/c/<code>`, `/suivi/<jeton>`, `/carte`), chaque balise `<script>` porte le nonce de la politique (0 sans nonce), aucun `unsafe-inline` dans `script-src`, nonce neuf à chaque requête, `frame-ancestors` de `/reserver` sur neomoov.net, Square permis sur `/carte` seulement, `/api/session` garde la politique statique.
+- Edge (Playwright, sans base) : `/reserver` et `/hub/connexion` hydratées (case « animal d'assistance », onglets au clavier), aucune violation de la politique ni erreur de page, `/carte` chargée sans violation. Capture : `docs/screens/web/reserver-finalisation-u1.png`.
 
 ## Reste à faire ou à décider
 
 - Fondateur : zones surveillées de Pilote (réglage vide) ; page ou redirection WordPress `neomoov.net/parrainage/<code>` vers `/reserver?parrain=<code>` (accès LWS).
 - Session principale : relancer les essais Playwright (`pnpm --filter @neomoov/web e2e`) une fois les branches fusionnées ; les sélecteurs touchés restent compatibles (bouton radio nommé par la catégorie, libellés inchangés).
+- Session principale : `next build` complet (avec sa vérification des types) à mener jusqu'au bout au moment de l'image Docker ; `pnpm --filter @neomoov/api typecheck` non lancé ici (sources de l'API compilées par `pnpm openapi`, fichiers de test exécutés par vitest).
 - Ajouter `@axe-core/playwright` aux essais Playwright si l'on accepte la dépendance.
 - Textes personnalisables d'une marque (`texts`) : non éditables dans l'écran (le reste de la marque l'est).
 - Captures des nouveaux écrans dans `docs/screens/` avec une organisation de démonstration (API et données nécessaires).
