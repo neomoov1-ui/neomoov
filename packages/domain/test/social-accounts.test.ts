@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  defaultSocialMode, effectiveSocialStatus, isSocialProfileUrl, normalizeTelegramChannel, publicSocialLinks, socialAccountUpdateSchema, socialCallbackUrl, socialTelegramConnectSchema, SOCIAL_SPACE_INFO, SOCIAL_SPACES,
+  defaultSocialMode, effectiveSocialStatus, isSocialProfileUrl, isSocialSpace, normalizeTelegramChannel, publicSocialLinks, socialAccountUpdateSchema, socialCallbackUrl, socialTelegramConnectSchema, SOCIAL_SPACE_INFO, SOCIAL_SPACES,
 } from '../src/index.js';
 
 /** Réseaux sociaux (3 octobre 2026) : catalogue des dix espaces, états, canal Telegram, liens publics de la page Contact. */
@@ -12,6 +12,16 @@ describe('réseaux sociaux : espaces et règles pures', () => {
     expect(defaultSocialMode('whatsapp_channel')).toBe('manual');
     expect(defaultSocialMode('telegram')).toBe('direct');
     expect(SOCIAL_SPACES.filter((s) => SOCIAL_SPACE_INFO[s].requiresApproval)).toEqual(['linkedin', 'tiktok', 'youtube']);
+    // Mode par défaut : le premier mode proposé (direct dès que le réseau a une API de publication).
+    expect(SOCIAL_SPACES.filter((s) => defaultSocialMode(s) === 'direct')).toEqual(['site_blog', 'facebook', 'instagram', 'linkedin', 'x', 'tiktok', 'telegram', 'youtube']);
+  });
+
+  it('espace reconnu : seulement les dix espaces des comptes, pas les autres espaces de contenu', () => {
+    for (const space of SOCIAL_SPACES) expect(isSocialSpace(space)).toBe(true);
+    expect(isSocialSpace('google_business')).toBe(false);
+    expect(isSocialSpace('newsletter')).toBe(false);
+    expect(isSocialSpace('Facebook')).toBe(false);
+    expect(isSocialSpace('')).toBe(false);
   });
 
   it('adresse de rappel : Instagram passe par celle de Facebook ; aucune pour les formulaires et les relais manuels', () => {
@@ -27,6 +37,10 @@ describe('réseaux sociaux : espaces et règles pures', () => {
     expect(effectiveSocialStatus({ space: 'linkedin', mode: 'direct', validation: 'connected', profileUrl: null, appApproved: false })).toBe('pending_approval');
     expect(effectiveSocialStatus({ space: 'linkedin', mode: 'direct', validation: 'invalid', profileUrl: null, appApproved: true })).toBe('invalid');
     expect(effectiveSocialStatus({ space: 'x', mode: 'direct', validation: 'expired', profileUrl: null, appApproved: false })).toBe('expired');
+    // « En attente d'approbation » n'a de sens que pour un réseau qui l'exige et tant qu'elle n'est pas confirmée.
+    expect(effectiveSocialStatus({ space: 'x', mode: 'direct', validation: 'pending_approval', profileUrl: null, appApproved: false })).toBe('not_connected');
+    expect(effectiveSocialStatus({ space: 'youtube', mode: 'direct', validation: 'pending_approval', profileUrl: null, appApproved: true })).toBe('not_connected');
+    expect(effectiveSocialStatus({ space: 'tiktok', mode: 'direct', validation: 'connected', profileUrl: null, appApproved: true })).toBe('connected');
   });
 
   it('canal Telegram : @nom, lien t.me ou identifiant -100… ; sinon refusé', () => {

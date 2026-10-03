@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
-  adaptForSpace, allDistinct, awaitsManualRelay, composeText, DEFAULT_FORMATS, DEFAULT_SLOTS, imageTextFor, inboxNetworkOf, mediaFileName, planVariants, PUBLICATION_SPACES, publicationComposeSchema, publicationsImportSchema,
+  adaptForSpace, allDistinct, awaitsManualRelay, composeText, DEFAULT_FORMATS, DEFAULT_SLOTS, imageTextFor, inboxNetworkOf, mediaFileName, planVariants, PUBLICATION_SPACES, publicationComposeSchema, publicationScheduleSchema, publicationsImportSchema,
   rankPhotos, relayLink, resolveSpaces, scheduleCampaign, shorten, SPACE_RULES, SPACE_TAGLINES, thumbnailSize, variantKey, VISUAL_SIZES, VISUAL_TEMPLATES, visualSize, type PublicationBase,
 } from '../src/index.js';
 import { CONTENT_SPACES } from '../src/marketing/index.js';
@@ -100,6 +100,21 @@ describe('publication multiréseau : une image différente par réseau', () => {
     expect(rankPhotos(photos, ['aéroport']).map((p) => p.alt)).toEqual(['Aéroport Montréal-Trudeau', 'Salon', null]);
     expect(rankPhotos(photos, ['véhicule'])[0]!.url).toContain('vehicule');
     expect(rankPhotos(photos, [])).toEqual(photos);
+    // Nom de fichier encodé (accents) ou adresse sans dossier : le nom du fichier compte aussi.
+    const files = [{ url: 'salon.jpg', alt: null }, { url: 'https://neomoov.net/wp-content/uploads/a%C3%A9roport-yul.jpg', alt: null }, { url: 'aeroport-terminal.jpg', alt: null }];
+    expect(rankPhotos(files, ['aéroport']).map((p) => p.url)).toEqual([files[1]!.url, 'aeroport-terminal.jpg', 'salon.jpg']);
+  });
+
+  it('texte coupé : jamais réduit aux seuls points de suspension, même quand le début n\'est que ponctuation', () => {
+    expect(shorten('!!! Montréal-Trudeau sans stress', 10)).toBe('!!! Montr…');
+    expect(shorten('Montréal-Trudeau sans stress', 20)).toBe('Montréal-Trudeau…');
+    expect(shorten('  Court   et   net  ', 70)).toBe('Court et net');
+  });
+
+  it('clé de variante sans photo : marquée d\'un tiret, toujours distincte entre les réseaux', () => {
+    const variants = planVariants('sans-photo', entries, 0);
+    expect(variants.every((v) => variantKey(v).split('|')[5] === '-')).toBe(true);
+    expect(allDistinct(variants.map(variantKey))).toBe(true);
   });
 });
 
@@ -136,6 +151,40 @@ describe('publication multiréseau : texte adapté à chaque réseau', () => {
     expect(composeText({ space: 'telegram', title: null, body: long.draft.body, caption: null, hashtags: long.draft.hashtags, ctaUrl: OPTIONS.ctaUrls.reserve }).length).toBeLessThanOrEqual(1_024);
   });
 
+  it('format et langue de la variante gardés seulement si le réseau les admet ; langue de base non admise ramenée au français', () => {
+    expect(adaptForSpace('instagram', BASE, { format: 'reel' }, OPTIONS)[0]!.draft.format).toBe('reel');
+    // Vidéo longue refusée sur X, anglais refusé sur Facebook : format et langue par défaut du réseau.
+    expect(adaptForSpace('x', BASE, { format: 'video' }, OPTIONS)[0]!.draft.format).toBe('post');
+    expect(adaptForSpace('facebook', BASE, { language: 'en' }, OPTIONS)[0]!.draft.language).toBe('fr');
+    // Variante déjà en anglais sur LinkedIn : une seule version, pas de seconde version anglaise.
+    const liEn = adaptForSpace('linkedin', BASE, { language: 'en', body: 'Business travel to Montréal-Trudeau, in electric vehicles.', en: { body: 'Second English version.' } }, OPTIONS);
+    expect(liEn.map((c) => c.draft.language)).toEqual(['en']);
+    // Publication de base en anglais : gardée sur X, ramenée au français sur Telegram (français seulement).
+    const en = { ...BASE, language: 'en' as const };
+    expect(adaptForSpace('x', en, undefined, OPTIONS)[0]!.draft.language).toBe('en');
+    expect(adaptForSpace('telegram', en, undefined, OPTIONS)[0]!.draft.language).toBe('fr');
+  });
+
+  it('version anglaise : titre, texte de l\'image et mots-clics propres ; sans mots-clics anglais, ceux de la version française', () => {
+    const li = adaptForSpace('linkedin', BASE, { en: { title: 'Business travel to YUL', body: 'Business travel to Montréal-Trudeau, in electric vehicles.', hashtags: ['BusinessTravel', '#YUL'] } }, OPTIONS);
+    expect(li[1]!.draft).toMatchObject({ language: 'en', title: 'Business travel to YUL', hashtags: ['#BusinessTravel', '#YUL'], caption: null });
+    expect(li[1]!.imageText).toBe('Business travel to YUL');
+    expect(li[1]!.imageText).not.toBe(li[0]!.imageText);
+    expect(li[1]!.text).toContain('https://neomoov.net/reserver');
+    const noTags = adaptForSpace('x', BASE, { en: { body: 'Electric rides to YUL.' } }, OPTIONS);
+    expect(noTags[1]!.draft.hashtags).toEqual(noTags[0]!.draft.hashtags);
+    expect(noTags[1]!.draft.title).toBeNull();
+  });
+
+  it('appel à l\'action : aucun lien pour « none » ; adresse inconnue signalée sans bloquer', () => {
+    const none = adaptForSpace('telegram', { ...BASE, cta: 'none' }, undefined, OPTIONS)[0]!;
+    expect(none.text).not.toContain('https://');
+    expect(none.issues.some((i) => i.kind === 'missing_cta_link')).toBe(false);
+    const missing = adaptForSpace('telegram', { ...BASE, cta: 'academy' }, undefined, { ...OPTIONS, ctaUrls: { reserve: OPTIONS.ctaUrls.reserve } })[0]!;
+    expect(missing.text).not.toContain('https://');
+    expect(missing.issues).toContainEqual(expect.objectContaining({ kind: 'missing_cta_link', blocking: false }));
+  });
+
   it('réseaux visés : « all » donne les dix espaces, une liste est remise dans l\'ordre de référence', () => {
     expect(resolveSpaces('all')).toEqual([...PUBLICATION_SPACES]);
     expect(resolveSpaces(['whatsapp_channel', 'facebook', 'facebook'])).toEqual(['facebook', 'whatsapp_channel']);
@@ -147,6 +196,8 @@ describe('publication multiréseau : texte adapté à chaque réseau', () => {
     expect(awaitsManualRelay({ status: 'failed', delivery: 'auto', lastError: 'SOCIAL_APPROVAL_PENDING : LinkedIn refuse (403)' })).toBe(true);
     expect(awaitsManualRelay({ status: 'failed', delivery: 'auto', lastError: 'SOCIAL_MANUAL_RELAY : compte en mode manuel' })).toBe(true);
     expect(awaitsManualRelay({ status: 'failed', delivery: 'auto', lastError: 'SOCIAL_PROVIDER_ERROR : panne' })).toBe(false);
+    // Échec sans message du connecteur : un vrai échec, pas une tâche à relayer.
+    expect(awaitsManualRelay({ status: 'failed', delivery: 'auto', lastError: null })).toBe(false);
   });
 
   it('relais manuel : lien d\'intention de X avec le texte, nom du fichier à la bonne taille', () => {
@@ -155,6 +206,9 @@ describe('publication multiréseau : texte adapté à chaque réseau', () => {
     expect(relayLink('linkedin', 'x', 'https://www.linkedin.com/company/123/')).toBe('https://www.linkedin.com/company/123/');
     expect(mediaFileName('instagram', { width: 1080, height: 1350 }, 'image', 'P01')).toBe('neomoov-P01-instagram-1080x1350.png');
     expect(mediaFileName('youtube', { width: 1280, height: 720 }, 'thumbnail')).toBe('neomoov-youtube-miniature-1280x720.png');
+    // Vidéo : extension mp4 ; référence nettoyée (caractères hors lettres, chiffres, tiret et souligné retirés).
+    expect(mediaFileName('tiktok', visualSize('tiktok', 'short'), 'video', 'P/07 lancement')).toBe('neomoov-P07lancement-tiktok-1080x1920.mp4');
+    expect(mediaFileName('whatsapp_channel', visualSize('whatsapp_channel', 'post'), 'image')).toBe('neomoov-whatsapp-channel-1080x1080.png');
   });
 });
 
@@ -179,6 +233,19 @@ describe('publication multiréseau : format du lot importé', () => {
     expect(publicationsImportSchema.safeParse({ version: 1, campaign: 'abc', publications: [{ ...one, spaces: 'all', variants: { telegram: { imageText: 'À la une' } } }] }).success).toBe(true);
     expect(publicationComposeSchema.safeParse({ ...one, spaces: 'all' }).success).toBe(false);
     expect(publicationComposeSchema.safeParse({ ...one, spaces: ['x', 'whatsapp_channel'], schedule: { mode: 'now' } }).success).toBe(true);
+  });
+
+  it('approbation en lot : une campagne ou au moins une publication est exigée ; bornes des jours et du rythme', () => {
+    const empty = publicationScheduleSchema.safeParse({});
+    expect(empty.success).toBe(false);
+    expect(empty.error?.issues[0]?.message).toBe('Une campagne ou une liste de publications est requise');
+    expect(publicationScheduleSchema.safeParse({ groupIds: [] }).success).toBe(false);
+    expect(publicationScheduleSchema.safeParse({ campaign: '   ' }).success).toBe(false);
+    expect(publicationScheduleSchema.safeParse({ campaign: 'lancement-octobre', days: 10 }).success).toBe(true);
+    expect(publicationScheduleSchema.safeParse({ groupIds: ['8f14e45f-ceea-4e6b-9c3a-2f1b8d7e6a51'], perDay: 5, startDate: '2026-10-05' }).success).toBe(true);
+    expect(publicationScheduleSchema.safeParse({ campaign: 'lancement-octobre', days: 91 }).success).toBe(false);
+    expect(publicationScheduleSchema.safeParse({ campaign: 'lancement-octobre', perDay: 0 }).success).toBe(false);
+    expect(publicationScheduleSchema.safeParse({ campaign: 'lancement-octobre', inconnu: true }).success).toBe(false);
   });
 });
 
@@ -212,5 +279,12 @@ describe('publication multiréseau : répartition d\'un lot sur plusieurs jours'
     expect(plan[0]![0]!.toLocaleDateString('en-CA', { timeZone: TZ })).toBe('2026-10-07');
     expect(plan[1]![0]).toEqual(at);
     expect(plan[2]![0]!.toLocaleDateString('en-CA', { timeZone: TZ })).toBe('2026-10-05');
+  });
+
+  it('créneaux du réglage : ceux du réseau quand il en a, sinon ceux par défaut (réseau absent ou liste vide)', () => {
+    const slots = { telegram: [{ day: 1, time: '20:15' }], x: [] };
+    const plan = scheduleCampaign([{ day: null, at: null, spaces: ['telegram', 'x', 'facebook'] }], '2026-10-05', slots, TZ, now, 5);
+    // Lundi 5 octobre, heure de Montréal (UTC-4) : Telegram à 20 h 15 (réglage), X à 9 h et Facebook à midi (défauts).
+    expect(plan[0]!.map((d) => d.toISOString())).toEqual(['2026-10-06T00:15:00.000Z', '2026-10-05T13:00:00.000Z', '2026-10-05T16:00:00.000Z']);
   });
 });

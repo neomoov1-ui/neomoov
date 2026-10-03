@@ -36,8 +36,8 @@ export interface SocialSpaceInfo {
   /** Nom affiché (page Contact, My Hub). */
   label: string;
   connection: SocialConnection;
-  /** Modes proposés dans My Hub (jamais `aggregator`). */
-  modes: readonly SocialMode[];
+  /** Modes proposés dans My Hub (jamais `aggregator`) ; au moins un, le premier sert par défaut. */
+  modes: readonly [SocialMode, ...SocialMode[]];
   oauthFlow: SocialOAuthFlow | null;
   /** Espace dont l'adresse de rappel sert au parcours (Instagram passe par celle de Facebook). */
   callbackSpace: SocialSpace | null;
@@ -66,7 +66,7 @@ export function isSocialSpace(value: string): value is SocialSpace {
 
 /** Mode par défaut d'un espace sans réglage : direct quand le réseau le permet, sinon relais manuel. */
 export function defaultSocialMode(space: SocialSpace): SocialMode {
-  return SOCIAL_SPACE_INFO[space].modes[0] ?? 'manual';
+  return SOCIAL_SPACE_INFO[space].modes[0];
 }
 
 /** Adresse de rappel OAuth à déclarer chez le réseau : `<api>/v1/social/oauth/callback/<espace>`. */

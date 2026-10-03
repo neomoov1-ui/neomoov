@@ -5,7 +5,7 @@
  * répartit un lot sur des jours de diffusion selon les créneaux `marketing.slots`. Format du lot importé :
  * docs/marketing/lancement-50-publications.schema.json. Fonctions pures.
  */
-import { localClock, shiftLocalDate } from '../agents/agents.js';
+import { shiftLocalDate } from '../agents/agents.js';
 import { DEFAULT_SLOTS, zonedInstant, type Slot, type SlotsBySpace } from './calendar.js';
 import { checkContent, type ContentCheckOptions, type ContentDraft, type ContentIssue } from './rules.js';
 import { composeText, normalizeHashtag, SPACE_RULES, type ContentFormat, type ContentLanguage, type ContentSpace, type CtaTarget } from './spaces.js';
@@ -173,9 +173,4 @@ export function scheduleCampaign(entries: readonly CampaignEntry[], startDate: s
 function localWeekday(date: string): number {
   const d = new Date(`${date}T12:00:00Z`).getUTCDay();
   return d === 0 ? 7 : d;
-}
-
-/** Date locale du jour (fuseau du service), premier jour par défaut d'une campagne. */
-export function campaignStart(now: Date, timeZone: string, startDate?: string | null): string {
-  return startDate ?? localClock(now, timeZone).date;
 }

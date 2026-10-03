@@ -162,7 +162,7 @@ export function rankPhotos<T extends { url: string; alt: string | null }>(photos
   const words = hints.map((h) => normalizeWord(h)).filter(Boolean);
   if (!words.length) return [...photos];
   const score = (p: T) => {
-    const text = normalizeWord(`${p.alt ?? ''} ${decodeURIComponent(p.url.split('/').pop() ?? '')}`);
+    const text = normalizeWord(`${p.alt ?? ''} ${decodeURIComponent(p.url.slice(p.url.lastIndexOf('/') + 1))}`);
     return words.filter((w) => text.includes(w)).length;
   };
   return photos.map((p, i) => ({ p, i, s: score(p) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.p);
