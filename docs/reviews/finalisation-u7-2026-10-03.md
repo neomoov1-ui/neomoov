@@ -36,7 +36,8 @@ Liste exacte des fichiers sous le seuil au départ (commande de couverture) : `m
 | `pnpm --filter @neomoov/domain typecheck` | Vert |
 | `pnpm --filter @neomoov/web test` (avant et après la fusion) | 11 fichiers, **45 tests verts** (dont `booster-analysis.test.ts`, 4) |
 | `pnpm --filter @neomoov/web typecheck` (après `domain build` et `api-client build`) | Vert, avant et après la fusion |
-| `pnpm --filter @neomoov/api typecheck` (types du domaine modifiés) | RESULTAT_API |
+| `pnpm --filter @neomoov/api typecheck` (types du domaine modifiés) | Vert, avant et après la fusion |
+| `/code-review` (effort bas) sur `integration-finale..HEAD` | Aucun constat sur le code ; les deux pages des inspections, sautées par l'outil, relues à la main |
 | Base de développement, Playwright | Aucun essai : ni table, ni route, ni service de l'API touché ; Playwright demande un serveur contre la base partagée |
 
 ## Reste à faire, décisions
