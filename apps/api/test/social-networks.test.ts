@@ -57,7 +57,8 @@ describe('réseaux sociaux : appels aux réseaux (serveur simulé)', () => {
     const error = await validateTelegram(options(fetch), { botToken: BOT, channel: '@neomoov' }).catch((e: unknown) => e as SocialNetworkError);
     expect(error).toMatchObject({ kind: 'invalid' });
     expect((error as Error).message).toContain('Publier des messages');
-    const refused = await validateTelegram(options(async () => json(401, { ok: false, description: `Unauthorized ${BOT}` })), { botToken: BOT, channel: '@neomoov' }).catch((e: unknown) => e as Error);
-    expect(refused.message).not.toContain(BOT);
+    const refused = await validateTelegram(options(async () => json(401, { ok: false, description: `Unauthorized ${BOT}` })), { botToken: BOT, channel: '@neomoov' }).then(() => null, (e: unknown) => e as Error);
+    expect(refused?.message).toContain('[jeton]');
+    expect(refused?.message).not.toContain(BOT);
   });
 });
