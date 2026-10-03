@@ -6,7 +6,7 @@ function nmcd_error($code='contract'){return new WP_Error('nmcd_'.$code,'Le cont
 function nmcd_lock($key){$held=get_option($key);if($held&&(int)$held<time()-600)delete_option($key);return add_option($key,time(),'','no');}
 function nmcd_seller(){
     // Tax registrations supplied by the owner; not independently verified with Revenu Québec.
-    $o=(array)get_option('nma_settings',array());$seller=array('name'=>'GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.','neq'=>'1181499600','address'=>'204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada','email'=>'contact@neomoov.net','phone'=>'+1 367 763-9063','seller_gst'=>'755212438 RT0001','seller_qst'=>'1233281863 TQ0001');
+    $o=(array)get_option('nma_settings',array());$seller=array('name'=>'GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.','neq'=>'1181499600','address'=>'204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada','email'=>'contact@neomoov.net','phone'=>'+1 438 900 4990','seller_gst'=>'755212438 RT0001','seller_qst'=>'1233281863 TQ0001');
     foreach(array('seller_gst','seller_qst')as$key)if(!empty($o[$key])&&is_string($o[$key]))$seller[$key]=substr(sanitize_text_field($o[$key]),0,40);
     return $seller;
 }
@@ -139,6 +139,7 @@ add_action('admin_post_nmcd_download',function(){
     if(!is_user_logged_in())wp_die('Connexion requise.',403);$uid=absint($_GET['member']??0);$kind=is_string($_GET['kind']??null)?sanitize_key($_GET['kind']):'';
     if((get_current_user_id()!==$uid&&!current_user_can('manage_options'))||!in_array($kind,array('contract','activation'),true))wp_die('Accès refusé.',403);
     check_admin_referer('nmcd_download_'.$uid.'_'.$kind);$doc=nmcd_doc($uid,$kind);if(!$doc)wp_die('Document indisponible.',404);
+    if(get_current_user_id()!==$uid&&function_exists('nmp_staff_log'))nmp_staff_log('document_'.$kind,$uid);
     nocache_headers();header('Content-Type: text/html; charset=UTF-8');header('Content-Disposition: attachment; filename="CAP-CHAUFFEUR-'.$kind.'.html"');header('X-Content-Type-Options: nosniff');header("Content-Security-Policy: sandbox; default-src 'none'; base-uri 'none'; form-action 'none'");echo $doc['html'];exit;
 });
 add_action('admin_post_nmcd_retry',function(){

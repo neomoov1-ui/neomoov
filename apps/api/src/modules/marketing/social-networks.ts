@@ -59,7 +59,7 @@ export const FLOW_VARIABLES: Readonly<Record<SocialOAuthFlow, readonly [string, 
   linkedin: ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'],
   x: ['X_CLIENT_ID', 'X_CLIENT_SECRET'],
   tiktok: ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET'],
-  google: ['GOOGLE_SOCIAL_CLIENT_ID', 'GOOGLE_SOCIAL_CLIENT_SECRET'],
+  google: ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET'],
 };
 
 export function oauthApp(env: AppEnv, flow: SocialOAuthFlow): OAuthApp | null {
@@ -68,7 +68,7 @@ export function oauthApp(env: AppEnv, flow: SocialOAuthFlow): OAuthApp | null {
     linkedin: [env.LINKEDIN_CLIENT_ID, env.LINKEDIN_CLIENT_SECRET],
     x: [env.X_CLIENT_ID, env.X_CLIENT_SECRET],
     tiktok: [env.TIKTOK_CLIENT_KEY, env.TIKTOK_CLIENT_SECRET],
-    google: [env.GOOGLE_SOCIAL_CLIENT_ID ?? env.YOUTUBE_CLIENT_ID, env.GOOGLE_SOCIAL_CLIENT_SECRET ?? env.YOUTUBE_CLIENT_SECRET],
+    google: [env.YOUTUBE_CLIENT_ID, env.YOUTUBE_CLIENT_SECRET],
   };
   const [clientId, clientSecret] = pair[flow];
   return clientId && clientSecret ? { clientId, clientSecret } : null;
@@ -271,6 +271,7 @@ export async function discoverAccounts(flow: SocialOAuthFlow, options: NetworkOp
     accessToken: tokens.accessToken,
     ...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
     ...(tokens.accessExpiresAt ? { accessTokenExpiresAt: tokens.accessExpiresAt.toISOString() } : {}),
+    ...(tokens.refreshExpiresAt ? { refreshTokenExpiresAt: tokens.refreshExpiresAt.toISOString() } : {}),
   });
   switch (flow) {
     case 'meta': {

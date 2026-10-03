@@ -6,7 +6,7 @@ function nma_brevo_config($o=null){
     $o=$o===null?(array)get_option('nma_settings',array()):$o;$lists=array();
     foreach(nma_brevo_tracks()as$track)$lists[$track]=(int)($o['brevo_lists'][$track]??0);
     return array('enabled'=>!empty($o['brevo_sync_enabled']),'reviewed'=>!empty($o['brevo_lists_reviewed']),
-        'key'=>defined('NMA_BREVO_API_KEY')?NMA_BREVO_API_KEY:($o['brevo_key']??''),'lists'=>$lists);
+        'key'=>nma_secret('brevo_key',$o),'lists'=>$lists);
 }
 function nma_brevo_ready($c=null){
     $c=$c===null?nma_brevo_config():$c;
@@ -137,7 +137,7 @@ function nma_brevo_process($uid){
 add_action('nma_brevo_sync_contact','nma_brevo_process');
 function nma_brevo_save_settings($o){
     if(($_POST['nma_brevo_settings_present']??'')!=='1')return $o;
-    if(!empty($_POST['nma_brevo_key_replace'])&&is_string($_POST['nma_brevo_key_new']??null)){
+    if(!nma_secret_constant('brevo_key')&&!empty($_POST['nma_brevo_key_replace'])&&is_string($_POST['nma_brevo_key_new']??null)){
         $key=trim(wp_unslash($_POST['nma_brevo_key_new']));if(strlen($key)>=20&&strlen($key)<=512&&!preg_match('/\s/',$key))$o['brevo_key']=$key;
     }
     $o['brevo_lists']=array();foreach(nma_brevo_tracks()as$track){$raw=$_POST['nma_brevo_list_'.$track]??'';$o['brevo_lists'][$track]=is_string($raw)&&ctype_digit($raw)&&(float)$raw<=2147483647?(int)$raw:0;}
@@ -145,7 +145,7 @@ function nma_brevo_save_settings($o){
     if(!nma_brevo_ready(nma_brevo_config($o)))$o['brevo_sync_enabled']=false;return $o;
 }
 function nma_brevo_admin_fields($o){
-    echo '<tr><th>Brevo — synchronisation consentie</th><td><input type="hidden" name="nma_brevo_settings_present" value="1"><p>Aucun envoi de campagne par ce module. Les quatre listes doivent être dédiées à Academy ; vérifier leurs automatisations avant activation.</p><label>Nouvelle clé API <input type="password" name="nma_brevo_key_new" value="" autocomplete="new-password"></label><label><input type="checkbox" name="nma_brevo_key_replace" value="1"> Remplacer explicitement la clé</label><p>'.(!empty(nma_brevo_config($o)['key'])?'Clé configurée, jamais affichée.':'Clé non configurée.').'</p>';
+    echo '<tr><th>Brevo — synchronisation consentie</th><td><input type="hidden" name="nma_brevo_settings_present" value="1"><p>Aucun envoi de campagne par ce module. Les quatre listes doivent être dédiées à Academy ; vérifier leurs automatisations avant activation.</p>'.(nma_secret_constant('brevo_key')?'':'<label>Nouvelle clé API <input type="password" name="nma_brevo_key_new" value="" autocomplete="new-password"></label><label><input type="checkbox" name="nma_brevo_key_replace" value="1"> Remplacer explicitement la clé</label>').'<p>'.esc_html(nma_secret_status('brevo_key',$o)).'</p>'.nma_secret_clear_field('brevo_key',$o);
     foreach(nma_brevo_tracks()as$track)echo '<p><label>ID liste '.esc_html($track).' <input name="nma_brevo_list_'.esc_attr($track).'" type="number" min="1" max="2147483647" value="'.esc_attr($o['brevo_lists'][$track]??'').'"></label></p>';
     echo '<p><label><input name="nma_brevo_lists_reviewed" type="checkbox" value="1" '.checked(!empty($o['brevo_lists_reviewed']),true,false).'> J’ai vérifié ces quatre listes dédiées et leurs scénarios ; aucun envoi non souhaité ne sera déclenché par un ajout.</label></p><p><label><input name="nma_brevo_sync_enabled" type="checkbox" value="1" '.checked(!empty($o['brevo_sync_enabled']),true,false).'> Activer la transmission des seuls contacts consentants et la mise à jour des listes</label></p><p>Aucun import rétroactif automatique. Les contacts déjà présents se traitent individuellement ci-dessous. Les réglages Square et l’ouverture des ventes sont indépendants.</p></td></tr>';
 }
@@ -175,6 +175,6 @@ function nma_brevo_admin_status(){
     if(!current_user_can('manage_options'))return;
     echo '<form method="post"><input type="hidden" name="nma_admin_action" value="brevo_connection">';wp_nonce_field('nma_brevo_connection');echo '<button class="button">Contrôler la connexion Brevo — lecture des listes seulement</button></form>';
     echo '<hr><h2>Brevo — consentements et listes</h2><p>'.esc_html(nma_brevo_ready()?'Synchronisation activée ; aucun envoi de campagne intégré.':nma_brevo_status_label('inactive')).'</p><form method="get"><input type="hidden" name="page" value="neomoov-academy"><label>ID membre <input name="nmb_member" type="number" min="1" required></label><button class="button">Consulter</button></form>';
-    $uid=absint($_GET['nmb_member']??($_POST['nmb_member']??0));$u=$uid?get_user_by('id',$uid):false;if(!$u)return;$job=get_user_meta($uid,'nmb_sync_job',true);
+    $uid=absint($_GET['nmb_member']??($_POST['nmb_member']??0));$u=$uid?get_user_by('id',$uid):false;if(!$u)return;nmp_staff_log('brevo_dossier',$uid);$job=get_user_meta($uid,'nmb_sync_job',true);
     echo '<p>Membre #'.esc_html($uid).' · '.esc_html($u->user_email).' · '.esc_html(nma_brevo_status_label($job['status']??'no_job')).'</p><p>Tentatives : '.esc_html($job['attempts']??0).' / 6 · '.esc_html($job['code']??'').' · '.esc_html($job['completed_at']??$job['last_attempt_at']??$job['at']??'').'</p><form method="post"><input type="hidden" name="nma_admin_action" value="brevo_sync"><input type="hidden" name="nmb_member" value="'.esc_attr($uid).'">';wp_nonce_field('nma_brevo_admin_sync');echo '<button class="button" '.disabled(!nma_brevo_ready(),true,false).'>Synchroniser ce contact — aucun envoi de campagne</button></form>';
 }

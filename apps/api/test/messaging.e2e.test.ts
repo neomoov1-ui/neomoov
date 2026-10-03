@@ -87,7 +87,8 @@ describe('messagerie masquée et messages entrants (intégration)', () => {
     expect(received.body).toEqual({ received: 1 });
     inbound.off();
     expect(inbound.seen).toEqual([
-      expect.objectContaining({ channel: 'sms', userId: client.user.id, phone: client.user.phone, text: 'Bonjour, j\'ai oublié mon parapluie', externalId: 'SM-lost-item' }),
+      // Numéro de l'entreprise qui a reçu le texto : la réponse repartira de ce numéro (deux numéros publics).
+      expect.objectContaining({ channel: 'sms', userId: client.user.id, phone: client.user.phone, text: 'Bonjour, j\'ai oublié mon parapluie', externalId: 'SM-lost-item', metadata: { smsTo: '+15145550100' } }),
       expect.objectContaining({ channel: 'whatsapp', userId: null, phone: '+19995550111', text: 'Je veux réserver pour demain 8 h', externalId: 'wamid.test-1' }),
     ]);
   });

@@ -18,7 +18,7 @@ import { FieldCipher } from '../../common/field-cipher.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { EnvSocialCredentialsProvider, MANUAL_ONLY_SPACES, type SocialCredentials, type SocialCredentialsProvider } from './social-credentials.js';
+import { EnvSocialCredentialsProvider, MANUAL_ONLY_SPACES, TOKEN_FIELDS, type SocialCredentials, type SocialCredentialsProvider } from './social-credentials.js';
 import { oauthApp, refreshTokens, SocialNetworkError, validateAccount, type DiscoveredAccount, type NetworkOptions, type SocialFetch } from './social-networks.js';
 
 export type SocialAccountRow = typeof schema.socialAccounts.$inferSelect;
@@ -44,6 +44,8 @@ export class SocialHttp {
 const DEFAULT_LINKEDIN_VERSION = '202606';
 /** Marge avant l'échéance d'un jeton d'accès : rafraîchi s'il lui reste moins de dix minutes. */
 const REFRESH_MARGIN_MS = 10 * 60_000;
+/** Identifiants de l'application : toujours lus dans l'environnement, jamais gardés dans le compte. */
+const APP_KEYS = ['clientId', 'clientKey', 'clientSecret'];
 
 type RowPatch = Partial<Omit<typeof schema.socialAccounts.$inferInsert, 'id' | 'space' | 'status' | 'createdAt'>> & { sealed?: SealedCredentials | null };
 
@@ -166,8 +168,56 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
     }
     const direct = await this.directValues(space, current);
     if (!direct) return null;
-    const values = direct.source === 'database' ? await this.freshValues(space, current, direct.values) : direct.values;
-    return { mode: 'direct', values: { ...this.appValues(space), ...values }, accountId: current.accountId, accountName: current.accountName, profileUrl: current.profileUrl, expiresAt: current.expiresAt };
+    let values = direct.values;
+    if (direct.source === 'database') {
+      try {
+        values = await this.freshValues(space, current, direct.values);
+      } catch (error) {
+        // Panne passagère : les valeurs connues sont servies (le connecteur renouvelle lui-même) ; refus : compte retiré.
+        if (!(error instanceof SocialNetworkError) || error.kind === 'invalid' || error.kind === 'expired') return null;
+      }
+    }
+    // Identifiants de l'application lus dans l'environnement (prioritaires) ; approbation confirmée transmise aux connecteurs (publication publique).
+    return {
+      mode: 'direct', values: { ...values, ...this.appValues(space), ...(current.appApprovedAt ? { appApproved: 'on' } : {}) },
+      accountId: current.accountId, accountName: current.accountName, profileUrl: current.profileUrl, expiresAt: current.expiresAt,
+    };
+  }
+
+  /**
+   * Jetons renouvelés par un connecteur (extension `update` du contrat) : fusionnés dans les valeurs chiffrées du compte,
+   * sous le même verrou que le rafraîchissement de la validation (un seul jeton valable chez X et TikTok). Un compte venu
+   * des variables d'environnement est alors enregistré en base (sans les identifiants de l'application) : le jeton
+   * renouvelé survit au redémarrage.
+   */
+  async update(space: string, values: Record<string, string>): Promise<void> {
+    if (!isSocialSpace(space)) return;
+    const tokens = Object.fromEntries(Object.entries(values).filter(([key, value]) => TOKEN_FIELDS.includes(key) && typeof value === 'string' && value));
+    if (!Object.keys(tokens).length) return;
+    const fallback = await this.fallback.get(space);
+    await this.database.db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`social-refresh:${space}`}))`);
+      const [locked] = await tx.select().from(schema.socialAccounts).where(eq(schema.socialAccounts.space, space)).limit(1);
+      const stored = this.sealed(locked ?? null);
+      const fromDatabase = Object.keys(stored.values).length > 0;
+      const base = fromDatabase ? stored.values : Object.fromEntries(Object.entries(fallback?.mode === 'direct' ? fallback.values : {}).filter(([key]) => !APP_KEYS.includes(key)));
+      const next: SealedCredentials = { values: { ...base, ...tokens } };
+      const accessExpiresAt = tokens['accessTokenExpiresAt'] ? new Date(tokens['accessTokenExpiresAt']) : undefined;
+      const expiresAt = tokens['refreshTokenExpiresAt'] ? new Date(tokens['refreshTokenExpiresAt']) : undefined;
+      const now = new Date();
+      const fields = {
+        credentials: this.cipher.encrypt(JSON.stringify(next)), updatedAt: now,
+        ...(accessExpiresAt ? { accessExpiresAt } : {}), ...(expiresAt ? { expiresAt } : {}),
+      };
+      if (locked && fromDatabase) {
+        await tx.update(schema.socialAccounts).set(fields).where(eq(schema.socialAccounts.space, space));
+        return;
+      }
+      // Premier enregistrement d'un compte des variables d'environnement : relié, validé par l'échange qui vient de réussir.
+      const status = effectiveSocialStatus({ space, mode: 'direct', validation: 'connected', profileUrl: locked?.profileUrl ?? fallback?.profileUrl ?? null, appApproved: Boolean(locked?.appApprovedAt) });
+      const created = { ...fields, mode: 'direct', validation: 'connected', status, accountId: locked?.accountId ?? fallback?.accountId ?? null, lastValidatedAt: now, lastError: null, connectedAt: locked?.connectedAt ?? now };
+      await tx.insert(schema.socialAccounts).values({ space, ...created }).onConflictDoUpdate({ target: schema.socialAccounts.space, set: created });
+    });
   }
 
   async markInvalid(space: string, reason: string): Promise<void> {
@@ -222,6 +272,7 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
         accessToken: tokens.accessToken,
         ...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
         ...(tokens.accessExpiresAt ? { accessTokenExpiresAt: tokens.accessExpiresAt.toISOString() } : {}),
+        ...(tokens.refreshExpiresAt ? { refreshTokenExpiresAt: tokens.refreshExpiresAt.toISOString() } : {}),
       };
       const sealed: SealedCredentials = { values: next };
       await tx.update(schema.socialAccounts).set({

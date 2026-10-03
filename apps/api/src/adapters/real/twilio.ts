@@ -25,16 +25,25 @@ export class TwilioSmsProvider implements SmsProvider {
     private readonly from: string,
     private readonly statusCallbackUrl: string | null = null,
     private readonly fetchImpl: typeof fetch = fetch,
+    /** Autres numéros Twilio de l'entreprise (`TWILIO_EXTRA_NUMBERS`) : un texto peut partir de l'un d'eux. */
+    private readonly extraFrom: readonly string[] = [],
   ) {
     this.#authToken = authToken;
+  }
+
+  /** Expéditeur : le numéro demandé s'il appartient à l'entreprise (formats comparés sans espaces), sinon le principal. */
+  senderFor(requested: string | undefined): string {
+    const wanted = requested?.replace(/[^\d+]/g, '');
+    if (!wanted) return this.from;
+    return [this.from, ...this.extraFrom].find((n) => n.replace(/[^\d+]/g, '') === wanted) ?? this.from;
   }
 
   toJSON() {
     return { name: this.name, configured: true };
   }
 
-  async send(input: { to: string; body: string; idempotencyKey?: string }): Promise<{ messageId: string }> {
-    const form = new URLSearchParams({ To: input.to, From: this.from, Body: input.body });
+  async send(input: { to: string; body: string; idempotencyKey?: string; from?: string | undefined }): Promise<{ messageId: string }> {
+    const form = new URLSearchParams({ To: input.to, From: this.senderFor(input.from), Body: input.body });
     if (this.statusCallbackUrl) form.set('StatusCallback', this.statusCallbackUrl);
     const res = await this.fetchImpl(`${API}/Accounts/${encodeURIComponent(this.accountSid)}/Messages.json`, {
       method: 'POST',

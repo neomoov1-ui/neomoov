@@ -25,7 +25,7 @@ L’email d’activation est préparé seulement après l’attribution effectiv
 
 ## Identité du vendeur
 
-GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC., marque Neomoov / Neomoov Academy. NEQ : **1181499600**. Adresse : **204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada**. Courriel : **contact@neomoov.net**. Téléphone : **+1 367 763-9063**.
+GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC., marque Neomoov / Neomoov Academy. NEQ : **1181499600**. Adresse : **204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada**. Courriel : **contact@neomoov.net**. Téléphone : **+1 438 900 4990**.
 
 TPS/TVH : **755212438 RT0001**. TVQ : **1233281863 TQ0001**. Ces numéros fiscaux ont été fournis par le propriétaire ; cette sous-tâche ne les a pas vérifiés auprès de Revenu Québec. Ils sont les valeurs par défaut du module ; les options privées `seller_gst` et `seller_qst`, si renseignées ultérieurement, les remplacent pour les nouvelles commandes. Les commandes existantes conservent leur identité figée.
 
