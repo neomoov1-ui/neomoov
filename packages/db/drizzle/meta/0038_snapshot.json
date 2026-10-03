@@ -16725,6 +16725,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "publish_notice": {
+          "name": "publish_notice",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",

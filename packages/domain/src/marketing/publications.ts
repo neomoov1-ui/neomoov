@@ -22,6 +22,19 @@ export type DeliveryMode = (typeof DELIVERY_MODES)[number];
 /** Espaces toujours en relais manuel : aucune API de publication ouverte (décision du fondateur du 3 octobre 2026). */
 export const RELAY_ONLY_SPACES: readonly ContentSpace[] = ['whatsapp_channel', 'snapchat'];
 
+/**
+ * Codes d'erreur des connecteurs qui demandent un relais manuel (compte en mode manuel, approbation du réseau en attente) :
+ * le contenu passe en `failed` avec `lastError` commençant par l'un d'eux, sans nouvelle tentative ; My Hub le présente
+ * comme une tâche « À relayer », pas comme un échec.
+ */
+export const MANUAL_RELAY_CODES = ['SOCIAL_MANUAL_RELAY', 'SOCIAL_APPROVAL_PENDING'] as const;
+
+/** Contenu à publier à la main : programmé en relais manuel, ou refusé par le connecteur avec un code de relais manuel. */
+export function awaitsManualRelay(item: { status: string; delivery: string; lastError: string | null }): boolean {
+  if (item.status === 'scheduled' && item.delivery === 'manual') return true;
+  return item.status === 'failed' && MANUAL_RELAY_CODES.some((code) => item.lastError?.startsWith(code) ?? false);
+}
+
 /** Réseaux qui reçoivent par défaut la version courte (texte limité à quelques centaines de caractères). */
 const SHORT_SPACES: readonly ContentSpace[] = ['x', 'snapchat'];
 /** Titre gardé sur ces réseaux (affiché ou exigé) ; ailleurs il ne sert qu'au visuel. */

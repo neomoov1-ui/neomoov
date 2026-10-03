@@ -40,7 +40,7 @@ export class MessagingWebhooksController {
     const url = `${this.env.APP_BASE_URL.replace(/\/+$/, '')}/v1/webhooks/twilio/inbound`;
     if (!signature || !this.sms.verifyStatusWebhook({ url, params, signature })) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);
     const message = this.sms.parseInbound(params);
-    if (message) await this.inbound.receive({ channel: 'sms', from: message.from, text: message.body, externalId: message.messageId });
+    if (message) await this.inbound.receive({ channel: 'sms', from: message.from, to: message.to, text: message.body, externalId: message.messageId });
     res.setHeader('content-type', 'text/xml; charset=utf-8');
     return EMPTY_TWIML;
   }

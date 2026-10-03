@@ -97,27 +97,33 @@ describe('agent vocal Vapi : définition des assistants et mise en place', () =>
   });
 
   it('mise en place rejouable : création puis mise à jour par nom, numéro importé retrouvé par le numéro Twilio', async () => {
-    const state = { assistants: [] as Array<{ id: string; name: string }>, numbers: [{ id: 'pn_1', number: '+15145550100', assistantId: null }, { id: 'pn_2', number: '+13677639063' }] };
+    const state = { assistants: [] as Array<{ id: string; name: string }>, numbers: [{ id: 'pn_1', number: '+15145550100', assistantId: null }, { id: 'pn_2', number: '+15145550177' }] };
     const { calls, impl } = fakeVapi(state);
     const client = new VapiAdminClient('cle-privee', impl);
     expect(JSON.stringify(client)).not.toContain('cle-privee');
 
     const first = await syncVapi(client, options);
-    expect(first).toEqual({ inbound: { id: 'asst_1', action: 'created' }, sos: { id: 'asst_2', action: 'created' }, sales: { id: 'asst_3', action: 'created' }, phoneNumber: { id: 'pn_1', number: '+15145550100', action: 'assigned' }, candidates: [] });
+    expect(first).toEqual({ inbound: { id: 'asst_1', action: 'created' }, sos: { id: 'asst_2', action: 'created' }, sales: { id: 'asst_3', action: 'created' }, phoneNumber: { id: 'pn_1', number: '+15145550100', action: 'assigned' }, otherNumbers: [], missingNumbers: [], candidates: [] });
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(3);
     expect(calls.find((c) => c.method === 'PATCH' && c.url.endsWith('/phone-number/pn_1'))?.body).toEqual({ assistantId: 'asst_1', name: 'Neomoov' });
     expect(calls.every((c) => c.url.startsWith('https://api.vapi.ai/'))).toBe(true);
 
     const second = await syncVapi(client, options);
-    expect(second).toEqual({ inbound: { id: 'asst_1', action: 'updated' }, sos: { id: 'asst_2', action: 'updated' }, sales: { id: 'asst_3', action: 'updated' }, phoneNumber: { id: 'pn_1', number: '+15145550100', action: 'already' }, candidates: [] });
+    expect(second).toEqual({ inbound: { id: 'asst_1', action: 'updated' }, sos: { id: 'asst_2', action: 'updated' }, sales: { id: 'asst_3', action: 'updated' }, phoneNumber: { id: 'pn_1', number: '+15145550100', action: 'already' }, otherNumbers: [], missingNumbers: [], candidates: [] });
     expect(state.assistants).toHaveLength(3);
     expect(calls.filter((c) => c.method === 'PATCH' && c.url.includes('/assistant/'))).toHaveLength(3);
+
+    // Deux numéros publics : le principal et le secondaire reçoivent tous deux l'assistant d'accueil ; un numéro absent de Vapi est signalé.
+    const both = await syncVapi(client, { ...options, phoneNumberId: 'pn_1', fromNumber: '+1 514 555-0177', extraNumbers: ['+15145550100', '+15145550199'] });
+    expect(both.otherNumbers).toEqual([{ id: 'pn_2', number: '+15145550177', action: 'assigned' }]);
+    expect(both.missingNumbers).toEqual(['+15145550199']);
+    expect(calls.find((c) => c.method === 'PATCH' && c.url.endsWith('/phone-number/pn_2'))?.body).toEqual({ assistantId: 'asst_1', name: 'Neomoov 0177' });
 
     // Identifiant connu : il prime sur le numéro ; inconnu : rien n'est rattaché, les candidats sont listés.
     expect(pickPhoneNumber(state.numbers, { phoneNumberId: 'pn_2', fromNumber: '+15145550100' })?.id).toBe('pn_2');
     const none = await syncVapi(client, { ...options, fromNumber: '+15145550199' });
     expect(none.phoneNumber).toBeNull();
-    expect(none.candidates).toEqual([{ id: 'pn_1', number: '+15145550100' }, { id: 'pn_2', number: '+13677639063' }]);
+    expect(none.candidates).toEqual([{ id: 'pn_1', number: '+15145550100' }, { id: 'pn_2', number: '+15145550177' }]);
   });
 
   it('refus de Vapi : erreur typée avec le message de validation ; appel sortant avec variables de l\'assistant', async () => {

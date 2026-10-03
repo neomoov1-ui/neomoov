@@ -11,8 +11,8 @@ import { hubApi } from '@/lib/hub-api';
 
 const CHANNELS = ['email', 'social', 'whatsapp', 'sms', 'voice', 'app', 'web'] as const;
 const STATES = ['awaiting', 'escalated', 'relay', 'answered', 'closed'] as const;
-const NETWORKS = ['messenger', 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat'] as const;
-const RELAY_NETWORKS = ['youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat'] as const;
+const NETWORKS = ['messenger', 'facebook', 'instagram', 'youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat', 'telegram'] as const;
+const RELAY_NETWORKS = ['youtube', 'tiktok', 'x', 'gbp', 'linkedin', 'snapchat', 'telegram'] as const;
 const STATE_TONES: Record<string, BadgeTone> = { awaiting: 'warning', escalated: 'danger', relay: 'info', answered: 'success', closed: 'neutral' };
 const AUTHOR_ACTOR: Record<string, string> = { client: 'client', staff: 'operator', agent: 'agent', system: 'system' };
 const PAGE_SIZE = 25;

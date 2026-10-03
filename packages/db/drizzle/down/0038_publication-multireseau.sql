@@ -9,6 +9,7 @@ ALTER TABLE content_items DROP COLUMN IF EXISTS delivery;
 ALTER TABLE content_items DROP COLUMN IF EXISTS visual;
 ALTER TABLE content_items DROP COLUMN IF EXISTS relayed_at;
 ALTER TABLE content_items DROP COLUMN IF EXISTS relayed_by_user_id;
+ALTER TABLE content_items DROP COLUMN IF EXISTS publish_notice;
 DROP TABLE IF EXISTS content_groups;
 DELETE FROM content_items WHERE space IN ('telegram', 'whatsapp_channel');
 ALTER TABLE content_items DROP CONSTRAINT IF EXISTS content_items_space;

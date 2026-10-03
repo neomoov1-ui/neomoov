@@ -33,6 +33,7 @@ ALTER TABLE "content_items" ADD COLUMN IF NOT EXISTS "delivery" varchar(8) DEFAU
 ALTER TABLE "content_items" ADD COLUMN IF NOT EXISTS "visual" jsonb;--> statement-breakpoint
 ALTER TABLE "content_items" ADD COLUMN IF NOT EXISTS "relayed_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "content_items" ADD COLUMN IF NOT EXISTS "relayed_by_user_id" uuid;--> statement-breakpoint
+ALTER TABLE "content_items" ADD COLUMN IF NOT EXISTS "publish_notice" varchar(500);--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "content_groups_campaign_ref_uq" ON "content_groups" USING btree ("campaign","ref") WHERE "content_groups"."campaign" IS NOT NULL AND "content_groups"."ref" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "content_groups_created_idx" ON "content_groups" USING btree ("created_at");--> statement-breakpoint
 DO $$ BEGIN ALTER TABLE "content_items" ADD CONSTRAINT "content_items_group_id_content_groups_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."content_groups"("id") ON DELETE cascade ON UPDATE no action; EXCEPTION WHEN duplicate_object THEN null; END $$;--> statement-breakpoint

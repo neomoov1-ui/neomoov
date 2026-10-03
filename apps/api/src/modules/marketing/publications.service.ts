@@ -14,14 +14,14 @@
 import { randomUUID } from 'node:crypto';
 import { schema } from '@neomoov/db';
 import {
-  adaptForSpace, asUntrustedData, assignSlots, composeText, imageTextFor, isSensitive, localClock, mediaFileName, normalizeHashtag, parseSlots, planVariants, publicationAdaptOutputSchema, rankPhotos,
-  relayLink, RELAY_ONLY_SPACES, resolveSpaces, scheduleCampaign, shiftLocalDate, SOCIAL_NETWORKS, SPACE_RULES, thumbnailSize, visualSize, weekStartOf, zonedInstant,
+  adaptForSpace, asUntrustedData, awaitsManualRelay, assignSlots, composeText, imageTextFor, isSensitive, localClock, mediaFileName, normalizeHashtag, parseSlots, planVariants, publicationAdaptOutputSchema, rankPhotos,
+  MANUAL_RELAY_CODES, relayLink, RELAY_ONLY_SPACES, resolveSpaces, scheduleCampaign, shiftLocalDate, SOCIAL_NETWORKS, SPACE_RULES, thumbnailSize, visualSize, weekStartOf, zonedInstant,
   type ContentIssue, type ContentSpace, type ContentVisual, type CtaTarget, type DeliveryMode, type PublicationAdaptResult, type PublicationComposeInput, type PublicationGroupView, type PublicationImportResult,
   type PublicationInput, type PublicationItemView, type PublicationListQuery, type PublicationScheduleInput, type PublicationScheduleResult, type PublicationsImport, type PublicationVariant,
   type RelayListView, type RelayTaskView, type SocialInboxSummaryView,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, like, lt, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { SITE_CONNECTOR, SOCIAL_PUBLISHERS, type SiteConnector, type SiteMediaItem, type SocialPublishers } from '../../adapters/marketing.types.js';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
@@ -94,7 +94,10 @@ export class PublicationsService {
   // Vues ------------------------------------------------------------------------------------------------------------------
 
   static itemView(row: ContentItemRow): PublicationItemView {
-    return { ...ContentService.view(row), groupId: row.groupId, delivery: row.delivery as DeliveryMode, visual: (row.visual as ContentVisual | null) ?? null, relayedAt: row.relayedAt?.toISOString() ?? null };
+    return {
+      ...ContentService.view(row), groupId: row.groupId, delivery: row.delivery as DeliveryMode, visual: (row.visual as ContentVisual | null) ?? null, relayedAt: row.relayedAt?.toISOString() ?? null,
+      notice: row.publishNotice ?? null, awaitsRelay: awaitsManualRelay(row),
+    };
   }
 
   static groupView(group: GroupRow, items: ContentItemRow[]): PublicationGroupView {
@@ -106,10 +109,10 @@ export class PublicationsService {
       pillar: group.pillar, notes: group.notes, items: views,
       counts: {
         draft: views.filter((i) => i.status === 'draft').length,
-        scheduled: views.filter((i) => i.status === 'scheduled' && i.delivery === 'auto').length,
+        scheduled: views.filter((i) => i.status === 'scheduled' && !i.awaitsRelay).length,
         published: views.filter((i) => i.status === 'published' || i.status === 'measured').length,
-        failed: views.filter((i) => i.status === 'failed').length,
-        relay: views.filter((i) => i.status === 'scheduled' && i.delivery === 'manual').length,
+        failed: views.filter((i) => i.status === 'failed' && !i.awaitsRelay).length,
+        relay: views.filter((i) => i.awaitsRelay).length,
         rejected: views.filter((i) => i.status === 'rejected').length,
         blocked: views.filter((i) => i.status === 'draft' && blocking(i)).length,
       },
@@ -374,7 +377,11 @@ export class PublicationsService {
     };
   }
 
-  /** Tâches « À relayer » d'un jour (aujourd'hui par défaut) : contenus en relais manuel programmés jusqu'à la fin du jour, retards compris. */
+  /**
+   * Tâches « À relayer » d'un jour (aujourd'hui par défaut) : contenus en relais manuel programmés jusqu'à la fin du jour,
+   * retards compris, et contenus refusés par leur connecteur avec un code de relais manuel (compte en mode manuel,
+   * approbation du réseau en attente : `SOCIAL_MANUAL_RELAY`, `SOCIAL_APPROVAL_PENDING`), présentés comme des tâches.
+   */
   async relayList(date: string | undefined, now = new Date()): Promise<RelayListView> {
     const tz = await this.timeZone();
     const day = date ?? localClock(now, tz).date;
@@ -383,7 +390,13 @@ export class PublicationsService {
     const rows = await this.db
       .select()
       .from(schema.contentItems)
-      .where(and(eq(schema.contentItems.delivery, 'manual'), eq(schema.contentItems.status, 'scheduled'), lt(schema.contentItems.scheduledAt, end)))
+      .where(and(
+        lt(schema.contentItems.scheduledAt, end),
+        or(
+          and(eq(schema.contentItems.delivery, 'manual'), eq(schema.contentItems.status, 'scheduled')),
+          and(eq(schema.contentItems.status, 'failed'), or(...MANUAL_RELAY_CODES.map((code) => like(schema.contentItems.lastError, `${code}%`)))),
+        ),
+      ))
       .orderBy(asc(schema.contentItems.scheduledAt))
       .limit(200);
     const groupIds = [...new Set(rows.map((r) => r.groupId).filter((g): g is string => Boolean(g)))];
@@ -398,11 +411,11 @@ export class PublicationsService {
   /** Relais fait : le contenu est publié (lien de la publication facultatif). Aucune mesure ni lecture des commentaires sans connecteur. */
   async markRelayed(id: string, url: string | null, userId: string, now = new Date()): Promise<PublicationItemView> {
     const row = await this.content.row(id);
-    if (row.delivery !== 'manual' || !['scheduled', 'failed'].includes(row.status)) throw AppError.conflict('CONTENT_NOT_RELAYABLE', `Un contenu ${row.status} (${row.delivery === 'manual' ? 'relais manuel' : 'connecteur'}) ne se marque pas publié à la main`);
+    if (!awaitsManualRelay(row)) throw AppError.conflict('CONTENT_NOT_RELAYABLE', `Un contenu ${row.status} (${row.delivery === 'manual' ? 'relais manuel' : 'connecteur'}) ne se marque pas publié à la main`);
     const [updated] = await this.db
       .update(schema.contentItems)
-      .set({ status: 'published', publishedAt: now, externalUrl: url, relayedAt: now, relayedByUserId: userId, nextAttemptAt: null, lastError: null })
-      .where(and(eq(schema.contentItems.id, id), eq(schema.contentItems.delivery, 'manual'), inArray(schema.contentItems.status, ['scheduled', 'failed'])))
+      .set({ status: 'published', delivery: 'manual', publishedAt: now, externalUrl: url, relayedAt: now, relayedByUserId: userId, nextAttemptAt: null, lastError: null })
+      .where(and(eq(schema.contentItems.id, id), eq(schema.contentItems.status, row.status), eq(schema.contentItems.attempts, row.attempts)))
       .returning();
     if (!updated) throw AppError.conflict('CONTENT_NOT_RELAYABLE', 'Contenu déjà marqué publié');
     this.audit.record({ action: 'marketing.content_relayed', entity: 'content_items', entityId: id, before: { status: row.status }, after: { status: 'published', space: row.space, url } });

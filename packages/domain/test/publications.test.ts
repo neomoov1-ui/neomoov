@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
-  adaptForSpace, allDistinct, composeText, DEFAULT_FORMATS, DEFAULT_SLOTS, imageTextFor, inboxNetworkOf, mediaFileName, planVariants, PUBLICATION_SPACES, publicationComposeSchema, publicationsImportSchema,
+  adaptForSpace, allDistinct, awaitsManualRelay, composeText, DEFAULT_FORMATS, DEFAULT_SLOTS, imageTextFor, inboxNetworkOf, mediaFileName, planVariants, PUBLICATION_SPACES, publicationComposeSchema, publicationsImportSchema,
   rankPhotos, relayLink, resolveSpaces, scheduleCampaign, shorten, SPACE_RULES, SPACE_TAGLINES, thumbnailSize, variantKey, VISUAL_SIZES, VISUAL_TEMPLATES, visualSize, type PublicationBase,
 } from '../src/index.js';
 import { CONTENT_SPACES } from '../src/marketing/index.js';
@@ -139,6 +139,14 @@ describe('publication multiréseau : texte adapté à chaque réseau', () => {
   it('réseaux visés : « all » donne les dix espaces, une liste est remise dans l\'ordre de référence', () => {
     expect(resolveSpaces('all')).toEqual([...PUBLICATION_SPACES]);
     expect(resolveSpaces(['whatsapp_channel', 'facebook', 'facebook'])).toEqual(['facebook', 'whatsapp_channel']);
+  });
+
+  it('relais manuel reconnu : programmé en manuel, ou refusé par le connecteur (compte manuel, approbation en attente) ; jamais un vrai échec', () => {
+    expect(awaitsManualRelay({ status: 'scheduled', delivery: 'manual', lastError: null })).toBe(true);
+    expect(awaitsManualRelay({ status: 'scheduled', delivery: 'auto', lastError: null })).toBe(false);
+    expect(awaitsManualRelay({ status: 'failed', delivery: 'auto', lastError: 'SOCIAL_APPROVAL_PENDING : LinkedIn refuse (403)' })).toBe(true);
+    expect(awaitsManualRelay({ status: 'failed', delivery: 'auto', lastError: 'SOCIAL_MANUAL_RELAY : compte en mode manuel' })).toBe(true);
+    expect(awaitsManualRelay({ status: 'failed', delivery: 'auto', lastError: 'SOCIAL_PROVIDER_ERROR : panne' })).toBe(false);
   });
 
   it('relais manuel : lien d\'intention de X avec le texte, nom du fichier à la bonne taille', () => {

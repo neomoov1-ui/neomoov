@@ -2,7 +2,8 @@
  * File `marketing` (phase 1 « entreprise autonome ») : passe toutes les cinq minutes (heure de Montréal) qui lance le
  * calendrier de contenu le vendredi (`marketing.content_day`, `marketing.content_hour`), le plan de référencement le
  * lundi (`seo.weekday`, `seo.hour`), publie les contenus programmés à leur créneau, mesure à J+1 et J+7, relit les
- * commentaires et mesure les tâches de référencement appliquées ; tâches ponctuelles `media` (visuel ou vidéo d'un
+ * commentaires, mesure les tâches de référencement appliquées et, une fois par heure, contrôle les autorisations des
+ * réseaux à jeton OAuth (alerte au personnel avant l'échéance) ; tâches ponctuelles `media` (visuel ou vidéo d'un
  * contenu approuvé). Avec Redis, le worker porte la file ; sans Redis, l'API. En test, rien n'est automatique.
  */
 import { localClock, type AgentRunView } from '@neomoov/domain';
@@ -26,11 +27,15 @@ export interface MarketingTickReport {
   measured: number;
   comments: CommentsPassReport;
   seoMeasured: number;
+  /** Alertes envoyées sur les autorisations des réseaux (jeton à refaire bientôt, ou en échec). */
+  credentialAlerts: number;
 }
 
 @Injectable()
 export class MarketingJobsService implements OnModuleInit {
   private registered = false;
+  /** Dernier contrôle des autorisations des réseaux (une fois par heure au plus : l'introspection LinkedIn est un appel). */
+  private credentialsCheckedAt = 0;
 
   constructor(
     @Inject(APP_ENV) private readonly env: AppEnv,
@@ -65,12 +70,12 @@ export class MarketingJobsService implements OnModuleInit {
       return;
     }
     const report = await this.tick(new Date());
-    if (report.content || report.seo || report.publishing.published || report.publishing.failed || report.measured || report.comments.replied || report.comments.escalated || report.comments.forwarded) this.logger.info(report, 'passe marketing');
+    if (report.content || report.seo || report.publishing.published || report.publishing.failed || report.measured || report.comments.replied || report.comments.escalated || report.comments.forwarded || report.credentialAlerts) this.logger.info(report, 'passe marketing');
   }
 
   /** Une passe complète ; chaque étape protège les autres (une erreur est journalisée, jamais propagée). */
   async tick(now = new Date()): Promise<MarketingTickReport> {
-    const report: MarketingTickReport = { content: null, seo: null, publishing: { published: 0, retried: 0, failed: 0 }, measured: 0, comments: { checked: 0, replied: 0, forwarded: 0, escalated: 0 }, seoMeasured: 0 };
+    const report: MarketingTickReport = { content: null, seo: null, publishing: { published: 0, retried: 0, failed: 0 }, measured: 0, comments: { checked: 0, replied: 0, forwarded: 0, escalated: 0 }, seoMeasured: 0, credentialAlerts: 0 };
     const guard = async (label: string, fn: () => Promise<void>) => {
       try {
         await fn();
@@ -84,6 +89,10 @@ export class MarketingJobsService implements OnModuleInit {
     await guard('measure', async () => { report.measured = await this.publishing.measureDue(now); });
     await guard('comments', async () => { report.comments = await this.publishing.commentsPass(now); });
     await guard('seo-measure', async () => { report.seoMeasured = await this.seoService.measureDue(now); });
+    if (now.getTime() - this.credentialsCheckedAt >= 3_600_000) {
+      this.credentialsCheckedAt = now.getTime();
+      await guard('credentials', async () => { report.credentialAlerts = await this.publishing.credentialsPass(now); });
+    }
     return report;
   }
 

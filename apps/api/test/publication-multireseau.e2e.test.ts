@@ -130,6 +130,23 @@ describe('publication multiréseau (agent S2) : composer, visuels par réseau, r
     const again = (await request(server()).get('/v1/admin/marketing/relay').set(bearer(operator.tokens)).expect(200)).body as typeof list;
     expect(again.tasks.find((t) => t.item.id === task.item.id)).toBeUndefined();
     expect(again.doneToday).toBeGreaterThanOrEqual(1);
+
+    // Refus du connecteur avec un code de relais manuel (approbation LinkedIn en attente) : tâche à relayer, pas un échec ;
+    // mention du connecteur (vidéo privée) gardée sur le contenu publié.
+    const group = await compose({ title: 'Mobilité électrique à Montréal', body: BODY, short: SHORT, spaces: ['linkedin', 'tiktok'], schedule: { mode: 'draft' } });
+    groups.add(group.id);
+    const linkedin = group.items.find((i) => i.space === 'linkedin')!;
+    const tiktok = group.items.find((i) => i.space === 'tiktok')!;
+    await db(app!).update(schema.contentItems).set({ status: 'failed', scheduledAt: new Date(Date.now() - 60_000), lastError: 'SOCIAL_APPROVAL_PENDING : LinkedIn refuse la publication (Community Management API non approuvée)' }).where(eq(schema.contentItems.id, linkedin.id));
+    await db(app!).update(schema.contentItems).set({ status: 'published', publishNotice: 'Vidéo envoyée en privé : audit TikTok non accordé' }).where(eq(schema.contentItems.id, tiktok.id));
+    const view = (await request(server()).get(`/v1/admin/marketing/publications/${group.id}`).set(bearer(operator.tokens)).expect(200)).body as Group & { items: Array<Item & { awaitsRelay: boolean; notice: string | null }> };
+    expect(view.counts).toMatchObject({ relay: 1, failed: 0, published: 1 });
+    expect(view.items.find((i) => i.space === 'linkedin')!.awaitsRelay).toBe(true);
+    expect(view.items.find((i) => i.space === 'tiktok')!.notice).toContain('privé');
+    const pending = (await request(server()).get('/v1/admin/marketing/relay').set(bearer(operator.tokens)).expect(200)).body as typeof list;
+    expect(pending.tasks.find((t) => t.item.id === linkedin.id)).toMatchObject({ late: true, link: 'https://www.linkedin.com/feed/' });
+    const relayedLinkedin = (await request(server()).post(`/v1/admin/marketing/content/${linkedin.id}/relayed`).set(bearer(operator.tokens)).send({}).expect(200)).body as Item;
+    expect(relayedLinkedin).toMatchObject({ status: 'published', delivery: 'manual' });
   });
 
   it('tous les réseaux : dix contenus, dix images toutes différentes (empreintes), tailles exactes, brouillons', async ({ skip }) => {

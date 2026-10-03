@@ -273,12 +273,12 @@ export class MockPaymentProvider implements PaymentProvider {
 /** Textos simulés : un numéro qui finit par `0000` est refusé (tests du repli et des erreurs). */
 export class MockSmsProvider implements SmsProvider {
   readonly name = 'mock';
-  readonly sent: Array<{ to: string; body: string; messageId: string }> = [];
+  readonly sent: Array<{ to: string; body: string; messageId: string; from?: string | undefined }> = [];
   constructor(private readonly webhookOptions: MockWebhookOptions = {}) {}
-  async send(input: { to: string; body: string }) {
+  async send(input: { to: string; body: string; from?: string | undefined }) {
     if (input.to.endsWith('0000')) throw new Error('Numéro refusé (simulé)');
     const messageId = nextId('sms_mock');
-    this.sent.push({ to: input.to, body: input.body, messageId });
+    this.sent.push({ to: input.to, body: input.body, messageId, ...(input.from ? { from: input.from } : {}) });
     return { messageId };
   }
   verifyStatusWebhook(input: { signature: string }) {

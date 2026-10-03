@@ -95,6 +95,8 @@ export const contentItems = pgTable('content_items', {
   /** Variante du visuel (gabarit, photo, recadrage, accent, texte, taille, empreinte), toutes différentes dans une publication. */
   visual: jsonb('visual'),
   relayedAt: tz('relayed_at'),
+  /** Mention renvoyée par le connecteur à la publication (vidéo YouTube ou TikTok privée tant que l'audit n'est pas accordé). */
+  publishNotice: varchar('publish_notice', { length: 500 }),
   relayedByUserId: uuid('relayed_by_user_id'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

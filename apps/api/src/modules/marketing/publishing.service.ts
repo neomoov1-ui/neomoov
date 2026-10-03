@@ -14,7 +14,8 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
-import { SOCIAL_PUBLISHERS, type SocialMedia, type SocialPublisher, type SocialPublishers } from '../../adapters/marketing.types.js';
+import { MANUAL_RELAY_ERRORS, SOCIAL_PUBLISHERS, type SocialComment, type SocialMedia, type SocialPublisher, type SocialPublishers } from '../../adapters/marketing.types.js';
+import { spaceLabel } from '../../adapters/real/marketing.js';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
@@ -178,7 +179,7 @@ export class PublishingService {
         const started = Date.now();
         try {
           const result = await this.send(row, now);
-          ctx.recordToolCall({ tool: 'socialPublish', input: { itemId: id, space: row.space }, ok: true, result: { externalId: result.externalId, draft: result.draft }, approvalId: null, durationMs: Date.now() - started });
+          ctx.recordToolCall({ tool: 'socialPublish', input: { itemId: id, space: row.space }, ok: true, result: { externalId: result.externalId, draft: result.draft, notice: result.notice }, approvalId: null, durationMs: Date.now() - started });
           return result;
         } catch (error) {
           ctx.recordToolCall({ tool: 'socialPublish', input: { itemId: id, space: row.space }, ok: false, result: { message: error instanceof Error ? error.message.slice(0, 300) : String(error) }, approvalId: null, durationMs: Date.now() - started });
@@ -195,7 +196,7 @@ export class PublishingService {
     return this.content.view(id);
   }
 
-  private async send(row: ContentItemRow, now: Date): Promise<{ externalId: string; draft: boolean }> {
+  private async send(row: ContentItemRow, now: Date): Promise<{ externalId: string; draft: boolean; notice: string | null }> {
     const publisher = this.publisher(row.space);
     const { media, row: current } = await this.mediaFor(row);
     const rule = SPACE_RULES[current.space as ContentSpace];
@@ -207,27 +208,34 @@ export class PublishingService {
     const hashtags = Array.isArray(current.hashtags) ? (current.hashtags as string[]) : [];
     const result = await publisher.publish({
       itemId: current.id, space: current.space as ContentSpace, format: current.format as ContentItemView['format'], language: current.language as 'fr' | 'en', title: current.title, body: current.body, caption: current.caption, hashtags,
-      text: composeText({ space: current.space as ContentSpace, title: current.title, body: current.body, caption: current.caption, hashtags, ctaUrl }), ctaUrl, media, draft: false,
+      text: composeText({ space: current.space as ContentSpace, title: current.title, body: current.body, caption: current.caption, hashtags, ctaUrl }), ctaUrl, cta: current.cta as CtaTarget, media, draft: false,
     });
     const measureDays = await this.measureDays();
     await this.db
       .update(schema.contentItems)
-      .set({ status: 'published', externalId: result.externalId, externalUrl: result.url, publishedAt: now, nextAttemptAt: null, lastError: null, measureDueAt: nextMeasureAt(now, measureDays, 0), measureCount: 0 })
+      .set({ status: 'published', externalId: result.externalId, externalUrl: result.url, publishedAt: now, nextAttemptAt: null, lastError: null, publishNotice: result.notice?.slice(0, 500) ?? null, measureDueAt: nextMeasureAt(now, measureDays, 0), measureCount: 0 })
       .where(eq(schema.contentItems.id, row.id));
-    await this.audit.recordSystem({ action: 'marketing.content_published', entity: 'content_items', entityId: row.id, after: { space: row.space, externalId: result.externalId, url: result.url, draft: result.draft } }, PUBLISHING);
-    return { externalId: result.externalId, draft: result.draft };
+    await this.audit.recordSystem({ action: 'marketing.content_published', entity: 'content_items', entityId: row.id, after: { space: row.space, externalId: result.externalId, url: result.url, draft: result.draft, notice: result.notice ?? null } }, PUBLISHING);
+    return { externalId: result.externalId, draft: result.draft, notice: result.notice ?? null };
   }
 
   private async recordFailure(row: ContentItemRow, attempt: number, error: unknown, now: Date): Promise<void> {
     const max = await this.settings.number('marketing.publish_max_attempts', 3);
     const message = error instanceof AppError ? `${error.code} : ${error.message}` : error instanceof Error ? error.message : String(error);
-    const definitive = attempt >= max;
+    // Relais manuel (compte en mode manuel, approbation en attente chez le réseau) : aucune nouvelle tentative, la
+    // publication attend un humain (état `failed`, `lastError` commençant par SOCIAL_MANUAL_RELAY ou SOCIAL_APPROVAL_PENDING).
+    const manualRelay = error instanceof AppError && MANUAL_RELAY_ERRORS.includes(error.code);
+    const definitive = manualRelay || attempt >= max;
+    // Limite atteinte (429) : le nouvel essai attend au moins le délai demandé par le réseau (borné à 26 heures).
+    const retryAfter = error instanceof AppError ? Number((error.details as { retryAfterSeconds?: unknown } | undefined)?.retryAfterSeconds ?? 0) || 0 : 0;
+    const delay = Math.max(retryDelayMs(attempt), Math.min(retryAfter, 26 * 3_600) * 1_000);
     await this.db
       .update(schema.contentItems)
-      .set({ lastError: message.slice(0, 500), ...(definitive ? { status: 'failed', nextAttemptAt: null } : { nextAttemptAt: new Date(now.getTime() + retryDelayMs(attempt)) }) })
+      .set({ lastError: message.slice(0, 500), ...(definitive ? { status: 'failed', nextAttemptAt: null } : { nextAttemptAt: new Date(now.getTime() + delay) }) })
       .where(eq(schema.contentItems.id, row.id));
-    await this.audit.recordSystem({ action: definitive ? 'marketing.content_failed' : 'marketing.content_retry', entity: 'content_items', entityId: row.id, after: { space: row.space, attempt, error: message.slice(0, 300) } }, PUBLISHING);
-    if (definitive) await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'marketing_publish_failed', summary: `${SPACE_RULES[row.space as ContentSpace].name} : publication en échec après ${attempt} tentatives (${message.slice(0, 160)})`, contentItemId: row.id });
+    await this.audit.recordSystem({ action: manualRelay ? 'marketing.content_manual_relay' : definitive ? 'marketing.content_failed' : 'marketing.content_retry', entity: 'content_items', entityId: row.id, after: { space: row.space, attempt, error: message.slice(0, 300) } }, PUBLISHING);
+    if (manualRelay) await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'marketing_manual_relay', summary: `${spaceLabel(row.space)} : publication à relayer à la main (${(error as AppError).message.slice(0, 200)})`, contentItemId: row.id });
+    else if (definitive) await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'marketing_publish_failed', summary: `${spaceLabel(row.space)} : publication en échec après ${attempt} tentatives (${message.slice(0, 160)})`, contentItemId: row.id });
   }
 
   private async measureDays(): Promise<number[]> {
@@ -267,6 +275,45 @@ export class PublishingService {
     return measured;
   }
 
+  // Autorisations des réseaux ---------------------------------------------------------------------------------------------
+
+  /** Alertes déjà envoyées (réseau et jour) : une seule par jour et par réseau, même si la passe tourne toutes les cinq minutes. */
+  private readonly credentialAlerts = new Set<string>();
+
+  /**
+   * Autorisations des réseaux à jeton OAuth (Fiche Google, LinkedIn, YouTube, X, TikTok) : alerte au personnel quand le
+   * jeton doit être refait à la main dans moins de `marketing.token_alert_days` jours (jeton LinkedIn de 60 jours sans
+   * rafraîchissement, jetons de rafraîchissement d'un an), ou quand l'échange du jeton échoue (révoqué, application
+   * suspendue). Rend le nombre d'alertes envoyées.
+   */
+  async credentialsPass(now = new Date()): Promise<number> {
+    const days = await this.settings.number('marketing.token_alert_days', 7);
+    const day = now.toISOString().slice(0, 10);
+    let alerts = 0;
+    for (const publisher of new Set(this.publishers.values())) {
+      if (!publisher.configured || !publisher.credentials) continue;
+      const key = `${publisher.space}:${day}`;
+      if (this.credentialAlerts.has(key)) continue;
+      let status: Awaited<ReturnType<NonNullable<SocialPublisher['credentials']>>>;
+      try {
+        status = await publisher.credentials();
+      } catch (error) {
+        status = { renewable: false, renewBy: null, problem: error instanceof Error ? error.message.slice(0, 300) : String(error) };
+      }
+      const expiring = status.renewBy !== null && status.renewBy.getTime() - now.getTime() < days * 86_400_000;
+      if (!expiring && !status.problem) continue;
+      this.credentialAlerts.add(key);
+      const name = spaceLabel(publisher.space);
+      const summary = status.problem
+        ? `${name} : autorisation en échec (${status.problem.slice(0, 200)}). Refaire l'autorisation : docs/marketing/connecteurs.md`
+        : `${name} : autorisation à refaire avant le ${status.renewBy!.toISOString().slice(0, 10)} (docs/marketing/connecteurs.md, commande oauth:jeton)`;
+      await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'marketing_token_expiring', summary });
+      await this.audit.recordSystem({ action: 'marketing.token_alert', entity: 'content_items', after: { space: publisher.space, renewBy: status.renewBy?.toISOString() ?? null, problem: status.problem !== null } }, PUBLISHING);
+      alerts += 1;
+    }
+    return alerts;
+  }
+
   // Commentaires ----------------------------------------------------------------------------------------------------------
 
   /**
@@ -285,7 +332,7 @@ export class PublishingService {
       .orderBy(asc(schema.contentItems.publishedAt))
       .limit(limit);
     if (!rows.length) return report;
-    const fresh: Array<{ row: ContentItemRow; comments: Array<{ externalId: string; author: string | null; text: string; postedAt: Date }> }> = [];
+    const fresh: Array<{ row: ContentItemRow; comments: SocialComment[] }> = [];
     for (const row of rows) {
       report.checked += 1;
       try {
@@ -307,7 +354,9 @@ export class PublishingService {
     await this.runner.execute(PUBLISHING, { name: 'content.comments', ref: null, input: { items: fresh.length, comments: fresh.reduce((n, f) => n + f.comments.length, 0) } }, async (ctx) => {
       for (const { row, comments } of fresh) {
         for (const comment of comments) {
-          const classification = classifyComment(comment.text);
+          const read = classifyComment(comment.text);
+          // Avis noté 3 sur 5 ou moins (Fiche Google) : jamais de réponse automatique, même s'il remercie.
+          const classification = typeof comment.rating === 'number' && comment.rating <= 3 ? { ...read, negative: true, simple: false } : read;
           const inboxOwns = socialChannel && INBOX_COMMENT_NETWORKS.has(row.space);
           const reply = manual || inboxOwns ? null : simpleReply(classification, texts);
           let outcome: 'replied' | 'forwarded' | 'escalated' = 'escalated';
@@ -331,7 +380,7 @@ export class PublishingService {
               // diffusion ne donnent pas l'identifiant de l'auteur : l'adresse de la conversation est celle du commentaire.
               this.events.emit('conversation.inbound', {
                 channel: 'social', externalId: `social:${row.space}:comment:${comment.externalId}`.slice(0, 120), userId: null, phone: null, text: comment.text, language: classification.language, rideId: null, receivedAt: comment.postedAt,
-                address: `${row.space}:comment:${comment.externalId}`.slice(0, 254), network: row.space, kind: 'comment', threadRef: comment.externalId, displayName: comment.author?.slice(0, 120) ?? null,
+                address: `${row.space}:comment:${comment.externalId}`.slice(0, 254), network: INBOX_NETWORK_OF[row.space] ?? row.space, kind: 'comment', threadRef: comment.externalId, displayName: comment.author?.slice(0, 120) ?? null,
                 metadata: { commentId: comment.externalId, postId: row.externalId, contentItemId: row.id },
               });
               outcome = 'forwarded';
@@ -356,3 +405,9 @@ export class PublishingService {
 
 /** Réseaux dont la boîte unifiée reçoit les commentaires (connecteur Meta) : elle seule y répond. */
 export const INBOX_COMMENT_NETWORKS: ReadonlySet<string> = new Set(['facebook', 'instagram']);
+
+/**
+ * Nom du réseau dans la boîte unifiée quand il diffère de l'espace : les avis de la Fiche Google y arrivent sous `gbp`,
+ * réseau à relais humain (la réponse de la relation client ne part jamais par le connecteur Meta).
+ */
+export const INBOX_NETWORK_OF: Readonly<Partial<Record<string, string>>> = { google_business: 'gbp' };

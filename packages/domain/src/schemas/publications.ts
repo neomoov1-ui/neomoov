@@ -110,6 +110,10 @@ export const publicationItemSchema = contentItemSchema.extend({
   delivery: z.enum(DELIVERY_MODES),
   visual: contentVisualSchema.nullable(),
   relayedAt: isoDate.nullable(),
+  /** Mention du connecteur à la publication (vidéo privée tant que l'audit YouTube ou TikTok n'est pas accordé). */
+  notice: z.string().nullable(),
+  /** À publier à la main (relais manuel programmé, ou refus du connecteur avec un code de relais manuel). */
+  awaitsRelay: z.boolean(),
 });
 export type PublicationItemView = z.infer<typeof publicationItemSchema>;
 
