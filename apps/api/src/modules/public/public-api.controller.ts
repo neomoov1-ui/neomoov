@@ -77,15 +77,19 @@ export class PublicApiController {
 
   @Post('quotes')
   @HttpCode(201)
-  @ApiOperation({ summary: 'Devis sans compte (réservation web, WordPress) : mêmes règles et même détail que les applications ; affichage seulement. Au-delà d\'un volume de devis par adresse, jeton Turnstile exigé (en-tête `x-turnstile-token`, 403 `TURNSTILE_REQUIRED`)' })
+  @ApiOperation({ summary: 'Devis sans compte (réservation web, WordPress) : mêmes règles et même détail que les applications ; affichage seulement. Depuis un navigateur (relais du web), au-delà d\'un volume de devis par adresse, jeton Turnstile exigé (en-tête `x-turnstile-token`, 403 `TURNSTILE_REQUIRED`)' })
   @ZodBody(quoteRequestSchema)
   @ZodResponse(201, quotesResponseSchema)
   @ApiErrors(400, 401, 403, 429)
   async quote(@Body(zodPipe(quoteRequestSchema)) body: z.infer<typeof quoteRequestSchema>, @ReqCtx() ctx: RequestContext) {
     await this.limit('quotes', ctx.ip);
     // Revue du 2 octobre 2026 (sécurité 8) : chaque devis coûte un itinéraire ; au-delà du seuil par adresse, défi anti-robots.
-    await this.antiBot.challenge('public_quotes', ctx.ip, ctx.antiBotToken);
-    await this.antiBot.record('public_quotes', ctx.ip);
+    // Seulement pour un navigateur (relais du web, `x-neomoov-client: web`) : un site partenaire qui appelle depuis son
+    // serveur ne peut pas afficher le défi et reste soumis à la seule limite par adresse.
+    if (ctx.browser) {
+      await this.antiBot.challenge('public_quotes', ctx.ip, ctx.antiBotToken);
+      await this.antiBot.record('public_quotes', ctx.ip);
+    }
     return this.quotes.createQuotes(body, { userId: null, language: ctx.language });
   }
 

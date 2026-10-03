@@ -8,6 +8,7 @@
 - La clé reste sur un serveur : le serveur web Neomoov (`NEOMOOV_PUBLIC_API_KEY`, relais `/api/v1/public/*`) ou le serveur WordPress. Même visible, elle ne donne accès à rien d'autre que ces routes.
 - Limites : 300 requêtes par minute et par adresse IP (générale), puis par heure et par adresse IP : 10 prospects (`public.leads_per_ip_per_hour`), 120 devis (`public.quotes_per_ip_per_hour`), 600 recherches d'adresses (`public.places_per_ip_per_hour`). Au-delà : 429 `RATE_LIMITED` avec `retryAfter`.
 - Prospects : jeton Cloudflare Turnstile (`antiBotToken`) et consentement (`consent: true`) exigés.
+- Devis depuis un navigateur (relais du serveur web, en-tête `x-neomoov-client: web`) : au-delà de 30 devis par heure et par adresse (`security.turnstile_public_quotes_after`), jeton Turnstile exigé dans l'en-tête `x-turnstile-token`, sinon 403 `TURNSTILE_REQUIRED` (ou `TURNSTILE_FAILED`). Actif seulement quand `TURNSTILE_SECRET_KEY` est posée. Un appel depuis le serveur d'un site partenaire n'est jamais soumis au défi.
 
 ## Routes
 
