@@ -241,7 +241,12 @@ export class PublishingService {
 
   // Commentaires ----------------------------------------------------------------------------------------------------------
 
-  /** Commentaires reçus sur les publications récentes : réponse automatique aux commentaires simples, relais sinon. */
+  /**
+   * Commentaires reçus sur les publications récentes : réponse automatique aux commentaires simples, relais sinon.
+   * Un seul répondant par commentaire : sur Facebook et Instagram, la boîte unifiée reçoit déjà les commentaires par le
+   * webhook Meta et l'agent relation client y répond ; la diffusion ne répond donc jamais elle-même sur ces réseaux, elle
+   * relaie (même identifiant externe : la relation client ne traite le commentaire qu'une fois, quel que soit le chemin).
+   */
   async commentsPass(now = new Date(), limit = 50): Promise<CommentsPassReport> {
     const report: CommentsPassReport = { checked: 0, replied: 0, forwarded: 0, escalated: 0 };
     const windowDays = await this.settings.number('marketing.comments_window_days', 7);
@@ -275,7 +280,8 @@ export class PublishingService {
       for (const { row, comments } of fresh) {
         for (const comment of comments) {
           const classification = classifyComment(comment.text);
-          const reply = manual ? null : simpleReply(classification, texts);
+          const inboxOwns = socialChannel && INBOX_COMMENT_NETWORKS.has(row.space);
+          const reply = manual || inboxOwns ? null : simpleReply(classification, texts);
           let outcome: 'replied' | 'forwarded' | 'escalated' = 'escalated';
           let replyExternalId: string | null = null;
           const started = Date.now();
@@ -319,3 +325,6 @@ export class PublishingService {
     return report;
   }
 }
+
+/** Réseaux dont la boîte unifiée reçoit les commentaires (connecteur Meta) : elle seule y répond. */
+export const INBOX_COMMENT_NETWORKS: ReadonlySet<string> = new Set(['facebook', 'instagram']);

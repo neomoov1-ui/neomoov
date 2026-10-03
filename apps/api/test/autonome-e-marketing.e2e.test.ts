@@ -296,7 +296,7 @@ describe('phase 1 autonome, agent E : calendrier de contenu, diffusion, mesures,
     mock('x').failures = 0;
   });
 
-  it('commentaires : réponse automatique aux commentaires simples (merci, horaires, réservation), relais humain pour le reste et le ton négatif', async ({ skip }) => {
+  it('commentaires : un seul répondant ; Facebook et Instagram relayés à la boîte unifiée, réponse automatique aux commentaires simples ailleurs', async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const items = await list();
     const facebook = items.find((i) => i.space === 'facebook' && i.externalId)!;
@@ -306,28 +306,38 @@ describe('phase 1 autonome, agent E : calendrier de contenu, diffusion, mesures,
     fb.addComment(facebook.externalId!, { text: 'How much to book a ride to the airport?', author: 'Traveller' });
     fb.addComment(facebook.externalId!, { text: 'Est-ce que vos chauffeurs acceptent les chiens ?', author: 'Maître' });
     fb.addComment(facebook.externalId!, { text: 'Arnaque, je veux un remboursement !', author: 'Mécontent' });
-    // Boîte unifiée (agent D) fusionnée : le canal `social` existe, les commentaires non simples partent vers la relation
-    // client (`conversation.inbound`, même forme que le connecteur Meta) au lieu d'une alerte au personnel.
+    // Boîte unifiée (agent D) fusionnée : sur Facebook, elle seule répond (webhook Meta) ; la diffusion relaie tous les
+    // commentaires (`conversation.inbound`, même identifiant que le connecteur Meta) et ne répond jamais elle-même.
     const forwarded: Array<DomainEvents['conversation.inbound']> = [];
     const off = app.get(DomainEventsService).on('conversation.inbound', (p) => { if (p.network === 'facebook' && p.metadata?.['contentItemId'] === facebook.id) forwarded.push(p); });
     // La publication Facebook date de ce test (maintenant) : la fenêtre de relecture de 7 jours la couvre.
     const report = await app.get(PublishingService).commentsPass(new Date(Date.now() + 60_000)).finally(off);
-    expect(report).toMatchObject({ replied: 3, escalated: 0, forwarded: 2 });
-    expect(forwarded).toHaveLength(2);
+    expect(report).toMatchObject({ replied: 0, escalated: 0, forwarded: 5 });
+    expect(forwarded).toHaveLength(5);
     for (const p of forwarded) {
       forwardedAddresses.push(p.address!);
       expect(p).toMatchObject({ channel: 'social', kind: 'comment', network: 'facebook', externalId: expect.stringMatching(/^social:facebook:comment:/) });
     }
-    expect(forwarded.map((p) => p.displayName).sort()).toEqual(['Maître', 'Mécontent']);
-    expect(fb.replies).toHaveLength(3);
-    expect(fb.replies.map((r) => r.text)).toEqual(expect.arrayContaining([expect.stringContaining('Merci beaucoup'), expect.stringContaining('neomoov.net/reserver'), expect.stringContaining('7 jours sur 7')]));
+    expect(forwarded.map((p) => p.displayName).sort()).toEqual(['Client content', 'Maître', 'Mécontent', 'Noctambule', 'Traveller']);
+    expect(fb.replies).toHaveLength(0);
     const detail = (await request(server()).get(`/v1/admin/marketing/content/${facebook.id}`).set(bearer(operator.tokens)).expect(200)).body as Item;
     expect(detail.comments).toHaveLength(5);
-    expect(detail.comments.filter((c) => c.outcome === 'replied').every((c) => c.replyBody)).toBe(true);
-    expect(detail.comments.find((c) => c.intent === 'other')).toMatchObject({ outcome: 'forwarded', replyBody: null });
+    expect(detail.comments.every((c) => c.outcome === 'forwarded' && c.replyBody === null)).toBe(true);
     // Relecture : rien de nouveau, aucun doublon.
     expect(await app.get(PublishingService).commentsPass(new Date(Date.now() + 120_000))).toMatchObject({ replied: 0, escalated: 0, forwarded: 0 });
-    expect(fb.replies).toHaveLength(3);
+    expect(fb.replies).toHaveLength(0);
+
+    // Réseau sans connecteur de boîte unifiée (X, publié dans la semaine de test de 2031) : la diffusion répond elle-même
+    // aux commentaires simples et relaie le reste.
+    const xItem = (await list()).find((i) => i.space === 'x' && i.externalId)!;
+    const xm = mock('x');
+    xm.addComment(xItem.externalId!, { text: 'Merci, super service !', author: 'Abonné', postedAt: new Date('2031-03-21T10:00:00Z') });
+    xm.addComment(xItem.externalId!, { text: 'Vous êtes ouverts la nuit ?', author: 'Couche-tard', postedAt: new Date('2031-03-21T10:00:00Z') });
+    xm.addComment(xItem.externalId!, { text: 'Est-ce que vos chauffeurs acceptent les chiens ?', author: 'Promeneur', postedAt: new Date('2031-03-21T10:00:00Z') });
+    const offX = app.get(DomainEventsService).on('conversation.inbound', (p) => { if (p.network === 'x' && p.address) forwardedAddresses.push(p.address); });
+    const xReport = await app.get(PublishingService).commentsPass(new Date('2031-03-21T12:00:00Z')).finally(offX);
+    expect(xReport).toMatchObject({ replied: 2, forwarded: 1, escalated: 0 });
+    expect(xm.replies.map((r) => r.text)).toEqual(expect.arrayContaining([expect.stringContaining('Merci beaucoup'), expect.stringContaining('7 jours sur 7')]));
   });
 
   it('mode automatique de l\'agent contenu : les contenus sûrs sont programmés tout de suite, les sensibles attendent un humain', async ({ skip }) => {
