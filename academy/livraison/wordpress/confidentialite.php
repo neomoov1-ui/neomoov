@@ -41,7 +41,10 @@ function nmp_optin_request($kind,$email,$data){
     $lines[]='Si vous n’êtes pas à l’origine de cette demande, ignorez ce courriel : '.($join?'aucun compte ne sera créé':'aucun abonnement ne sera activé').' et la demande sera effacée après 48 heures.';
     $lines[]='';$lines[]='Neomoov Academy · Neomoov, marque de GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC. · 204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8 · contact@neomoov.net';
     $lines[]='Ce courriel de service répond à une demande faite sur neomoov.net.';
-    try{return (bool)wp_mail($email,$join?'Confirmez votre inscription à Neomoov Academy':'Confirmez votre abonnement aux conseils Neomoov Academy',implode("\n",$lines),array('From: Neomoov Academy <contact@neomoov.net>','Reply-To: contact@neomoov.net'));}catch(Throwable $e){return false;}
+    try{$sent=(bool)wp_mail($email,$join?'Confirmez votre inscription à Neomoov Academy':'Confirmez votre abonnement aux conseils Neomoov Academy',implode("\n",$lines),array('From: Neomoov Academy <contact@neomoov.net>','Reply-To: contact@neomoov.net'));}catch(Throwable $e){$sent=false;}
+    // Même réponse au visiteur (rien ne révèle si un compte existe) ; l'échec du transport est compté pour l'administration.
+    if(!$sent){$f=(array)get_option('nmp_optin_mail_failures',array());update_option('nmp_optin_mail_failures',array('count'=>(int)($f['count']??0)+1,'last'=>gmdate('c')),false);}
+    return $sent;
 }
 /* Signature et échéance vérifiées avant toute lecture de la base. Renvoie la demande, ou 'invalid', 'expired', 'used'. */
 function nmp_optin_parse($token){
@@ -309,6 +312,7 @@ function nmp_admin_warnings($o){
 }
 function nmp_admin_status(){
     if(!current_user_can('manage_options'))return;$last=get_option('nmp_retention_last',array());$log=(array)get_option('nmp_staff_log',array());
+    $fail=(array)get_option('nmp_optin_mail_failures',array());if(!empty($fail['count']))echo '<div class="notice notice-error"><p>Courriels de confirmation d’inscription refusés par le transport : '.(int)$fail['count'].' (dernier : '.esc_html(substr((string)($fail['last']??''),0,16)).' UTC). Vérifiez la messagerie du site avec le test email ci-dessus.</p></div>';
     echo '<hr><h2>Loi 25 : conservation, demandes et journal du personnel</h2><p>Inscriptions en attente de confirmation : '.count((array)get_option('nmp_optin_index',array())).' · pièces d’achat archivées de comptes supprimés : '.count((array)get_option('nmp_archives',array())).' · dernière purge automatique : '.esc_html(is_array($last)&&!empty($last['at'])?substr($last['at'],0,16).' (demandes '.(int)$last['optin'].', comptes '.(int)$last['accounts'].', achats '.(int)$last['purchases'].', archives '.(int)$last['archives'].', séquences '.(int)$last['sequences'].', journal '.(int)$last['staff_log'].')':'pas encore exécutée').'.</p><ul>';
     foreach(nmp_retention_rules() as $r)echo '<li>'.esc_html($r['label'].' : '.$r['public']).'</li>';
     echo '</ul><p>Demandes d’accès et de suppression : Outils, « Exporter les données personnelles » et « Effacer les données personnelles » (l’exportateur et l’effaceur Neomoov Academy y sont inscrits). Après un effacement, supprimez le compte dans Utilisateurs : ses pièces d’achat sont alors archivées jusqu’à la fin de leur durée légale.</p>';
