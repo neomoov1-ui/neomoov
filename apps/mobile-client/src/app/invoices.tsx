@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Empty, ErrorState, Loading, Notice, Row, Screen } from '@/components/ui';
-import { invoiceCandidates, invoiceFileName, PdfDownloadError, PdfUnavailableError } from '@/features/invoices/logic';
+import { INVOICE_PAGE_SIZE, invoiceCandidates, invoiceFileName, PdfDownloadError, PdfUnavailableError, visibleCandidates } from '@/features/invoices/logic';
 import { api, errorMessage } from '@/lib/api';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
 import { openProtectedPdf } from '@/lib/invoice-pdf';
@@ -15,19 +15,23 @@ import { useSession } from '@/lib/session';
 /**
  * Mes factures (5.13, 6.1 « Historique et reçus ») : factures des courses et des frais d'annulation ou de
  * non-présentation, avec leurs notes de crédit, la plus récente d'abord. Chaque PDF est téléchargé avec le jeton
- * d'accès puis ouvert par la feuille de partage du système (aperçu, enregistrement, envoi, impression).
+ * d'accès puis ouvert par la feuille de partage du système (aperçu, enregistrement, envoi, impression). Les factures sont
+ * lues par pages de 10 courses (« Voir plus »), 5 requêtes au plus en même temps.
  */
 export default function InvoicesScreen() {
   const { t, i18n } = useTranslation();
   const language = (i18n.language === 'en' ? 'en' : 'fr-CA') as UiLanguage;
   const rides = useRides();
-  const result = useRideInvoices(invoiceCandidates(rides.data ?? []));
+  const [pages, setPages] = useState(1);
+  const candidates = invoiceCandidates(rides.data ?? []);
+  const result = useRideInvoices(visibleCandidates(candidates, pages));
   const [opening, setOpening] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const loading = rides.isLoading || (result.loading && result.invoices.length === 0);
 
   async function refresh() {
     setError(null);
+    setPages(1);
     await rides.refetch();
     await queryClient.invalidateQueries({ queryKey: keys.invoices });
   }
@@ -94,6 +98,9 @@ export default function InvoicesScreen() {
           ))}
         </Card>
       ))}
+      {!loading && candidates.length > pages * INVOICE_PAGE_SIZE ? (
+        <Button label={t('invoices.more')} variant="ghost" onPress={() => setPages((n) => n + 1)} disabled={result.loading} />
+      ) : null}
     </Screen>
   );
 }

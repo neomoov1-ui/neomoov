@@ -76,6 +76,7 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Neomoov Chauffeur utilise votre position quand vous êtes en ligne, pour vous proposer des courses proches et montrer au client où vous êtes. / Neomoov Driver uses your location while you are online, to offer you nearby rides and show the client where you are.",
+          "locationAlwaysPermission": "Neomoov Chauffeur utilise votre position en arrière-plan seulement quand vous êtes en ligne : toutes les 5 secondes, même écran verrouillé, pour recevoir des offres et suivre vos courses. Hors ligne, aucune position n'est envoyée. / Neomoov Driver uses your location in the background only while you are online: every 5 seconds, even when the screen is locked, to receive offers and track your rides. Offline, no location is sent.",
           "locationAlwaysAndWhenInUsePermission": "Quand vous êtes en ligne, Neomoov Chauffeur envoie votre position toutes les 5 secondes, même écran verrouillé ou application en arrière-plan, pour recevoir des offres et suivre vos courses. Hors ligne, aucune position n'est envoyée. / While you are online, Neomoov Driver sends your location every 5 seconds, even when the screen is locked or the app is in the background, to receive offers and track your rides. Offline, no location is sent.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
@@ -101,7 +102,8 @@
             "./assets/sounds/booster_peak.wav"
           ]
         }
-      ]
+      ],
+      "@sentry/react-native/expo"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -22,8 +22,18 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export interface TokenProvider {
   /** Jeton d'accès courant, ou null si personne n'est connecté. */
   getAccessToken(): string | null | undefined | Promise<string | null | undefined>;
-  /** Rafraîchit la session ; renvoie le nouveau jeton d'accès, ou null si la session est perdue. */
+  /**
+   * Rafraîchit la session ; renvoie le nouveau jeton d'accès, ou null si la session est perdue (refus du jeton de
+   * rafraîchissement). Une erreur levée signifie un échec passager (réseau, délai, panne de l'API) : la session est
+   * gardée, l'erreur est rendue à l'appelant, qui réessaiera.
+   */
   refresh?: () => Promise<string | null | undefined>;
+}
+
+/** Heures locales (millisecondes) d'envoi d'une requête et de réception de sa réponse. */
+export interface ResponseTiming {
+  sentAt: number;
+  receivedAt: number;
 }
 
 export interface ApiClientOptions {
@@ -40,6 +50,12 @@ export interface ApiClientOptions {
   headers?: Record<string, string>;
   /** Appelé quand la session est définitivement perdue : 401 malgré un rafraîchissement. */
   onUnauthorized?: (error: ApiError) => void;
+  /**
+   * Appelé à chaque réponse reçue, avant la lecture du corps, avec ses heures locales d'envoi et de réception : les
+   * applications mobiles y lisent l'en-tête `Date` pour mesurer l'écart entre l'horloge du téléphone et celle de l'API.
+   * Une erreur levée ici est ignorée.
+   */
+  onResponse?: (response: Response, timing: ResponseTiming) => void;
   /**
    * Générateur d'identifiant de corrélation (UUID par défaut) : un par appel, envoyé dans `X-Correlation-Id`, repris par
    * l'API dans ses journaux et ses tâches, et gardé par `ApiError` pour le signaler à l'assistance ou au suivi des erreurs.
@@ -167,14 +183,9 @@ export class ApiClient {
     const first = await this.send(method, path, options, token ?? undefined);
     if (first.status !== 401 || !useAuth || !this.options.tokens?.refresh) return this.unwrap<T>(first);
 
-    let renewed: string | null | undefined;
-    try {
-      renewed = await this.refreshOnce(this.options.tokens.refresh);
-    } catch (error) {
-      // Panne réseau pendant le rafraîchissement : la session n'est pas perdue, l'appelant réessaiera.
-      if (error instanceof ApiError && error.isNetwork) throw error;
-      renewed = null;
-    }
+    // Une erreur du rafraîchissement (réseau, délai, panne de l'API) est rendue telle quelle : la session n'est pas
+    // perdue, l'appelant réessaiera. Seul un rafraîchissement refusé (null) déconnecte (revue du 2 octobre 2026, mobile 3).
+    const renewed = await this.refreshOnce(this.options.tokens.refresh);
     if (!renewed) return this.unauthorized(first);
     const second = await this.send(method, path, options, renewed);
     if (second.status === 401) return this.unauthorized(second);
@@ -229,7 +240,10 @@ export class ApiClient {
     else options.signal?.addEventListener('abort', onAbort, { once: true });
 
     try {
-      return await this.fetchImpl(this.url(path, options.query), init);
+      const sentAt = Date.now();
+      const response = await this.fetchImpl(this.url(path, options.query), init);
+      this.observe(response, { sentAt, receivedAt: Date.now() });
+      return response;
     } catch (cause) {
       const correlationId = headers['x-correlation-id'];
       if (timedOut) throw new ApiError(0, 'TIMEOUT', `Délai de ${timeoutMs} ms dépassé (${method} ${path})`, undefined, correlationId);
@@ -239,6 +253,15 @@ export class ApiClient {
     } finally {
       clearTimeout(timer);
       options.signal?.removeEventListener('abort', onAbort);
+    }
+  }
+
+  /** Réponse reçue, transmise à `onResponse` ; une erreur de l'observateur ne fait jamais échouer la requête. */
+  private observe(response: Response, timing: ResponseTiming): void {
+    try {
+      this.options.onResponse?.(response, timing);
+    } catch {
+      // Observateur défaillant : sans effet sur la requête.
     }
   }
 

@@ -6,9 +6,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
 import { Choices, ErrorState, Notice, Row, Screen, SectionTitle, ToggleRow } from '@/components/ui';
-import { effectivePaymentChoice, paymentOptions } from '@/features/booking/logic';
+import { effectivePaymentChoice, paymentOptions, quoteExpired, quoteRequestOf, samePrice } from '@/features/booking/logic';
 import { useBooking } from '@/features/booking/store';
 import { api, errorCode, errorMessage } from '@/lib/api';
+import { serverNow } from '@/lib/clock';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
 import { displayPhone, toE164 } from '@/lib/phone';
 import { keys, queryClient, useAppConfig, usePreferences } from '@/lib/queries';
@@ -63,20 +64,35 @@ export default function ConfirmScreen() {
   const passengerIncomplete = draft.forSomeoneElse && !passenger;
 
   async function book() {
-    if (!quote || !draft.pickupAt || !paymentChoice || !paymentMethod) return;
+    if (!quote || !draft.origin || !draft.destination || !draft.pickupAt || !paymentChoice || !paymentMethod) return;
+    const route = { origin: draft.origin, destination: draft.destination, stops: draft.stops, pickupAt: draft.pickupAt, options: draft.options };
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
+      // Devis expiré ou sur le point de l'être (revue du 2 octobre 2026, constat mobile 4) : nouveau devis d'abord. Même
+      // prix : la réservation part avec lui ; prix changé : il est montré au client, qui confirme de nouveau. La clé
+      // d'idempotence est gardée : si une tentative précédente a créé la course, l'API la renvoie au lieu d'en créer une autre.
+      let priced = quote;
+      if (quoteExpired(quote, serverNow())) {
+        const fresh = await api.quotes.create(quoteRequestOf(route, paymentChoice));
+        const next = fresh.quotes.find((q) => q.category === quote.category);
+        draft.update({ quotes: fresh });
+        if (!next || !samePrice(quote, next)) {
+          setNotice(t('confirm.requoted'));
+          return;
+        }
+        priced = next;
+      }
       const flight = draft.flightNumber.trim().toUpperCase();
       const ride = await api.rides.create(
         {
-          quoteId: quote.id,
+          quoteId: priced.id,
           type: 'scheduled',
           requestedAt: draft.pickupAt,
           paymentChoice,
           paymentMethod,
-          maxConsentedCents: quote.maxConsentedCents,
+          maxConsentedCents: priced.maxConsentedCents,
           preferences,
           ...(flight ? { flightNumber: flight } : {}),
           ...(draft.specialRequests.trim() ? { specialRequests: draft.specialRequests.trim() } : {}),
@@ -89,11 +105,12 @@ export default function ConfirmScreen() {
       await queryClient.invalidateQueries({ queryKey: keys.rides });
       router.replace({ pathname: '/ride/[id]', params: { id: ride.id } });
     } catch (e) {
-      if (REQUOTE_CODES.has(errorCode(e) ?? '') && draft.origin && draft.destination) {
+      if (REQUOTE_CODES.has(errorCode(e) ?? '')) {
         // Prix expiré ou carte fermée : nouveau devis, même catégorie ; le client revoit le prix et les modes de paiement
         // avant de confirmer.
         // Le mode de paiement choisi accompagne le nouveau devis : payée au chauffeur, la course ne déduit aucun crédit.
-        const quotes = await api.quotes.create({ origin: draft.origin, destination: draft.destination, stops: draft.stops, requestedAt: draft.pickupAt, options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage, pet: draft.options.pet }, ...(paymentChoice ? { paymentChoice } : {}) }).catch(() => null);
+        // Même demande que l'écran des catégories (chauffeur favori compris).
+        const quotes = await api.quotes.create(quoteRequestOf(route, paymentChoice)).catch(() => null);
         if (quotes) {
           draft.update({ quotes });
           draft.renewKey();

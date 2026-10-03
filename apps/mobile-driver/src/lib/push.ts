@@ -45,11 +45,30 @@ export async function registerForPush(): Promise<string | null> {
   return token;
 }
 
+/**
+ * Déconnexion demandée : l'appareil est retiré du compte par l'API (plus de notifications de ce compte sur ce
+ * téléphone). Si l'API ne répond pas, le téléphone se désinscrit lui-même (`forgetPush`).
+ */
 export async function unregisterPush(): Promise<void> {
   const deviceId = await driverStorage.getItem(DEVICE_KEY);
   if (!deviceId) return;
-  await api.me.removeDevice(deviceId).catch(() => undefined);
+  const removed = await api.me.removeDevice(deviceId).then(
+    () => true,
+    () => false,
+  );
+  if (removed) await driverStorage.removeItem(DEVICE_KEY);
+  else await forgetPush();
+}
+
+/**
+ * Session perdue ou compte supprimé : l'API ne peut plus retirer l'appareil. Le téléphone se désinscrit lui-même des
+ * notifications (les notifications de l'ancien compte ne lui parviennent plus ; l'API efface le jeton mort au prochain
+ * envoi) ; la prochaine connexion le réinscrit avec un nouveau jeton.
+ */
+export async function forgetPush(): Promise<void> {
   await driverStorage.removeItem(DEVICE_KEY);
+  if (Platform.OS === 'web' || !Device.isDevice) return;
+  await Notifications.unregisterForNotificationsAsync();
 }
 
 type Payload = { offerId?: unknown; rideId?: unknown; screen?: unknown; statementId?: unknown; inspectionId?: unknown };

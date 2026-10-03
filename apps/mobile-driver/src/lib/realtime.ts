@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { create } from 'zustand';
+import { noteOffers } from './clock';
 import { API_BASE_URL } from './config';
 import { keys, queryClient } from './queries';
 import { useSession } from './session';
@@ -28,8 +29,9 @@ export function disconnectRealtime(): void {
   socket?.disconnect();
 }
 
-/** Offres reçues par le socket ; l'écran d'offre plein écran s'ouvre sur la plus ancienne. */
+/** Offres reçues par le socket (heure de réception notée pour le compte à rebours) ; l'écran d'offre plein écran s'ouvre sur la plus ancienne. */
 function upsertOffer(offer: DriverOfferView): void {
+  noteOffers([offer]);
   queryClient.setQueryData<DriverOfferView[]>(keys.offers, (list = []) => [...list.filter((o) => o.id !== offer.id), offer].sort((a, b) => a.sentAt.localeCompare(b.sentAt)));
 }
 

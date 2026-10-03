@@ -41,3 +41,7 @@ example
 # generated native folders
 /ios
 /android
+
+# Firebase (notifications Android) : fichiers de clés, jamais commités (variable EAS de type fichier GOOGLE_SERVICES_JSON)
+google-services.json
+GoogleService-Info.plist

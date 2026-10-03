@@ -15,7 +15,7 @@ export const ADMIN: HubUser = { id: '00000000-0000-4000-8000-000000000001', firs
 
 export function render(node: ReactNode, options: { language?: Language; user?: HubUser } = {}): string {
   const inner = options.user ? createElement(HubUserContext.Provider, { value: options.user }, node) : node;
-  return renderToStaticMarkup(createElement(Providers, { language: options.language ?? 'fr-CA' }, inner));
+  return renderToStaticMarkup(createElement(Providers, { language: options.language ?? 'fr-CA', children: inner }));
 }
 
 interface Tag { name: string; attrs: Record<string, string>; inLabel: boolean }

@@ -10,8 +10,9 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PilotBadge } from '@/components/PilotScore';
 import { PreferenceChips } from '@/components/Preferences';
-import { secondsLeft } from '@/features/ride/steps';
+import { secondsUntil } from '@/features/ride/steps';
 import { api, errorMessage } from '@/lib/api';
+import { offerDeadlineOf } from '@/lib/clock';
 import { formatDateTime, formatDistance, formatDuration, formatMoney, type UiLanguage } from '@/lib/format';
 import { startOfferAlert, stopOfferAlert } from '@/lib/offer-alert';
 import { keys, queryClient, refreshDriver, useAppConfig, useOffers } from '@/lib/queries';
@@ -34,7 +35,8 @@ export default function OfferScreen() {
   const [counter, setCounter] = useState('');
   const [countering, setCountering] = useState(false);
   const money = (cents: number) => formatMoney(cents, language);
-  const left = offer ? secondsLeft(offer.expiresAt, now) : 0;
+  // Échéance ramenée à l'horloge du téléphone (écart mesuré avec l'API) : une horloge décalée ne fait plus perdre l'offre.
+  const left = offer ? secondsUntil(offerDeadlineOf(offer), now) : 0;
   const gone = offers.isFetched && (!offer || left === 0);
 
   useEffect(() => {

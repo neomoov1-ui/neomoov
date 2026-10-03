@@ -5,7 +5,7 @@
  * par les schémas de `@neomoov/domain`, les mêmes que ceux qui valident l'API.
  */
 export { ApiClient, createApiClient } from './client.js';
-export type { ApiClientOptions, HttpMethod, Language, Query, QueryValue, RequestOptions, TokenProvider } from './client.js';
+export type { ApiClientOptions, HttpMethod, Language, Query, QueryValue, RequestOptions, ResponseTiming, TokenProvider } from './client.js';
 export type { AuditEntryView, AuditFilters, ComplianceCheckView, CrmRecordKind, ComplianceRunReport, FailedJobView, InspectionInput, QueueStatsView, RetentionJobView, StuckRideView } from './admin-resources.js';
 export type { OrgAuditEntryView, SupportAccessDecision } from './org-resources.js';
 export type { SubscriptionUpsertResult } from './platform-billing-resources.js';

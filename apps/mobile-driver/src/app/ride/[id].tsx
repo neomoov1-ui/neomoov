@@ -17,6 +17,7 @@ import { EndOfRide } from '@/features/ride/EndOfRide';
 import { CancelSheet, IncidentSheet, MessagesSheet, SosSheet } from '@/features/ride/RideSheets';
 import { clock, endOfRidePending, isActive, navigationTarget, nextAction, noShowStatus, waitedSeconds, type RideAction } from '@/features/ride/steps';
 import { api, errorMessage } from '@/lib/api';
+import { serverNow } from '@/lib/clock';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
 import { openNavigation, type NavigationApp } from '@/lib/navigation';
 import { usePreferences } from '@/lib/preferences';
@@ -49,7 +50,8 @@ export default function RideScreen() {
   const dataSaver = usePreferences((s) => s.dataSaver);
   const navigationApp = usePreferences((s) => s.navigationApp);
   useRideSubscription(id, true);
-  const [now, setNow] = useState(Date.now());
+  // Heure de l'API vue du téléphone : attente sur place, non-présentation et délai de grâce de Pilote se comparent à ses dates.
+  const [now, setNow] = useState(serverNow);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export default function RideScreen() {
   const money = (cents: number) => formatMoney(cents, language);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => setNow(serverNow()), 1000);
     return () => clearInterval(timer);
   }, []);
 

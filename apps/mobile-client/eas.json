@@ -6,7 +6,10 @@
   "build": {
     "base": {
       "node": "24.19.0",
-      "pnpm": "12.5.1"
+      "pnpm": "12.5.1",
+      "env": {
+        "SENTRY_ALLOW_FAILURE": "true"
+      }
     },
     "development": {
       "extends": "base",

@@ -23,9 +23,29 @@ export function navigationTarget<P>(ride: { state: RideState; origin: P; destina
   return ride.state === 'in_progress' ? ride.destination : ride.origin;
 }
 
-/** Secondes restantes avant une échéance (compte à rebours de l'offre), jamais négatif. */
+/**
+ * Secondes restantes avant une échéance de l'API (délai de grâce, attente minimale), jamais négatif. `now` est l'heure de
+ * l'API vue du téléphone (`serverNow`), jamais l'horloge brute du téléphone.
+ */
 export function secondsLeft(deadline: string, now: number): number {
-  return Math.max(0, Math.ceil((Date.parse(deadline) - now) / 1000));
+  return secondsUntil(Date.parse(deadline), now);
+}
+
+/** Secondes restantes avant une échéance en millisecondes, jamais négatif. */
+export function secondsUntil(deadlineMs: number, now: number): number {
+  return Math.max(0, Math.ceil((deadlineMs - now) / 1000));
+}
+
+/**
+ * Échéance d'une offre à l'heure du téléphone (revue du 2 octobre 2026, constat mobile 1) : fin de l'offre ramenée à
+ * l'horloge du téléphone par l'écart mesuré avec l'API ; sans mesure, durée de l'offre (`expiresAt - sentAt`) comptée
+ * depuis sa réception ; à défaut, la fin de l'offre telle quelle. Une horloge décalée ne fait plus perdre les offres.
+ */
+export function offerDeadline(offer: { sentAt: string; expiresAt: string }, clock: { offsetMs: number | null; receivedAt: number | null }): number {
+  const expiresAt = Date.parse(offer.expiresAt);
+  if (clock.offsetMs !== null) return expiresAt - clock.offsetMs;
+  if (clock.receivedAt !== null) return clock.receivedAt + Math.max(0, expiresAt - Date.parse(offer.sentAt));
+  return expiresAt;
 }
 
 /** Attente sur place depuis l'arrivée (compteur affiché), en secondes. */

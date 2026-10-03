@@ -1,0 +1,24 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.neomoov.client",
+      "sha256_cert_fingerprints": [
+        "A_COMPLETER_SHA256_CERTIFICAT_EAS_CLIENT",
+        "A_COMPLETER_SHA256_CLE_SIGNATURE_GOOGLE_PLAY_CLIENT"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.neomoov.driver",
+      "sha256_cert_fingerprints": [
+        "A_COMPLETER_SHA256_CERTIFICAT_EAS_CHAUFFEUR",
+        "A_COMPLETER_SHA256_CLE_SIGNATURE_GOOGLE_PLAY_CHAUFFEUR"
+      ]
+    }
+  }
+]
