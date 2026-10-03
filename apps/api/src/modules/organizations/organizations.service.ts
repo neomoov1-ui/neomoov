@@ -221,13 +221,16 @@ export class OrganizationsService {
     this.assertNotSupport(scope);
     const org = await this.organization(role.organizationId!);
     const wanted = [...new Set(permissions)];
-    await this.assertGrantable(actor, wanted, org, scope, conditions);
+    // Sans `conditions` dans le corps (écran qui ne les gère pas), les conditions des permissions gardées restent ;
+    // un objet (même vide) les remplace toutes.
+    const kept: RoleConditionsMap = conditions ?? Object.fromEntries(Object.entries(role.conditions).filter(([code]) => wanted.includes(code)));
+    await this.assertGrantable(actor, wanted, org, scope, kept);
     await this.db.transaction(async (tx) => {
       await tx.delete(schema.rolePermissions).where(eq(schema.rolePermissions.roleId, roleId));
-      await tx.insert(schema.rolePermissions).values(wanted.map((permissionCode) => ({ roleId, permissionCode, conditions: conditionsForStorage(conditions?.[permissionCode]) })));
+      await tx.insert(schema.rolePermissions).values(wanted.map((permissionCode) => ({ roleId, permissionCode, conditions: conditionsForStorage(kept[permissionCode]) })));
     });
     this.access.invalidate();
-    this.audit.record({ action: 'role.permissions_updated', entity: 'roles', entityId: roleId, before: { permissions: role.permissions, conditions: role.conditions }, after: { permissions: wanted, conditions: conditions ?? {} } });
+    this.audit.record({ action: 'role.permissions_updated', entity: 'roles', entityId: roleId, before: { permissions: role.permissions, conditions: role.conditions }, after: { permissions: wanted, conditions: kept } });
     return this.role(roleId);
   }
 

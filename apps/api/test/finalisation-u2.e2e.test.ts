@@ -191,6 +191,11 @@ describe('finalisation U2 : organisations, flotte et facturation (intégration)'
     // Vue des rôles : les conditions sont rendues.
     const roles = await get(`/v1/org/${A.id}/roles`, owner).expect(200);
     expect((roles.body as Array<{ id: string; conditions: object }>).find((r) => r.id === agentRoleId)!.conditions).toEqual({ 'rides.create': { zones: ['zone-inexistante-u2'] } });
+    // Sans conditions dans le corps (écran qui ne les gère pas) : celles des permissions gardées restent ; un objet vide les efface.
+    const kept = await put(`/v1/org/${A.id}/roles/${agentRoleId}/permissions`, owner, { permissions: ['rides.read', 'rides.create'] }).expect(200);
+    expect(kept.body.conditions).toEqual({ 'rides.create': { zones: ['zone-inexistante-u2'] } });
+    const cleared = await put(`/v1/org/${A.id}/roles/${agentRoleId}/permissions`, owner, { permissions: ['rides.read', 'rides.create'], conditions: {} }).expect(200);
+    expect(cleared.body.conditions).toEqual({});
 
     // Le propriétaire annule la course (route d'organisation) ; une course d'une autre organisation est introuvable.
     const cancelled = await post(`/v1/org/${A.id}/rides/${rideId}/cancel`, owner, { reason: 'Client joint par téléphone', chargeFee: false });

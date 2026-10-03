@@ -1,6 +1,6 @@
 # Finalisation U2 : organisations, permissions, flotte et facturation (API), 3 octobre 2026
 
-Branche `finalisation-u2-organisations`, créée depuis `origin/main` `3208b92`, copie `C:\Users\PC\code\neomoov-wt23`. Mission : `neomoov-outils/agents/U2-organisations-flotte.md` (restes des étapes 19 à 25 et de la revue finale V1, périmètre `apps/api`, `packages/domain`, `packages/db`). Rien n'a été déployé ; aucune base de production ni compte externe n'a été touché ; la base de développement n'a été touchée que sous le verrou `db-lock` (nom `u2`).
+Branche `finalisation-u2-organisations`, créée depuis `origin/main` `3208b92`, copie `C:\Users\PC\code\neomoov-wt23` ; `main` (`678818e`, finalisation U1 et revue mobile Q2) y a été fusionnée en cours de route (`020a6f8`, seul conflit : `docs/decisions.md`, résolu). Migration numérotée 0040 (U3 a pris 0039). Mission : `neomoov-outils/agents/U2-organisations-flotte.md` (restes des étapes 19 à 25 et de la revue finale V1, périmètre `apps/api`, `packages/domain`, `packages/db`). Rien n'a été déployé ; aucune base de production ni compte externe n'a été touché ; la base de développement n'a été touchée que sous le verrou `db-lock` (nom `u2`).
 
 ## Tableau de bord
 
@@ -34,7 +34,7 @@ Branche `finalisation-u2-organisations`, créée depuis `origin/main` `3208b92`,
 - Domaine (`role-conditions.ts`) : `roleConditionsSchema` (`readOnly`, `maxAmountCents`, `zones`), lecture tolérante (`parseRoleConditions` : vide = sans condition, illisible = refus), `conditionRefusal`, `admittedPermissions` (une tenue sans refus suffit), `conditionsWithin` et `refusedConditionGrants` (pas d'escalade), `SENSITIVE_PERMISSIONS`, `sensitivePermissionsUsed`.
 - `AccessService.grantsIn` garde, pour chaque permission, une tenue par adhésion avec ses conditions (mêmes règles qu'avant : adhésion active, non expirée, portée, modules, double authentification) ; `permissionsIn` en dérive (même cache).
 - Garde : pour une écriture, le montant (prix maximal consenti de la course ou du devis) et les zones (zones actives qui contiennent le départ) sont lus sur l'objet déclaré par la route, sur le sous-arbre seulement (`@ActsOnRide` : assigner, réattribuer, annuler ; `@ActsOnQuote` : créer une course ; `@ActsOnPlace` : devis, zones seulement). Refus 403 `PERMISSION_CONDITION_UNMET` avec la raison par permission.
-- Rôles personnalisés : `conditions` facultatives à la création et à la mise à jour (clés = permissions accordées, sinon 400 `CONDITIONS_ON_UNGRANTED_PERMISSION`), rendues par les vues ; escalade par les conditions refusée (403 `PERMISSION_ESCALATION`, `conditions: true`).
+- Rôles personnalisés : `conditions` facultatives à la création et à la mise à jour (clés = permissions accordées, sinon 400 `CONDITIONS_ON_UNGRANTED_PERMISSION`), rendues par les vues ; escalade par les conditions refusée (403 `PERMISSION_ESCALATION`, `conditions: true`). Une mise à jour sans `conditions` (l'éditeur de rôles actuel de My Hub n'en envoie pas) garde celles des permissions conservées ; un objet vide les efface.
 
 ### Alerte au propriétaire
 - Une requête admise seulement par une permission sensible est notée par la garde, puis, après la réussite du gestionnaire, journalisée (`organization.sensitive_permission_used`) et signalée aux propriétaires de l'organisation et de ses ancêtres clients (sauf l'auteur), par courriel ou texto, une fois par membre, permission et organisation par heure (`organizations.sensitive_alert_cooldown_minutes`, `organizations.sensitive_use_alerts`).
@@ -59,9 +59,26 @@ Branche `finalisation-u2-organisations`, créée depuis `origin/main` `3208b92`,
 - Index : `rides_driver_active_idx`, `rides_driver_finished_idx`, `ride_offers_driver_pending_idx` (rapport de charge, point 4 ; proposés là « à valider par EXPLAIN ANALYZE » : posés car partiels et petits), `drivers_org_idx`, `vehicles_org_idx`, `rides_org_idx`, `weekly_statements_org_idx`.
 - Règle des 60 000 km et antécédents judiciaires (voir le tableau).
 
-## Essais
+## Essais et résultats
 
-Résultats en fin de rapport (section « Résultats »).
+Tous les essais touchant la base ont tourné sous le verrou `db-lock` (nom `u2`), fichier par fichier (`--no-file-parallelism`), sur la base de développement partagée.
+
+| Essai | Résultat |
+|---|---|
+| Domaine `pnpm --filter @neomoov/domain test` | 46 fichiers, 632 essais verts ; mes fichiers à 100 % de couverture (`role-conditions.ts`, `fleet.ts`, `pilot.ts`, `billing.ts`, `compliance.ts`). Le seuil global de 100 % échoue à cause de fichiers venus de `origin/main` (`marketing/publications.ts`, `marketing/social-accounts.ts`, `marketing/visuals.ts`, `schemas/publications.ts`, chantier des réseaux), non touchés ici |
+| `packages/db` (`vitest run`) | 6 fichiers, 28 essais verts (dont le journal des migrations) |
+| Lot 1 : `finalisation-u2-units`, `org-scope`, `finalisation-u2.e2e`, `isolation-coverage.e2e` | 20 essais verts sur 21 au premier passage ; l'échec venait de l'essai (propriétaire sans courriel, l'avis part alors par texto, comme voulu) : corrigé |
+| Lot 2a : `finalisation-u2.e2e`, `authorization.e2e`, `org-hub.e2e`, `organizations.e2e` | 4 fichiers, 23 essais verts |
+| Lot 2b (premier passage) | interrompu par la coupure d'Internet (`ENOTFOUND` sur la base) et un processus d'essai tombé faute de mémoire : relancé |
+| Lot 2b (relance) : `fleet.e2e`, `pilot.e2e`, `compliance.e2e`, `branding.e2e` | 15 verts, 1 rouge : `fleet.e2e` attendait `aiSuggestion` nul (comportement d'avant) ; assertion alignée sur la suggestion déterministe |
+| Lot 3 (code fusionné avec `main`) : `fleet.e2e`, `platform-billing.e2e`, `finalisation-u2.e2e` | 3 fichiers, 20 essais verts |
+| Lot 4 : `isolation-routes.e2e`, `isolation-tables.e2e`, `isolation-jobs.e2e`, `retention.e2e` | 4 fichiers, 24 essais verts |
+| Lot 5 (conditions gardées sans `conditions` dans le corps) : `finalisation-u2.e2e`, `organizations.e2e` | 2 fichiers, 10 essais verts |
+| Rejeu de la migration 0040 sur la base de développement | rejouable : 10 instructions, avis « existe déjà » seulement, clé des devis toujours non validée (orphelins) |
+| `pnpm openapi` puis `pnpm --filter @neomoov/api-client build` | 439 chemins (7 nouveaux), client construit |
+| `pnpm --filter @neomoov/api typecheck` (essais compris) | vert |
+
+Non fait : retour arrière de la migration sur une base vide (la base de développement est partagée ; le fichier `down/0040_...` n'a pas été joué) ; suite complète de l'API (réservée à la session principale).
 
 ## Ce qui reste, décisions du fondateur
 
