@@ -3,9 +3,11 @@
 /**
  * Champ d'adresse avec suggestions (motif combobox WAI-ARIA : flèches, Entrée, Échap), partagé par My Hub et la
  * réservation publique. Le lieu n'est retenu qu'une fois choisi dans la liste (coordonnées résolues par l'API).
+ * Accessibilité : champ obligatoire annoncé, liste reliée seulement quand elle est affichée, nombre de suggestions annoncé.
  */
 import type { AutocompleteSuggestion, Place, PlaceDetails } from '@neomoov/domain';
 import { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cx, focus } from '@/components/ui/kit';
 
 export interface AddressFieldProps {
@@ -23,6 +25,7 @@ const newSession = () => (globalThis.crypto?.randomUUID ? globalThis.crypto.rand
 
 export function AddressField({ label, hint, value, onChange, search, details, error, name }: AddressFieldProps) {
   const id = useId();
+  const { t } = useTranslation();
   const [text, setText] = useState(value?.address ?? '');
   const [items, setItems] = useState<AutocompleteSuggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -82,7 +85,8 @@ export function AddressField({ label, hint, value, onChange, search, details, er
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={open}
-        aria-controls={listId}
+        aria-controls={open ? listId : undefined}
+        aria-required
         aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
         aria-describedby={describedBy}
         aria-invalid={error ? true : undefined}
@@ -128,6 +132,7 @@ export function AddressField({ label, hint, value, onChange, search, details, er
           ))}
         </ul>
       ) : null}
+      <p role="status" className="sr-only">{open ? t('book.suggestionsCount', { count: items.length }) : ''}</p>
       {error ? <p id={`${id}-error`} className="text-xs font-semibold text-red-800">{error}</p> : <p id={`${id}-hint`} className="text-xs text-slate-600">{hint}</p>}
     </div>
   );

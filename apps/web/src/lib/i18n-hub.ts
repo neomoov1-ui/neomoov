@@ -28,7 +28,7 @@ const fr = {
     enrollTitle: 'Activer le second facteur', enrollSubtitle: 'Première connexion : scannez ce code QR avec Google Authenticator, Microsoft Authenticator ou 1Password, puis saisissez le premier code.',
     enrollSecret: 'Clé à saisir à la main si le code QR ne peut pas être lu', enrollConfirm: 'Activer et se connecter',
     backupTitle: 'Codes de secours', backupSubtitle: 'Conservez ces codes en lieu sûr : chacun permet une seule connexion si vous perdez votre téléphone. Ils ne seront plus affichés.',
-    backupSaved: 'J\'ai conservé mes codes, continuer',
+    backupSaved: 'J\'ai conservé mes codes, continuer', qr: 'Code QR à scanner avec votre application d\'authentification',
     visual: {
       caption: 'Visuel illustratif',
       login: { title: 'Vos déplacements méritent mieux.', subtitle: 'Taxi et VTC premium, à prix normal.' },
@@ -430,7 +430,7 @@ const en: typeof fr = {
     enrollTitle: 'Turn on the second factor', enrollSubtitle: 'First sign-in: scan this QR code with Google Authenticator, Microsoft Authenticator or 1Password, then enter the first code.',
     enrollSecret: 'Key to type in if the QR code cannot be scanned', enrollConfirm: 'Turn on and sign in',
     backupTitle: 'Backup codes', backupSubtitle: 'Keep these codes somewhere safe: each one allows a single sign-in if you lose your phone. They will not be shown again.',
-    backupSaved: 'I saved my codes, continue',
+    backupSaved: 'I saved my codes, continue', qr: 'QR code to scan with your authenticator app',
     visual: {
       caption: 'Illustrative visual',
       login: { title: 'Your rides deserve better.', subtitle: 'Premium taxi and ride service, at a normal price.' },
