@@ -12,6 +12,7 @@ import type { StaffCreate, UserRole } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
 import QRCode from 'qrcode';
+import { AntiBotService } from '../../common/anti-bot.service.js';
 import { AppError } from '../../common/app-error.js';
 import { decryptString, encryptString, generateTotpSecret, otpauthUri, randomBackupCode, sha256Hex, verifyTotp } from '../../common/crypto.js';
 import { dummyPasswordHash, hashPassword, verifyPassword } from '../../common/passwords.js';
@@ -51,6 +52,7 @@ export class StaffAuthService {
     private readonly tokens: TokensService,
     private readonly settings: SettingsService,
     private readonly store: RateLimitService,
+    private readonly antiBot: AntiBotService,
   ) {}
 
   private get db() {
@@ -62,8 +64,12 @@ export class StaffAuthService {
     return row ?? null;
   }
 
-  /** Première étape : courriel et mot de passe. La réponse ne distingue pas un courriel inconnu d'un mot de passe faux. */
-  async login(email: string, password: string, ip: string | null): Promise<StaffLoginResult> {
+  /**
+   * Première étape : courriel et mot de passe. La réponse ne distingue pas un courriel inconnu d'un mot de passe faux.
+   * Revue du 2 octobre 2026 (sécurité 4) : après plusieurs mots de passe faux depuis une adresse, défi anti-robots exigé
+   * (jeton Turnstile de l'en-tête `x-turnstile-token`), avant toute vérification.
+   */
+  async login(email: string, password: string, ip: string | null, antiBotToken: string | null = null): Promise<StaffLoginResult> {
     // Limites propres à cet endpoint sensible (section 8), en plus de la limite globale par adresse ; seuils en base.
     const [perEmail, perIp] = await Promise.all([this.settings.number('auth.staff_login_per_email_per_10min', 10), this.settings.number('auth.staff_login_per_ip_per_10min', 30)]);
     const byEmail = await this.store.hit(`staff-login:email:${email.toLowerCase()}`, perEmail, 600);
@@ -71,6 +77,7 @@ export class StaffAuthService {
     if (!byEmail.allowed || !byIp.allowed) {
       throw new AppError('RATE_LIMITED', 'Trop de tentatives de connexion, réessayez plus tard', 429, { retryAfter: Math.max(byEmail.resetIn, byIp.resetIn) });
     }
+    await this.antiBot.challenge('staff_login', ip, antiBotToken);
     // Revue du 2 octobre 2026 (sécurité 4) : les mots de passe faux se comptent par couple courriel et adresse, pour tout
     // courriel (connu ou non : un 423 ne révèle pas l'existence d'un compte) ; le compte lui-même n'est jamais verrouillé
     // par des mots de passe faux (un tiers ne prive plus un membre du personnel de My Hub), seulement par son second facteur.
@@ -82,16 +89,17 @@ export class StaffAuthService {
     // Étape 21 : un second facteur de membre d'organisation n'a pas de mot de passe ; il n'ouvre jamais de session du personnel.
     if (!user || !credentials?.passwordHash || user.status !== 'active') {
       await verifyPassword(password, await dummyPasswordHash());
-      await this.registerPasswordFailure(lockKey);
+      await this.registerPasswordFailure(lockKey, ip);
       throw AppError.unauthorized('INVALID_CREDENTIALS', 'Courriel ou mot de passe incorrect');
     }
     if (!(await verifyPassword(password, credentials.passwordHash))) {
-      await this.registerPasswordFailure(lockKey);
+      await this.registerPasswordFailure(lockKey, ip);
       throw AppError.unauthorized('INVALID_CREDENTIALS', 'Courriel ou mot de passe incorrect');
     }
     // Mot de passe correct : le verrou du compte (échecs du second facteur) n'est vérifié que maintenant ; le couple est libéré.
     this.assertNotLocked(credentials);
     await this.store.reset(lockKey);
+    await this.antiBot.clear('staff_login', ip);
     // Le compteur d'échecs du second facteur n'est remis à zéro qu'après lui (openSession) : le verrouillage couvre le TOTP.
     const ttl = await this.settings.number('auth.mfa_token_ttl_seconds', 300);
     const stage = credentials.totpEnabledAt ? 'mfa_verify' : 'mfa_enroll';
@@ -115,9 +123,10 @@ export class StaffAuthService {
     if (count >= threshold) throw new AppError('ACCOUNT_LOCKED', 'Trop d\'échecs depuis cette adresse, réessayez plus tard', 423, { retryAfter: Math.max(1, resetIn) });
   }
 
-  private async registerPasswordFailure(lockKey: string): Promise<void> {
+  private async registerPasswordFailure(lockKey: string, ip: string | null): Promise<void> {
     const [threshold, minutes] = await Promise.all([this.settings.number('auth.staff_lockout_threshold', 5), this.settings.number('auth.staff_lockout_minutes', 15)]);
     await this.store.hit(lockKey, threshold, minutes * 60);
+    await this.antiBot.record('staff_login', ip);
   }
 
   /** Verrouillage du compte en cours (échecs du second facteur) : 423 avec le délai restant. Vérifié après un mot de passe correct et à chaque étape du second facteur. */

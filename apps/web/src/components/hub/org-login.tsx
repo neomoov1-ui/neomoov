@@ -6,6 +6,7 @@
  */
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AntiBotChallenge, useAntiBotChallenge } from '@/components/turnstile';
 import { Action, Field, Input, Notice } from '@/components/ui/kit';
 import { ApiError, orgStep } from '@/lib/hub-api';
 import { toE164 } from '@/lib/site-api';
@@ -19,9 +20,12 @@ export function OrgLogin({ onSignedIn }: { onSignedIn: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const e164 = toE164(phone);
   const language = i18n.language === 'en' ? 'en' : 'fr';
+  // Défi anti-robots demandé par l'API après plusieurs demandes de code depuis cette adresse (revue Q1).
+  const challenge = useAntiBotChallenge();
 
   const fail = (e: unknown) => {
     if (!(e instanceof ApiError)) return setError(t('org.login.errors.generic'));
+    if (challenge.handle(e)) return;
     if (e.code === 'TERMS_NOT_ACCEPTED' || e.code === 'PRIVACY_POLICY_VERSION_OUTDATED') return setError(t('org.login.noAccount'));
     if (e.status === 429) return setError(t('org.login.errors.rateLimited'));
     if (e.status === 400 || e.status === 401) return setError(sent ? t('org.login.errors.code') : t('org.login.errors.phone'));
@@ -45,7 +49,7 @@ export function OrgLogin({ onSignedIn }: { onSignedIn: () => void }) {
     if (!e164) return setError(t('org.login.errors.phone'));
     if (!sent) {
       void run(async () => {
-        await orgStep('request', { phone: e164, language });
+        await orgStep('request', { phone: e164, language }, challenge.headers());
         setSent(true);
       });
     } else {
@@ -71,7 +75,8 @@ export function OrgLogin({ onSignedIn }: { onSignedIn: () => void }) {
         </Field>
       ) : null}
       {error ? <Notice tone="danger">{error}</Notice> : null}
-      <Action type="submit" busy={busy} disabled={busy || !e164 || (sent && code.trim().length !== 6)}>{sent ? t('org.login.verify') : t('org.login.send')}</Action>
+      {!sent ? <AntiBotChallenge challenge={challenge} language={language} /> : null}
+      <Action type="submit" busy={busy} disabled={busy || !e164 || (sent && code.trim().length !== 6) || (!sent && challenge.blocking)}>{sent ? t('org.login.verify') : t('org.login.send')}</Action>
       {sent ? <Action tone="ghost" onClick={() => { setSent(false); setCode(''); setError(null); }}>{t('org.login.resend')}</Action> : null}
     </form>
   );

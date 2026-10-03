@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { BrandMark, useWebBrand } from '@/components/brand-context';
 import { LanguageSwitch } from '@/components/language-switch';
 import { OrgLogin } from '@/components/hub/org-login';
+import { AntiBotChallenge, useAntiBotChallenge } from '@/components/turnstile';
 import { Action, Card, Field, Input, Notice, cx, focus } from '@/components/ui/kit';
 import { ApiError, staffStep } from '@/lib/hub-api';
 import type { Language } from '@/lib/i18n-resources';
@@ -45,12 +46,15 @@ export function HubLogin({ language }: { language: Language }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Défi anti-robots demandé par l'API après plusieurs mots de passe faux depuis cette adresse (revue Q1).
+  const challenge = useAntiBotChallenge();
   const requested = params.get('next');
   const next = requested && /^\/hub(\/[\w/-]*)?$/.test(requested) ? requested : '/hub';
   const visual: Visual = step.kind === 'password' ? 'login' : step.kind === 'code' ? 'mfa' : step.kind === 'enroll' ? 'enroll' : 'backup';
 
   const fail = (e: unknown) => {
     if (!(e instanceof ApiError)) return setError(t('hub.login.errors.generic'));
+    if (challenge.handle(e)) return;
     if (e.code === 'INVALID_TRANSIENT_TOKEN' || e.code === 'MFA_ENROLLMENT_NOT_STARTED') {
       setStep({ kind: 'password' });
       return setError(t('hub.login.errors.expired'));
@@ -81,7 +85,7 @@ export function HubLogin({ language }: { language: Language }) {
   const submitPassword = (e: FormEvent) => {
     e.preventDefault();
     void run(async () => {
-      const res = await staffStep<StaffLoginResponse>('login', { email: email.trim(), password });
+      const res = await staffStep<StaffLoginResponse>('login', { email: email.trim(), password }, challenge.headers());
       setPassword('');
       setCode('');
       if (res.status === 'mfa_enrollment_required') {
@@ -164,7 +168,8 @@ export function HubLogin({ language }: { language: Language }) {
                 <Field label={t('hub.login.email')}>{(p) => <Input {...p} type="email" name="email" autoComplete="username" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
                 <Field label={t('hub.login.password')}>{(p) => <Input {...p} type="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />}</Field>
                 {error ? <Notice tone="danger">{error}</Notice> : null}
-                <Action type="submit" busy={busy} disabled={busy}>{t('hub.login.submit')}</Action>
+                <AntiBotChallenge challenge={challenge} language={language === 'en' ? 'en' : 'fr'} />
+                <Action type="submit" busy={busy} disabled={busy || challenge.blocking}>{t('hub.login.submit')}</Action>
               </form>
             ) : null}
 

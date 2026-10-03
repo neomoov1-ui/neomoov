@@ -18,10 +18,10 @@ export class AuthController {
   @Post('otp/request')
   @Public()
   @HttpCode(200)
-  @ApiOperation({ summary: 'Envoie un code à 6 chiffres par texto (5 minutes, 5 tentatives, limité par numéro et par adresse)' })
+  @ApiOperation({ summary: 'Envoie un code à 6 chiffres par texto (5 minutes, 5 tentatives, limité par numéro et par adresse) ; depuis un navigateur, au-delà de quelques demandes par adresse, jeton Turnstile exigé (en-tête `x-turnstile-token`, 403 `TURNSTILE_REQUIRED`)' })
   @ZodBody(otpRequestSchema)
   @ZodResponse(200, otpRequestResponseSchema)
-  @ApiErrors(400, 429)
+  @ApiErrors(400, 403, 429)
   requestOtp(@Body(zodPipe(otpRequestSchema)) body: z.infer<typeof otpRequestSchema>, @ReqCtx() ctx: RequestContext) {
     return this.auth.requestOtp(body.phone, ctx, body.language);
   }

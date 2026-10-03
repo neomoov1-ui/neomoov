@@ -18,7 +18,9 @@ import { UsersService } from '../src/modules/users/users.service.js';
 /**
  * Configuration de test : le .env de la racine (base Supabase de développement), fournisseurs simulés, sans Redis.
  * La répartition automatique est désactivée par défaut (`DISPATCH_MODE=manual`, aucun battement) : les tests des
- * courses attribuent eux-mêmes ; le test de la répartition la réactive explicitement.
+ * courses attribuent eux-mêmes ; le test de la répartition la réactive explicitement. Le défi anti-robots après plusieurs
+ * échecs (revue Q1 du 3 octobre 2026) est éteint par défaut, même si la clé Turnstile est dans le .env de développement :
+ * seul le test qui l'exerce le rallume (`TURNSTILE_SECRET_KEY` de test, vérification simulée sans appel à Cloudflare).
  */
 export function testEnv(overrides: Record<string, string> = {}): AppEnv | null {
   loadDotenvFromRoot();
@@ -34,6 +36,7 @@ export function testEnv(overrides: Record<string, string> = {}): AppEnv | null {
       DISPATCH_TICK_MS: '0',
       PAYMENT_PROVIDER: 'mock', MAPS_PROVIDER: 'mock', SMS_PROVIDER: 'mock', EMAIL_PROVIDER: 'mock', PUSH_PROVIDER: 'mock',
       WHATSAPP_PROVIDER: 'mock', VOICE_PROVIDER: 'mock', LLM_PROVIDER: 'mock', SEV_PROVIDER: 'mock', STORAGE_PROVIDER: 'mock', SOCIAL_LOGIN_PROVIDER: 'mock',
+      TURNSTILE_SECRET_KEY: '',
       ...overrides,
     },
     { dotenv: false },

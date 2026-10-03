@@ -154,6 +154,13 @@ export interface RequestContext {
   userAgent: string | null;
   language: 'fr' | 'en';
   correlationId: string | null;
+  /** Jeton Turnstile (en-tête `x-turnstile-token`) d'une route protégée après plusieurs échecs (revue du 2 octobre 2026). */
+  antiBotToken?: string | null;
+  /**
+   * Requête d'un navigateur : en-tête `Origin` (appel direct de la réservation web) ou relais du serveur web
+   * (`x-neomoov-client: web`). Seul un navigateur peut afficher le défi anti-robots ; les applications ne l'envoient pas.
+   */
+  browser?: boolean;
 }
 
 /** Adresse IP, agent utilisateur et langue (en-tête Accept-Language, fr par défaut) de la requête. */
@@ -161,11 +168,14 @@ export function requestContext(req: Request): RequestContext {
   const accept = (req.header('accept-language') ?? '').toLowerCase();
   const language: 'fr' | 'en' = /^(en|en-)/.test(accept.split(',')[0]?.trim() ?? '') ? 'en' : 'fr';
   const ip = req.ip ?? req.socket?.remoteAddress ?? null;
+  const antiBotToken = (req.header('x-turnstile-token') ?? '').trim().slice(0, 4_096);
   return {
     ip: ip ? ip.replace(/^::ffff:/, '') : null,
     userAgent: (req.header('user-agent') ?? '').slice(0, 300) || null,
     language,
     correlationId: (res(req)?.getHeader('x-correlation-id') as string | undefined) ?? null,
+    antiBotToken: antiBotToken || null,
+    browser: Boolean(req.header('origin')) || req.header('x-neomoov-client') === 'web',
   };
 }
 

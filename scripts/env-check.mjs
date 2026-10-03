@@ -98,6 +98,9 @@ const SQUARE_SHAPES = [
   { key: 'TWILIO_ACCOUNT_SID', test: (v) => /^AC[0-9a-f]{32}$/.test(v), expected: 'Account SID (AC suivi de 32 caractères hexadécimaux)' },
   { key: 'TWILIO_AUTH_TOKEN', test: (v) => /^[0-9a-f]{32}$/.test(v), expected: 'Auth Token (32 caractères hexadécimaux)' },
   { key: 'TWILIO_FROM_NUMBER', test: (v) => /^\+1\d{10}$/.test(v), expected: 'numéro au format international sans espace, par exemple +15145550100' },
+  // Cloudflare Turnstile (revue Q1 du 3 octobre 2026) : clés de la forme 0x… (1x, 2x ou 3x pour les clés de test de Cloudflare).
+  { key: 'TURNSTILE_SECRET_KEY', test: (v) => /^[0-3]x[A-Za-z0-9_-]{20,}$/.test(v), expected: 'clé secrète Turnstile (0x suivi d\'au moins 20 caractères)' },
+  { key: 'NEXT_PUBLIC_TURNSTILE_SITE_KEY', test: (v) => /^[0-3]x[A-Za-z0-9_-]{20,}$/.test(v), expected: 'clé de site Turnstile (0x suivi d\'au moins 20 caractères)' },
 ];
 /** Ce que la valeur semble être quand elle n'a pas la forme attendue (sans la montrer). */
 function squareLooksLike(value) {

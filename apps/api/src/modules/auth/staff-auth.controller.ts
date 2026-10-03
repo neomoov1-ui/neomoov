@@ -83,12 +83,12 @@ export class StaffAuthController {
   @Post('login')
   @Public()
   @HttpCode(200)
-  @ApiOperation({ summary: 'Première étape : courriel et mot de passe ; renvoie un jeton de passage pour le second facteur' })
+  @ApiOperation({ summary: 'Première étape : courriel et mot de passe ; renvoie un jeton de passage pour le second facteur. Après plusieurs mots de passe faux depuis une adresse, jeton Turnstile exigé (en-tête `x-turnstile-token`, 403 `TURNSTILE_REQUIRED`)' })
   @ZodBody(staffLoginSchema)
   @ZodResponse(200, staffLoginResponseSchema)
-  @ApiErrors(400, 401, 423, 429)
+  @ApiErrors(400, 401, 403, 423, 429)
   login(@Body(zodPipe(staffLoginSchema)) body: z.infer<typeof staffLoginSchema>, @ReqCtx() ctx: RequestContext) {
-    return this.staff.login(body.email, body.password, ctx.ip);
+    return this.staff.login(body.email, body.password, ctx.ip, ctx.antiBotToken ?? null);
   }
 
   @Post('mfa/enroll')

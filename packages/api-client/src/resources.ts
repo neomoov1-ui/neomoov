@@ -32,8 +32,11 @@ const id = (value: string) => encodeURIComponent(value);
 
 export function authResource(t: Transport) {
   return {
-    /** Envoie un code SMS ; la réponse indique quand un nouveau code pourra être demandé. */
-    requestOtp: (phone: string) => t.post<OtpRequestResponse>('/auth/otp/request', { phone }, { auth: false }),
+    /**
+     * Envoie un code SMS ; la réponse indique quand un nouveau code pourra être demandé. `headers` : jeton du défi
+     * anti-robots (`x-turnstile-token`) quand l'API l'exige d'un navigateur après plusieurs demandes.
+     */
+    requestOtp: (phone: string, headers?: Record<string, string>) => t.post<OtpRequestResponse>('/auth/otp/request', { phone }, { auth: false, headers }),
     verifyOtp: (body: OtpVerify) => t.post<TokensView>('/auth/otp/verify', body, { auth: false }),
     apple: (body: SocialLogin) => t.post<SocialLoginResponse>('/auth/apple', body, { auth: false }),
     google: (body: SocialLogin) => t.post<SocialLoginResponse>('/auth/google', body, { auth: false }),

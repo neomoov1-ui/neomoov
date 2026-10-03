@@ -7,6 +7,7 @@
 import type { TokensView } from '@neomoov/domain';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AntiBotChallenge, useAntiBotChallenge } from '@/components/turnstile';
 import { Action, Checkbox, Field, Input, Notice } from '@/components/ui/kit';
 import { ApiError, toE164, type createGuestApi } from '@/lib/site-api';
 
@@ -28,6 +29,8 @@ export function OtpSignIn({ guest, onSignedIn, terms, allowCreate = true, noAcco
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Défi anti-robots demandé par l'API après plusieurs demandes de code depuis cette adresse (revue Q1).
+  const challenge = useAntiBotChallenge();
   const e164 = toE164(phone);
 
   const message = (e: unknown) => {
@@ -43,10 +46,10 @@ export function OtpSignIn({ guest, onSignedIn, terms, allowCreate = true, noAcco
     setBusy(true);
     setError(null);
     try {
-      await guest.api.auth.requestOtp(e164);
+      await guest.api.auth.requestOtp(e164, challenge.headers());
       setSent(true);
     } catch (e) {
-      setError(message(e));
+      if (!challenge.handle(e)) setError(message(e));
     } finally {
       setBusy(false);
     }
@@ -80,7 +83,10 @@ export function OtpSignIn({ guest, onSignedIn, terms, allowCreate = true, noAcco
         {(p) => <Input {...p} type="tel" autoComplete="tel" required value={phone} disabled={sent} onChange={(e) => setPhone(e.target.value)} />}
       </Field>
       {!sent ? (
-        <div><Action onClick={() => void send()} busy={busy} disabled={busy || !e164}>{t('book.sendCode')}</Action></div>
+        <div className="flex flex-col gap-2">
+          <AntiBotChallenge challenge={challenge} language={i18n.language === 'en' ? 'en' : 'fr'} />
+          <div><Action onClick={() => void send()} busy={busy} disabled={busy || !e164 || challenge.blocking}>{t('book.sendCode')}</Action></div>
+        </div>
       ) : (
         <>
           <Field label={t('book.code')}>{(p) => <Input {...p} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required autoFocus value={code} onChange={(e) => setCode(e.target.value)} />}</Field>

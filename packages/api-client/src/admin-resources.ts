@@ -251,7 +251,8 @@ export function publicResource(t: Transport) {
   return {
     /** Prospect (préinscription chauffeur, entreprise, partenaire) : clé publique et jeton anti-robots requis. */
     lead: (body: LeadInput) => t.post<{ id: string; status: 'received' }>('/public/leads', body),
-    quotes: (body: QuoteRequest) => t.post<QuotesResponse>('/public/quotes', body, { timeoutMs: 30_000 }),
+    /** Devis sans compte ; `headers` : jeton du défi anti-robots (`x-turnstile-token`) quand l'API l'exige au-delà d'un volume par adresse. */
+    quotes: (body: QuoteRequest, headers?: Record<string, string>) => t.post<QuotesResponse>('/public/quotes', body, { timeoutMs: 30_000, headers }),
     autocomplete: (input: string, sessionToken?: string) => t.get<AutocompleteSuggestion[]>('/public/places/autocomplete', { query: { input, sessionToken } }),
     placeDetails: (placeId: string, sessionToken?: string) => t.get<PlaceDetails>('/public/places/details', { query: { placeId, sessionToken } }),
     track: (token: string) => t.get<PublicTrackingView>(`/public/track/${id(token)}`, { auth: false }),

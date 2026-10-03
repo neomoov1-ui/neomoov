@@ -31,6 +31,8 @@ export const resources = {
       status: { api: 'API', database: 'base de données', redis: 'Redis', queues: 'files', ok: 'en service', degraded: 'dégradée', error: 'en panne', not_configured: 'non configuré', memory: 'en mémoire' },
       meta: { description: 'Transport de personnes à Montréal, prix fixe garanti, véhicules électriques, chauffeurs vérifiés.' },
       common: { loading: 'Chargement…', error: 'Une erreur est survenue.' },
+      // Défi anti-robots demandé par l'API après plusieurs échecs (revue Q1 du 3 octobre 2026).
+      antiBot: { required: 'Pour continuer, confirmez que vous n\'êtes pas un robot, puis réessayez.', failed: 'La vérification anti-robots a échoué : recommencez le défi, puis réessayez.', unavailable: 'Trop d\'essais depuis cette connexion : réessayez dans une heure.' },
     },
   },
   en: {
@@ -52,6 +54,7 @@ export const resources = {
       status: { api: 'API', database: 'database', redis: 'Redis', queues: 'queues', ok: 'up', degraded: 'degraded', error: 'down', not_configured: 'not configured', memory: 'in memory' },
       meta: { description: 'Rides in Montreal with a guaranteed fixed price, electric vehicles and vetted drivers.' },
       common: { loading: 'Loading…', error: 'Something went wrong.' },
+      antiBot: { required: 'To continue, confirm you are not a robot, then try again.', failed: 'The anti-bot check failed: complete the challenge again, then try again.', unavailable: 'Too many attempts from this connection: please try again in an hour.' },
     },
   },
 } as const;

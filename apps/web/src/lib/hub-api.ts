@@ -37,9 +37,9 @@ export async function logout(): Promise<void> {
   window.location.assign('/hub/connexion');
 }
 
-/** Étapes de connexion relayées : les jetons restent côté serveur. */
-export async function staffStep<T>(step: 'login' | 'enroll' | 'confirm' | 'verify' | 'backup', body: unknown): Promise<T> {
-  const res = await fetch(`/api/staff-auth/${step}`, { method: 'POST', headers: { 'content-type': 'application/json', 'accept-language': currentLanguage(), 'x-neomoov-hub': '1' }, body: JSON.stringify(body) });
+/** Étapes de connexion relayées : les jetons restent côté serveur. `headers` : jeton du défi anti-robots demandé par l'API. */
+export async function staffStep<T>(step: 'login' | 'enroll' | 'confirm' | 'verify' | 'backup', body: unknown, headers: Record<string, string> = {}): Promise<T> {
+  const res = await fetch(`/api/staff-auth/${step}`, { method: 'POST', headers: { ...headers, 'content-type': 'application/json', 'accept-language': currentLanguage(), 'x-neomoov-hub': '1' }, body: JSON.stringify(body) });
   const payload = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
   if (!res.ok) throw new ApiError(res.status, payload.code ?? 'ERROR', payload.message ?? res.statusText);
   return payload as T;
@@ -55,8 +55,8 @@ export const STAFF_ROLE_CODES = ['admin', 'operator', 'finance', 'readonly'];
 export const isStaffUser = (roles: readonly string[] | undefined) => Boolean(roles?.some((r) => STAFF_ROLE_CODES.includes(r)));
 
 /** Étape 21 : connexion d'un membre d'organisation (code SMS) et son second facteur, relayés ; les jetons restent côté serveur. */
-export async function orgStep<T>(step: 'request' | 'verify' | 'mfa-start' | 'mfa-enroll' | 'mfa-confirm' | 'mfa-verify' | 'mfa-backup', body: unknown = {}): Promise<T> {
-  const res = await fetch(`/api/org-auth/${step}`, { method: 'POST', headers: { 'content-type': 'application/json', 'accept-language': currentLanguage(), 'x-neomoov-hub': '1' }, body: JSON.stringify(body) });
+export async function orgStep<T>(step: 'request' | 'verify' | 'mfa-start' | 'mfa-enroll' | 'mfa-confirm' | 'mfa-verify' | 'mfa-backup', body: unknown = {}, headers: Record<string, string> = {}): Promise<T> {
+  const res = await fetch(`/api/org-auth/${step}`, { method: 'POST', headers: { ...headers, 'content-type': 'application/json', 'accept-language': currentLanguage(), 'x-neomoov-hub': '1' }, body: JSON.stringify(body) });
   const payload = (await res.json().catch(() => ({}))) as { code?: string; message?: string; details?: unknown };
   if (!res.ok) throw new ApiError(res.status, payload.code ?? 'ERROR', payload.message ?? res.statusText, payload.details);
   return payload as T;

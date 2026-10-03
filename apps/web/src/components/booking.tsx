@@ -13,6 +13,7 @@ import { AddressField } from '@/components/address-field';
 import { useWebBrand } from '@/components/brand-context';
 import { OtpSignIn } from '@/components/otp-sign-in';
 import { QuoteList } from '@/components/quote-list';
+import { AntiBotChallenge, useAntiBotChallenge } from '@/components/turnstile';
 import { Action, Card, Checkbox, Field, Input, Notice, Textarea, cx } from '@/components/ui/kit';
 import { formatDateTime, formatMoney, montrealToIso } from '@/lib/format';
 import type { Language } from '@/lib/i18n-resources';
@@ -71,6 +72,8 @@ export function Booking() {
   const [ride, setRide] = useState<RideView | null>(null);
   const [trackingPath, setTrackingPath] = useState<string | null>(null);
   const idempotencyKey = useRef(globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`);
+  // Défi anti-robots demandé par l'API au-delà d'un volume de devis par adresse (revue Q1).
+  const challenge = useAntiBotChallenge();
 
   const search = useCallback((input: string, sessionToken: string) => publicApi.public.autocomplete(input, sessionToken), []);
   const details = useCallback((placeId: string, sessionToken: string) => publicApi.public.placeDetails(placeId, sessionToken), []);
@@ -90,13 +93,13 @@ export function Booking() {
     if (new Date(requestedAt()).getTime() < Date.now() + minLeadMs) return setError(t('book.errors.lead'));
     setBusy(true);
     try {
-      const res = await publicApi.public.quotes(request());
+      const res = await publicApi.public.quotes(request(), challenge.headers());
       if (!res.quotes.length) return setError(t('book.errors.quote'));
       setQuotes(res);
       setQuote(res.quotes[0]!);
       setStep('price');
     } catch (e) {
-      fail(e);
+      if (!challenge.handle(e)) fail(e);
     } finally {
       setBusy(false);
     }
@@ -168,7 +171,8 @@ export function Booking() {
             </div>
             <Checkbox label={t('book.pet')} checked={pet} onChange={(e) => { setPet(e.target.checked); setStep('trip'); }} />
             {pet ? <p className="text-xs text-slate-600">{t('book.petHint')}</p> : null}
-            {step === 'trip' ? <div><Action type="submit" busy={busy} disabled={busy || !origin || !destination}>{busy ? t('book.quoting') : t('book.getPrice')}</Action></div> : null}
+            {step === 'trip' ? <AntiBotChallenge challenge={challenge} language={lang === 'en' ? 'en' : 'fr'} /> : null}
+            {step === 'trip' ? <div><Action type="submit" busy={busy} disabled={busy || !origin || !destination || challenge.blocking}>{busy ? t('book.quoting') : t('book.getPrice')}</Action></div> : null}
           </form>
         </Card>
       ) : null}

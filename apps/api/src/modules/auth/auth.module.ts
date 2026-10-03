@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_GUARD, DiscoveryModule } from '@nestjs/core';
+import { AntiBotService } from '../../common/anti-bot.service.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { AdminApiKeysController, AdminStaffController, ServiceController } from './admin.controller.js';
 import { AccessService } from './access.service.js';
@@ -16,7 +17,7 @@ import { TokensService } from './tokens.service.js';
 /**
  * Identité : connexion, jetons, second facteur du personnel, clés de service, et les trois gardes globales dans l'ordre
  * (limite par adresse, authentification et politique, propriété de la ressource). Module global : les services de
- * jetons et de limitation servent aux autres modules (profil, confidentialité, worker).
+ * jetons, de limitation et d'anti-robots servent aux autres modules (profil, confidentialité, API publique, worker).
  */
 @Global()
 @Module({
@@ -24,6 +25,7 @@ import { TokensService } from './tokens.service.js';
   controllers: [AuthController, StaffAuthController, AdminStaffController, AdminApiKeysController, ServiceController, MemberMfaController],
   providers: [
     RateLimitService,
+    AntiBotService,
     TokensService,
     OtpService,
     SocialService,
@@ -35,6 +37,6 @@ import { TokensService } from './tokens.service.js';
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: OwnershipGuard },
   ],
-  exports: [RateLimitService, TokensService, OtpService, SocialService, StaffAuthService, ApiKeysService, AuthService, AccessService],
+  exports: [RateLimitService, AntiBotService, TokensService, OtpService, SocialService, StaffAuthService, ApiKeysService, AuthService, AccessService],
 })
 export class AuthModule {}

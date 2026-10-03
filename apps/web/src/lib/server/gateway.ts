@@ -80,10 +80,14 @@ export async function refreshTokens(refreshToken: string | undefined): Promise<T
   return promise;
 }
 
-/** En-têtes relayés vers l'API : langue, corrélation, adresse du navigateur (limitation de débit par adresse). */
+/**
+ * En-têtes relayés vers l'API : langue, corrélation, adresse du navigateur (limitation de débit par adresse). Revue Q1
+ * du 3 octobre 2026 : le jeton du défi anti-robots suit la requête, et `x-neomoov-client: web` dit à l'API qu'un
+ * navigateur est derrière le relais (lui seul peut afficher le défi).
+ */
 export function forwardHeaders(req: NextRequest, extra: Record<string, string> = {}): Record<string, string> {
-  const headers: Record<string, string> = { accept: req.headers.get('accept') ?? 'application/json', ...extra };
-  for (const name of ['accept-language', 'x-correlation-id', 'content-type']) {
+  const headers: Record<string, string> = { accept: req.headers.get('accept') ?? 'application/json', 'x-neomoov-client': 'web', ...extra };
+  for (const name of ['accept-language', 'x-correlation-id', 'content-type', 'x-turnstile-token']) {
     const value = req.headers.get(name);
     if (value) headers[name] = value;
   }

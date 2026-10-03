@@ -5,6 +5,7 @@
  */
 import type { Language, OtpVerify, SocialLogin, TokensView, UserRole } from '@neomoov/domain';
 import { Injectable } from '@nestjs/common';
+import { AntiBotService } from '../../common/anti-bot.service.js';
 import { AppError } from '../../common/app-error.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { SettingsService } from '../../common/settings.service.js';
@@ -27,9 +28,17 @@ export class AuthService {
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
     private readonly store: RateLimitService,
+    private readonly antiBot: AntiBotService,
   ) {}
 
+  /**
+   * Revue du 2 octobre 2026 (sécurité 9) : chaque demande compte pour l'adresse ; au-delà du seuil, une demande faite
+   * depuis un navigateur (réservation web, connexion des organisations à My Hub) doit porter un jeton Turnstile. Les
+   * applications, qui ne peuvent pas afficher le défi, restent soumises aux seules limites par numéro et par adresse.
+   */
   async requestOtp(phone: string, ctx: RequestContext, language?: Language) {
+    if (ctx.browser) await this.antiBot.challenge('otp', ctx.ip, ctx.antiBotToken);
+    await this.antiBot.record('otp', ctx.ip);
     return this.otp.request(phone, ctx.ip, language ?? ctx.language);
   }
 

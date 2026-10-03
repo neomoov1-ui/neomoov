@@ -37,6 +37,8 @@ export function runWithCorrelation<T>(correlationId: unknown, fn: () => T): T {
  */
 export const REDACTED_REQUEST_HEADERS: readonly string[] = [
   'authorization', 'cookie', 'x-api-key', 'x-vapi-secret', 'stripe-signature', 'x-square-hmacsha256-signature', 'x-twilio-signature', 'x-hub-signature-256', 'x-forwarded-for', 'x-real-ip',
+  // Jeton du défi anti-robots (revue Q1 du 3 octobre 2026).
+  'x-turnstile-token',
 ];
 
 /**
