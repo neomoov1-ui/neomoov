@@ -59,13 +59,16 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
   private readonly settings: SettingsService | null;
   private readonly http: SocialHttp;
 
-  /** Sans base (contexte réduit aux adaptateurs, essais unitaires) : variables d'environnement seulement. */
+  /**
+   * Sans base (contexte réduit aux adaptateurs, essais unitaires) : variables d'environnement seulement. Jetons d'injection
+   * explicites : un type union (`X | null`) ne donne pas de métadonnée utilisable à Nest.
+   */
   constructor(
     @Inject(APP_ENV) private readonly env: AppEnv,
     @Optional() @Inject(DB) database: Database | null,
-    @Optional() cipher: FieldCipher | null,
-    @Optional() settings: SettingsService | null,
-    @Optional() http: SocialHttp | null,
+    @Optional() @Inject(FieldCipher) cipher: FieldCipher | null,
+    @Optional() @Inject(SettingsService) settings: SettingsService | null,
+    @Optional() @Inject(SocialHttp) http: SocialHttp | null,
   ) {
     this.fallback = new EnvSocialCredentialsProvider(env);
     this.database = database ?? null;

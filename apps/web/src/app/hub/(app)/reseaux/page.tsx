@@ -86,7 +86,8 @@ function SocialCard({ account }: { account: SocialAccountView }) {
   const saveLink = useMutation({ mutationFn: () => hubApi.social.setLink(space, link.trim()), onSuccess: done });
   const select = useMutation({ mutationFn: (accountId: string) => hubApi.social.select(space, accountId), onSuccess: done });
   const failed = [connect, validate, disconnect, update, telegram, saveLink, select].find((m) => m.isError);
-  const linked = account.status !== 'not_connected' || account.credentialSource !== 'none';
+  // Compte relié (ou identifiants posés sur le serveur) : revalidation et lien public proposés.
+  const linked = account.credentialSource !== 'none' || ['connected', 'invalid', 'expired'].includes(account.status);
   const replace = (text: string) => text.replaceAll('{{callback}}', account.callbackUrl ?? '');
 
   const copy = async (text: string) => {
