@@ -9,7 +9,7 @@ import { CRM_PROVIDER } from '../src/adapters/types.js';
 import { DomainEventsService } from '../src/common/domain-events.js';
 import { CrmJobsService } from '../src/modules/crm/crm-jobs.service.js';
 import { CrmSyncService } from '../src/modules/crm/crm-sync.service.js';
-import { bearer, cleanupTestData, createStaffAndLogin, db, startTestApp, testEmail, testPhone, type StaffSession } from './helpers.js';
+import { bearer, cleanupTestData, createStaffAndLogin, db, loginByOtp, startTestApp, testEmail, testPhone, type StaffSession } from './helpers.js';
 
 /**
  * Étape 25 : synchronisation CRM (fournisseur simulé) : prospect avec consentement (contact, transaction, note),
@@ -199,5 +199,21 @@ describe('CRM (intégration, fournisseur simulé)', () => {
     expect(crm.contact(`lead:${lost!.id}`)).toBeDefined();
     expect(crm.company(`business_account:${silent!.id}`)).toMatchObject({ accountType: 'business_account', consent: { source: 'contract' } });
     expect(await sync.unsyncedBusinessAccounts(new Date(Date.now() - 60_000))).not.toContain(silent!.id);
+  });
+
+  it('My Hub : état CRM d\'une fiche lu par le personnel, refusé à un client', async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const id = await postLead({ kind: 'driver', email: testEmail('etat-crm') });
+    await waitFor(() => sync.records('lead', id), (r) => synced(r, 'contact', 'deal'), 'prospect synchronisé');
+    const res = await request(server()).get(`/v1/admin/crm/leads/${id}`).set(bearer(admin.tokens)).expect(200);
+    expect(res.body.provider).toBe('mock');
+    expect(res.body.records.find((r: { objectType: string }) => r.objectType === 'contact')).toMatchObject({ status: 'synced', attempts: 0, error: null, externalId: crm.contact(`lead:${id}`)!.id, lastSyncedAt: expect.any(String) });
+    // Fiche jamais présentée au CRM : liste vide, pas d'erreur.
+    const unknown = await request(server()).get('/v1/admin/crm/organizations/00000000-0000-4000-8000-000000000000').set(bearer(admin.tokens)).expect(200);
+    expect(unknown.body).toEqual({ provider: 'mock', records: [] });
+    const finance = await createStaffAndLogin(app, ['finance']);
+    expect((await request(server()).get(`/v1/admin/crm/prospects/${id}`).set(bearer(finance.tokens))).status).toBe(200);
+    const client = await loginByOtp(app);
+    expect((await request(server()).get(`/v1/admin/crm/leads/${id}`).set(bearer(client))).status).toBe(403);
   });
 });
