@@ -14,7 +14,7 @@ export const clients = pgTable('clients', {
   notes: text('notes'),
   status: varchar('status', { length: 20 }).notNull().default('active'),
   businessAccountId: uuid('business_account_id').references((): AnyPgColumn => businessAccounts.id, { onDelete: 'set null' }),
-  /** Organisation du profil (étape 20) : la racine pour les clients de Neomoov. Clé étrangère : migration 0039. */
+  /** Organisation du profil (étape 20) : la racine pour les clients de Neomoov. Clé étrangère : migration 0040. */
   organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`).references((): AnyPgColumn => organizations.id, { onDelete: 'set null' }),
   subscriptionCode: varchar('subscription_code', { length: 40 }),
   rideCount: cents('ride_count').notNull().default(0),

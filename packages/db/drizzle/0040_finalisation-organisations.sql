@@ -1,5 +1,6 @@
 -- Finalisation du 3 octobre 2026 (agent U2, organisations, flotte et facturation). Rejouable (IF NOT EXISTS, blocs DO).
--- Inverse : down/0039_finalisation-organisations.sql. La session principale renumérote à la fusion si besoin.
+-- Inverse : down/0040_finalisation-organisations.sql. Numéro 0040 : U3 a pris 0039 (0039_finalisation-exploitation, antérieure) ;
+-- dans cette branche seule, l'entrée du journal a l'index 39 (journal contigu) et devient l'index 40 à la fusion.
 --
 -- 1. Règle des 60 000 km : kilométrage relevé à la dernière vérification mécanique approuvée (vehicles.mechanical_check_km).
 -- 2. Facturation de la plateforme : début du report d'une suspension (subscriptions.suspension_postponed_at).

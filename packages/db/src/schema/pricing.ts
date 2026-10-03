@@ -73,7 +73,7 @@ export const quotes = pgTable('quotes', {
   clientId: uuid('client_id').references((): AnyPgColumn => clients.id, { onDelete: 'set null' }),
   /** Devis anonymes (réservation web sans compte, agent vocal) : identifiant de session. */
   sessionKey: varchar('session_key', { length: 80 }),
-  /** Organisation du devis (étape 20) : celle de la réservation. Clé étrangère : migration 0039. */
+  /** Organisation du devis (étape 20) : celle de la réservation. Clé étrangère : migration 0040. */
   organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`).references((): AnyPgColumn => organizations.id, { onDelete: 'set null' }),
   cityCode: varchar('city_code', { length: 30 }).notNull().references(() => cities.code),
   category: vehicleCategoryEnum('category').notNull(),

@@ -1,4 +1,4 @@
--- Inverse de 0039 : retire les index, les clés étrangères de la revue finale V1, le début du report de suspension et le
+-- Inverse de 0040 : retire les index, les clés étrangères de la revue finale V1, le début du report de suspension et le
 -- kilométrage à la dernière vérification mécanique. Rejouable.
 DROP INDEX IF EXISTS weekly_statements_org_idx;
 DROP INDEX IF EXISTS rides_org_idx;
