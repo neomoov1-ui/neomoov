@@ -18,6 +18,7 @@ import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
 import { AuditService } from '../audit/audit.service.js';
+import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { CreditsService } from './credits.service.js';
 
 export type ReferralKind = 'client' | 'driver';
@@ -53,6 +54,7 @@ export class ReferralsService {
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
     private readonly credits: CreditsService,
+    private readonly outbox: NotificationsOutbox,
   ) {}
 
   private get db() {
@@ -237,7 +239,24 @@ export class ReferralsService {
     if (done) {
       this.logger.info({ referralId: referral.id, kind, referrerCents: rules.referrerCents, referredCents: rules.referredCents }, 'Parrainage récompensé');
       this.audit.record({ action: 'referral.rewarded', entity: 'referrals', entityId: referral.id, after: { kind, referrerCreditCents: rules.referrerCents, referredCreditCents: rules.referredCents } });
+      await this.notifyReward(referral.id, kind, referral.referrerUserId, referredUserId, rules);
     }
     return done;
+  }
+
+  /**
+   * Avis de parrainage (étape 13, finalisation du 3 octobre 2026), après la validation des crédits : client, au parrain et
+   * au filleul (crédit sur le compte) ; chauffeur, au parrain (crédit de pack déduit au relevé). Un avis manqué n'annule
+   * jamais la récompense (la boîte d'envoi journalise ses propres erreurs).
+   */
+  private async notifyReward(referralId: string, kind: ReferralKind, referrerUserId: string, referredUserId: string, rules: { referrerCents: number; referredCents: number }): Promise<void> {
+    if (kind === 'driver') {
+      if (rules.referrerCents > 0) await this.outbox.queue({ recipientUserId: referrerUserId, template: 'referral.driver_rewarded', data: { referralId, amountCents: rules.referrerCents } });
+      return;
+    }
+    await this.outbox.queue([
+      ...(rules.referrerCents > 0 ? [{ recipientUserId: referrerUserId, template: 'referral.rewarded', data: { referralId, amountCents: rules.referrerCents, role: 'referrer' } }] : []),
+      ...(rules.referredCents > 0 ? [{ recipientUserId: referredUserId, template: 'referral.rewarded', data: { referralId, amountCents: rules.referredCents, role: 'referred' } }] : []),
+    ]);
   }
 }

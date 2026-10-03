@@ -196,6 +196,11 @@ export const envSchema = z.object({
   // --- Boîte de réception unifiée (phase 1 « entreprise autonome », 2 octobre 2026) ---
   /** Secret partagé du relais entrant Brevo (`POST /v1/webhooks/email`, en-tête `x-inbound-secret` ou paramètre `secret`) ; absent : relais refusé. */
   EMAIL_INBOUND_SECRET: optionalString,
+  /**
+   * Secret partagé du webhook de la discussion du site (Tidio, `POST /v1/webhooks/tidio`, en-tête `x-tidio-secret` ou
+   * paramètre `secret`) ; absent : refusé en production, secret de test `mock-tidio` accepté ailleurs (simulation).
+   */
+  TIDIO_WEBHOOK_SECRET: optionalString,
   /** Lecture IMAP de la boîte contact@ (repli du relais entrant) : simulée (tests) ou réelle (`imapflow`). */
   MAILBOX_PROVIDER: providerMode,
   MAILBOX_HOST: optionalString,

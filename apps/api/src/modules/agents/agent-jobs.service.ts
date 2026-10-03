@@ -23,9 +23,13 @@ import { CustomerRelationsAgent } from './customer-relations.agent.js';
 import { QualityAgent } from './quality.agent.js';
 import { FairnessService } from '../fairness/fairness.service.js';
 
+/** Traitement d'une tâche de la file `agents` fourni par un autre module (Booster : analyse des photos et des captures). */
+export type AgentJobHandler = (data: unknown) => Promise<void>;
+
 @Injectable()
 export class AgentJobsService implements OnModuleInit {
   private registered = false;
+  private readonly handlers = new Map<string, AgentJobHandler>();
 
   constructor(
     @Inject(APP_ENV) private readonly env: AppEnv,
@@ -65,6 +69,14 @@ export class AgentJobsService implements OnModuleInit {
     }
   }
 
+  /**
+   * Tâche fournie par un autre module (finalisation du 3 octobre 2026) : le module l'enregistre au démarrage, dans l'API
+   * comme dans le worker ; le processus qui porte la file la traite.
+   */
+  registerHandler(name: string, handler: AgentJobHandler): void {
+    this.handlers.set(name, handler);
+  }
+
   /** Enregistre le traitement de la file `agents` (et la passe des rapports toutes les `tickEveryMs`). */
   register(options: { tickEveryMs?: number } = {}): void {
     if (this.registered) return;
@@ -96,8 +108,14 @@ export class AgentJobsService implements OnModuleInit {
         // Charte d'équité (D7) : blocages de précaution et demandes des chauffeurs en retard sur leur délai.
         await this.fairness.alertOverdue(new Date());
         return;
-      default:
+      default: {
+        const handler = this.handlers.get(name);
+        if (handler) {
+          await handler(data);
+          return;
+        }
         this.logger.warn({ job: name }, 'Tâche d\'agent inconnue');
+      }
     }
   }
 

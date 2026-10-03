@@ -77,7 +77,10 @@ export class PrivacyWorker implements OnModuleInit {
 
 /**
  * Courses planifiées : une passe par minute (rappel J-1, attribution à 60 minutes, alerte opérateur à 30 minutes) ;
- * toutes les 5 minutes, surveillance des courses figées (étape 15).
+ * toutes les 5 minutes, surveillance des courses figées (étape 15). Finalisation du 3 octobre 2026 : le signal
+ * d'attribution à 60 minutes (`scheduled.dispatch_due`, non persistant) est rattrapé à chaque passe quand il est resté sans
+ * suite (`ScheduledService.dispatchDueToRecover`), par un appel direct au service de répartition existant ; sans Redis, où
+ * la répartition du worker est coupée et personne n'écoute le signal, l'attribution est lancée aussitôt.
  */
 @Injectable()
 export class SchedulingWorker implements OnModuleInit {
@@ -88,20 +91,37 @@ export class SchedulingWorker implements OnModuleInit {
     private readonly stuck: StuckRidesService,
     private readonly queues: QueueService,
     @Inject(APP_LOGGER) private readonly logger: Logger,
+    private readonly dispatch: DispatchService,
+    @Optional() @Inject(APP_ENV) private readonly env?: Pick<AppEnv, 'DISPATCH_MODE'>,
   ) {}
 
   onModuleInit() {
-    this.queues.process(
-      'scheduling',
-      async () => {
-        const now = new Date();
-        const report = await this.scheduled.tick(now);
-        this.passes += 1;
-        if (this.passes % 5 === 0) await this.stuck.alert(now);
-        if (report.reminders.length || report.dispatchDue.length || report.operatorAlerts.length) this.logger.info(report, 'courses planifiées');
-      },
-      { everyMs: 60_000, jobName: 'tick', concurrency: 1 },
-    );
+    this.queues.process('scheduling', async () => this.pass(new Date()), { everyMs: 60_000, jobName: 'tick', concurrency: 1 });
+  }
+
+  async pass(now: Date): Promise<{ recovered: string[] }> {
+    const report = await this.scheduled.tick(now);
+    this.passes += 1;
+    if (this.passes % 5 === 0) await this.stuck.alert(now);
+    if (report.reminders.length || report.dispatchDue.length || report.operatorAlerts.length) this.logger.info(report, 'courses planifiées');
+    const recovered = await this.recoverDispatchDue(now, this.queues.mode === 'memory' ? report.dispatchDue : []);
+    return { recovered };
+  }
+
+  /** Attribution relancée par le service de répartition pour les signaux restés sans suite (et, sans Redis, ceux de cette passe). */
+  async recoverDispatchDue(now: Date, immediate: string[] = []): Promise<string[]> {
+    if (this.env?.DISPATCH_MODE === 'manual') return [];
+    const rides = [...new Set([...immediate, ...(await this.scheduled.dispatchDueToRecover(now))])];
+    const recovered: string[] = [];
+    for (const rideId of rides) {
+      const started = await this.dispatch.start(rideId, { reason: 'scheduled_due', source: 'sweep' }).catch((error: unknown) => {
+        this.logger.error({ err: error, rideId }, 'Attribution planifiée non relancée');
+        return null;
+      });
+      if (started) recovered.push(rideId);
+    }
+    if (recovered.length) this.logger.warn({ recovered }, 'Attribution planifiée relancée par le worker (signal à 60 minutes resté sans suite)');
+    return recovered;
   }
 }
 

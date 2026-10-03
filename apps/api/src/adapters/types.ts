@@ -228,7 +228,11 @@ export interface SocialProvider {
   parseWebhook(body: unknown): { messages: SocialInboundMessage[]; comments: SocialInboundComment[] };
   listInbound(since: Date): Promise<SocialInboundMessage[]>;
   listComments(since: Date): Promise<SocialInboundComment[]>;
-  reply(input: { network: 'messenger' | 'instagram'; threadId: string; text: string }): Promise<{ messageId: string }>;
+  /**
+   * Message privé en réponse. `tag` : réponse humaine hors de la fenêtre de 24 heures (`HUMAN_AGENT`, 7 jours, permission
+   * accordée par Meta). Hors fenêtre, Meta refuse : erreur `SOCIAL_WINDOW_CLOSED` (jamais de nouvelle tentative).
+   */
+  reply(input: { network: 'messenger' | 'instagram'; threadId: string; text: string; tag?: 'HUMAN_AGENT' }): Promise<{ messageId: string }>;
   replyComment(input: { network: 'facebook' | 'instagram'; commentId: string; text: string }): Promise<{ messageId: string }>;
 }
 

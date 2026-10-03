@@ -5,15 +5,20 @@
  * domaine) ; tout autre commentaire part vers la relation client (`conversation.inbound`, canal `social`, quand ce canal
  * existe) ou vers un humain. Chaque passe est une exécution journalisée de l'agent ; un échec de connecteur donne une
  * nouvelle tentative espacée, puis l'état `failed` et une alerte au personnel.
+ * Finalisation du 3 octobre 2026 : chaque acte passe par un outil déclaré de l'agent (`socialPublish`, `socialMetrics`,
+ * `replyComment`, `forwardComment`) appelé par `AgentToolsService` (outil déclaré, entrée validée, journal homogène des
+ * agents) ; l'infolettre part d'elle-même au créneau seulement si `marketing.newsletter_auto_send` est vrai (sinon
+ * brouillon Brevo, décision du fondateur attendue).
  */
 import { schema } from '@neomoov/db';
 import {
-  classifyComment, composeText, CONVERSATION_CHANNELS, nextMeasureAt, recordMeasure, retryDelayMs, simpleReply, SPACE_RULES,
+  classifyComment, composeText, CONVERSATION_CHANNELS, forwardCommentToolSchema, nextMeasureAt, recordMeasure, replyCommentToolSchema, retryDelayMs, simpleReply, socialMetricsToolSchema, socialPublishToolSchema, SPACE_RULES,
   type ContentItemView, type ContentMetricsRecord, type ContentSpace, type ContentVisual, type CtaTarget,
 } from '@neomoov/domain';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common';
 import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
+import type { z } from 'zod';
 import { MANUAL_RELAY_ERRORS, SOCIAL_PUBLISHERS, type SocialComment, type SocialMedia, type SocialPublisher, type SocialPublishers } from '../../adapters/marketing.types.js';
 import { spaceLabel } from '../../adapters/real/marketing.js';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
@@ -22,7 +27,8 @@ import { DomainEventsService } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { AgentRunnerService } from '../agents/agent-runner.service.js';
+import { AgentRunnerService, type AgentRunContext } from '../agents/agent-runner.service.js';
+import { AgentToolsService, done, type ToolResult } from '../agents/agent-tools.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { ContentService, type ContentItemRow } from './content.service.js';
@@ -43,8 +49,19 @@ export interface CommentsPassReport {
   escalated: number;
 }
 
+/** Commentaire en cours de relais : lu par l'outil `forwardComment`, dont l'entrée journalisée ne porte que des identifiants. */
+interface PendingComment {
+  row: ContentItemRow;
+  comment: SocialComment;
+  language: 'fr' | 'en';
+}
+
 @Injectable()
-export class PublishingService {
+export class PublishingService implements OnModuleInit {
+  /** Tentatives de publication réellement exécutées par l'outil (`<contenu>:<tentative>`) : un refus avant l'outil est compté à part. */
+  private readonly publishRuns = new Set<string>();
+  private readonly pendingComments = new Map<string, PendingComment>();
+
   constructor(
     @Inject(DB) private readonly database: Database,
     @Inject(SOCIAL_PUBLISHERS) private readonly publishers: SocialPublishers,
@@ -57,10 +74,25 @@ export class PublishingService {
     private readonly events: DomainEventsService,
     private readonly content: ContentService,
     private readonly visuals: VisualsService,
+    @Optional() private readonly tools?: AgentToolsService,
   ) {}
 
   private get db() {
     return this.database.db;
+  }
+
+  /** Outils de l'agent de diffusion, enregistrés dans le socle des agents (mêmes règles et même journal que les autres). */
+  onModuleInit() {
+    if (!this.tools) return;
+    this.tools.register('socialPublish', { description: 'Publie un contenu programmé par le connecteur de son espace (média produit à la demande) ; échec compté, nouvelle tentative espacée.', schema: socialPublishToolSchema, run: (_c, i) => this.publishTool(i) });
+    this.tools.register('socialMetrics', { description: 'Relève les mesures d\'une publication (portée, interactions, clics) à J+1 puis J+7.', schema: socialMetricsToolSchema, run: (_c, i) => this.metricsTool(i) });
+    this.tools.register('replyComment', { description: 'Répond publiquement à un commentaire simple par un texte fixe (remerciement, horaires, lien de réservation).', schema: replyCommentToolSchema, run: (_c, i) => this.replyTool(i) });
+    this.tools.register('forwardComment', { description: 'Confie un commentaire à la relation client (boîte unifiée) ou, à défaut, au personnel.', schema: forwardCommentToolSchema, run: (_c, i) => this.forwardTool(i) });
+  }
+
+  /** Appel d'un outil de l'agent ; sans socle des agents (essais unitaires), l'outil est exécuté directement. */
+  private async callTool(ctx: AgentRunContext, name: 'socialPublish' | 'socialMetrics' | 'replyComment' | 'forwardComment', input: Record<string, unknown>, run: () => Promise<ToolResult>): Promise<ToolResult> {
+    return this.tools ? this.tools.call(ctx, name, input) : run();
   }
 
   private publisher(space: string): SocialPublisher {
@@ -176,15 +208,17 @@ export class PublishingService {
       PUBLISHING,
       { name: 'content.publish', ref: `publish:${id}:${attempt}`, input: { itemId: id, space: row.space, format: row.format, attempt, scheduledAt: row.scheduledAt?.toISOString() ?? null } },
       async (ctx) => {
-        const started = Date.now();
+        const key = `${id}:${attempt}`;
+        const input = { itemId: id, at: now.toISOString() };
         try {
-          const result = await this.send(row, now);
-          ctx.recordToolCall({ tool: 'socialPublish', input: { itemId: id, space: row.space }, ok: true, result: { externalId: result.externalId, draft: result.draft, notice: result.notice }, approvalId: null, durationMs: Date.now() - started });
-          return result;
-        } catch (error) {
-          ctx.recordToolCall({ tool: 'socialPublish', input: { itemId: id, space: row.space }, ok: false, result: { message: error instanceof Error ? error.message.slice(0, 300) : String(error) }, approvalId: null, durationMs: Date.now() - started });
-          await this.recordFailure(row, attempt, error, now);
-          throw error;
+          const result = await this.callTool(ctx, 'socialPublish', input, () => this.publishTool(input));
+          if (result.ok) return result.data;
+          // Outil refusé avant d'agir (non déclaré pour l'agent, entrée invalide) : l'échec est compté comme un échec du connecteur.
+          if (!this.publishRuns.has(key)) await this.recordFailure(row, attempt, new AppError('AGENT_TOOL_REFUSED', result.message, 409), now);
+          const code = (result.data as { errorCode?: unknown } | null)?.errorCode;
+          throw new AppError(typeof code === 'string' ? code : 'SOCIAL_PUBLISH_FAILED', result.message, 502);
+        } finally {
+          this.publishRuns.delete(key);
         }
       },
       {
@@ -194,6 +228,27 @@ export class PublishingService {
       },
     );
     return this.content.view(id);
+  }
+
+  /** Outil `socialPublish` : publication de la tentative réservée ; un échec est compté (nouvelle tentative espacée ou `failed`). */
+  private async publishTool(input: z.infer<typeof socialPublishToolSchema>): Promise<ToolResult> {
+    const now = input.at ? new Date(input.at) : new Date();
+    const row = await this.content.row(input.itemId);
+    if (row.status !== 'scheduled') throw AppError.conflict('CONTENT_NOT_SCHEDULED', `Un contenu ${row.status} ne se publie pas`);
+    this.publishRuns.add(`${row.id}:${row.attempts}`);
+    try {
+      const result = await this.send(row, now);
+      return done(result, result.draft ? 'Contenu déposé en brouillon chez le réseau' : 'Contenu publié');
+    } catch (error) {
+      await this.recordFailure(row, row.attempts, error, now);
+      throw error;
+    }
+  }
+
+  /** Infolettre : envoi automatique au créneau seulement sur décision du fondateur (`marketing.newsletter_auto_send`), sinon brouillon. */
+  private async draftFor(space: string): Promise<boolean> {
+    if (space !== 'newsletter') return false;
+    return (await this.settings.get<unknown>('marketing.newsletter_auto_send', false)) !== true;
   }
 
   private async send(row: ContentItemRow, now: Date): Promise<{ externalId: string; draft: boolean; notice: string | null }> {
@@ -208,7 +263,7 @@ export class PublishingService {
     const hashtags = Array.isArray(current.hashtags) ? (current.hashtags as string[]) : [];
     const result = await publisher.publish({
       itemId: current.id, space: current.space as ContentSpace, format: current.format as ContentItemView['format'], language: current.language as 'fr' | 'en', title: current.title, body: current.body, caption: current.caption, hashtags,
-      text: composeText({ space: current.space as ContentSpace, title: current.title, body: current.body, caption: current.caption, hashtags, ctaUrl }), ctaUrl, cta: current.cta as CtaTarget, media, draft: false,
+      text: composeText({ space: current.space as ContentSpace, title: current.title, body: current.body, caption: current.caption, hashtags, ctaUrl }), ctaUrl, cta: current.cta as CtaTarget, media, draft: await this.draftFor(current.space),
     });
     const measureDays = await this.measureDays();
     await this.db
@@ -246,29 +301,43 @@ export class PublishingService {
 
   // Mesures ---------------------------------------------------------------------------------------------------------------
 
+  /**
+   * Outil `socialMetrics` : mesure due d'une publication ; la dernière clôt le contenu en `measured`. Un échec reporte la
+   * lecture d'une heure (sans bloquer les autres contenus) et revient au modèle comme un refus motivé.
+   */
+  private async metricsTool(input: z.infer<typeof socialMetricsToolSchema>): Promise<ToolResult> {
+    const now = input.at ? new Date(input.at) : new Date();
+    const row = await this.content.row(input.itemId);
+    if (row.status !== 'published' || !row.externalId) throw AppError.conflict('CONTENT_NOT_PUBLISHED', 'Contenu non publié : aucune mesure');
+    try {
+      const measureDays = await this.measureDays();
+      const reading = await this.publisher(row.space).metrics({ itemId: row.id, externalId: row.externalId, externalUrl: row.externalUrl });
+      const count = row.measureCount + 1;
+      const day = measureDays[row.measureCount] ?? measureDays[measureDays.length - 1]!;
+      const metrics = recordMeasure((row.metrics ?? null) as Partial<ContentMetricsRecord> | null, { reach: reading.reach, interactions: reading.interactions, clicks: reading.clicks }, now, day);
+      const next = nextMeasureAt(row.publishedAt ?? now, measureDays, count);
+      await this.db.update(schema.contentItems).set({ metrics: metrics as object, measureCount: count, measureDueAt: next, ...(next ? {} : { status: 'measured' }) }).where(eq(schema.contentItems.id, row.id));
+      return done({ day, reach: reading.reach, interactions: reading.interactions, clicks: reading.clicks }, 'Mesure relevée');
+    } catch (error) {
+      const message = error instanceof Error ? error.message.slice(0, 300) : String(error);
+      await this.db.update(schema.contentItems).set({ measureDueAt: new Date(now.getTime() + 3_600_000), lastError: `Mesure : ${message}` }).where(eq(schema.contentItems.id, row.id));
+      throw new AppError('SOCIAL_METRICS_FAILED', `Mesure reportée d'une heure : ${message}`, 502);
+    }
+  }
+
   /** Mesures dues (J+1, puis J+7) ; la dernière mesure clôt le contenu en `measured`. */
   async measureDue(now = new Date(), limit = 50): Promise<number> {
     const due = await this.db.select().from(schema.contentItems).where(and(eq(schema.contentItems.status, 'published'), isNotNull(schema.contentItems.externalId), lte(schema.contentItems.measureDueAt, now))).orderBy(asc(schema.contentItems.measureDueAt)).limit(limit);
     if (!due.length) return 0;
-    const measureDays = await this.measureDays();
     let measured = 0;
     await this.runner.execute(PUBLISHING, { name: 'content.measure', ref: null, input: { due: due.length } }, async (ctx) => {
       for (const row of due) {
-        const started = Date.now();
-        try {
-          const reading = await this.publisher(row.space).metrics({ itemId: row.id, externalId: row.externalId!, externalUrl: row.externalUrl });
-          const count = row.measureCount + 1;
-          const day = measureDays[row.measureCount] ?? measureDays[measureDays.length - 1]!;
-          const metrics = recordMeasure((row.metrics ?? null) as Partial<ContentMetricsRecord> | null, { reach: reading.reach, interactions: reading.interactions, clicks: reading.clicks }, now, day);
-          const next = nextMeasureAt(row.publishedAt ?? now, measureDays, count);
-          await this.db.update(schema.contentItems).set({ metrics: metrics as object, measureCount: count, measureDueAt: next, ...(next ? {} : { status: 'measured' }) }).where(eq(schema.contentItems.id, row.id));
-          ctx.recordToolCall({ tool: 'socialMetrics', input: { itemId: row.id, space: row.space, day }, ok: true, result: { reach: reading.reach, interactions: reading.interactions, clicks: reading.clicks }, approvalId: null, durationMs: Date.now() - started });
-          measured += 1;
-        } catch (error) {
-          ctx.recordToolCall({ tool: 'socialMetrics', input: { itemId: row.id, space: row.space }, ok: false, result: { message: error instanceof Error ? error.message.slice(0, 300) : String(error) }, approvalId: null, durationMs: Date.now() - started });
-          // Lecture reportée d'une heure, sans bloquer les autres contenus.
-          await this.db.update(schema.contentItems).set({ measureDueAt: new Date(now.getTime() + 3_600_000), lastError: `Mesure : ${error instanceof Error ? error.message.slice(0, 300) : String(error)}` }).where(eq(schema.contentItems.id, row.id));
-        }
+        const input = { itemId: row.id, at: now.toISOString() };
+        const result = await this.callTool(ctx, 'socialMetrics', input, () => this.metricsTool(input)).catch((error: unknown) => {
+          this.logger.warn({ err: error, itemId: row.id }, 'Mesure non relevée');
+          return null;
+        });
+        if (result?.ok) measured += 1;
       }
       return { measured, due: due.length };
     });
@@ -361,45 +430,72 @@ export class PublishingService {
           const reply = manual || inboxOwns ? null : simpleReply(classification, texts);
           let outcome: 'replied' | 'forwarded' | 'escalated' = 'escalated';
           let replyExternalId: string | null = null;
-          const started = Date.now();
           if (reply) {
-            try {
-              replyExternalId = (await this.publisher(row.space).replyComment({ itemId: row.id, externalId: row.externalId!, externalUrl: row.externalUrl }, comment.externalId, reply)).externalId;
+            const input = { itemId: row.id, commentId: comment.externalId, text: reply };
+            const replied = await this.callTool(ctx, 'replyComment', input, () => this.replyTool(input)).catch(() => null);
+            if (replied?.ok) {
+              replyExternalId = (replied.data as { externalId: string }).externalId;
               outcome = 'replied';
               report.replied += 1;
-            } catch (error) {
-              this.logger.warn({ err: error, itemId: row.id }, 'Réponse au commentaire impossible : relais humain');
-            }
+            } else this.logger.warn({ itemId: row.id }, 'Réponse au commentaire impossible : relais humain');
           }
           if (outcome !== 'replied') {
-            const summary = `${SPACE_RULES[row.space as ContentSpace].name} : « ${comment.text.slice(0, 200)} »${comment.author ? ` (${comment.author})` : ''}`;
-            if (socialChannel) {
-              // Agent D (boîte unifiée) livré : la relation client reprend le fil sur le canal social.
-              // Même forme et même identifiant externe que les commentaires reçus par le connecteur Meta de la boîte unifiée
-              // (SocialInboxService) : un commentaire vu par les deux chemins n'est traité qu'une fois. Les connecteurs de
-              // diffusion ne donnent pas l'identifiant de l'auteur : l'adresse de la conversation est celle du commentaire.
-              this.events.emit('conversation.inbound', {
-                channel: 'social', externalId: `social:${row.space}:comment:${comment.externalId}`.slice(0, 120), userId: null, phone: null, text: comment.text, language: classification.language, rideId: null, receivedAt: comment.postedAt,
-                address: `${row.space}:comment:${comment.externalId}`.slice(0, 254), network: INBOX_NETWORK_OF[row.space] ?? row.space, kind: 'comment', threadRef: comment.externalId, displayName: comment.author?.slice(0, 120) ?? null,
-                metadata: { commentId: comment.externalId, postId: row.externalId, contentItemId: row.id },
-              });
-              outcome = 'forwarded';
-              report.forwarded += 1;
-            } else {
-              await this.outbox.queueForStaff('alert.agent_escalation', { reason: classification.negative ? 'social_comment_negative' : 'social_comment', summary, contentItemId: row.id });
-              report.escalated += 1;
-            }
+            const key = `${row.id}:${comment.externalId}`;
+            this.pendingComments.set(key, { row, comment, language: classification.language });
+            const input = { itemId: row.id, commentId: comment.externalId, intent: classification.intent, negative: classification.negative };
+            const forwarded = await this.callTool(ctx, 'forwardComment', input, () => this.forwardTool(input)).catch(() => null).finally(() => this.pendingComments.delete(key));
+            // Outil refusé (non déclaré, panne) : le personnel est prévenu directement, le commentaire n'est jamais perdu.
+            outcome = forwarded?.ok ? (forwarded.data as { outcome: 'forwarded' | 'escalated' }).outcome : await this.escalateComment(row, comment, classification.negative);
+            if (outcome === 'forwarded') report.forwarded += 1;
+            else report.escalated += 1;
           }
           await this.db
             .insert(schema.contentComments)
             .values({ contentItemId: row.id, externalId: comment.externalId, author: comment.author?.slice(0, 120) ?? null, body: comment.text.slice(0, 4_000), postedAt: comment.postedAt, intent: classification.intent, outcome, replyBody: outcome === 'replied' ? reply : null, replyExternalId })
             .onConflictDoNothing();
-          ctx.recordToolCall({ tool: outcome === 'replied' ? 'replyComment' : 'forwardComment', input: { itemId: row.id, space: row.space, intent: classification.intent, negative: classification.negative }, ok: true, result: { outcome }, approvalId: null, durationMs: Date.now() - started });
         }
       }
       return { ...report };
     });
     return report;
+  }
+
+  /** Outil `replyComment` : réponse publique, texte fixe du domaine, sous la publication. */
+  private async replyTool(input: z.infer<typeof replyCommentToolSchema>): Promise<ToolResult> {
+    const row = await this.content.row(input.itemId);
+    if (!row.externalId) throw AppError.conflict('CONTENT_NOT_PUBLISHED', 'Contenu non publié : aucun commentaire');
+    try {
+      const { externalId } = await this.publisher(row.space).replyComment({ itemId: row.id, externalId: row.externalId, externalUrl: row.externalUrl }, input.commentId, input.text);
+      return done({ externalId }, 'Réponse publiée');
+    } catch (error) {
+      throw error instanceof AppError ? error : new AppError('SOCIAL_REPLY_FAILED', error instanceof Error ? error.message.slice(0, 300) : String(error), 502);
+    }
+  }
+
+  /**
+   * Outil `forwardComment` : la relation client reprend le fil sur le canal social de la boîte unifiée (même forme et même
+   * identifiant externe que les commentaires reçus par le connecteur Meta : un commentaire vu par les deux chemins n'est
+   * traité qu'une fois ; les connecteurs de diffusion ne donnent pas l'identifiant de l'auteur, l'adresse de la
+   * conversation est celle du commentaire) ; sans canal social, le personnel est prévenu.
+   */
+  private async forwardTool(input: z.infer<typeof forwardCommentToolSchema>): Promise<ToolResult> {
+    const pending = this.pendingComments.get(`${input.itemId}:${input.commentId}`);
+    if (!pending) throw AppError.notFound('COMMENT_NOT_PENDING', 'Commentaire inconnu de cette passe');
+    const { row, comment, language } = pending;
+    if (!(CONVERSATION_CHANNELS as readonly string[]).includes('social')) return done({ outcome: await this.escalateComment(row, comment, input.negative) }, 'Commentaire remis au personnel');
+    this.events.emit('conversation.inbound', {
+      channel: 'social', externalId: `social:${row.space}:comment:${comment.externalId}`.slice(0, 120), userId: null, phone: null, text: comment.text, language, rideId: null, receivedAt: comment.postedAt,
+      address: `${row.space}:comment:${comment.externalId}`.slice(0, 254), network: INBOX_NETWORK_OF[row.space] ?? row.space, kind: 'comment', threadRef: comment.externalId, displayName: comment.author?.slice(0, 120) ?? null,
+      metadata: { commentId: comment.externalId, postId: row.externalId, contentItemId: row.id },
+    });
+    return done({ outcome: 'forwarded' }, 'Commentaire confié à la relation client');
+  }
+
+  /** Commentaire remis au personnel (courriel d'alerte). */
+  private async escalateComment(row: ContentItemRow, comment: SocialComment, negative: boolean): Promise<'escalated'> {
+    const summary = `${SPACE_RULES[row.space as ContentSpace].name} : « ${comment.text.slice(0, 200)} »${comment.author ? ` (${comment.author})` : ''}`;
+    await this.outbox.queueForStaff('alert.agent_escalation', { reason: negative ? 'social_comment_negative' : 'social_comment', summary, contentItemId: row.id });
+    return 'escalated';
   }
 }
 

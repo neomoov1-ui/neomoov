@@ -2,7 +2,9 @@
  * Boîte de réception unifiée (phase 1 « entreprise autonome », 2 octobre 2026).
  * - Webhooks : relais entrant Brevo (`POST /webhooks/email`, secret partagé `EMAIL_INBOUND_SECRET` dans l'en-tête
  *   `x-inbound-secret` ou le paramètre `secret`) ; Meta (`GET` et `POST /webhooks/meta`, même jeton de vérification et même
- *   signature que WhatsApp) pour Messenger, Facebook et Instagram.
+ *   signature que WhatsApp) pour Messenger, Facebook et Instagram ; discussion du site Tidio (`POST /webhooks/tidio`,
+ *   secret partagé `TIDIO_WEBHOOK_SECRET` dans l'en-tête `x-tidio-secret` ou le paramètre `secret`, finalisation du
+ *   3 octobre 2026).
  * - My Hub (`/admin/inbox`) : liste filtrée par canal, réseau et état, détail, relais manuel d'un message reçu sur un réseau
  *   sans connecteur (l'agent prépare la réponse, l'humain la colle puis la marque relayée).
  */
@@ -22,6 +24,10 @@ import { ConversationsService } from '../agents/conversations.service.js';
 import { CustomerRelationsAgent } from '../agents/customer-relations.agent.js';
 import { InboundEmailService } from './inbound-email.service.js';
 import { SocialInboxService } from './social-inbox.service.js';
+import { TidioInboxService } from './tidio-inbox.service.js';
+
+/** Secret de test du webhook Tidio, accepté hors production quand `TIDIO_WEBHOOK_SECRET` est absent (simulation). */
+export const MOCK_TIDIO_SECRET = 'mock-tidio';
 
 /** Un courriel du relais entrant de Brevo (« inbound parsing ») ; les champs absents sont tolérés. */
 const brevoAddress = z.object({ Name: z.string().nullish(), Address: z.string().nullish() });
@@ -71,14 +77,28 @@ export class InboxWebhooksController {
     @Inject(SOCIAL_PROVIDER) private readonly social: SocialProvider,
     private readonly inboundEmail: InboundEmailService,
     private readonly socialInbox: SocialInboxService,
+    private readonly tidio: TidioInboxService,
   ) {}
 
-  private secretAccepted(given: string | undefined): boolean {
-    const expected = this.env.EMAIL_INBOUND_SECRET;
+  private secretAccepted(given: string | undefined, expected = this.env.EMAIL_INBOUND_SECRET): boolean {
     if (!expected || !given) return false;
     const a = Buffer.from(expected);
     const b = Buffer.from(given);
     return a.length === b.length && timingSafeEqual(a, b);
+  }
+
+  @Post('tidio')
+  @Public()
+  @NoAudit()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Messages des visiteurs de la discussion du site (Tidio) : secret partagé vérifié ; visiteur avec courriel confié à l\'agent relation client (réponse par courriel), sans courriel remis au personnel (réponse dans Tidio)' })
+  @ZodResponse(200, z.object({ received: z.number().int().min(0), queued: z.number().int().min(0), escalated: z.number().int().min(0), duplicates: z.number().int().min(0), ignored: z.number().int().min(0) }))
+  @ApiErrors(400, 429)
+  async tidioWebhook(@Body() body: unknown, @Headers('x-tidio-secret') header: string | undefined, @Query('secret') secret: string | undefined) {
+    // Sans secret configuré : simulation hors production seulement (secret de test fixe), comme les autres fournisseurs simulés.
+    const expected = this.env.TIDIO_WEBHOOK_SECRET ?? (this.env.NODE_ENV === 'production' ? undefined : MOCK_TIDIO_SECRET);
+    if (!this.secretAccepted(header ?? secret, expected)) throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Secret du webhook Tidio invalide', 400);
+    return this.tidio.receive(body);
   }
 
   @Post('email')

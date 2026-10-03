@@ -89,15 +89,21 @@ describe('WordPress réel', () => {
 });
 
 describe('Brevo réel', () => {
-  it('crée une campagne en brouillon avec la mention de désinscription et lit ses statistiques', async () => {
+  it('crée une campagne en brouillon avec la mention de désinscription et lit ses statistiques ; envoi immédiat seulement sur demande', async () => {
     const { impl, calls } = fakeFetch((c) => {
       if (c.url.endsWith('/emailCampaigns') && c.method === 'POST') return { status: 201, body: { id: 4242 } };
+      if (c.url.endsWith('/emailCampaigns/4242/sendNow') && c.method === 'POST') return { status: 200, body: '' };
       if (c.url.includes('/emailCampaigns/4242')) return { body: { id: 4242, statistics: { globalStats: { sent: 1000, delivered: 980, uniqueViews: 400, uniqueClicks: 55 } } } };
       return { status: 404, body: {} };
     });
     const brevo = new BrevoNewsletterPublisher({ apiKey: 'xkeysib-secret', listId: 7, senderEmail: 'infolettre@neomoov.net', senderName: 'Neomoov', fetchImpl: impl });
-    const result = await brevo.publish({ itemId: 'n1', space: 'newsletter', format: 'newsletter', language: 'fr', title: 'Cette semaine', body: 'Texte', caption: null, hashtags: [], text: 'Texte', ctaUrl: 'https://neomoov.net/reserver', media: null, draft: false });
+    const input = { itemId: 'n1', space: 'newsletter' as const, format: 'newsletter' as const, language: 'fr' as const, title: 'Cette semaine', body: 'Texte', caption: null, hashtags: [], text: 'Texte', ctaUrl: 'https://neomoov.net/reserver', media: null };
+    const result = await brevo.publish({ ...input, draft: true });
     expect(result).toMatchObject({ externalId: '4242', draft: true });
+    expect(calls.some((c) => c.url.endsWith('/sendNow'))).toBe(false);
+    // Envoi automatique (réglage marketing.newsletter_auto_send, décision du fondateur) : la campagne part aussitôt.
+    expect(await brevo.publish({ ...input, draft: false })).toMatchObject({ externalId: '4242', draft: false });
+    expect(calls.filter((c) => c.url.endsWith('/emailCampaigns/4242/sendNow') && c.method === 'POST')).toHaveLength(1);
     const payload = JSON.parse(calls[0]!.body!) as Record<string, unknown>;
     expect(calls[0]!.headers['api-key']).toBe('xkeysib-secret');
     expect(payload).toMatchObject({ subject: 'Cette semaine', type: 'classic', recipients: { listIds: [7] }, sender: { email: 'infolettre@neomoov.net' } });

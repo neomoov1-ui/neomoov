@@ -2,8 +2,9 @@
  * Appels manqués et messages vocaux (boîte unifiée) : à partir du rapport de fin d'appel du centre vocal (`voice.call_ended`,
  * journalisé une seule fois), tout appel sans réservation ni transfert devient une conversation `voice` (résumé de l'appel,
  * nature `missed_call` ou `voicemail`), remise à l'humain (alerte au personnel, texto au fondateur), avec un texto
- * « nous vous rappelons » à la personne et une tâche de rappel différée (file `inbox`, en attendant la table `followups`
- * de l'agent F).
+ * « nous vous rappelons » à la personne et un rappel inscrit dans `followups` (cible `missed_call`, canal `voice`,
+ * échéance `inbox.callback_reminder_minutes`) : persistant, il survit à un redémarrage sans Redis (finalisation du
+ * 3 octobre 2026) ; la passe de la file `inbox` le traite à l'échéance.
  */
 import { schema } from '@neomoov/db';
 import { callOutcome, type Language } from '@neomoov/domain';
@@ -14,7 +15,6 @@ import { DomainEventsService, type DomainEvents } from '../../common/domain-even
 import { APP_LOGGER } from '../../common/logger.js';
 import { SettingsService } from '../../common/settings.service.js';
 import { DB, type Database } from '../../infra/db.module.js';
-import { QueueService } from '../../infra/queue.module.js';
 import { ConversationsService } from '../agents/conversations.service.js';
 
 const TEXTS = {
@@ -24,6 +24,9 @@ const TEXTS = {
   },
   noSummary: { fr: 'Appel sans suite (aucun résumé disponible).', en: 'Call without outcome (no summary available).' },
 } as const;
+
+/** Cible des rappels d'appels manqués dans `followups` (identifiant = la conversation). */
+export const MISSED_CALL_FOLLOWUP = 'missed_call';
 
 /** Marge, avant le début de l'appel, pour retrouver une course créée pendant l'appel. */
 const BOOKING_LOOKBACK_MS = 120_000;
@@ -42,7 +45,6 @@ export class MissedCallsService implements OnModuleInit {
     private readonly events: DomainEventsService,
     private readonly settings: SettingsService,
     private readonly conversations: ConversationsService,
-    private readonly queues: QueueService,
   ) {}
 
   onModuleInit() {
@@ -57,6 +59,19 @@ export class MissedCallsService implements OnModuleInit {
     const owner = client ? or(eq(schema.rides.guestPhone, phone), eq(schema.rides.clientId, client.id)) : eq(schema.rides.guestPhone, phone);
     const [ride] = await this.database.db.select({ id: schema.rides.id }).from(schema.rides).where(and(owner, gte(schema.rides.createdAt, startedAt))).limit(1);
     return Boolean(ride);
+  }
+
+  /** Rappel inscrit dans `followups` (une seule chaîne ouverte par conversation : un rapport rejoué n'en crée pas d'autre). */
+  async scheduleCallback(conversationId: string, language: Language, now = new Date()): Promise<void> {
+    const minutes = await this.settings.number('inbox.callback_reminder_minutes', 60);
+    try {
+      await this.database.db
+        .insert(schema.followups)
+        .values({ targetType: MISSED_CALL_FOLLOWUP, targetId: conversationId, channel: 'voice', dueAt: new Date(now.getTime() + minutes * 60_000), referenceAt: now, maxAttempts: 1, language, context: { kind: MISSED_CALL_FOLLOWUP, minutes } })
+        .onConflictDoNothing();
+    } catch (error) {
+      this.logger.error({ err: error, conversationId }, 'Rappel de l\'appel manqué non inscrit');
+    }
   }
 
   async handle(report: DomainEvents['voice.call_ended']): Promise<MissedCallResult> {
@@ -79,12 +94,7 @@ export class MissedCallsService implements OnModuleInit {
     // Texto « nous vous rappelons », gardé dans la conversation ; puis l'humain est prévenu (courriel au personnel, texto au fondateur).
     await this.conversations.send(conversation, TEXTS.callback[language], 'system');
     await this.conversations.escalate(conversation.id, outcome.kind === 'voicemail' ? 'voicemail' : 'missed_call', summary.slice(0, 300));
-    const minutes = await this.settings.number('inbox.callback_reminder_minutes', 60);
-    try {
-      await this.queues.add('inbox', 'callback', { conversationId: conversation.id, minutes }, { jobId: `callback-${conversation.id}`, delay: minutes * 60_000 });
-    } catch (error) {
-      this.logger.error({ err: error, conversationId: conversation.id }, 'Tâche de rappel non mise en file');
-    }
+    await this.scheduleCallback(conversation.id, language);
     return { missed: true, conversationId: conversation.id, duplicate: false };
   }
 }

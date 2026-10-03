@@ -12,6 +12,15 @@ import { whatsappSignature } from './whatsapp-cloud.js';
 
 const GRAPH = 'https://graph.facebook.com/v20.0';
 
+/** Sous-codes de Meta d'une réponse hors de la fenêtre permise (Messenger, Instagram). */
+const WINDOW_SUBCODES = [2018278, 2534022];
+
+/** Refus de Meta pour une réponse hors de la fenêtre de 24 heures (code 10 avec son sous-code, ou message explicite). */
+export function isWindowClosedError(code: number | null, subcode: number | null, message: string | undefined): boolean {
+  if (subcode !== null && WINDOW_SUBCODES.includes(subcode)) return true;
+  return code === 10 && /window/i.test(message ?? '');
+}
+
 export class MetaSocialProvider implements SocialProvider {
   readonly name = 'meta';
   readonly #token: string;
@@ -38,8 +47,14 @@ export class MetaSocialProvider implements SocialProvider {
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
     url.searchParams.set('access_token', this.#token);
     const res = await this.fetchImpl(url, { method, headers: { 'content-type': 'application/json' }, ...(payload ? { body: JSON.stringify(payload) } : {}) });
-    const body = (await res.json().catch(() => ({}))) as T & { error?: { code?: number; message?: string } };
-    if (!res.ok) throw new AppError('SOCIAL_PROVIDER_ERROR', `Appel refusé par Meta${body.error?.code ? ` (${body.error.code})` : ''}`, 502, { code: body.error?.code ?? null });
+    const body = (await res.json().catch(() => ({}))) as T & { error?: { code?: number; error_subcode?: number; message?: string } };
+    if (!res.ok) {
+      const code = body.error?.code ?? null;
+      const subcode = body.error?.error_subcode ?? null;
+      // Fenêtre de 24 heures dépassée (Messenger 2018278, Instagram 2534022) : refus définitif, l'appelant change de canal.
+      if (isWindowClosedError(code, subcode, body.error?.message)) throw new AppError('SOCIAL_WINDOW_CLOSED', 'Réponse refusée par Meta : fenêtre de 24 heures dépassée', 409, { code, subcode });
+      throw new AppError('SOCIAL_PROVIDER_ERROR', `Appel refusé par Meta${code ? ` (${code})` : ''}`, 502, { code, subcode });
+    }
     return body;
   }
 
@@ -108,9 +123,13 @@ export class MetaSocialProvider implements SocialProvider {
     return out;
   }
 
-  /** Message privé en réponse (fenêtre de 24 heures de Meta : type RESPONSE). */
-  async reply(input: { network: 'messenger' | 'instagram'; threadId: string; text: string }): Promise<{ messageId: string }> {
-    const body = await this.graph<{ message_id?: string }>('POST', 'me/messages', { recipient: { id: input.threadId }, messaging_type: 'RESPONSE', message: { text: input.text } });
+  /**
+   * Message privé en réponse : type RESPONSE dans la fenêtre de 24 heures de Meta ; au-delà, réponse humaine étiquetée
+   * (`MESSAGE_TAG`, `HUMAN_AGENT`, 7 jours) quand l'appelant le demande.
+   */
+  async reply(input: { network: 'messenger' | 'instagram'; threadId: string; text: string; tag?: 'HUMAN_AGENT' }): Promise<{ messageId: string }> {
+    const kind = input.tag ? { messaging_type: 'MESSAGE_TAG', tag: input.tag } : { messaging_type: 'RESPONSE' };
+    const body = await this.graph<{ message_id?: string }>('POST', 'me/messages', { recipient: { id: input.threadId }, ...kind, message: { text: input.text } });
     if (!body.message_id) throw new AppError('SOCIAL_SEND_FAILED', 'Message refusé par Meta', 502);
     return { messageId: body.message_id };
   }

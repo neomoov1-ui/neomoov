@@ -11,14 +11,15 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  asUntrustedData, isRelayNetwork, replySubject, type ConversationChannel, type ConversationKind, type ConversationView, type InboxItemView, type InboxListQuery, type InboxState,
-  type InboxSummaryView, type Language, type NotificationChannel, type SocialNetwork,
+  asUntrustedData, isRelayNetwork, META_HUMAN_AGENT_TAG, metaReplyMode, outOfWindowFallback, replySubject, type ConversationChannel, type ConversationKind, type ConversationView, type FallbackContact,
+  type InboxItemView, type InboxListQuery, type InboxState, type InboxSummaryView, type Language, type NotificationChannel, type SocialNetwork,
 } from '@neomoov/domain';
-import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, ne, sql, type SQL } from 'drizzle-orm';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { and, asc, desc, eq, isNotNull, ne, sql, type SQL } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import type { LlmMessage } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
+import { DomainEventsService, type DomainEvents } from '../../common/domain-events.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { organizationIdFor } from '../../common/org-scope.context.js';
 import { SettingsService } from '../../common/settings.service.js';
@@ -59,14 +60,25 @@ interface MessageMetadata {
 
 const PREVIEW_LENGTH = 160;
 
+/** Issue d'une réponse que son réseau ne peut pas transmettre : autre canal de la personne, ou relais par le personnel. */
+export type DeliveryFallback = 'email' | 'sms' | 'push' | 'staff';
+
 @Injectable()
-export class ConversationsService {
+export class ConversationsService implements OnModuleInit {
   constructor(
     @Inject(DB) private readonly database: Database,
     @Inject(APP_LOGGER) private readonly logger: Logger,
     private readonly outbox: NotificationsOutbox,
     private readonly settings: SettingsService,
+    private readonly events: DomainEventsService,
   ) {}
+
+  onModuleInit() {
+    // Réponse refusée pour de bon par le réseau (fenêtre de Meta, panne répétée) : autre canal ou personnel.
+    this.events.on('conversation.delivery_failed', (p) => {
+      void this.onDeliveryFailed(p).catch((error: unknown) => this.logger.error({ err: error, conversationId: p.conversationId }, 'Réponse refusée par le réseau non reprise'));
+    });
+  }
 
   private get db() {
     return this.database.db;
@@ -245,7 +257,7 @@ export class ConversationsService {
       this.logger.warn({ conversationId: conversation.id }, 'Conversation sans canal de réponse');
       return row!.id;
     }
-    let data: Record<string, unknown> = { text, conversationId: conversation.id };
+    let data: Record<string, unknown> = { text, conversationId: conversation.id, messageId: row!.id };
     if (target.channel === 'email') {
       const thread = await this.emailThread(conversation.id);
       const from = await this.settings.string('inbox.email_from', 'Neomoov <contact@neomoov.net>');
@@ -255,12 +267,92 @@ export class ConversationsService {
       data = { ...data, emailSubject: replySubject(conversation.subject, language), emailFrom: from, emailReplyTo: from, emailHeaders: headers };
     } else if (target.channel === 'social') {
       data = { ...data, network: conversation.network, threadRef: conversation.threadRef ?? conversation.address, kind: conversation.kind };
+      // Fenêtre de 24 heures de Meta (Messenger, Instagram) : hors fenêtre, étiquette HUMAN_AGENT pour une réponse du
+      // personnel si Meta l'a permise, sinon un autre canal de la personne ou le personnel (jamais d'erreur muette).
+      const mode = metaReplyMode({
+        network: conversation.network, kind: conversation.kind, lastInboundAt: await this.lastInboundAt(conversation.id), now: new Date(), author,
+        humanAgentTagEnabled: (await this.settings.get<unknown>('inbox.meta_human_agent_tag', false)) === true,
+      });
+      if (mode === 'closed') {
+        await this.deliverElsewhere(conversation, row!.id, text, 'meta_window_closed');
+        return row!.id;
+      }
+      if (mode === 'human_agent') data = { ...data, tag: META_HUMAN_AGENT_TAG };
     } else if (target.channel === 'sms') {
       const smsFrom = await this.lastSmsNumber(conversation.id);
       if (smsFrom) data = { ...data, smsFrom };
     }
     await this.outbox.queue({ ...target, organizationId: conversation.organizationId, template: 'agent.reply', language, data });
     return row!.id;
+  }
+
+  /** Dernier message reçu de la personne (ouverture de la fenêtre de réponse d'un réseau), ou null. */
+  private async lastInboundAt(conversationId: string): Promise<Date | null> {
+    const [row] = await this.db
+      .select({ at: sql<string | null>`max(${schema.conversationMessages.createdAt})` })
+      .from(schema.conversationMessages)
+      .where(and(eq(schema.conversationMessages.conversationId, conversationId), eq(schema.conversationMessages.direction, 'inbound')));
+    return row?.at ? new Date(row.at) : null;
+  }
+
+  /** Autres coordonnées de la personne (compte rattaché, téléphone de la conversation) pour une réponse que le réseau refuse. */
+  private async fallbackContact(conversation: ConversationRow): Promise<FallbackContact> {
+    let email: string | null = null;
+    let phone = conversation.phone;
+    let hasPushDevice = false;
+    if (conversation.userId) {
+      const [user] = await this.db.select({ email: schema.users.email, phone: schema.users.phone }).from(schema.users).where(eq(schema.users.id, conversation.userId)).limit(1);
+      email = user?.email ?? null;
+      phone = phone ?? user?.phone ?? null;
+      const [device] = await this.db.select({ id: schema.devices.id }).from(schema.devices).where(and(eq(schema.devices.userId, conversation.userId), isNotNull(schema.devices.pushToken))).limit(1);
+      hasPushDevice = Boolean(device);
+    }
+    return { email, phone, hasPushDevice };
+  }
+
+  /**
+   * Réponse que le réseau ne peut pas transmettre (fenêtre de 24 heures de Meta dépassée, refus répété) : elle part par un
+   * autre canal connu de la personne (courriel, texto, push), sinon elle attend un humain (« à relayer » dans la boîte de
+   * réception) et la conversation lui est remise. Une seule reprise par message (l'événement peut arriver à l'API et au
+   * worker avec Redis) ; le choix est gardé dans les métadonnées du message.
+   */
+  async deliverElsewhere(conversation: ConversationRow, messageId: string, text: string, reason: string): Promise<DeliveryFallback | null> {
+    const [claimed] = await this.db
+      .update(schema.conversationMessages)
+      .set({ metadata: sql`COALESCE(${schema.conversationMessages.metadata}, '{}'::jsonb) || ${JSON.stringify({ deliveryFallback: reason })}::jsonb` })
+      .where(and(eq(schema.conversationMessages.id, messageId), sql`(${schema.conversationMessages.metadata}->>'deliveryFallback') IS NULL`))
+      .returning({ id: schema.conversationMessages.id });
+    if (!claimed) return null;
+    const contact = await this.fallbackContact(conversation);
+    const channel = outOfWindowFallback(contact);
+    const language: Language = conversation.language === 'en' ? 'en' : 'fr';
+    if (channel) {
+      await this.outbox.queue({
+        channel, recipientUserId: conversation.userId, recipientAddress: channel === 'email' ? contact.email : channel === 'sms' ? contact.phone : null, organizationId: conversation.organizationId,
+        template: 'agent.reply', language, data: { text, conversationId: conversation.id, messageId, fallbackFrom: conversation.network ?? conversation.channel },
+      });
+      await this.db
+        .update(schema.conversationMessages)
+        .set({ metadata: sql`COALESCE(${schema.conversationMessages.metadata}, '{}'::jsonb) || ${JSON.stringify({ deliveredVia: channel })}::jsonb` })
+        .where(eq(schema.conversationMessages.id, messageId));
+      this.logger.info({ conversationId: conversation.id, reason, channel }, 'Réponse transmise par un autre canal de la personne');
+      return channel;
+    }
+    await this.db.update(schema.conversationMessages).set({ relayStatus: 'pending' }).where(eq(schema.conversationMessages.id, messageId));
+    const network = conversation.network ?? conversation.channel;
+    await this.escalate(conversation.id, reason, `Réponse non transmise par ${network} (${reason === 'meta_window_closed' ? 'fenêtre de 24 heures de Meta dépassée' : 'refus répété du réseau'}) : à envoyer à la main depuis la messagerie du réseau, puis à marquer relayée`);
+    return 'staff';
+  }
+
+  /** Réponse refusée pour de bon par la file des notifications : reprise par `deliverElsewhere`. */
+  private async onDeliveryFailed(event: DomainEvents['conversation.delivery_failed']): Promise<void> {
+    const conversation = await this.get(event.conversationId).catch(() => null);
+    if (!conversation || !event.messageId) {
+      if (conversation) await this.escalate(conversation.id, event.reason, `Réponse non transmise par ${event.channel} : à reprendre à la main`);
+      return;
+    }
+    const [message] = await this.db.select({ body: schema.conversationMessages.body }).from(schema.conversationMessages).where(eq(schema.conversationMessages.id, event.messageId)).limit(1);
+    if (message) await this.deliverElsewhere(conversation, event.messageId, message.body, event.reason);
   }
 
   /** Réponse relayée à la main sur un réseau sans connecteur : marquée faite par le membre du personnel. */

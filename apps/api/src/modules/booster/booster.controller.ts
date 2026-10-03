@@ -6,7 +6,7 @@
  * rapport du jour, exports CSV.
  */
 import {
-  adminInspectionListQuerySchema, adminInspectionSchema, adminPerformanceListQuerySchema, adminPerformanceLogSchema, adminPerformanceRecapQuerySchema, alertTestSchema, boosterDownloadQuerySchema,
+  adminInspectionListQuerySchema, adminInspectionSchema, adminPerformanceListQuerySchema, adminPerformanceLogSchema, adminPerformanceRecapQuerySchema, alertTestSchema, boosterAnalyseQuerySchema, boosterDownloadQuerySchema, type BoosterAnalyseQuery,
   driverAlertSettingsUpdateSchema, driverAlertSettingsViewSchema, inspectionConfirmSchema, inspectionCreateFieldsSchema, inspectionDownloadSchema, inspectionListQuerySchema,
   inspectionPhotosFieldsSchema, inspectionUpdateSchema, missingInspectionSchema, pageOf, performanceListQuerySchema, performanceLogInputSchema, performanceLogSchema,
   performanceRecapQuerySchema, performanceRecapSchema, uuid, vehicleInspectionSchema,
@@ -82,11 +82,12 @@ export class DriverBoosterController {
   @Post('inspections/:id/analyse')
   @HttpCode(200)
   @Audit('booster.inspection_analysed', 'vehicle_inspections', 'id')
-  @ApiOperation({ summary: 'Analyse des photos par le modèle (aide à la saisie : odomètre, énergie, plaque, voyants, défauts, éléments visibles) ; le chauffeur confirme ou corrige ensuite' })
+  @ApiOperation({ summary: 'Analyse des photos par le modèle (aide à la saisie : odomètre, énergie, plaque, voyants, défauts, éléments visibles) ; le chauffeur confirme ou corrige ensuite. `async=true` (ou réglage booster.analysis_async) : réponse immédiate, état `pending` jusqu\'au résultat, à relire par GET' })
+  @ZodQuery(boosterAnalyseQuerySchema)
   @ZodResponse(200, vehicleInspectionSchema)
   @ApiErrors(400, 401, 403, 404, 409, 429)
-  analyseInspection(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
-    return this.inspections.analyse(user.userId, id);
+  analyseInspection(@Param('id', zodPipe(uuid)) id: string, @Query(zodPipe(boosterAnalyseQuerySchema)) query: BoosterAnalyseQuery, @CurrentUser() user: UserActor) {
+    return this.inspections.analyse(user.userId, id, query.async ? { async: query.async === 'true' } : {});
   }
 
   @Patch('inspections/:id')
@@ -205,11 +206,12 @@ export class DriverBoosterController {
   @Post('performance/:id/analyse')
   @HttpCode(200)
   @Audit('booster.performance_analysed', 'performance_logs', 'id')
-  @ApiOperation({ summary: 'Lecture des captures par le modèle : montants, courses, temps en ligne, heures (aide à la saisie, à confirmer)' })
+  @ApiOperation({ summary: 'Lecture des captures par le modèle : montants, courses, temps en ligne, heures (aide à la saisie, à confirmer). `async=true` (ou réglage booster.analysis_async) : réponse immédiate, état `pending` jusqu\'au résultat, à relire par GET' })
+  @ZodQuery(boosterAnalyseQuerySchema)
   @ZodResponse(200, performanceLogSchema)
   @ApiErrors(400, 401, 403, 404, 409, 429)
-  analysePerformance(@Param('id', zodPipe(uuid)) id: string, @CurrentUser() user: UserActor) {
-    return this.performance.analyse(user.userId, id);
+  analysePerformance(@Param('id', zodPipe(uuid)) id: string, @Query(zodPipe(boosterAnalyseQuerySchema)) query: BoosterAnalyseQuery, @CurrentUser() user: UserActor) {
+    return this.performance.analyse(user.userId, id, query.async ? { async: query.async === 'true' } : {});
   }
 
   @Post('performance/:id/confirm')
