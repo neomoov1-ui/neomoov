@@ -260,6 +260,13 @@
       "when": 1790993630407,
       "tag": "0036_platform-fee",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791011943864,
+      "tag": "0037_social-accounts",
+      "breakpoints": true
     }
   ]
 }

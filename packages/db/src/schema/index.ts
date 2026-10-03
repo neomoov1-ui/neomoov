@@ -21,3 +21,4 @@ export * from './fleet.js';
 export * from './booster.js';
 export * from './sales.js';
 export * from './marketing.js';
+export * from './social.js';
