@@ -22,7 +22,7 @@ Offre actuellement définie :
 - première réponse du support sous deux jours ouvrés ;
 - les vidéos et les applications natives Android/iOS ne sont pas incluses comme fonctionnalités déjà livrées.
 
-Adresse et identité utilisées : 204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada ; `contact@neomoov.net` ; téléphone `+1 367 763-9063` ; NEQ `1181499600`. Les numéros TPS/TVQ ont été fournis par le propriétaire : `755212438 RT0001` et `1233281863 TQ0001`; vérifier à nouveau avant toute facture ou modification juridique.
+Adresse et identité utilisées : 204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada ; `contact@neomoov.net` ; téléphone `+1 438 900 4990` ; NEQ `1181499600`. Les numéros TPS/TVQ ont été fournis par le propriétaire : `755212438 RT0001` et `1233281863 TQ0001`; vérifier à nouveau avant toute facture ou modification juridique.
 
 ## 2. Source de vérité et méthode de reprise
 
@@ -298,7 +298,7 @@ Liens connus :
 - YouTube : `https://youtube.com/@neomoov`
 - TikTok : `https://www.tiktok.com/@neo.moov`
 - Telegram : `https://t.me/neomoov`
-- WhatsApp contact : `https://wa.me/13677639063`
+- WhatsApp contact : `https://wa.me/14389004990`
 - Snapchat : `https://www.snapchat.com/add/neomoov`
 - Blog : `https://neomoov.net`
 

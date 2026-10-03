@@ -21,7 +21,7 @@ Les conditions sont publiées sur **https://neomoov.net/conditions-cap-chauffeur
 
 Le responsable de l’intégration a lu dans les mentions légales publiques de Neomoov la formulation explicite selon laquelle Neomoov est une marque de **GROUPE NOUVEAU SYSTEME KARDINAL (GROUPE NSK) INC.** Cette identité est cohérente avec le nom affiché dans Square. Les textes finaux identifient désormais cette société comme vendeur et Neomoov comme marque ; l’avertissement d’ambiguïté a été retiré.
 
-Source primaire : https://neomoov.net/mentions-legales/ . Coordonnées reprises : **204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada ; contact@neomoov.net ; +1 367 763-9063**. Constat transmis et intégré le 29 septembre 2026.
+Source primaire : https://neomoov.net/mentions-legales/ . Coordonnées reprises : **204 rue du Saint-Sacrement, bureau 300, Montréal (Québec) H2Y 1W8, Canada ; contact@neomoov.net ; +1 438 900 4990**. Constat transmis et intégré le 29 septembre 2026.
 
 ## Identifiants du vendeur
 
