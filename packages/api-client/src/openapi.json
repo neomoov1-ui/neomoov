@@ -51825,6 +51825,11 @@
                   "number": {
                     "type": "string",
                     "maxLength": 60
+                  },
+                  "odometerKm": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2000000
                   }
                 },
                 "required": [
@@ -77710,6 +77715,32 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "conditions": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "readOnly": {
+                              "type": "boolean"
+                            },
+                            "maxAmountCents": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000000
+                            },
+                            "zones": {
+                              "minItems": 1,
+                              "maxItems": 50,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9_-]{1,40}$"
+                              }
+                            }
+                          },
+                          "additionalProperties": false
+                        }
                       }
                     },
                     "required": [
@@ -77719,7 +77750,8 @@
                       "name",
                       "level",
                       "system",
-                      "permissions"
+                      "permissions",
+                      "conditions"
                     ]
                   }
                 }
@@ -77881,6 +77913,32 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "conditions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "readOnly": {
+                          "type": "boolean"
+                        },
+                        "maxAmountCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000000
+                        },
+                        "zones": {
+                          "minItems": 1,
+                          "maxItems": 50,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,40}$"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
                   }
                 },
                 "required": [
@@ -77932,6 +77990,32 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "conditions": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "readOnly": {
+                            "type": "boolean"
+                          },
+                          "maxAmountCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000000
+                          },
+                          "zones": {
+                            "minItems": 1,
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9_-]{1,40}$"
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -77941,7 +78025,8 @@
                     "name",
                     "level",
                     "system",
-                    "permissions"
+                    "permissions",
+                    "conditions"
                   ]
                 }
               }
@@ -78148,6 +78233,32 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "conditions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "readOnly": {
+                          "type": "boolean"
+                        },
+                        "maxAmountCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000000
+                        },
+                        "zones": {
+                          "minItems": 1,
+                          "maxItems": 50,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,40}$"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
                   }
                 },
                 "required": [
@@ -78195,6 +78306,32 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "conditions": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "readOnly": {
+                            "type": "boolean"
+                          },
+                          "maxAmountCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000000
+                          },
+                          "zones": {
+                            "minItems": 1,
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9_-]{1,40}$"
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -78204,7 +78341,8 @@
                     "name",
                     "level",
                     "system",
-                    "permissions"
+                    "permissions",
+                    "conditions"
                   ]
                 }
               }
@@ -84273,6 +84411,32 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "conditions": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "object",
+                          "properties": {
+                            "readOnly": {
+                              "type": "boolean"
+                            },
+                            "maxAmountCents": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10000000
+                            },
+                            "zones": {
+                              "minItems": 1,
+                              "maxItems": 50,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9_-]{1,40}$"
+                              }
+                            }
+                          },
+                          "additionalProperties": false
+                        }
                       }
                     },
                     "required": [
@@ -84282,7 +84446,8 @@
                       "name",
                       "level",
                       "system",
-                      "permissions"
+                      "permissions",
+                      "conditions"
                     ]
                   }
                 }
@@ -84439,6 +84604,32 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "conditions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "readOnly": {
+                          "type": "boolean"
+                        },
+                        "maxAmountCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000000
+                        },
+                        "zones": {
+                          "minItems": 1,
+                          "maxItems": 50,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,40}$"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
                   }
                 },
                 "required": [
@@ -84489,6 +84680,32 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "conditions": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "readOnly": {
+                            "type": "boolean"
+                          },
+                          "maxAmountCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000000
+                          },
+                          "zones": {
+                            "minItems": 1,
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9_-]{1,40}$"
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -84498,7 +84715,8 @@
                     "name",
                     "level",
                     "system",
-                    "permissions"
+                    "permissions",
+                    "conditions"
                   ]
                 }
               }
@@ -84705,6 +84923,32 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "conditions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "readOnly": {
+                          "type": "boolean"
+                        },
+                        "maxAmountCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000000
+                        },
+                        "zones": {
+                          "minItems": 1,
+                          "maxItems": 50,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,40}$"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
                   }
                 },
                 "required": [
@@ -84752,6 +84996,32 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "conditions": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "readOnly": {
+                            "type": "boolean"
+                          },
+                          "maxAmountCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000000
+                          },
+                          "zones": {
+                            "minItems": 1,
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9_-]{1,40}$"
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -84761,7 +85031,8 @@
                     "name",
                     "level",
                     "system",
-                    "permissions"
+                    "permissions",
+                    "conditions"
                   ]
                 }
               }
@@ -99143,6 +99414,130 @@
         ]
       }
     },
+    "/v1/internal/tls/ask": {
+      "get": {
+        "operationId": "InternalTlsController_ask",
+        "parameters": [
+          {
+            "name": "domain",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 300
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "allowed": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "allowed"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Caddy, émission TLS à la demande : 200 si le domaine est un domaine d'organisation vérifié (organisation ouverte), 404 sinon",
+        "tags": [
+          "internal"
+        ]
+      }
+    },
     "/v1/driver/pilot": {
       "get": {
         "operationId": "DriverPilotController_settings",
@@ -105308,6 +105703,739 @@
         ]
       }
     },
+    "/v1/org/{organizationId}/billing": {
+      "get": {
+        "operationId": "OrgPlatformBillingController_view",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "subscription": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "planCode": {
+                          "type": "string"
+                        },
+                        "plan": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "modules": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "setupFeeCents": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Montant en cents"
+                            },
+                            "monthlyPriceCents": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Montant en cents"
+                            },
+                            "annualPriceCents": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Montant en cents"
+                            },
+                            "perActiveVehicleCents": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "Montant en cents"
+                            },
+                            "includedVehicles": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "currency": {
+                              "type": "string"
+                            },
+                            "active": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "name",
+                            "modules",
+                            "setupFeeCents",
+                            "monthlyPriceCents",
+                            "annualPriceCents",
+                            "perActiveVehicleCents",
+                            "includedVehicles",
+                            "currency",
+                            "active"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "trialing",
+                            "active",
+                            "past_due",
+                            "read_only",
+                            "suspended",
+                            "cancelled"
+                          ]
+                        },
+                        "billingPeriod": {
+                          "type": "string",
+                          "enum": [
+                            "monthly",
+                            "annual"
+                          ]
+                        },
+                        "startedAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "currentPeriodStart": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "currentPeriodEnd": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "trialEndsAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "activeVehicles": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "monthlyRecurringRevenueCents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991,
+                          "description": "Montant en cents"
+                        },
+                        "cancelledAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "planCode",
+                        "plan",
+                        "status",
+                        "billingPeriod",
+                        "startedAt",
+                        "currentPeriodStart",
+                        "currentPeriodEnd",
+                        "trialEndsAt",
+                        "activeVehicles",
+                        "monthlyRecurringRevenueCents",
+                        "cancelledAt",
+                        "createdAt"
+                      ]
+                    },
+                    "invoices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "organizationId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "subscriptionId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "periodStart": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "periodEnd": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "lines": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string",
+                                  "enum": [
+                                    "setup_fee",
+                                    "subscription",
+                                    "active_vehicles"
+                                  ]
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "quantity": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "unitCents": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991,
+                                  "description": "Montant en cents"
+                                },
+                                "amountCents": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991,
+                                  "description": "Montant en cents"
+                                }
+                              },
+                              "required": [
+                                "code",
+                                "label",
+                                "quantity",
+                                "unitCents",
+                                "amountCents"
+                              ]
+                            }
+                          },
+                          "subtotalCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "Montant en cents"
+                          },
+                          "gstCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "Montant en cents"
+                          },
+                          "qstCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "Montant en cents"
+                          },
+                          "totalCents": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "Montant en cents"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "open",
+                              "paid",
+                              "past_due",
+                              "void"
+                            ]
+                          },
+                          "issuedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "dueAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "paidAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "paymentMethod": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "stripe",
+                              "offline"
+                            ]
+                          },
+                          "paymentReference": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "remindersSent": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "hostedInvoiceUrl": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "pdfAvailable": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "subscriptionId",
+                          "number",
+                          "periodStart",
+                          "periodEnd",
+                          "lines",
+                          "subtotalCents",
+                          "gstCents",
+                          "qstCents",
+                          "totalCents",
+                          "currency",
+                          "status",
+                          "issuedAt",
+                          "dueAt",
+                          "paidAt",
+                          "paymentMethod",
+                          "paymentReference",
+                          "remindersSent",
+                          "hostedInvoiceUrl",
+                          "pdfAvailable",
+                          "createdAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "subscription",
+                    "invoices"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Abonnement de l'organisation à la plateforme et ses factures PF, sans identifiant du fournisseur (vide pour une sous-organisation : l'abonnement est celui de l'organisation cliente)",
+        "tags": [
+          "org"
+        ]
+      }
+    },
+    "/v1/org/{organizationId}/billing/portal": {
+      "post": {
+        "operationId": "OrgPlatformBillingController_portal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "returnPath": {
+                    "type": "string",
+                    "maxLength": 300,
+                    "pattern": "^\\/hub(\\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\\/?(\\?[A-Za-z0-9._=&-]*)?$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "simulated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "url",
+                    "simulated"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Erreur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lien vers le portail client de Stripe (carte par défaut pour le prélèvement automatique), retour vers My Hub ; simulé sans clé Stripe ; 409 sans abonnement transmis",
+        "tags": [
+          "org"
+        ]
+      }
+    },
     "/v1/org/{organizationId}/drivers": {
       "get": {
         "operationId": "FleetController_listDrivers",
@@ -110546,6 +111674,2396 @@
           }
         ],
         "summary": "Réattribution : chauffeur retiré sans sanction, nouvelle recherche prioritaire parmi les chauffeurs de l'organisation",
+        "tags": [
+          "org"
+        ]
+      }
+    },
+    "/v1/org/{organizationId}/rides/{id}/cancel": {
+      "post": {
+        "operationId": "FleetController_cancelRide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  },
+                  "chargeFee": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "quoted",
+                        "requested",
+                        "offering",
+                        "assigned",
+                        "en_route",
+                        "arrived",
+                        "in_progress",
+                        "completed",
+                        "rated",
+                        "disputed",
+                        "no_driver",
+                        "cancelled_by_client",
+                        "cancelled_by_driver",
+                        "no_show",
+                        "interrupted",
+                        "expired"
+                      ]
+                    },
+                    "feeCents": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Montant en cents"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "changed_plans",
+                        "too_long",
+                        "wrong_address",
+                        "driver_not_moving",
+                        "other"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "state",
+                    "feeCents"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Annule une course de l'organisation au nom du client (frais d'annulation seulement si demandé) ; 404 hors de son sous-arbre",
+        "tags": [
+          "org"
+        ]
+      }
+    },
+    "/v1/org/{organizationId}/drivers/{id}/suspend": {
+      "post": {
+        "operationId": "FleetController_suspendDriver",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "driver": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "publicNumber": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "active",
+                            "restricted",
+                            "suspended",
+                            "offboarded"
+                          ]
+                        },
+                        "firstName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "phone": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "qualification": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "saaq_authorized",
+                            "registered"
+                          ]
+                        },
+                        "rating": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 5
+                        },
+                        "ratingCount": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "rideCount": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "isOnline": {
+                          "type": "boolean"
+                        },
+                        "documentsPending": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "trainingCertified": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "email": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "gstNumber": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "qstNumber": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "spokenLanguages": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "experienceYears": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "paymentModes": {
+                          "type": "object",
+                          "properties": {
+                            "cash": {
+                              "type": "boolean"
+                            },
+                            "interac": {
+                              "type": "boolean"
+                            },
+                            "terminal": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "cash",
+                            "interac",
+                            "terminal"
+                          ]
+                        },
+                        "payout": {
+                          "type": "object",
+                          "properties": {
+                            "linked": {
+                              "type": "boolean"
+                            },
+                            "onboarded": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "linked",
+                            "onboarded"
+                          ]
+                        },
+                        "activatedAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "rLuxeEvTenant": {
+                          "type": "boolean"
+                        },
+                        "platformFeeBps": {
+                          "type": "integer",
+                          "minimum": 500,
+                          "maximum": 1000
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "userId",
+                        "publicNumber",
+                        "status",
+                        "firstName",
+                        "lastName",
+                        "phone",
+                        "qualification",
+                        "rating",
+                        "ratingCount",
+                        "rideCount",
+                        "isOnline",
+                        "documentsPending",
+                        "trainingCertified",
+                        "createdAt",
+                        "email",
+                        "gstNumber",
+                        "qstNumber",
+                        "spokenLanguages",
+                        "experienceYears",
+                        "paymentModes",
+                        "payout",
+                        "activatedAt",
+                        "rLuxeEvTenant",
+                        "platformFeeBps"
+                      ]
+                    },
+                    "vehicles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "driverPublicNumber": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string",
+                            "enum": [
+                              "neo_premium",
+                              "neo_prestige",
+                              "neo_xl",
+                              "neo_limo"
+                            ]
+                          },
+                          "make": {
+                            "type": "string"
+                          },
+                          "model": {
+                            "type": "string"
+                          },
+                          "year": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "colour": {
+                            "type": "string"
+                          },
+                          "plate": {
+                            "type": "string"
+                          },
+                          "seats": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "active",
+                              "non_compliant",
+                              "retired"
+                            ]
+                          },
+                          "nextInspectionDueOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "driverId",
+                          "driverName",
+                          "driverPublicNumber",
+                          "category",
+                          "make",
+                          "model",
+                          "year",
+                          "colour",
+                          "plate",
+                          "seats",
+                          "status",
+                          "nextInspectionDueOn",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "driverPublicNumber": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "licence",
+                              "training",
+                              "background_check",
+                              "insurance",
+                              "registration",
+                              "mechanical_check",
+                              "profile_photo",
+                              "gst_qst"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "approved",
+                              "rejected",
+                              "expired"
+                            ]
+                          },
+                          "number": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "issuedOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          },
+                          "expiresOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          },
+                          "rejectionReason": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "uploadedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "verifiedAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "driverId",
+                          "driverName",
+                          "driverPublicNumber",
+                          "type",
+                          "status",
+                          "number",
+                          "issuedOn",
+                          "expiresOn",
+                          "rejectionReason",
+                          "uploadedAt",
+                          "verifiedAt"
+                        ]
+                      }
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "authorName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "body",
+                          "authorName",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "sanctions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "warning",
+                              "restriction",
+                              "suspension"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "endsAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "decidedByUserId": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "driverId",
+                          "type",
+                          "reason",
+                          "startsAt",
+                          "endsAt",
+                          "decidedByUserId"
+                        ]
+                      }
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "completedRides": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "cancellations30d": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "incidents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "completedRides",
+                        "cancellations30d",
+                        "incidents"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "driver",
+                    "vehicles",
+                    "documents",
+                    "notes",
+                    "sanctions",
+                    "stats"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suspend un chauffeur de l'organisation (motif obligatoire) : hors ligne immédiatement, plus aucune offre ; 404 hors de son sous-arbre",
+        "tags": [
+          "org"
+        ]
+      }
+    },
+    "/v1/org/{organizationId}/drivers/{id}/reactivate": {
+      "post": {
+        "operationId": "FleetController_reactivateDriver",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "driver": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "publicNumber": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "active",
+                            "restricted",
+                            "suspended",
+                            "offboarded"
+                          ]
+                        },
+                        "firstName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "phone": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "qualification": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "saaq_authorized",
+                            "registered"
+                          ]
+                        },
+                        "rating": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 5
+                        },
+                        "ratingCount": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "rideCount": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "isOnline": {
+                          "type": "boolean"
+                        },
+                        "documentsPending": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "trainingCertified": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "email": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "gstNumber": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "qstNumber": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "spokenLanguages": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "experienceYears": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "paymentModes": {
+                          "type": "object",
+                          "properties": {
+                            "cash": {
+                              "type": "boolean"
+                            },
+                            "interac": {
+                              "type": "boolean"
+                            },
+                            "terminal": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "cash",
+                            "interac",
+                            "terminal"
+                          ]
+                        },
+                        "payout": {
+                          "type": "object",
+                          "properties": {
+                            "linked": {
+                              "type": "boolean"
+                            },
+                            "onboarded": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "linked",
+                            "onboarded"
+                          ]
+                        },
+                        "activatedAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "rLuxeEvTenant": {
+                          "type": "boolean"
+                        },
+                        "platformFeeBps": {
+                          "type": "integer",
+                          "minimum": 500,
+                          "maximum": 1000
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "userId",
+                        "publicNumber",
+                        "status",
+                        "firstName",
+                        "lastName",
+                        "phone",
+                        "qualification",
+                        "rating",
+                        "ratingCount",
+                        "rideCount",
+                        "isOnline",
+                        "documentsPending",
+                        "trainingCertified",
+                        "createdAt",
+                        "email",
+                        "gstNumber",
+                        "qstNumber",
+                        "spokenLanguages",
+                        "experienceYears",
+                        "paymentModes",
+                        "payout",
+                        "activatedAt",
+                        "rLuxeEvTenant",
+                        "platformFeeBps"
+                      ]
+                    },
+                    "vehicles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "driverPublicNumber": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string",
+                            "enum": [
+                              "neo_premium",
+                              "neo_prestige",
+                              "neo_xl",
+                              "neo_limo"
+                            ]
+                          },
+                          "make": {
+                            "type": "string"
+                          },
+                          "model": {
+                            "type": "string"
+                          },
+                          "year": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "colour": {
+                            "type": "string"
+                          },
+                          "plate": {
+                            "type": "string"
+                          },
+                          "seats": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "active",
+                              "non_compliant",
+                              "retired"
+                            ]
+                          },
+                          "nextInspectionDueOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "driverId",
+                          "driverName",
+                          "driverPublicNumber",
+                          "category",
+                          "make",
+                          "model",
+                          "year",
+                          "colour",
+                          "plate",
+                          "seats",
+                          "status",
+                          "nextInspectionDueOn",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "driverPublicNumber": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "licence",
+                              "training",
+                              "background_check",
+                              "insurance",
+                              "registration",
+                              "mechanical_check",
+                              "profile_photo",
+                              "gst_qst"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "approved",
+                              "rejected",
+                              "expired"
+                            ]
+                          },
+                          "number": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "issuedOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          },
+                          "expiresOn": {
+                            "nullable": true,
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                          },
+                          "rejectionReason": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "uploadedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "verifiedAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "driverId",
+                          "driverName",
+                          "driverPublicNumber",
+                          "type",
+                          "status",
+                          "number",
+                          "issuedOn",
+                          "expiresOn",
+                          "rejectionReason",
+                          "uploadedAt",
+                          "verifiedAt"
+                        ]
+                      }
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "authorName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "body",
+                          "authorName",
+                          "createdAt"
+                        ]
+                      }
+                    },
+                    "sanctions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "driverId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "warning",
+                              "restriction",
+                              "suspension"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "endsAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "decidedByUserId": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "driverId",
+                          "type",
+                          "reason",
+                          "startsAt",
+                          "endsAt",
+                          "decidedByUserId"
+                        ]
+                      }
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "completedRides": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "cancellations30d": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "incidents": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "completedRides",
+                        "cancellations30d",
+                        "incidents"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "driver",
+                    "vehicles",
+                    "documents",
+                    "notes",
+                    "sanctions",
+                    "stats"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflit avec l'état courant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Réactive un chauffeur suspendu par l'organisation ; 409 `SUSPENDED_BY_PLATFORM` si une suspension de la plateforme (conformité, qualité, sécurité, solde) reste en cours",
+        "tags": [
+          "org"
+        ]
+      }
+    },
+    "/v1/org/{organizationId}/fleet/pilot": {
+      "get": {
+        "operationId": "FleetController_pilotSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "default": "off",
+                      "type": "string",
+                      "enum": [
+                        "off",
+                        "default",
+                        "minimum"
+                      ]
+                    },
+                    "criteria": {
+                      "default": {
+                        "minFareCents": null,
+                        "minNetPerKmCents": null,
+                        "minNetPerHourCents": null,
+                        "costPerKmCents": 0,
+                        "maxPickupMeters": null,
+                        "maxPickupMinutes": null,
+                        "maxDurationMinutes": null,
+                        "timeWindows": [],
+                        "originZones": [],
+                        "destinationZones": [],
+                        "categories": [],
+                        "minClientRating": null,
+                        "scheduleMarginMinutes": 30
+                      },
+                      "type": "object",
+                      "properties": {
+                        "minFareCents": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "minNetPerKmCents": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
+                        },
+                        "minNetPerHourCents": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "costPerKmCents": {
+                          "default": 0,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 500
+                        },
+                        "maxPickupMeters": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "maxPickupMinutes": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 180
+                        },
+                        "maxDurationMinutes": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 600
+                        },
+                        "timeWindows": {
+                          "default": [],
+                          "maxItems": 14,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "days": {
+                                "minItems": 1,
+                                "maxItems": 7,
+                                "type": "array",
+                                "items": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 6
+                                }
+                              },
+                              "from": {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+                              },
+                              "to": {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+                              }
+                            },
+                            "required": [
+                              "days",
+                              "from",
+                              "to"
+                            ]
+                          }
+                        },
+                        "originZones": {
+                          "default": [],
+                          "maxItems": 30,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,40}$"
+                          }
+                        },
+                        "destinationZones": {
+                          "default": [],
+                          "maxItems": 30,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,40}$"
+                          }
+                        },
+                        "categories": {
+                          "default": [],
+                          "maxItems": 4,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "neo_premium",
+                              "neo_prestige",
+                              "neo_xl",
+                              "neo_limo"
+                            ]
+                          }
+                        },
+                        "minClientRating": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 5
+                        },
+                        "scheduleMarginMinutes": {
+                          "default": 30,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 240
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Critères Neomoov Pilote de la flotte : `off`, `default` (pour les chauffeurs qui n'en ont réglé aucun) ou `minimum` (en plus des leurs) ; l'ordre des offres ne change jamais",
+        "tags": [
+          "org"
+        ]
+      },
+      "put": {
+        "operationId": "FleetController_updatePilotSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "default": "off",
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "default",
+                      "minimum"
+                    ]
+                  },
+                  "criteria": {
+                    "default": {
+                      "minFareCents": null,
+                      "minNetPerKmCents": null,
+                      "minNetPerHourCents": null,
+                      "costPerKmCents": 0,
+                      "maxPickupMeters": null,
+                      "maxPickupMinutes": null,
+                      "maxDurationMinutes": null,
+                      "timeWindows": [],
+                      "originZones": [],
+                      "destinationZones": [],
+                      "categories": [],
+                      "minClientRating": null,
+                      "scheduleMarginMinutes": 30
+                    },
+                    "type": "object",
+                    "properties": {
+                      "minFareCents": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "minNetPerKmCents": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10000
+                      },
+                      "minNetPerHourCents": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "costPerKmCents": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 500
+                      },
+                      "maxPickupMeters": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "maxPickupMinutes": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 180
+                      },
+                      "maxDurationMinutes": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 600
+                      },
+                      "timeWindows": {
+                        "default": [],
+                        "maxItems": 14,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "days": {
+                              "minItems": 1,
+                              "maxItems": 7,
+                              "type": "array",
+                              "items": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 6
+                              }
+                            },
+                            "from": {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+                            },
+                            "to": {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+                            }
+                          },
+                          "required": [
+                            "days",
+                            "from",
+                            "to"
+                          ]
+                        }
+                      },
+                      "originZones": {
+                        "default": [],
+                        "maxItems": 30,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_-]{1,40}$"
+                        }
+                      },
+                      "destinationZones": {
+                        "default": [],
+                        "maxItems": 30,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9_-]{1,40}$"
+                        }
+                      },
+                      "categories": {
+                        "default": [],
+                        "maxItems": 4,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "neo_premium",
+                            "neo_prestige",
+                            "neo_xl",
+                            "neo_limo"
+                          ]
+                        }
+                      },
+                      "minClientRating": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "scheduleMarginMinutes": {
+                        "default": 30,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 240
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "default": "off",
+                      "type": "string",
+                      "enum": [
+                        "off",
+                        "default",
+                        "minimum"
+                      ]
+                    },
+                    "criteria": {
+                      "default": {
+                        "minFareCents": null,
+                        "minNetPerKmCents": null,
+                        "minNetPerHourCents": null,
+                        "costPerKmCents": 0,
+                        "maxPickupMeters": null,
+                        "maxPickupMinutes": null,
+                        "maxDurationMinutes": null,
+                        "timeWindows": [],
+                        "originZones": [],
+                        "destinationZones": [],
+                        "categories": [],
+                        "minClientRating": null,
+                        "scheduleMarginMinutes": 30
+                      },
+                      "type": "object",
+                      "properties": {
+                        "minFareCents": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "minNetPerKmCents": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
+                        },
+                        "minNetPerHourCents": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "costPerKmCents": {
+                          "default": 0,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 500
+                        },
+                        "maxPickupMeters": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "maxPickupMinutes": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 180
+                        },
+                        "maxDurationMinutes": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 600
+                        },
+                        "timeWindows": {
+                          "default": [],
+                          "maxItems": 14,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "days": {
+                                "minItems": 1,
+                                "maxItems": 7,
+                                "type": "array",
+                                "items": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 6
+                                }
+                              },
+                              "from": {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+                              },
+                              "to": {
+                                "type": "string",
+                                "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+                              }
+                            },
+                            "required": [
+                              "days",
+                              "from",
+                              "to"
+                            ]
+                          }
+                        },
+                        "originZones": {
+                          "default": [],
+                          "maxItems": 30,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,40}$"
+                          }
+                        },
+                        "destinationZones": {
+                          "default": [],
+                          "maxItems": 30,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9_-]{1,40}$"
+                          }
+                        },
+                        "categories": {
+                          "default": [],
+                          "maxItems": 4,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "neo_premium",
+                              "neo_prestige",
+                              "neo_xl",
+                              "neo_limo"
+                            ]
+                          }
+                        },
+                        "minClientRating": {
+                          "default": null,
+                          "nullable": true,
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 5
+                        },
+                        "scheduleMarginMinutes": {
+                          "default": 30,
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 240
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent, invalide ou expiré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ressource introuvable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Règle les critères Neomoov Pilote de la flotte (zones connues seulement) ; ils ne décident que l'acceptation automatique de ses chauffeurs",
         "tags": [
           "org"
         ]
