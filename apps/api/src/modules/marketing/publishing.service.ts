@@ -9,10 +9,10 @@
 import { schema } from '@neomoov/db';
 import {
   classifyComment, composeText, CONVERSATION_CHANNELS, nextMeasureAt, recordMeasure, retryDelayMs, simpleReply, SPACE_RULES,
-  type ContentItemView, type ContentMetricsRecord, type ContentSpace, type CtaTarget,
+  type ContentItemView, type ContentMetricsRecord, type ContentSpace, type ContentVisual, type CtaTarget,
 } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { SOCIAL_PUBLISHERS, type SocialMedia, type SocialPublisher, type SocialPublishers } from '../../adapters/marketing.types.js';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
@@ -85,12 +85,18 @@ export class PublishingService {
     const report: PublishPassReport = { published: 0, retried: 0, failed: 0 };
     if (!(await this.active())) return report;
     const due = await this.db
-      .select({ id: schema.contentItems.id })
+      .select({ id: schema.contentItems.id, space: schema.contentItems.space })
       .from(schema.contentItems)
-      .where(and(eq(schema.contentItems.status, 'scheduled'), lte(schema.contentItems.scheduledAt, now), or(isNull(schema.contentItems.nextAttemptAt), lte(schema.contentItems.nextAttemptAt, now))))
+      .where(and(eq(schema.contentItems.status, 'scheduled'), ne(schema.contentItems.delivery, 'manual'), lte(schema.contentItems.scheduledAt, now), or(isNull(schema.contentItems.nextAttemptAt), lte(schema.contentItems.nextAttemptAt, now))))
       .orderBy(asc(schema.contentItems.scheduledAt))
       .limit(limit);
-    for (const { id } of due) {
+    for (const { id, space } of due) {
+      // Réseau sans connecteur utilisable (non configuré, approbation du réseau en attente) : relais manuel plutôt qu'un échec
+      // (décision du fondateur du 3 octobre 2026) ; la tâche apparaît dans la vue « À relayer » de My Hub.
+      if (this.publishers.get(space as ContentSpace)?.configured !== true) {
+        await this.db.update(schema.contentItems).set({ delivery: 'manual', nextAttemptAt: null }).where(and(eq(schema.contentItems.id, id), eq(schema.contentItems.status, 'scheduled')));
+        continue;
+      }
       const view = await this.publishItem(id, now);
       if (view.status === 'published') report.published += 1;
       else if (view.status === 'scheduled') report.retried += 1;
@@ -113,6 +119,8 @@ export class PublishingService {
   /** Production du visuel ou de la vidéo d'un contenu (tâche `media` de la file, ou à la demande avant publication). */
   async prepareMedia(id: string): Promise<ContentItemRow> {
     const row = await this.content.row(id);
+    // Publication multiréseau : visuel de la variante du réseau (blogue compris, image à la une 1200 × 630).
+    if (row.visual) return this.prepareVariantMedia(row);
     if (!VisualsService.expected(row.space as ContentSpace)) {
       if (row.mediaStatus !== 'none') await this.db.update(schema.contentItems).set({ mediaStatus: 'none' }).where(eq(schema.contentItems.id, id));
       return this.content.row(id);
@@ -128,6 +136,25 @@ export class PublishingService {
     return this.content.row(id);
   }
 
+  /** Visuel d'un contenu de publication : variante produite, empreinte et miniature gardées dans `visual`. */
+  private async prepareVariantMedia(row: ContentItemRow): Promise<ContentItemRow> {
+    const visual = row.visual as ContentVisual;
+    try {
+      const result = await this.visuals.prepareVariant(
+        { id: row.id, space: row.space as ContentSpace, format: row.format as ContentItemView['format'], language: row.language as 'fr' | 'en', title: row.title, body: row.body, headline: row.visualHeadline },
+        visual,
+        visual.photoUrl ? { url: visual.photoUrl, alt: visual.photoCredit } : null,
+      );
+      const next: ContentVisual = { ...visual, width: result.width, height: result.height, fingerprint: result.fingerprint, thumbnailKey: result.thumbnailKey };
+      await this.db.update(schema.contentItems).set({ mediaKey: result.mediaKey, mediaKind: result.mediaKind, mediaStatus: result.mediaStatus, visual: next as object }).where(eq(schema.contentItems.id, row.id));
+      this.audit.record({ action: 'marketing.media_prepared', entity: 'content_items', entityId: row.id, after: { mediaStatus: result.mediaStatus, mediaKind: result.mediaKind, template: visual.template, size: `${result.width}x${result.height}`, assets: result.assets.length } });
+    } catch (error) {
+      this.logger.warn({ err: error, itemId: row.id }, 'Production du visuel de la variante en échec');
+      await this.db.update(schema.contentItems).set({ mediaStatus: 'failed', lastError: `Média : ${error instanceof Error ? error.message.slice(0, 300) : String(error)}` }).where(eq(schema.contentItems.id, row.id));
+    }
+    return this.content.row(row.id);
+  }
+
   /**
    * Publie un contenu programmé (ou à la demande depuis My Hub) dans une exécution de l'agent de diffusion : réussite
    * (`published`, identifiant externe, première mesure à J+1), ou échec compté (nouvelle tentative espacée, puis `failed`).
@@ -135,6 +162,7 @@ export class PublishingService {
   async publishItem(id: string, now = new Date()): Promise<ContentItemView> {
     const current = await this.content.row(id);
     if (current.status !== 'scheduled') throw AppError.conflict('CONTENT_NOT_SCHEDULED', `Un contenu ${current.status} ne se publie pas`);
+    if (current.delivery === 'manual') throw AppError.conflict('CONTENT_MANUAL_RELAY', 'Contenu en relais manuel : à publier à la main depuis la vue « À relayer », puis à marquer publié');
     // Réservation de la tentative (deux passes en même temps ne publient pas deux fois) : le compteur sert de verrou optimiste.
     const [row] = await this.db
       .update(schema.contentItems)
