@@ -12,7 +12,7 @@
  */
 import { schema } from '@neomoov/db';
 import { effectiveSocialStatus, isSocialSpace, SOCIAL_SPACE_INFO, type SocialAccountStatus, type SocialMode, type SocialOAuthFlow, type SocialSpace } from '@neomoov/domain';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
 import { FieldCipher } from '../../common/field-cipher.js';
 import { SettingsService } from '../../common/settings.service.js';
@@ -54,15 +54,29 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
   readonly fallback: EnvSocialCredentialsProvider;
   private readonly listeners: Array<(event: SocialStatusEvent) => void> = [];
   private readonly refreshing = new Map<SocialSpace, Promise<Record<string, string>>>();
+  private readonly database: Database | null;
+  private readonly cipher: FieldCipher;
+  private readonly settings: SettingsService | null;
+  private readonly http: SocialHttp;
 
+  /** Sans base (contexte réduit aux adaptateurs, essais unitaires) : variables d'environnement seulement. */
   constructor(
     @Inject(APP_ENV) private readonly env: AppEnv,
-    @Inject(DB) private readonly database: Database,
-    private readonly cipher: FieldCipher,
-    private readonly settings: SettingsService,
-    private readonly http: SocialHttp,
+    @Optional() @Inject(DB) database: Database | null,
+    @Optional() cipher: FieldCipher | null,
+    @Optional() settings: SettingsService | null,
+    @Optional() http: SocialHttp | null,
   ) {
     this.fallback = new EnvSocialCredentialsProvider(env);
+    this.database = database ?? null;
+    this.cipher = cipher ?? new FieldCipher(env);
+    this.settings = settings ?? null;
+    this.http = http ?? new SocialHttp();
+  }
+
+  private get db(): Database['db'] {
+    if (!this.database) throw new Error('Base indisponible : comptes des réseaux en lecture des variables seulement');
+    return this.database.db;
   }
 
   toJSON() {
@@ -75,17 +89,18 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
   }
 
   networkOptions(): NetworkOptions {
-    const linkedinVersion = (this.env as unknown as Record<string, unknown>)['LINKEDIN_API_VERSION'];
-    return { fetch: this.http.fetch, graphVersion: this.env.META_GRAPH_VERSION, linkedinVersion: typeof linkedinVersion === 'string' && linkedinVersion ? linkedinVersion : DEFAULT_LINKEDIN_VERSION };
+    return { fetch: this.http.fetch, graphVersion: this.env.META_GRAPH_VERSION, linkedinVersion: this.env.LINKEDIN_API_VERSION || DEFAULT_LINKEDIN_VERSION };
   }
 
   async row(space: SocialSpace): Promise<SocialAccountRow | null> {
-    const [row] = await this.database.db.select().from(schema.socialAccounts).where(eq(schema.socialAccounts.space, space)).limit(1);
+    if (!this.database) return null;
+    const [row] = await this.db.select().from(schema.socialAccounts).where(eq(schema.socialAccounts.space, space)).limit(1);
     return row ?? null;
   }
 
   async rows(): Promise<SocialAccountRow[]> {
-    return this.database.db.select().from(schema.socialAccounts);
+    if (!this.database) return [];
+    return this.db.select().from(schema.socialAccounts);
   }
 
   sealed(row: SocialAccountRow | null): SealedCredentials {
@@ -133,7 +148,7 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
       status,
       updatedAt: new Date(),
     };
-    const [row] = await this.database.db
+    const [row] = await this.db
       .insert(schema.socialAccounts)
       .values({ space, ...values })
       .onConflictDoUpdate({ target: schema.socialAccounts.space, set: values })
@@ -175,7 +190,7 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
     }
     if (!approved) return manual;
     let current = row;
-    const maxAgeMinutes = await this.settings.number('social.prepublish_validation_minutes', 60);
+    const maxAgeMinutes = (await this.settings?.number('social.prepublish_validation_minutes', 60)) ?? 60;
     if (!current.lastValidatedAt || Date.now() - current.lastValidatedAt.getTime() > maxAgeMinutes * 60_000) {
       current = await this.validate(space);
       if (current.status !== 'connected') return current.status === 'pending_approval' ? manual : null;
@@ -205,11 +220,11 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
    * renouvelé survit au redémarrage.
    */
   async update(space: string, values: Record<string, string>): Promise<void> {
-    if (!isSocialSpace(space)) return;
+    if (!isSocialSpace(space) || !this.database) return;
     const tokens = Object.fromEntries(Object.entries(values).filter(([key, value]) => TOKEN_FIELDS.includes(key) && typeof value === 'string' && value));
     if (!Object.keys(tokens).length) return;
     const fallback = await this.fallback.get(space);
-    await this.database.db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`social-refresh:${space}`}))`);
       const [locked] = await tx.select().from(schema.socialAccounts).where(eq(schema.socialAccounts.space, space)).limit(1);
       const stored = this.sealed(locked ?? null);
@@ -239,7 +254,7 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
     const clean = reason.replace(/\d{5,15}:[A-Za-z0-9_-]{30,64}/g, '[jeton]').slice(0, 300);
     const row = await this.row(space);
     if (!row?.credentials) await this.fallback.markInvalid(space, clean);
-    if (row?.mode === 'manual') return;
+    if (!this.database || row?.mode === 'manual') return;
     await this.upsert(space, { validation: 'invalid', lastError: clean, lastValidatedAt: new Date() });
   }
 
@@ -266,7 +281,7 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
 
   private async refreshUnderLock(space: SocialSpace, flow: Exclude<SocialOAuthFlow, 'meta'>): Promise<Record<string, string>> {
     const app = oauthApp(this.env, flow);
-    return this.database.db.transaction(async (tx) => {
+    return this.db.transaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`social-refresh:${space}`}))`);
       const [locked] = await tx.select().from(schema.socialAccounts).where(eq(schema.socialAccounts.space, space)).limit(1);
       const values = this.sealed(locked ?? null).values;
