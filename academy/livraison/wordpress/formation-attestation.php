@@ -21,6 +21,9 @@ function nma_lessons(){$l=nma_data()['lessons']??array();return is_array($l)?$l:
 function nma_lesson_title($l){return preg_replace('/^\d+\.\s*/','',(string)($l['title']??''));}
 /* Un module est réussi à 80 % de bonnes réponses : 4 sur 5. */
 function nma_quiz_pass($l){return (int)ceil(count($l['quiz']??array())*0.8);}
+/* Quiz des modules (décision du fondateur, 3 octobre 2026) : 80 % pour réussir, 10 essais non réussis puis 7 jours d'attente ; un module réussi reste réussi. */
+function nma_quiz_rules(){$r=nma_data()['quiz_rules']??array();return array('max_attempts'=>max(1,(int)($r['max_attempts']??10)),'cooldown_days'=>max(0,(int)($r['cooldown_days']??7)));}
+function nma_quiz_wait($r){$q=nma_quiz_rules();if(!is_array($r)||!empty($r['passed_at'])||(int)($r['fails']??0)<$q['max_attempts'])return 0;$until=(int)strtotime((string)($r['at']??''))+$q['cooldown_days']*86400;return $until>time()?$until:0;}
 function nma_quiz_results($uid){$r=get_user_meta($uid,'nma_quiz',true);return is_array($r)?$r:array();}
 function nma_progress($uid){
     $res=nma_quiz_results($uid);$done=0;$lessons=nma_lessons();
@@ -58,7 +61,9 @@ function nma_formation_post($act,$uid){
             $answers[$i]=$a;if($a===(int)$q['answer'])$score++;
         }
         $all=nma_quiz_results($uid);$prev=is_array($all[$mid]??null)?$all[$mid]:array();$pass=nma_quiz_pass($lesson);
-        $all[$mid]=array('best'=>max((int)($prev['best']??0),$score),'last'=>$score,'answers'=>$answers,'attempts'=>(int)($prev['attempts']??0)+1,'at'=>gmdate('c'),'passed_at'=>!empty($prev['passed_at'])?$prev['passed_at']:($score>=$pass?gmdate('c'):''));
+        $wait=nma_quiz_wait($prev);if($wait)return 'Quiz « '.nma_lesson_title($lesson).' » fermé jusqu’au '.wp_date('j F Y, H:i',$wait).' : '.nma_quiz_rules()['max_attempts'].' essais non réussis. Relisez le module en attendant.';
+        $fails=$score>=$pass||!empty($prev['passed_at'])?0:((int)($prev['fails']??0)>=nma_quiz_rules()['max_attempts']?0:(int)($prev['fails']??0))+1;
+        $all[$mid]=array('best'=>max((int)($prev['best']??0),$score),'last'=>$score,'answers'=>$answers,'attempts'=>(int)($prev['attempts']??0)+1,'fails'=>$fails,'at'=>gmdate('c'),'passed_at'=>!empty($prev['passed_at'])?$prev['passed_at']:($score>=$pass?gmdate('c'):''));
         update_user_meta($uid,'nma_quiz',$all);
         list($done,$total)=nma_progress($uid);
         return 'Quiz « '.nma_lesson_title($lesson).' » : '.$score.' / '.count($lesson['quiz']).($score>=$pass?', module réussi.':', à reprendre : '.$pass.' bonnes réponses sont nécessaires.').' Progression : '.$done.' / '.$total.' modules réussis.'.($total&&$done===$total&&nma_has_access($uid)?' Votre attestation de suivi est disponible.':'');
@@ -151,7 +156,7 @@ function nma_attestation_page(){
 /* Page de formation d'un membre : progression, modules, sources, quiz corrigé côté serveur. */
 function nma_formation($uid){
     $lessons=nma_lessons();$res=nma_quiz_results($uid);list($done,$total)=nma_progress($uid);
-    echo '<div class="panel no-print"><h2>Votre progression : '.$done.' / '.$total.' modules réussis</h2><div class="progress" role="progressbar" aria-label="Modules réussis" aria-valuemin="0" aria-valuemax="'.$total.'" aria-valuenow="'.$done.'"><span style="width:'.($total?round($done*100/$total):0).'%"></span></div><p>Chaque module se termine par un quiz de 5 questions : 4 bonnes réponses le valident, et vous pouvez le reprendre autant de fois que nécessaire. Les 7 modules réussis donnent droit à votre <a class="text-link" href="'.esc_url(nma_url('attestation/')).'">attestation de suivi</a> et ouvrent l’<a class="text-link" href="'.esc_url(nma_url('examen/')).'">examen final</a>.</p><ol class="module-toc">';
+    echo '<div class="panel no-print"><h2>Votre progression : '.$done.' / '.$total.' modules réussis</h2><div class="progress" role="progressbar" aria-label="Modules réussis" aria-valuemin="0" aria-valuemax="'.$total.'" aria-valuenow="'.$done.'"><span style="width:'.($total?round($done*100/$total):0).'%"></span></div><p>Chaque module se termine par un quiz de 5 questions : 4 bonnes réponses (80 %) le valident ; vous disposez de 10 essais, puis d’une pause de 7 jours avant de recommencer. Les 7 modules réussis donnent droit à votre <a class="text-link" href="'.esc_url(nma_url('attestation/')).'">attestation de suivi</a> et ouvrent l’<a class="text-link" href="'.esc_url(nma_url('examen/')).'">examen final</a>.</p><ol class="module-toc">';
     foreach($lessons as $l){$ok=(int)($res[$l['id']]['best']??0)>=nma_quiz_pass($l);echo '<li><a href="#'.esc_attr($l['id']).'">'.nma_e(nma_lesson_title($l)).'</a> <span class="'.($ok?'ok':'todo').'">'.($ok?'Réussi':'À faire').'</span></li>';}
     echo '</ol></div>';
     $guide=nma_data()['guide']??'';if($guide&&nma_https_url($guide))echo '<p class="no-print"><a class="btn secondary" href="'.esc_url($guide).'">Télécharger le guide complet des 7 modules (PDF)</a></p>';
@@ -169,7 +174,8 @@ function nma_formation($uid){
         if($count){
             echo '<form method="post" class="quiz no-print" action="'.esc_url(nma_url('formation/')).'#'.esc_attr($l['id']).'">';nma_nonce('quiz');
             echo '<input type="hidden" name="module" value="'.esc_attr($l['id']).'"><h3>Quiz du module</h3>';
-            if($r)echo '<p class="quiz-score '.((int)($r['best']??0)>=$pass?'ok':'todo').'">Dernier essai : '.(int)($r['last']??0).' / '.$count.' · meilleur résultat : '.(int)($r['best']??0).' / '.$count.((int)($r['best']??0)>=$pass?' · module réussi':' · '.$pass.' bonnes réponses nécessaires').'</p>';
+            if($r)echo '<p class="quiz-score '.((int)($r['best']??0)>=$pass?'ok':'todo').'">Dernier essai : '.(int)($r['last']??0).' / '.$count.' · meilleur résultat : '.(int)($r['best']??0).' / '.$count.((int)($r['best']??0)>=$pass?' · module réussi':' · '.$pass.' bonnes réponses nécessaires · essai '.min((int)($r['fails']??0),nma_quiz_rules()['max_attempts']).' sur '.nma_quiz_rules()['max_attempts']).'</p>';
+            $qwait=nma_quiz_wait($r);if($qwait)echo '<p class="quiz-score todo">Quiz fermé jusqu’au '.nma_e(wp_date('j F Y, H:i',$qwait)).' après '.nma_quiz_rules()['max_attempts'].' essais non réussis : relisez le module en attendant.</p>';
             foreach($l['quiz'] as $i=>$q){
                 $given=isset($r['answers'][$i])?(int)$r['answers'][$i]:-1;$right=$given===(int)$q['answer'];
                 echo '<fieldset><legend>'.($i+1).'. '.nma_e($q['q']).'</legend>';

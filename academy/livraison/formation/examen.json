@@ -2,7 +2,7 @@
   "edition": "2026-10-02",
   "pass_percent": 80,
   "minutes": 40,
-  "max_attempts": 3,
+  "max_attempts": 10,
   "cooldown_days": 7,
   "questions": [
     {
