@@ -270,7 +270,10 @@ function nmsa_admin_reconcile(){
             if(!nmsa_store($uid,$r))return 'Enregistrement impossible.';nmsa_audit($uid,'billing_verified_by_administrator');
         }finally{delete_option($lock);}
     }
-    $result=nmsa_sync($uid);return 'Réconciliation : '.nmsa_status_label(is_wp_error($result)?$result->get_error_code():$result);
+    $result=nmsa_sync($uid);
+    // Réconciliation manuelle réussie : le traitement automatique abandonné pour ce paiement n'a plus d'objet.
+    if(!is_wp_error($result)){$r=get_user_meta($uid,'nmsa_checkout',true);$pid=is_array($r)?(string)($r['payment_id']??''):'';$list=(array)get_option('nmsa_jobs_abandoned',array());if($pid!==''&&isset($list[$pid])){unset($list[$pid]);update_option('nmsa_jobs_abandoned',$list,false);delete_option('nmsa_job_'.hash('sha256',$pid));}}
+    return 'Réconciliation : '.nmsa_status_label(is_wp_error($result)?$result->get_error_code():$result);
 }
 function nmsa_location_ready($location,$expected){
     return is_array($location)&&is_string($expected)&&$expected!==''&&($location['id']??'')===$expected
