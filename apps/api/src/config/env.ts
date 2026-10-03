@@ -211,8 +211,8 @@ export const envSchema = z.object({
 
   /**
    * Marketing automatisé (phase 1 « entreprise autonome », 2 octobre 2026) : `mock` (onze espaces, site, voix et Search
-   * Console simulés) ou `real` (WordPress, Brevo et Meta quand leurs clés sont présentes ; les autres espaces refusent
-   * clairement tant que leur connecteur n'est pas livré). Voir docs/marketing/connecteurs.md.
+   * Console simulés) ou `real` (WordPress, Brevo, Meta, Fiche Google, LinkedIn, YouTube, X et TikTok quand leurs clés
+   * sont présentes ; un espace sans clés, et Snapchat, refusent clairement). Voir docs/marketing/connecteurs.md.
    */
   MARKETING_PROVIDER: providerMode,
   WORDPRESS_URL: z.string().url().optional(),
@@ -245,21 +245,51 @@ export const envSchema = z.object({
   FFMPEG_BIN: optionalString,
   /** Export JPEG des rapports Booster (pages du PDF) ; vide : pdftoppm du PATH (poppler, installé dans l\'image). */
   PDFTOPPM_BIN: optionalString,
-  // Connecteurs prévus, non livrés (variables réservées) : LinkedIn, TikTok, YouTube, X, Fiche Google, Snapchat.
-  LINKEDIN_ACCESS_TOKEN: optionalString,
+  /**
+   * Connecteurs réels de la Fiche Google, de LinkedIn, de YouTube, de X et de TikTok (3 octobre 2026) : actifs dès que
+   * leurs variables sont posées avec `MARKETING_PROVIDER=real`. Jetons de rafraîchissement OAuth 2.0 (secrets) obtenus
+   * une fois par `pnpm --filter @neomoov/api oauth:jeton`. Pas à pas : docs/marketing/connecteurs.md.
+   */
+  GOOGLE_BUSINESS_CLIENT_ID: optionalString,
+  GOOGLE_BUSINESS_CLIENT_SECRET: optionalString,
+  GOOGLE_BUSINESS_REFRESH_TOKEN: optionalString,
+  /** Identifiants numériques du compte (`accounts/<id>`) et de l'établissement (`locations/<id>`) de la fiche. */
+  GOOGLE_BUSINESS_ACCOUNT_ID: optionalString,
+  GOOGLE_BUSINESS_LOCATION_ID: optionalString,
   LINKEDIN_ORGANIZATION_ID: optionalString,
-  TIKTOK_ACCESS_TOKEN: optionalString,
+  /** Jeton d'accès de 60 jours (sans jeton de rafraîchissement) et sa date d'échéance (AAAA-MM-JJ), pour l'alerte au personnel. */
+  LINKEDIN_ACCESS_TOKEN: optionalString,
+  LINKEDIN_ACCESS_TOKEN_EXPIRES_AT: optionalString.refine((v) => !v || !Number.isNaN(Date.parse(v)), 'date attendue (AAAA-MM-JJ)'),
+  LINKEDIN_REFRESH_TOKEN: optionalString,
+  LINKEDIN_CLIENT_ID: optionalString,
+  LINKEDIN_CLIENT_SECRET: optionalString,
+  /** Version mensuelle de l'API LinkedIn (en-tête `LinkedIn-Version`, AAAAMM, prise en charge un an). */
+  LINKEDIN_API_VERSION: z.string().regex(/^20\d{4}$/).default('202606'),
   YOUTUBE_CLIENT_ID: optionalString,
   YOUTUBE_CLIENT_SECRET: optionalString,
   YOUTUBE_REFRESH_TOKEN: optionalString,
-  X_API_KEY: optionalString,
-  X_API_SECRET: optionalString,
-  X_ACCESS_TOKEN: optionalString,
-  X_ACCESS_SECRET: optionalString,
-  GBP_CLIENT_ID: optionalString,
-  GBP_CLIENT_SECRET: optionalString,
-  GBP_REFRESH_TOKEN: optionalString,
-  GBP_LOCATION_ID: optionalString,
+  /** Visibilité des vidéos envoyées : `public` (défaut), `unlisted` ou `private` ; YouTube force `private` tant que le projet n'est pas audité. */
+  YOUTUBE_PRIVACY_STATUS: z.enum(['public', 'unlisted', 'private']).default('public'),
+  /** Projet Google audité par YouTube (« API Services audit ») : `on` ; sinon les vidéos partent en privé, avec la mention. */
+  YOUTUBE_API_AUDITED: flag,
+  X_CLIENT_ID: optionalString,
+  /** Secret du client OAuth 2.0 de X (application « Web App, Automated App or Bot », client confidentiel). */
+  X_CLIENT_SECRET: optionalString,
+  X_REFRESH_TOKEN: optionalString,
+  TIKTOK_CLIENT_KEY: optionalString,
+  TIKTOK_CLIENT_SECRET: optionalString,
+  TIKTOK_REFRESH_TOKEN: optionalString,
+  /** Visibilité des vidéos : `PUBLIC_TO_EVERYONE` (défaut), `MUTUAL_FOLLOW_FRIENDS`, `FOLLOWER_OF_CREATOR` ou `SELF_ONLY` ; avant l'audit de TikTok, `SELF_ONLY` seulement (repli automatique). */
+  TIKTOK_PRIVACY_LEVEL: z.enum(['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY']).default('PUBLIC_TO_EVERYONE'),
+  /** Envoi de la vidéo : `file` (téléversement par morceaux, défaut) ou `url` (TikTok télécharge l'adresse signée ; domaine du stockage à vérifier chez TikTok). */
+  TIKTOK_UPLOAD_MODE: z.enum(['file', 'url']).default('file'),
+  /** Application auditée par TikTok (Content Posting API, publication directe) : `on` ; sinon publications privées (SELF_ONLY), avec la mention. */
+  TIKTOK_APP_AUDITED: flag,
+  /** Canal Telegram : jeton du bot (BotFather, administrateur du canal), canal (`@nom` ou `-100…`), groupe de discussion lié (facultatif). */
+  TELEGRAM_BOT_TOKEN: optionalString,
+  TELEGRAM_CHANNEL_ID: optionalString,
+  TELEGRAM_DISCUSSION_CHAT_ID: optionalString,
+  // Snapchat et chaîne WhatsApp : relais manuel uniquement (décision du fondateur du 3 octobre 2026, sans agrégateur) ; variables réservées.
   SNAPCHAT_ACCESS_TOKEN: optionalString,
   SNAPCHAT_PROFILE_ID: optionalString,
 });
