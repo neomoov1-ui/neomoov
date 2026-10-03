@@ -1,6 +1,6 @@
 # Revue du 3 octobre 2026, agent Q3 : lot D (Academy WordPress et Loi 25)
 
-Branche `revue-q3-academy` depuis `origin/main` (`ec9ba36`). Mission : `neomoov-outils/agents/Q3-academy-lot-d.md` et règles communes `COMMUN-2026-10-03.md`. Sources : rapport `revue-2026-10-02/05-academy-et-loi-25.md` et section « Lot D » de `00-synthese.md`. Périmètre : le PHP de l'Academy (`academy/livraison/wordpress/*.php`), aucune table ni route de la plateforme. **Rien n'est déployé** : la session principale déploie après relecture. Tâche ajoutée en cours de route par la session principale (décision du fondateur du 3 octobre) : retrait du numéro +1 367 763-9063.
+Branche `revue-q3-academy` depuis `origin/main` (`ec9ba36`). Mission : `neomoov-outils/agents/Q3-academy-lot-d.md` et règles communes `COMMUN-2026-10-03.md`. Sources : rapport `revue-2026-10-02/05-academy-et-loi-25.md` et section « Lot D » de `00-synthese.md`. Périmètre : le PHP de l'Academy (`academy/livraison/wordpress/*.php`), aucune table ni route de la plateforme. **Rien n'est déployé** : la session principale déploie après relecture. Tâche ajoutée en cours de route par la session principale (décision du fondateur du 3 octobre) : retrait de l’ancien numéro secondaire de toutes les pages publiques.
 
 ## Ce qui est fait
 
@@ -11,7 +11,7 @@ Branche `revue-q3-academy` depuis `origin/main` (`ec9ba36`). Mission : `neomoov-
 | Inscriptions existantes non touchées | Oui : aucune migration ; les comptes antérieurs gardent leur état, leur séquence en cours et la confirmation par première connexion (`wp_login` de `brevo-sync.php`, conservé). |
 | 2. Secrets WordPress hors de la base | Fait. `nma_secret()` lit la constante de `wp-config.php`, puis le réglage `nma_settings` en repli. Inventaire : token Square, clé de signature du webhook Square, clé Brevo, clé Anthropic (constantes déjà lues, désormais centralisées), clé secrète et secret du webhook Stripe (nouvelles constantes ; mode inactif). Écran : « Fourni par wp-config.php (NMA_…), jamais affiché », champ de saisie masqué quand la constante existe, avertissement en tête tant qu'une copie reste dans la base, case « Effacer la valeur enregistrée dans la base » pour chacune. Aucune valeur n'est jamais affichée. |
 | 3. Constats restants Élevé ou Moyen sans décision | Voir le tableau suivant. |
-| Numéro public | Fait. +1 367 763-9063 remplacé par +1 438 900 4990 (et `https://wa.me/14389004990`) dans `contract-delivery.php` (coordonnées du vendeur : contrat, reçu), `CONDITIONS_CAP_CHAUFFEUR_PUBLICATION.md`, `CONTRAT-LIVRAISON-RECETTE.md`, `LIVRE_DE_REPRISE_CAP_CHAUFFEUR.md`, `CONDITIONS_CAP_CHAUFFEUR_NOTES_INTERNES.md`. Recherche `367[^0-9]{0,3}763[^0-9]{0,3}9063|13677639063` sur `academy/` (texte et binaires) : aucun résultat hors de l'export reconstruit. `academy/livraison/formation/*` ne le contenait pas. La page publique « conditions-cap-chauffeur » du site n'est pas touchée (autre agent). |
+| Numéro public | Fait. Ancien numéro secondaire remplacé par +1 438 900 4990 (et `https://wa.me/14389004990`) dans `contract-delivery.php` (coordonnées du vendeur : contrat, reçu), `CONDITIONS_CAP_CHAUFFEUR_PUBLICATION.md`, `CONTRAT-LIVRAISON-RECETTE.md`, `LIVRE_DE_REPRISE_CAP_CHAUFFEUR.md`, `CONDITIONS_CAP_CHAUFFEUR_NOTES_INTERNES.md`. Recherche demandée par la session principale (ancien numéro, toutes graphies, et son lien WhatsApp) sur `academy/` (texte et binaires) : aucun résultat hors de l'export reconstruit. `academy/livraison/formation/*` ne le contenait pas. La page publique « conditions-cap-chauffeur » du site n'est pas touchée (autre agent). |
 | 4. Ne rien déployer | Respecté : aucun appel au site, au serveur LWS ni à un compte externe. |
 
 ## Constats du rapport 05 (Élevé et Moyen)
@@ -71,9 +71,12 @@ Banc hors WordPress copié de la session principale dans `neomoov-outils/academy
 - Avant modification : `=== 0 échec(s)` (scénario d'origine, 389 lignes).
 - Banc complété (`banc.php`) : `get_users` avec `meta_query` imbriquée et `date_query`, `get_posts` par auteur, `wp_delete_user` avec le crochet `delete_user`, demandes de droits WordPress, corps des courriels gardé (extraction du lien), mode `do=fn` (appel direct d'une fonction, avec `query`, `body` et constantes `defines` simulées par des valeurs fictives).
 - Scénario (`scenario.sh`) : la section « Séquences automatiques » passe désormais par la confirmation ; nouvelles sections « double consentement », « offres et demandes de droits depuis l'espace membre », « page Vos données », « relances Square plafonnées », « secrets dans wp-config.php et administration » (provenance, effacement des copies, journal du personnel et déduplication, responsable), « exportateur, effaceur, suppression de compte et conservation » (comptes inactifs, compte actif et compte hors Academy gardés, pièces d'achat échues, archives, séquences, journal), « numéro de téléphone public » (nouveau numéro sur le reçu et dans les coordonnées du vendeur, ancien numéro absent de toutes les pages et sorties rendues).
-- Résultat final : RESULTAT_BANC
+- Résultat final (export reconstruit du dernier commit, `php -l` sans erreur) : **`=== 0 échec(s)`**, 184 pages ou appels rendus sans avertissement PHP, 312 vérifications réussies (avant : 146 pages, 227 vérifications). Fonctions WordPress encore simulées à vide pendant le scénario : `wp_generate_uuid4` (file Brevo) et `check_admin_referer` (sans effet attendu). Sorties : `neomoov-outils/academy/banc-q3/resultat.txt`, point de départ dans `resultat-base.txt`.
+- Passages intermédiaires : sans `media.json`, 3 échecs attendus (narration, PDF et guide des modules absents) ; premier passage du scénario complété, 11 échecs, tous dus à `selected()` absent du banc (voir « Pièges »), aucun dans le code.
 
 ## Reste à faire et décisions du fondateur
+
+0. **Ancien numéro dans l’historique Git** : il reste dans les anciennes versions des fichiers (et dans le message du premier commit de cette branche) ; le dépôt étant public, seul son passage en privé le retire de la vue (recommandation déjà faite le 2 octobre).
 
 1. **Durées de conservation** : confirmer 24 mois (comptes gratuits inactifs), 7 ans (pièces d'achat), 12 mois (séquences, journal du personnel) ; un avis par courriel avant la suppression d'un compte inactif peut être ajouté.
 2. **Responsable de la protection des renseignements personnels** : nom, fonction et courriel dédié à saisir dans les réglages (la page publique l'affichera alors), et sur le site.
@@ -99,3 +102,5 @@ Aucun.
 - Le banc lance un PHP par page : compter 10 à 15 minutes pour le scénario complet sur ce poste.
 - Les commandes `node -e` passées dans Bash perdent des barres obliques inverses (`\\n` devient un vrai saut de ligne) : écrire les scripts dans un fichier, ou utiliser l'outil d'édition.
 - `git add` d'un motif qui inclut `neomoov-academy-ready.php` (ignoré) échoue entièrement : nommer les fichiers.
+- L'écran d'administration n'était pas couvert par le banc : il exige `selected()`, `disabled()`, `submit_button()` et `wp_nonce_url()`, ajoutés à `banc.php`. Les fonctions absentes du banc sont remplacées par des fonctions vides (liste `candidates.json`, à régénérer par `node candidats.cjs` après chaque assemblage), qui peuvent masquer un comportement.
+- La purge des pièces d'achat parcourt 500 acheteurs par passage : au-delà, prévoir une pagination tournante.
