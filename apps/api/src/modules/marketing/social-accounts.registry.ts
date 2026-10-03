@@ -109,6 +109,15 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
   }
 
   /**
+   * Application approuvée par le réseau (LinkedIn, TikTok, YouTube) : confirmée dans My Hub, ou audit déclaré dans les
+   * variables du serveur (`YOUTUBE_API_AUDITED`, `TIKTOK_APP_AUDITED`). Sans approbation, la publication passe en relais manuel.
+   */
+  approved(space: SocialSpace, row: Pick<SocialAccountRow, 'appApprovedAt'> | null): boolean {
+    if (!SOCIAL_SPACE_INFO[space].requiresApproval || row?.appApprovedAt) return true;
+    return space === 'youtube' ? this.env.YOUTUBE_API_AUDITED : space === 'tiktok' ? this.env.TIKTOK_APP_AUDITED : false;
+  }
+
+  /**
    * Écrit un compte (création ou mise à jour) et recalcule son état affiché. `sealed` remplace le contenu chiffré
    * (null l'efface). Un passage en `invalid` ou `expired` prévient les abonnés.
    */
@@ -116,7 +125,7 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
     const before = await this.row(space);
     const { sealed, ...fields } = patch;
     const merged = { mode: (fields.mode ?? before?.mode ?? SOCIAL_SPACE_INFO[space].modes[0] ?? 'manual') as SocialMode, validation: (fields.validation ?? before?.validation ?? 'not_connected') as SocialAccountStatus, profileUrl: fields.profileUrl !== undefined ? fields.profileUrl : (before?.profileUrl ?? null), appApprovedAt: fields.appApprovedAt !== undefined ? fields.appApprovedAt : (before?.appApprovedAt ?? null) };
-    const status = effectiveSocialStatus({ space, mode: merged.mode, validation: merged.validation, profileUrl: merged.profileUrl, appApproved: Boolean(merged.appApprovedAt) });
+    const status = effectiveSocialStatus({ space, mode: merged.mode, validation: merged.validation, profileUrl: merged.profileUrl, appApproved: this.approved(space, merged) });
     const values = {
       ...fields,
       ...(sealed !== undefined ? { credentials: sealed ? this.cipher.encrypt(JSON.stringify(sealed)) : null } : {}),
@@ -155,11 +164,16 @@ export class SocialAccountsRegistry implements SocialCredentialsProvider {
   async get(space: string): Promise<SocialCredentials | null> {
     if (!isSocialSpace(space)) return this.fallback.get(space);
     const row = await this.row(space);
-    if (!row) return this.fallback.get(space);
-    const manual: SocialCredentials = { mode: 'manual', values: {}, accountId: row.accountId, accountName: row.accountName, profileUrl: row.profileUrl, expiresAt: null };
-    if (row.mode === 'manual' || MANUAL_ONLY_SPACES.includes(space) || row.status === 'pending_approval') return manual;
-    if (row.status === 'invalid' || row.status === 'expired') return null;
-    if (row.status !== 'connected') return this.fallback.get(space);
+    const approved = this.approved(space, row);
+    const manual: SocialCredentials = { mode: 'manual', values: {}, accountId: row?.accountId ?? null, accountName: row?.accountName ?? null, profileUrl: row?.profileUrl ?? null, expiresAt: null };
+    if (row?.mode === 'manual' || MANUAL_ONLY_SPACES.includes(space)) return manual;
+    if (row?.status === 'invalid' || row?.status === 'expired') return null;
+    if (!row || (row.status !== 'connected' && row.status !== 'pending_approval')) {
+      // Jamais relié dans My Hub : variables du serveur, en relais manuel tant que l'application n'est pas approuvée.
+      const env = await this.fallback.get(space);
+      return env && env.mode === 'direct' && !approved ? { ...manual, accountId: env.accountId, profileUrl: env.profileUrl } : env;
+    }
+    if (!approved) return manual;
     let current = row;
     const maxAgeMinutes = await this.settings.number('social.prepublish_validation_minutes', 60);
     if (!current.lastValidatedAt || Date.now() - current.lastValidatedAt.getTime() > maxAgeMinutes * 60_000) {

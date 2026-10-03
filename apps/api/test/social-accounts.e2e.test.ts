@@ -55,7 +55,11 @@ describe('réseaux sociaux : comptes, connexion, validation, liens publics (int�
       return json(400, { error: { code: 100, message: 'Unknown object' } });
     }
     if (url.hostname === 'api.x.com') {
-      if (url.pathname === '/2/oauth2/token') return json(200, { token_type: 'bearer', access_token: 'x-access', refresh_token: X_REFRESH, expires_in: 7200, scope: 'tweet.read tweet.write users.read offline.access media.write' });
+      if (url.pathname === '/2/oauth2/token') {
+        // Rafraîchissement : X remplace le jeton de rafraîchissement à chaque échange.
+        if (new URLSearchParams(body ?? '').get('grant_type') === 'refresh_token') return json(200, { token_type: 'bearer', access_token: 'x-access-renouvele', refresh_token: 'x-refresh-renouvele', expires_in: 7200 });
+        return json(200, { token_type: 'bearer', access_token: 'x-access', refresh_token: X_REFRESH, expires_in: 7200, scope: 'tweet.read tweet.write users.read offline.access media.write' });
+      }
       if (url.pathname === '/2/users/me') return json(200, { data: { id: '42', name: 'Neomoov', username: 'neomoov' } });
     }
     if (url.hostname === 'api.telegram.org') {
@@ -73,7 +77,12 @@ describe('réseaux sociaux : comptes, connexion, validation, liens publics (int�
   const credentials = () => app!.get<SocialCredentialsProvider>(SOCIAL_CREDENTIALS);
 
   beforeAll(async () => {
-    app = await startTestApp({ APP_BASE_URL: API, WEB_BASE_URL: WEB, META_APP_ID: '1234567890', META_APP_SECRET: 'f'.repeat(32), X_CLIENT_ID: 'x-client', X_CLIENT_SECRET: 'x-client-secret' });
+    // Variables du poste neutralisées pour les réseaux de l'essai ; X a un jeton de rafraîchissement posé « sur le serveur » (repli).
+    app = await startTestApp({
+      APP_BASE_URL: API, WEB_BASE_URL: WEB, META_APP_ID: '1234567890', META_APP_SECRET: 'f'.repeat(32), X_CLIENT_ID: 'x-client', X_CLIENT_SECRET: 'x-client-secret', X_REFRESH_TOKEN: 'x-env-refresh',
+      META_PAGE_ID: '', META_PAGE_TOKEN: '', META_IG_USER_ID: '', TELEGRAM_BOT_TOKEN: '', TELEGRAM_CHANNEL_ID: '', LINKEDIN_ACCESS_TOKEN: '', LINKEDIN_ORGANIZATION_ID: '', LINKEDIN_CLIENT_ID: '', LINKEDIN_CLIENT_SECRET: '',
+      TIKTOK_CLIENT_KEY: '', TIKTOK_CLIENT_SECRET: '', TIKTOK_REFRESH_TOKEN: '', YOUTUBE_API_AUDITED: 'off', TIKTOK_APP_AUDITED: 'off',
+    });
     if (!app) return;
     app.get(SocialHttp).fetch = simulator;
     saved = await db(app).select().from(schema.socialAccounts);
@@ -174,6 +183,17 @@ describe('réseaux sociaux : comptes, connexion, validation, liens publics (int�
     expect(creds?.values['pageToken']).toBe('AUTRE-PAGE-TOKEN-SECRET');
   });
 
+  it('jetons renouvelés par un connecteur (update) : un compte des variables du serveur est enregistré chiffré, sans les identifiants de l\'application', async () => {
+    if (!app) return;
+    expect(await credentials().get('x')).toMatchObject({ mode: 'direct', values: { refreshToken: 'x-env-refresh', clientId: 'x-client' } });
+    await credentials().update!('x', { refreshToken: 'x-refresh-tourne', accessToken: 'x-access-tourne', accessTokenExpiresAt: new Date(Date.now() + 3_600_000).toISOString(), clientSecret: 'ignore' });
+    const [row] = await db(app).select().from(schema.socialAccounts).where(eq(schema.socialAccounts.space, 'x'));
+    expect(row).toMatchObject({ mode: 'direct', status: 'connected' });
+    expect(row!.credentials).not.toContain('x-refresh-tourne');
+    expect(app.get(SocialAccountsRegistry).sealed(row!).values).toEqual({ refreshToken: 'x-refresh-tourne', accessToken: 'x-access-tourne', accessTokenExpiresAt: expect.any(String) });
+    expect(await credentials().get('x')).toMatchObject({ mode: 'direct', values: { refreshToken: 'x-refresh-tourne', accessToken: 'x-access-tourne', clientId: 'x-client', clientSecret: 'x-client-secret' } });
+  });
+
   it('X : écran d\'autorisation avec PKCE, échange du code avec le vérificateur, compte relié', async () => {
     if (!app) return;
     const url = await connectUrl('x');
@@ -188,6 +208,13 @@ describe('réseaux sociaux : comptes, connexion, validation, liens publics (int�
     const creds = await credentials().get('x');
     expect(creds?.values).toMatchObject({ accessToken: 'x-access', refreshToken: X_REFRESH, clientId: 'x-client', clientSecret: 'x-client-secret' });
     expect(JSON.stringify(await list())).not.toContain(X_REFRESH);
+    // Jeton d'accès échu : renouvelé sous verrou avant d'être servi, le nouveau jeton de rafraîchissement est écrit dans le compte.
+    await credentials().update!('x', { accessTokenExpiresAt: new Date(Date.now() - 60_000).toISOString() });
+    expect(await credentials().get('x')).toMatchObject({ values: { accessToken: 'x-access-renouvele', refreshToken: 'x-refresh-renouvele' } });
+    const refreshes = calls.filter((c) => c.url === 'https://api.x.com/2/oauth2/token' && new URLSearchParams(c.body ?? '').get('grant_type') === 'refresh_token');
+    expect(refreshes).toHaveLength(1);
+    expect(new URLSearchParams(refreshes[0]!.body!).get('refresh_token')).toBe(X_REFRESH);
+    expect((await credentials().get('x'))?.values['refreshToken']).toBe('x-refresh-renouvele');
   });
 
   it('Telegram : jeton du bot et canal validés contre la Bot API (bot administrateur), jeton jamais rendu', async () => {
