@@ -152,3 +152,18 @@ export const organizationBillingSchema = z.object({
   invoices: z.array(platformInvoiceViewSchema.omit({ stripeInvoiceId: true })),
 });
 export type OrganizationBillingView = z.infer<typeof organizationBillingSchema>;
+
+/**
+ * Finalisation du 3 octobre 2026 : lien vers le portail client de Stripe (carte par défaut, prélèvement automatique des
+ * factures suivantes). Retour vers My Hub seulement (chemin relatif sous `/hub`), jamais vers une adresse fournie.
+ */
+export const billingPortalRequestSchema = z.object({
+  returnPath: z.string().max(300).regex(/^\/hub(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\/?(\?[A-Za-z0-9._=&-]*)?$/, 'Chemin de My Hub attendu (/hub/...)').optional(),
+});
+export type BillingPortalRequest = z.infer<typeof billingPortalRequestSchema>;
+export const billingPortalSessionSchema = z.object({
+  url: z.string().url(),
+  /** Vrai avec le fournisseur simulé (aucune clé Stripe) : le lien ne mène nulle part. */
+  simulated: z.boolean(),
+});
+export type BillingPortalSession = z.infer<typeof billingPortalSessionSchema>;

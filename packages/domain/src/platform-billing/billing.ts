@@ -263,13 +263,15 @@ export interface SubscriptionTransition {
  * Passage du statut courant au statut visé. Jamais de suspension pendant une course : si une course est active dans
  * l'organisation, la suspension est reportée (la lecture seule, qui n'interrompt aucune course, s'applique quand même).
  * Un paiement ramène au statut visé par les factures qui restent impayées ; l'écriture revient sous la lecture seule.
+ * `forceSuspension` (report trop long, `suspensionForced`) : la suspension s'applique malgré la course active ; la garde
+ * des routes d'organisation laisse finir les courses en cours et bloque les nouvelles.
  */
-export function nextSubscriptionStatus(current: SubscriptionStatus, target: SubscriptionStatus, options: { activeRide: boolean }): SubscriptionTransition {
+export function nextSubscriptionStatus(current: SubscriptionStatus, target: SubscriptionStatus, options: { activeRide: boolean; forceSuspension?: boolean }): SubscriptionTransition {
   const from = SEVERITY[current];
   const to = SEVERITY[target];
   if (from === undefined || to === undefined || from === to) return { status: current, escalated: false, postponed: false, reactivated: false };
   if (to > from) {
-    if (target === 'suspended' && options.activeRide) {
+    if (target === 'suspended' && options.activeRide && !options.forceSuspension) {
       const status = from >= 2 ? current : 'read_only';
       return { status, escalated: status !== current, postponed: true, reactivated: false };
     }
@@ -278,9 +280,42 @@ export function nextSubscriptionStatus(current: SubscriptionStatus, target: Subs
   return { status: target, escalated: false, postponed: false, reactivated: from >= 2 && to < 2 };
 }
 
+/**
+ * Proposition de la section 9 (`docs/platform-billing.md`), désactivée par défaut (`billing.force_suspension_after_postponed_days`
+ * à 0) : une suspension reportée depuis `days` jours (une course était toujours en cours) s'applique quand même ; les
+ * nouvelles courses sont alors bloquées et celles en cours finissent.
+ */
+export function suspensionForced(postponedSince: Date | null, now: Date, days: number): boolean {
+  if (!postponedSince || !(days > 0)) return false;
+  return now.getTime() - postponedSince.getTime() >= days * 86_400_000;
+}
+
 /** Une organisation en lecture seule, suspendue ou fermée ne peut plus écrire (garde des routes d'organisation). */
 export function organizationWriteAllowed(status: string): boolean {
   return status === 'trial' || status === 'active';
+}
+
+const STATUS_RESTRICTION: Record<string, number> = { trial: 0, active: 0, read_only: 1, suspended: 2, closed: 3 };
+
+/**
+ * Statut qui s'applique à une organisation : le plus restrictif d'elle-même et de ses ancêtres (l'abonnement d'une
+ * organisation cliente vaut pour ses sous-organisations ; un statut inconnu compte comme fermé).
+ */
+export function restrictiveOrganizationStatus(statuses: readonly string[]): string {
+  let worst = 'active';
+  for (const status of statuses) if ((STATUS_RESTRICTION[status] ?? 3) > (STATUS_RESTRICTION[worst] ?? 3)) worst = status;
+  return worst;
+}
+
+/**
+ * Garde des routes d'organisation (finalisation du 3 octobre 2026) : une écriture est refusée sous un statut sans
+ * écriture (`read_only`, `suspended`, `closed`), sauf sur une course en cours (jamais pendant une course : elle doit
+ * pouvoir finir, être réattribuée ou interrompue) et sur les routes qui servent à régulariser (portail de paiement, accès
+ * du support). Renvoie le statut qui bloque, ou `null`.
+ */
+export function organizationWriteRefusal(status: string, request: { write: boolean; activeRide: boolean; exempt: boolean }): string | null {
+  if (!request.write || request.exempt || request.activeRide || organizationWriteAllowed(status)) return null;
+  return status;
 }
 
 /** Accès d'une organisation selon son statut : suspendue ou fermée, plus rien ; lecture seule, lire seulement. */

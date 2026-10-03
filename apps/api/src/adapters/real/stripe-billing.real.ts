@@ -130,6 +130,12 @@ export class StripeBillingProvider implements BillingProvider {
     else if (invoice.status === 'open' || invoice.status === 'uncollectible') await this.call('POST', `/v1/invoices/${encodeURIComponent(invoiceId)}/void`, {}, `platform-invoice-void:${invoiceId}`);
   }
 
+  /** Portail client de Stripe (`POST /v1/billing_portal/sessions`) : à activer une fois dans le tableau de bord (docs/platform-billing.md, section 8). */
+  async createPortalSession(customerId: string, returnUrl: string): Promise<{ url: string }> {
+    const session = await this.call<{ url: string }>('POST', '/v1/billing_portal/sessions', { customer: customerId, return_url: returnUrl });
+    return { url: session.url };
+  }
+
   async verifyWebhook(rawBody: string | Buffer, signature: string): Promise<BillingWebhookEvent> {
     if (!this.#webhookSecret) throw new AppError('PROVIDER_NOT_CONFIGURED', 'STRIPE_BILLING_WEBHOOK_SECRET absente', 501);
     const payload = rawBody.toString();

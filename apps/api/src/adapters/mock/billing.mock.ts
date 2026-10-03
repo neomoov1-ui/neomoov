@@ -93,6 +93,13 @@ export class MockBillingProvider implements BillingProvider {
     if (invoice.status === 'open') invoice.status = 'void';
   }
 
+  async createPortalSession(customerId: string, returnUrl: string): Promise<{ url: string }> {
+    this.calls.push({ method: 'createPortalSession', args: [customerId, returnUrl] });
+    this.available();
+    if (![...this.customers.values()].some((c) => c.id === customerId)) throw new AppError('BILLING_PROVIDER_ERROR', `Client inconnu du fournisseur : ${customerId}`, 502);
+    return { url: `https://billing.stripe.mock/p/session/${nextId('bps_mock')}?return=${encodeURIComponent(returnUrl)}` };
+  }
+
   async verifyWebhook(rawBody: string | Buffer, signature: string): Promise<BillingWebhookEvent> {
     this.calls.push({ method: 'verifyWebhook', args: [signature] });
     if (this.options.acceptTestSignatures === false || signature !== 'mock-signature') throw new AppError('WEBHOOK_SIGNATURE_INVALID', 'Signature de webhook invalide', 400);

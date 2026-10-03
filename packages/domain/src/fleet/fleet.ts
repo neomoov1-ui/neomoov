@@ -224,3 +224,60 @@ export function maintenanceDue(records: readonly MaintenanceRecord[], today: str
   const dateKey = (d: MaintenanceDue): string => d.dueOn ?? '9999-12-31';
   return out.sort((a, b) => rank[a.status] - rank[b.status] || dateKey(a).localeCompare(dateKey(b)));
 }
+
+// --- Suggestion d'entretien (finalisation du 3 octobre 2026) ---
+
+/**
+ * Règles de la suggestion d'entretien, déterministes (aucun appel à un modèle) : inspection annuelle, pneus tous les
+ * 40 000 km, contrôle des freins tous les 24 mois, pneus d'hiver obligatoires au Québec du 1er décembre au 15 mars (pose
+ * à prévoir à partir du 15 octobre). Ce sont des conseils au gestionnaire de flotte, jamais des échéances de conformité.
+ */
+export const MAINTENANCE_SUGGESTION_RULES = { inspectionMonths: 12, tiresKm: 40_000, brakesMonths: 24, winterFrom: '10-15', winterUntil: '11-30' } as const;
+
+const KIND_LABELS: Record<'fr' | 'en', Record<MaintenanceKind, string>> = {
+  fr: { inspection: 'inspection', oil_change: 'vidange', tires: 'pneus', brakes: 'freins', battery: 'batterie', repair: 'réparation', cleaning: 'nettoyage', other: 'autre entretien' },
+  en: { inspection: 'inspection', oil_change: 'oil change', tires: 'tires', brakes: 'brakes', battery: 'battery', repair: 'repair', cleaning: 'cleaning', other: 'other maintenance' },
+};
+
+function monthsBefore(date: string, months: number): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const target = new Date(Date.UTC(y, m - 1 - months, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, lastDay));
+  return target.toISOString().slice(0, 10);
+}
+
+/**
+ * Suggestion d'entretien d'un véhicule de flotte, en une phrase par conseil, la plus urgente d'abord ; `null` s'il n'y a
+ * rien à conseiller. Entrées : registre de l'entretien, échéances calculées (`maintenanceDue`), kilométrage déclaré.
+ */
+export function maintenanceSuggestion(records: readonly MaintenanceRecord[], due: readonly MaintenanceDue[], today: string, odometerKm: number | null, language: 'fr' | 'en' = 'fr'): string | null {
+  const rules = MAINTENANCE_SUGGESTION_RULES;
+  const labels = KIND_LABELS[language];
+  const fr = language === 'fr';
+  const out: string[] = [];
+  const list = (kinds: MaintenanceKind[]) => [...new Set(kinds)].map((k) => labels[k]).join(', ');
+  const overdue = due.filter((d) => d.status === 'overdue').map((d) => d.kind);
+  const soon = due.filter((d) => d.status === 'due_soon').map((d) => d.kind);
+  if (overdue.length) out.push(fr ? `En retard : ${list(overdue)}. Planifiez l'entretien sans attendre.` : `Overdue: ${list(overdue)}. Schedule the work now.`);
+  if (soon.length) out.push(fr ? `À prévoir bientôt : ${list(soon)}.` : `Coming up soon: ${list(soon)}.`);
+  const latest = (kind: MaintenanceKind) => records.filter((r) => r.kind === kind).sort((a, b) => b.performedOn.localeCompare(a.performedOn))[0] ?? null;
+  const inspection = latest('inspection');
+  if (!due.some((d) => d.kind === 'inspection') && (!inspection || inspection.performedOn < monthsBefore(today, rules.inspectionMonths))) {
+    out.push(fr ? `Aucune inspection enregistrée depuis ${rules.inspectionMonths} mois : planifiez-en une.` : `No inspection recorded in the last ${rules.inspectionMonths} months: schedule one.`);
+  }
+  const tires = latest('tires');
+  const sinceTires = odometerKm === null ? null : odometerKm - (tires?.odometerKm ?? 0);
+  if (!due.some((d) => d.kind === 'tires') && sinceTires !== null && sinceTires >= rules.tiresKm) {
+    out.push(fr ? `Pneus : vérifiez l'usure (${rules.tiresKm.toLocaleString('fr-CA')} km ou plus depuis le dernier remplacement).` : `Tires: check the wear (${rules.tiresKm.toLocaleString('en-CA')} km or more since the last replacement).`);
+  }
+  const brakes = latest('brakes');
+  if (!due.some((d) => d.kind === 'brakes') && (!brakes || brakes.performedOn < monthsBefore(today, rules.brakesMonths))) {
+    out.push(fr ? `Freins : contrôle conseillé (liquide et étriers) au moins tous les ${rules.brakesMonths} mois.` : `Brakes: a check (fluid and calipers) is advised at least every ${rules.brakesMonths} months.`);
+  }
+  const monthDay = today.slice(5);
+  if (monthDay >= rules.winterFrom && monthDay <= rules.winterUntil && (!tires || tires.performedOn < `${today.slice(0, 4)}-09-01`)) {
+    out.push(fr ? 'Pneus d\'hiver obligatoires au Québec du 1er décembre au 15 mars : prévoyez la pose.' : 'Winter tires are mandatory in Quebec from December 1 to March 15: plan the change.');
+  }
+  return out.length ? out.join(' ') : null;
+}

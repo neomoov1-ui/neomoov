@@ -74,6 +74,11 @@ export interface BillingProvider {
   markPaidOutOfBand(invoiceId: string): Promise<void>;
   /** Annule une facture encore ouverte chez le fournisseur (résiliation). */
   voidInvoice(invoiceId: string): Promise<void>;
+  /**
+   * Finalisation du 3 octobre 2026 : session du portail client (Stripe Customer Portal) où le propriétaire du compte
+   * enregistre sa carte par défaut (prélèvement automatique des factures suivantes) ; lien à usage court, rendu tel quel.
+   */
+  createPortalSession(customerId: string, returnUrl: string): Promise<{ url: string }>;
   /** Vérifie la signature (secret propre au point de terminaison de la facturation) et renvoie l'événement. */
   verifyWebhook(rawBody: string | Buffer, signature: string): Promise<BillingWebhookEvent>;
 }

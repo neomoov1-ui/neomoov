@@ -80,3 +80,23 @@ export function complianceStep(check: ComplianceCheckState, today: string, remin
   if (passed > check.remindersSent) return { reminderDays: left, remindersSent: passed, becomesOverdue: false };
   return { reminderDays: null, remindersSent: check.remindersSent, becomesOverdue: false };
 }
+
+/**
+ * Finalisation du 3 octobre 2026 (règle des 60 000 km, section 5.12) : échéance de la vérification mécanique quand un
+ * certificat approuvé fait foi : sa date d'échéance, ou aujourd'hui si le véhicule a parcouru `everyKm` depuis le
+ * kilométrage relevé à cette vérification (`vehicles.mechanical_check_km`). Sans kilométrage relevé, la date seule.
+ */
+export function mechanicalCertificateDueOn(certificateExpiresOn: string, odometerKm: number | null, checkKm: number | null, today: string, rules: InspectionRules = DEFAULT_INSPECTION_RULES): string {
+  const kmReached = odometerKm !== null && checkKm !== null && odometerKm - checkKm >= rules.everyKm;
+  return kmReached && certificateExpiresOn > today ? today : certificateExpiresOn;
+}
+
+/**
+ * Renouvellement de la vérification des antécédents judiciaires (section 5.12, « selon la loi ») : la date d'échéance du
+ * document approuvé, sinon sa date de dépôt plus la durée de validité réglée (`compliance.background_check_validity_months`) ;
+ * `null` quand rien ne fixe l'échéance (aucune durée réglée).
+ */
+export function backgroundCheckDueOn(document: { expiresOn: string | null; depositedOn: string }, validityMonths: number): string | null {
+  if (document.expiresOn) return document.expiresOn;
+  return validityMonths > 0 ? addMonths(document.depositedOn, validityMonths) : null;
+}

@@ -293,3 +293,63 @@ export function evaluateOffer(offer: PilotOffer, criteria: PilotCriteria | null,
   if (decision === 'accept') reasons.push({ code: 'criteria_met' });
   return { decision, score: SCORE_OF[decision], reasons, metrics };
 }
+
+// --- Critères de la flotte (finalisation du 3 octobre 2026 : « critères du chauffeur ou de la flotte », amendement v1.2 section 7) ---
+
+/**
+ * Critères Pilote d'une organisation pour ses chauffeurs : `off` (seuls les critères du chauffeur), `default` (ceux de la
+ * flotte tant que le chauffeur n'a réglé aucun critère), `minimum` (les deux s'appliquent : Pilote n'accepte que ce que
+ * les deux admettent). Ils ne changent que la décision de Pilote pour le chauffeur, jamais l'ordre des offres de la
+ * répartition ni les chauffeurs sollicités.
+ */
+export const FLEET_PILOT_MODES = ['off', 'default', 'minimum'] as const;
+export type FleetPilotMode = (typeof FLEET_PILOT_MODES)[number];
+
+const fleetPilotCriteriaSchema = pilotCriteriaSchema.omit({ multiAppMode: true });
+
+export const fleetPilotSettingsSchema = z.object({
+  mode: z.enum(FLEET_PILOT_MODES).default('off'),
+  /** Mêmes critères que ceux d'un chauffeur ; le mode multi-applications reste celui du chauffeur. */
+  criteria: fleetPilotCriteriaSchema.default(() => fleetPilotCriteriaSchema.parse({})),
+});
+export type FleetPilotSettings = z.infer<typeof fleetPilotSettingsSchema>;
+export type FleetPilotSettingsInput = z.input<typeof fleetPilotSettingsSchema>;
+
+/** Réglage enregistré (`organizations.settings.pilot`) ; absent ou illisible : `off`. */
+export function parseFleetPilotSettings(raw: unknown): FleetPilotSettings {
+  const parsed = fleetPilotSettingsSchema.safeParse(raw ?? {});
+  return parsed.success ? parsed.data : fleetPilotSettingsSchema.parse({});
+}
+
+/** Le chauffeur n'a réglé aucun critère (tous ceux de départ, mode multi-applications mis à part). */
+export function isDefaultPilotCriteria(criteria: PilotCriteria): boolean {
+  const { multiAppMode: _mine, ...rest } = criteria;
+  const { multiAppMode: _default, ...defaults } = DEFAULT_PILOT_CRITERIA;
+  return JSON.stringify(rest) === JSON.stringify(defaults);
+}
+
+const DECISION_RANK: Record<PilotDecision, number> = { accept: 0, manual: 1, reject: 2 };
+
+/**
+ * Évaluation d'une offre avec les critères du chauffeur et ceux de sa flotte. `minimum` : la décision la plus prudente des
+ * deux (refus, sinon décision manuelle, sinon acceptation), avec les raisons de chaque refus ou réserve ; les mesures sont
+ * celles du chauffeur (son coût au kilomètre).
+ */
+export function evaluateOfferWithFleet(offer: PilotOffer, driverCriteria: PilotCriteria | null, fleet: FleetPilotSettings | null, context: PilotContext): PilotEvaluation {
+  if (!fleet || fleet.mode === 'off' || !driverCriteria) return evaluateOffer(offer, driverCriteria, context);
+  const fleetCriteria: PilotCriteria = { ...fleet.criteria, multiAppMode: driverCriteria.multiAppMode };
+  if (fleet.mode === 'default') return evaluateOffer(offer, isDefaultPilotCriteria(driverCriteria) ? fleetCriteria : driverCriteria, context);
+  const mine = evaluateOffer(offer, driverCriteria, context);
+  const theirs = evaluateOffer(offer, fleetCriteria, context);
+  const decision = DECISION_RANK[theirs.decision] > DECISION_RANK[mine.decision] ? theirs.decision : mine.decision;
+  if (decision === 'accept') return mine;
+  const seen = new Set<string>();
+  const reasons = [...mine.reasons, ...theirs.reasons].filter((r) => {
+    if (r.code === 'criteria_met') return false;
+    const key = `${r.code}:${JSON.stringify(r.params ?? {})}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return { decision, score: SCORE_OF[decision], reasons, metrics: mine.metrics };
+}

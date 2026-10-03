@@ -4,6 +4,7 @@
  */
 import { z } from 'zod';
 import { ORGANIZATION_TYPES, PERMISSION_MODULES } from '../access/permissions.js';
+import { roleConditionsMapSchema } from '../access/role-conditions.js';
 import { SUPPORT_ACCESS_STATUSES } from '../access/support-access.js';
 import { cents, isoDate, phoneE164, uuid } from './common.js';
 
@@ -49,6 +50,8 @@ export const roleViewSchema = z.object({
   /** Rôle système (défini par le domaine) : lecture seule. */
   system: z.boolean(),
   permissions: z.array(z.string()),
+  /** Conditions par permission (lecture seule, montant maximal, zones) ; une permission absente n'a aucune condition. */
+  conditions: roleConditionsMapSchema,
 });
 export type RoleView = z.infer<typeof roleViewSchema>;
 
@@ -61,10 +64,15 @@ export const roleCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   level: z.number().int().min(1).max(4),
   permissions: z.array(z.string()).min(1).max(100),
+  /**
+   * Conditions facultatives par permission accordée (clé : code d'une permission de `permissions`), jamais plus larges
+   * que celles de l'auteur.
+   */
+  conditions: roleConditionsMapSchema.optional(),
 });
 export type RoleCreate = z.infer<typeof roleCreateSchema>;
 
-export const rolePermissionsUpdateSchema = z.object({ permissions: z.array(z.string()).min(1).max(100) });
+export const rolePermissionsUpdateSchema = z.object({ permissions: z.array(z.string()).min(1).max(100), conditions: roleConditionsMapSchema.optional() });
 
 export const membershipViewSchema = z.object({
   id: uuid,
