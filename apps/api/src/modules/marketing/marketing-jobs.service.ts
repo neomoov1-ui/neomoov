@@ -14,6 +14,7 @@ import { SettingsService } from '../../common/settings.service.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
 import { QueueService } from '../../infra/queue.module.js';
 import { ContentAgent } from './content.agent.js';
+import { PublicationsService } from './publications.service.js';
 import { PublishingService, type CommentsPassReport, type PublishPassReport } from './publishing.service.js';
 import { SeoAgent } from './seo.agent.js';
 import { SeoService } from './seo.service.js';
@@ -30,6 +31,8 @@ export interface MarketingTickReport {
   seoMeasured: number;
   /** Alertes envoyées sur les autorisations des réseaux (jeton à refaire bientôt, ou en échec). */
   credentialAlerts: number;
+  /** Publications à relayer à la main signalées au personnel par le récapitulatif du jour (0 hors de son heure). */
+  relayDigest: number;
   /** Réseaux sociaux : comptes validés, refusés, autorisations proches de leur échéance (passe quotidienne). */
   social: { validated: number; failed: number; expiring: number };
 }
@@ -49,6 +52,7 @@ export class MarketingJobsService implements OnModuleInit {
     private readonly seo: SeoAgent,
     private readonly seoService: SeoService,
     private readonly publishing: PublishingService,
+    private readonly publications: PublicationsService,
     private readonly social: SocialAccountsService,
   ) {}
 
@@ -79,7 +83,7 @@ export class MarketingJobsService implements OnModuleInit {
 
   /** Une passe complète ; chaque étape protège les autres (une erreur est journalisée, jamais propagée). */
   async tick(now = new Date()): Promise<MarketingTickReport> {
-    const report: MarketingTickReport = { content: null, seo: null, publishing: { published: 0, retried: 0, failed: 0 }, measured: 0, comments: { checked: 0, replied: 0, forwarded: 0, escalated: 0 }, seoMeasured: 0, credentialAlerts: 0, social: { validated: 0, failed: 0, expiring: 0 } };
+    const report: MarketingTickReport = { content: null, seo: null, publishing: { published: 0, retried: 0, failed: 0 }, measured: 0, comments: { checked: 0, replied: 0, forwarded: 0, escalated: 0 }, seoMeasured: 0, credentialAlerts: 0, relayDigest: 0, social: { validated: 0, failed: 0, expiring: 0 } };
     const guard = async (label: string, fn: () => Promise<void>) => {
       try {
         await fn();
@@ -93,6 +97,7 @@ export class MarketingJobsService implements OnModuleInit {
     await guard('measure', async () => { report.measured = await this.publishing.measureDue(now); });
     await guard('comments', async () => { report.comments = await this.publishing.commentsPass(now); });
     await guard('seo-measure', async () => { report.seoMeasured = await this.seoService.measureDue(now); });
+    await guard('relay-digest', async () => { report.relayDigest = await this.publications.relayDigest(now); });
     if (now.getTime() - this.credentialsCheckedAt >= 3_600_000) {
       this.credentialsCheckedAt = now.getTime();
       await guard('credentials', async () => { report.credentialAlerts = await this.publishing.credentialsPass(now); });

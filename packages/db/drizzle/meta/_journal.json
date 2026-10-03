@@ -267,6 +267,13 @@
       "when": 1791011943864,
       "tag": "0037_social-accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791012236562,
+      "tag": "0038_publication-multireseau",
+      "breakpoints": true
     }
   ]
 }

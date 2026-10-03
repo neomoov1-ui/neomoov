@@ -67,3 +67,5 @@ export * from './marketing/index.js';
 export * from './schemas/marketing.js';
 // Réseaux sociaux (3 octobre 2026) : comptes connectés dans My Hub, liens publics de la page Contact.
 export * from './schemas/social-accounts.js';
+// Publication multiréseau (3 octobre 2026) : composer, lot importé, variantes d'image par réseau, relais manuel.
+export * from './schemas/publications.js';

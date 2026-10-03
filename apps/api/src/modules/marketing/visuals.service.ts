@@ -7,18 +7,20 @@
  * jamais bloquant pour les réseaux qui n'exigent pas de média. Tout est rangé dans le stockage sous `marketing/<id>/`.
  */
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { isVideoFormat, SPACE_RULES, type ContentFormat, type ContentLanguage, type ContentSpace, type MediaStatus } from '@neomoov/domain';
+import { isVideoFormat, SPACE_RULES, thumbnailSize, visualSize, type ContentFormat, type ContentLanguage, type ContentSpace, type MediaStatus, type VisualVariant } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Logger } from 'pino';
 import { SITE_CONNECTOR, TTS_PROVIDER, type SiteConnector, type SiteMediaItem, type TtsProvider } from '../../adapters/marketing.types.js';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { APP_LOGGER } from '../../common/logger.js';
 import { APP_ENV, type AppEnv } from '../../config/env.js';
+import { variantHtml, type VariantPhoto } from './visual-templates.js';
 
 const run = promisify(execFile);
 
@@ -45,13 +47,21 @@ export interface MediaResult {
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** Dimensions par format et par espace (formats des réseaux). */
+/** Dimensions par format et par espace : table unique du domaine (`VISUAL_SIZES`, tailles exactes de chaque réseau). */
 export function visualDimensions(space: ContentSpace, format: ContentFormat): { width: number; height: number } {
-  if (format === 'story' || format === 'short' || format === 'reel' || space === 'tiktok' || space === 'snapchat') return { width: 1080, height: 1920 };
-  if (space === 'instagram') return { width: 1080, height: 1080 };
-  if (format === 'video' || format === 'article' || format === 'newsletter') return { width: 1280, height: 720 };
-  return { width: 1200, height: 630 };
+  return visualSize(space, format);
 }
+
+/** Visuel d'un contenu de publication multiréseau : média produit, taille, empreinte et miniature éventuelle. */
+export interface VariantMediaResult extends MediaResult {
+  width: number;
+  height: number;
+  /** Empreinte SHA-256 du PNG rendu (sinon du gabarit HTML) : toutes différentes dans une publication. */
+  fingerprint: string | null;
+  thumbnailKey: string | null;
+}
+
+export const fingerprintOf = (body: Buffer | string): string => createHash('sha256').update(body).digest('hex');
 
 /** Points clés d'un texte : première phrase de chaque paragraphe ou élément de liste, au plus `max`, courts (comme `slides.cjs`). */
 export function keyPoints(text: string, max = 4): string[] {
@@ -153,8 +163,47 @@ ul{list-style:none;padding:0;margin:0}li{position:relative;padding-left:42px;mar
     return this.prepareVideo(input, photo, prefix);
   }
 
-  /** Chaîne vidéo de l'Academy : narration (voix de synthèse), une diapositive par séquence, liste de montage, ffmpeg si présent. */
-  private async prepareVideo(input: VisualInput, photo: SiteMediaItem | null, prefix: string): Promise<MediaResult> {
+  /**
+   * Visuel d'un contenu de publication multiréseau (3 octobre 2026) : gabarit de sa variante (mise en page, photo réelle,
+   * recadrage, accent, position et texte propres au réseau) à la taille exacte du réseau, rendu en PNG ; vidéo courte
+   * (TikTok, YouTube Short, reels) par la chaîne existante avec la variante en couverture ; miniature 1280 × 720 pour
+   * YouTube. L'empreinte du fichier produit permet de vérifier qu'aucune image n'est répétée dans une publication.
+   */
+  async prepareVariant(input: VisualInput, variant: VisualVariant, photo: VariantPhoto | null): Promise<VariantMediaResult> {
+    const prefix = `marketing/${input.id}`;
+    const size = visualSize(input.space, input.format);
+    const html = variantHtml({ size, language: input.language, variant, photo, spaceName: SPACE_RULES[input.space].name });
+    let result: MediaResult;
+    let fingerprint: string | null;
+    if (isVideoFormat(input.format)) {
+      const sitePhoto: SiteMediaItem | null = photo ? { id: 'variant', url: photo.url, alt: photo.alt, mimeType: 'image/jpeg' } : null;
+      result = await this.prepareVideo({ ...input, headline: variant.imageText }, sitePhoto, prefix, html);
+      const file = result.mediaKey ? await this.storage.getObject(result.mediaKey).catch(() => null) : null;
+      fingerprint = file ? fingerprintOf(file.body) : fingerprintOf(html);
+    } else {
+      const assets = [await this.put(`${prefix}/visual.html`, html, 'text/html; charset=utf-8')];
+      const png = await this.render(html, size);
+      if (png) {
+        assets.push(await this.put(`${prefix}/visual.png`, png, 'image/png'));
+        result = { mediaKey: assets[1]!, mediaKind: 'image', mediaStatus: 'ready', assets };
+      } else {
+        result = { mediaKey: assets[0]!, mediaKind: 'html', mediaStatus: 'html', assets };
+      }
+      fingerprint = fingerprintOf(png ?? html);
+    }
+    let thumbnailKey: string | null = null;
+    const thumb = thumbnailSize(input.space);
+    if (thumb) {
+      const thumbHtml = variantHtml({ size: thumb, language: input.language, variant, photo, spaceName: SPACE_RULES[input.space].name });
+      const png = await this.render(thumbHtml, thumb);
+      thumbnailKey = png ? await this.put(`${prefix}/thumbnail.png`, png, 'image/png') : await this.put(`${prefix}/thumbnail.html`, thumbHtml, 'text/html; charset=utf-8');
+      result.assets.push(thumbnailKey);
+    }
+    return { ...result, width: size.width, height: size.height, fingerprint, thumbnailKey };
+  }
+
+  /** Chaîne vidéo de l'Academy : narration (voix de synthèse), une diapositive par séquence, liste de montage, ffmpeg si présent ; `cover` remplace la première diapositive. */
+  private async prepareVideo(input: VisualInput, photo: SiteMediaItem | null, prefix: string, cover?: string): Promise<MediaResult> {
     const assets: string[] = [];
     const points = keyPoints(input.body, 5);
     const sequences = [input.headline?.trim() || input.title?.trim() || points[0] || 'Neomoov', ...points];
@@ -170,7 +219,7 @@ ul{list-style:none;padding:0;margin:0}li{position:relative;padding-left:42px;mar
     const size = visualDimensions(input.space, input.format);
     const slides: Array<{ html: string; png: Buffer | null }> = [];
     for (const [index, sequence] of sequences.entries()) {
-      const html = this.html({ ...input, headline: sequence }, photo, index === 0 ? [] : [sequence], { kicker: `${index + 1} / ${sequences.length}`, progress: (index + 1) / sequences.length });
+      const html = index === 0 && cover ? cover : this.html({ ...input, headline: sequence }, photo, index === 0 ? [] : [sequence], { kicker: `${index + 1} / ${sequences.length}`, progress: (index + 1) / sequences.length });
       const n = String(index + 1).padStart(2, '0');
       assets.push(await this.put(`${prefix}/slides/${n}.html`, html, 'text/html; charset=utf-8'));
       const png = await this.render(html, size);

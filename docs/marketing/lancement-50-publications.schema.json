@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neomoov.net/schemas/marketing/lancement-50-publications.schema.json",
+  "title": "Lot de publications multiréseau Neomoov (import My Hub)",
+  "description": "Format du fichier importé par My Hub (Marketing > Publier > « Importer des publications », route POST /v1/admin/marketing/publications/import). Une publication = un sujet décliné sur un, plusieurs ou tous les réseaux : un contenu par réseau, regroupés par un identifiant de groupe, chacun avec sa propre image à la bonne taille (jamais deux images identiques). L'import crée des brouillons, génère les visuels, applique les règles éditoriales (aucune promesse de revenu, seuls les prix 48,20 $ et 113,83 $, vouvoiement, pas de concurrent nommé, pas de donnée personnelle) ; « Approuver et programmer » répartit ensuite le lot sur les créneaux `marketing.slots`. Réimporter le même fichier ne crée pas de doublon : la clé est `campaign` + `ref`. Les textes sont en français du Québec (anglais seulement en variante `linkedin` ou `x`, après la version française). Jamais de tiret long ; aucun emoji hors Instagram, TikTok et Snapchat (un ou deux au plus).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "campaign", "publications"],
+  "properties": {
+    "$schema": { "type": "string", "description": "Chemin de ce schéma, facultatif (aide des éditeurs)." },
+    "version": { "const": 1, "description": "Version du format : 1." },
+    "campaign": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,59}$",
+      "description": "Code de la campagne (minuscules, chiffres, tirets), par exemple « lancement-2026-10 ». Sert à grouper le lot et à rendre l'import rejouable."
+    },
+    "title": { "type": "string", "maxLength": 160, "description": "Nom lisible de la campagne, affiché dans My Hub." },
+    "startDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Premier jour de diffusion (date locale de Montréal, AAAA-MM-JJ). Facultatif : par défaut, le jour de l'approbation. Le champ `day` de chaque publication se compte à partir de cette date."
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Valeurs appliquées à chaque publication qui ne les précise pas.",
+      "properties": {
+        "spaces": { "$ref": "#/$defs/spaceSelection" },
+        "cta": { "$ref": "#/$defs/cta" },
+        "hashtags": { "$ref": "#/$defs/hashtags" },
+        "language": { "$ref": "#/$defs/language" }
+      }
+    },
+    "publications": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": { "$ref": "#/$defs/publication" },
+      "description": "Les publications, dans l'ordre de diffusion souhaité (l'ordre sert à la répartition quand `day` et `scheduledAt` sont absents)."
+    }
+  },
+  "$defs": {
+    "space": {
+      "type": "string",
+      "enum": ["site_blog", "facebook", "instagram", "linkedin", "x", "tiktok", "snapchat", "telegram", "youtube", "whatsapp_channel"],
+      "description": "Code de l'espace : site_blog (blogue neomoov.net), facebook (page), instagram (compte professionnel), linkedin (page), x (compte), tiktok, snapchat (profil public), telegram (canal), youtube (chaîne), whatsapp_channel (chaîne WhatsApp, relais manuel)."
+    },
+    "spaceSelection": {
+      "description": "Réseaux visés : « all » (les dix espaces) ou une liste de codes sans doublon.",
+      "oneOf": [
+        { "const": "all" },
+        { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/space" } }
+      ]
+    },
+    "cta": {
+      "type": "string",
+      "enum": ["reserve", "academy", "preregister", "none"],
+      "description": "Appel à l'action : reserve (neomoov.net/reserver), academy (neomoov.net/academy), preregister (préinscription des chauffeurs), none. L'adresse vient du réglage `marketing.cta_urls` : ne pas écrire le lien dans le texte."
+    },
+    "language": { "type": "string", "enum": ["fr", "en"], "description": "Langue : fr partout ; en seulement sur LinkedIn et X." },
+    "hashtags": {
+      "type": "array",
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^#?[\\p{L}\\p{N}_]{2,40}$" },
+      "description": "Mots-clics avec ou sans « # », sans espace. Le nombre est ramené à la limite de chaque réseau (X 3, Snapchat 3, Facebook 5, LinkedIn 5, Telegram 5, TikTok 8, Instagram 10, YouTube 10, blogue et chaîne WhatsApp 0) : les premiers sont gardés."
+    },
+    "imageText": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 70,
+      "description": "Texte court écrit sur l'image (titre du visuel), 70 caractères au plus, sans lien ni mot-clic. Varie d'un réseau à l'autre."
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Texte adapté à un réseau. Chaque champ absent reprend la base de la publication (pour X et Snapchat : `short`).",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["post", "article", "reel", "story", "video", "short"],
+          "description": "Format, s'il diffère du format par défaut du réseau (site_blog article ; facebook post ; instagram post, reel ou story ; linkedin post ; x post ; tiktok short ; snapchat story ; telegram post ; youtube short ; whatsapp_channel post)."
+        },
+        "language": { "$ref": "#/$defs/language" },
+        "title": { "type": "string", "maxLength": 100, "description": "Titre propre au réseau (obligatoire en pratique pour site_blog et youtube : 100 caractères au plus pour YouTube)." },
+        "body": { "type": "string", "minLength": 1, "maxLength": 12000, "description": "Texte complet pour ce réseau, sans le lien d'appel à l'action ni les mots-clics (ajoutés à la composition). Limites du texte composé : X 280, Snapchat 250, chaîne WhatsApp 1 000, Telegram 1 024, Facebook 2 000, Instagram 2 200, TikTok 2 200, LinkedIn 3 000, YouTube 5 000, blogue 12 000." },
+        "caption": { "type": "string", "maxLength": 2200, "description": "Légende des réseaux à média (Instagram, TikTok, Snapchat, YouTube) quand elle diffère du corps." },
+        "hashtags": { "$ref": "#/$defs/hashtags" },
+        "imageText": { "$ref": "#/$defs/imageText" },
+        "en": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["body"],
+          "description": "Version anglaise publiée après la version française (LinkedIn et X seulement).",
+          "properties": {
+            "title": { "type": "string", "maxLength": 100 },
+            "body": { "type": "string", "minLength": 1, "maxLength": 3000 },
+            "hashtags": { "$ref": "#/$defs/hashtags" }
+          }
+        }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "title", "body", "short"],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$",
+          "description": "Identifiant unique dans le fichier (par exemple « P01 » à « P50 »). Avec `campaign`, rend l'import rejouable sans doublon."
+        },
+        "pillar": {
+          "type": "string",
+          "enum": ["service", "aeroport", "montreal", "electrique", "securite", "chauffeurs", "academy", "marque", "coulisses", "faq"],
+          "description": "Angle éditorial (lignes éditoriales v1.1), pour l'équilibre du calendrier et les statistiques."
+        },
+        "audience": { "type": "string", "enum": ["clients", "chauffeurs", "entreprises", "tous"], "description": "Public visé." },
+        "title": { "type": "string", "minLength": 3, "maxLength": 120, "description": "Titre de base : titre de l'article du blogue, de la vidéo YouTube et texte de l'image quand `imageText` est absent." },
+        "body": {
+          "type": "string",
+          "minLength": 40,
+          "maxLength": 12000,
+          "description": "Texte de base (Facebook, LinkedIn, Telegram, chaîne WhatsApp, description YouTube, légende Instagram et TikTok). Sans lien (l'appel à l'action l'ajoute) ni mot-clic (champ `hashtags`). Pour le blogue, préférer une variante `site_blog.body` de 600 à 1 200 mots."
+        },
+        "short": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 200,
+          "description": "Version courte (200 caractères au plus) : texte de X et de Snapchat sans variante, et repli quand un texte composé dépasse la limite du réseau."
+        },
+        "imageText": { "$ref": "#/$defs/imageText" },
+        "cta": { "$ref": "#/$defs/cta" },
+        "hashtags": { "$ref": "#/$defs/hashtags" },
+        "language": { "$ref": "#/$defs/language" },
+        "spaces": { "$ref": "#/$defs/spaceSelection" },
+        "variants": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Textes adaptés par réseau (clé = code de l'espace). Un réseau visé sans variante reçoit la base, adaptée automatiquement (format, longueur, mots-clics). Une variante pour un réseau non visé est ignorée.",
+          "properties": {
+            "site_blog": { "$ref": "#/$defs/variant" },
+            "facebook": { "$ref": "#/$defs/variant" },
+            "instagram": { "$ref": "#/$defs/variant" },
+            "linkedin": { "$ref": "#/$defs/variant" },
+            "x": { "$ref": "#/$defs/variant" },
+            "tiktok": { "$ref": "#/$defs/variant" },
+            "snapchat": { "$ref": "#/$defs/variant" },
+            "telegram": { "$ref": "#/$defs/variant" },
+            "youtube": { "$ref": "#/$defs/variant" },
+            "whatsapp_channel": { "$ref": "#/$defs/variant" }
+          }
+        },
+        "photoHints": {
+          "type": "array",
+          "maxItems": 6,
+          "items": { "type": "string", "minLength": 2, "maxLength": 40 },
+          "description": "Mots pour choisir les photos réelles de la médiathèque du site (par exemple « aéroport », « véhicule », « chauffeur », « Montréal »). Jamais d'image de synthèse présentée comme une photo (règle D46) : sans photo correspondante, le visuel reste un gabarit de marque sans photo. Chaque réseau reçoit une photo différente quand la médiathèque le permet."
+        },
+        "day": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 90,
+          "description": "Jour de diffusion relatif (1 = `startDate`). Les réseaux de la publication sont placés ce jour-là sur leurs créneaux `marketing.slots` (ou à la première heure libre du jour). Absent : répartition automatique dans l'ordre du fichier."
+        },
+        "scheduledAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Instant précis (ISO 8601 avec fuseau, par exemple 2026-10-04T12:00:00-04:00), prioritaire sur `day`. À réserver aux publications liées à une date."
+        },
+        "sensitive": { "type": "boolean", "description": "Vrai : approbation humaine obligatoire même en approbation en lot (sécurité, réglementation, argent, concurrence…)." },
+        "notes": { "type": "string", "maxLength": 1000, "description": "Note interne pour la personne qui approuve, jamais publiée." }
+      }
+    }
+  }
+}

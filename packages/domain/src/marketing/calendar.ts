@@ -26,6 +26,8 @@ export const DEFAULT_SLOTS: Readonly<Record<ContentSpace, readonly Slot[]>> = {
   x: [{ day: 1, time: '09:00' }, { day: 3, time: '09:00' }, { day: 5, time: '09:00' }],
   snapchat: [{ day: 5, time: '19:00' }, { day: 7, time: '19:00' }],
   newsletter: [{ day: 4, time: '10:00' }],
+  telegram: [{ day: 2, time: '17:30' }, { day: 4, time: '17:30' }],
+  whatsapp_channel: [{ day: 1, time: '18:00' }, { day: 4, time: '18:00' }],
 };
 
 const SLOT_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
