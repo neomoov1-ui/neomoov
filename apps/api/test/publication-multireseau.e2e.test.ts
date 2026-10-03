@@ -20,7 +20,7 @@ import { bearer, cleanupTestData, createStaffAndLogin, db, resetHttpLimits, star
 const rand = () => Math.random().toString(36).slice(2, 8);
 
 type Visual = { template: string; width: number; height: number; fingerprint: string | null; photoIndex: number | null };
-type Item = { id: string; space: string; language: string; status: string; delivery: 'auto' | 'manual'; scheduledAt: string | null; externalId: string | null; externalUrl: string | null; mediaStatus: string; issues: Array<{ kind: string; blocking: boolean }>; sensitive: boolean; visual: Visual | null; body: string; hashtags: string[] };
+type Item = { id: string; space: string; language: string; status: string; delivery: 'auto' | 'manual'; scheduledAt: string | null; externalId: string | null; externalUrl: string | null; mediaStatus: string; issues: Array<{ kind: string; blocking: boolean }>; sensitive: boolean; visual: Visual | null; body: string; hashtags: string[]; awaitsRelay?: boolean; notice?: string | null };
 type Group = { id: string; campaign: string | null; ref: string | null; items: Item[]; counts: Record<string, number> };
 
 const BODY = 'Votre vol part tôt demain ? Réservez votre trajet vers l\'aéroport Montréal-Trudeau au moins 2 heures à l\'avance : chauffeur professionnel vérifié, véhicule 100 % électrique récent et prix tout compris affiché avant de confirmer.';
@@ -139,7 +139,7 @@ describe('publication multiréseau (agent S2) : composer, visuels par réseau, r
     const tiktok = group.items.find((i) => i.space === 'tiktok')!;
     await db(app!).update(schema.contentItems).set({ status: 'failed', scheduledAt: new Date(Date.now() - 60_000), lastError: 'SOCIAL_APPROVAL_PENDING : LinkedIn refuse la publication (Community Management API non approuvée)' }).where(eq(schema.contentItems.id, linkedin.id));
     await db(app!).update(schema.contentItems).set({ status: 'published', publishNotice: 'Vidéo envoyée en privé : audit TikTok non accordé' }).where(eq(schema.contentItems.id, tiktok.id));
-    const view = (await request(server()).get(`/v1/admin/marketing/publications/${group.id}`).set(bearer(operator.tokens)).expect(200)).body as Group & { items: Array<Item & { awaitsRelay: boolean; notice: string | null }> };
+    const view = (await request(server()).get(`/v1/admin/marketing/publications/${group.id}`).set(bearer(operator.tokens)).expect(200)).body as Group;
     expect(view.counts).toMatchObject({ relay: 1, failed: 0, published: 1 });
     expect(view.items.find((i) => i.space === 'linkedin')!.awaitsRelay).toBe(true);
     expect(view.items.find((i) => i.space === 'tiktok')!.notice).toContain('privé');
