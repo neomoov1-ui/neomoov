@@ -10,17 +10,20 @@ import { MarketingController } from './marketing.controller.js';
 import { PublishingService } from './publishing.service.js';
 import { SeoAgent } from './seo.agent.js';
 import { SeoService } from './seo.service.js';
+import { PublicSocialLinksController, SocialAccountsController, SocialOAuthController } from './social-accounts.controller.js';
+import { SocialAccountsService } from './social-accounts.service.js';
 import { VisualsService } from './visuals.service.js';
 
 /**
  * Direction marketing automatisée (phase 1 « entreprise autonome », 2 octobre 2026) : agents `content` (calendrier
  * hebdomadaire), `publishing` (diffusion, mesures, commentaires) et `seo` (plan de référencement), connecteurs des
- * onze espaces, file `marketing`, écran My Hub « Marketing ».
+ * onze espaces, file `marketing`, écran My Hub « Marketing ». Réseaux sociaux (3 octobre 2026) : comptes des dix espaces
+ * connectés dans My Hub (`SocialAccountsService`, registre `SOCIAL_CREDENTIALS` fourni par `AdaptersModule`), liens publics.
  */
 @Module({
   imports: [AgentsModule, AuditModule, RidesModule],
-  controllers: [MarketingController],
-  providers: [EditorialLinesService, VisualsService, ContentService, ContentAgent, PublishingService, SeoService, SeoAgent, MarketingJobsService],
-  exports: [ContentService, ContentAgent, PublishingService, SeoService, SeoAgent, MarketingJobsService],
+  controllers: [MarketingController, SocialAccountsController, SocialOAuthController, PublicSocialLinksController],
+  providers: [EditorialLinesService, VisualsService, ContentService, ContentAgent, PublishingService, SeoService, SeoAgent, MarketingJobsService, SocialAccountsService],
+  exports: [ContentService, ContentAgent, PublishingService, SeoService, SeoAgent, MarketingJobsService, SocialAccountsService],
 })
 export class MarketingModule {}

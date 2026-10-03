@@ -114,6 +114,9 @@ const SQUARE_SHAPES = [
   { key: 'TELEGRAM_CHANNEL_ID', test: (v) => /^@[A-Za-z][\w]{4,}$|^-100\d{6,}$/.test(v), expected: '@nom du canal public, ou identifiant -100… du canal privé' },
   { key: 'TELEGRAM_DISCUSSION_CHAT_ID', test: (v) => /^@[A-Za-z][\w]{4,}$|^-100\d{6,}$/.test(v), expected: 'identifiant -100… du groupe de discussion (ou son @nom)' },
   ...['YOUTUBE_API_AUDITED', 'TIKTOK_APP_AUDITED'].map((key) => ({ key, test: (v) => ['on', 'off', 'true', 'false', '1', '0'].includes(v), expected: 'on ou off' })),
+  // Réseaux sociaux (3 octobre 2026) : identifiants des applications OAuth, même contrôle de forme.
+  { key: 'META_APP_ID', test: (v) => /^\d{10,20}$/.test(v), expected: 'identifiant d\'application Meta (10 à 20 chiffres)' },
+  { key: 'META_APP_SECRET', test: (v) => /^[0-9a-f]{32}$/.test(v), expected: 'clé secrète de l\'application Meta (32 caractères hexadécimaux)' },
 ];
 /** Ce que la valeur semble être quand elle n'a pas la forme attendue (sans la montrer). */
 function squareLooksLike(value) {
