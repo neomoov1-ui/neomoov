@@ -202,7 +202,7 @@ describe('Neomoov Pilote : rentabilité nette', () => {
     expect(result).toEqual({
       rides: 1,
       revenue: { neomoovCents: 2800, externalCents: 100_000, totalCents: 102_800 },
-      costs: { items: { vehicle: 40_000, insurance: 15_000, energy: 0, maintenance: 0, phone: 0, other: 1000 }, packsCents: 5900, totalCents: 61_900 },
+      costs: { items: { vehicle: 40_000, insurance: 15_000, energy: 0, maintenance: 0, phone: 0, other: 1000 }, packsCents: 5900, platformFeesCents: 0, totalCents: 61_900 },
       netCents: 40_900,
       marginPercent: 39.8,
       neomoovSharePercent: 2.7,
@@ -212,6 +212,12 @@ describe('Neomoov Pilote : rentabilité nette', () => {
   it('sans revenu : net négatif possible, pourcentages nuls', () => {
     expect(netProfitability([], {}, 0)).toMatchObject({ rides: 0, netCents: 0, marginPercent: null, neomoovSharePercent: null });
     expect(netProfitability([], { packsCents: 2900 }, -10)).toMatchObject({ netCents: -2900, revenue: { externalCents: 0 }, marginPercent: null });
+  });
+
+  it('la redevance Neomoov retenue sur les courses compte dans les coûts (3 octobre 2026)', () => {
+    const result = netProfitability([{ fareCents: 2000, tipCents: 0 }], { packsCents: 0, platformFeesCents: 200 }, 0);
+    expect(result.costs).toMatchObject({ platformFeesCents: 200, totalCents: 200 });
+    expect(result.netCents).toBe(1800);
   });
 });
 

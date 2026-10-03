@@ -40,6 +40,12 @@ export const drivers = pgTable('drivers', {
   ratingAverage: numeric('rating_average', { precision: 3, scale: 2 }).notNull().default('5.00'),
   ratingCount: integer('rating_count').notNull().default(0),
   rideCount: integer('ride_count').notNull().default(0),
+  /**
+   * Redevance Neomoov (3 octobre 2026) : taux du chauffeur en points de base, de 500 (5 %) à 1000 (10 %), réglé dans My Hub ;
+   * un nouveau chauffeur reçoit le réglage `drivers.platform_fee_default_bps`. À ne pas confondre avec la redevance
+   * gouvernementale (`rides.regulatory_fee_cents`).
+   */
+  platformFeeBps: integer('platform_fee_bps').notNull().default(1000),
   isOnline: boolean('is_online').notNull().default(false),
   currentVehicleId: uuid('current_vehicle_id'),
   organizationId: uuid('organization_id').default(sql`app_scope_organization_id()`),
@@ -53,6 +59,7 @@ export const drivers = pgTable('drivers', {
   uniqueIndex('drivers_stripe_connect_unique').on(t.stripeConnectAccountId).where(sql`${t.stripeConnectAccountId} IS NOT NULL`),
   index('drivers_status_online_idx').on(t.status, t.isOnline),
   check('drivers_rating_range', sql`${t.ratingAverage} BETWEEN 0 AND 5`),
+  check('drivers_platform_fee_bps_range', sql`${t.platformFeeBps} BETWEEN 500 AND 1000`),
 ]);
 
 export const driverDocuments = pgTable('driver_documents', {

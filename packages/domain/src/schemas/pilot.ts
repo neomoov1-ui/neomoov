@@ -131,6 +131,8 @@ export const driverProfitabilitySchema = z.object({
   costs: z.object({
     items: z.object({ vehicle: cents, insurance: cents, energy: cents, maintenance: cents, phone: cents, other: cents }),
     packsCents: cents,
+    /** Redevance Neomoov retenue sur les courses terminées du mois (3 octobre 2026). */
+    platformFeesCents: cents,
     totalCents: cents,
   }),
   netCents: signedCents,

@@ -129,6 +129,24 @@ export const adminBalanceSchema = z.object({
 });
 export type AdminBalance = z.infer<typeof adminBalanceSchema>;
 
+/** `GET /admin/platform-fees` : période de jours locaux (heure de Montréal), bornes incluses ; 366 jours au plus. */
+export const platformFeeSummaryQuerySchema = z.object({ from: localDateString, to: localDateString });
+
+/** Total des redevances Neomoov d'une période (fin de course), par mode de paiement et par taux. */
+export const platformFeeSummarySchema = z.object({
+  from: localDateString,
+  to: localDateString,
+  rides: z.number().int().min(0),
+  totalCents: cents,
+  baseCents: cents,
+  /** Payées par carte : retenues sur les versements. */
+  platform: z.object({ rides: z.number().int().min(0), totalCents: cents }),
+  /** Payées au chauffeur : ajoutées à ce qu'il doit (prélèvement du relevé). */
+  direct: z.object({ rides: z.number().int().min(0), totalCents: cents }),
+  byRate: z.array(z.object({ rateBps: z.number().int(), rides: z.number().int().min(0), totalCents: cents })),
+});
+export type PlatformFeeSummary = z.infer<typeof platformFeeSummarySchema>;
+
 /**
  * Versement à faire hors plateforme (étape 26, Square sans Connect) : relevé émis au net positif, pas encore réglé. La
  * référence est à reprendre comme libellé du virement puis dans `settle-offline`.

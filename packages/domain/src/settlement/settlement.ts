@@ -5,6 +5,7 @@
  */
 
 import { mulDivRound } from '../pricing/quote.js';
+import { platformFeeLabel } from './platform-fee.js';
 
 export type CreditKind =
   | 'ride_fare_platform' | 'fare_taxes_platform' | 'tip_platform' | 'promotion_compensation'
@@ -13,7 +14,9 @@ export type DebitKind =
   | 'pack_billed' | 'pack_taxes' | 'service_fee_direct' | 'regulatory_fee_direct' | 'fee_taxes_direct'
   | 'cancellation_fee_due' | 'adjustment_negative'
   /** Étape 23 : part de l'organisation du chauffeur (loyer ou pourcentage du tarif), selon ses règles de partage. */
-  | 'fleet_share';
+  | 'fleet_share'
+  /** Redevance Neomoov (3 octobre 2026) : frais de plateforme sur le tarif de chaque course terminée, carte ou paiement direct. */
+  | 'platform_fee';
 export type StatementLineKind = CreditKind | DebitKind;
 
 const CREDIT_KINDS: ReadonlySet<string> = new Set<CreditKind>([
@@ -57,6 +60,11 @@ export interface SettlementRide {
   tollCents: number;
   /** Frais d'annulation facturés au client, s'il y a lieu. */
   cancellationFeeCents: number;
+  /**
+   * Redevance Neomoov enregistrée à la fin de la course (montant et taux figés à ce moment) ; absente pour une course
+   * terminée avant la mise en place de la redevance, ou quand elle n'est pas due.
+   */
+  platformFee?: { amountCents: number; rateBps: number } | null;
 }
 
 export interface Statement {
@@ -143,6 +151,9 @@ export function classifyRideForStatement(ride: SettlementRide, rates: TaxRates):
   }
   if (ride.tipChannel === 'platform') push('tip_platform', ride.tipCents, 'Pourboire');
   push('promotion_compensation', ride.promotionCompensationCents, 'Compensation de promotion');
+  // Redevance Neomoov : même débit quel que soit le paiement. Par carte, elle est retenue sur le versement ; en paiement
+  // direct, elle s'ajoute à ce que le chauffeur doit (prélèvement du relevé négatif, suspension sur dette existants).
+  if (ride.platformFee) push('platform_fee', ride.platformFee.amountCents, platformFeeLabel(ride.platformFee.rateBps));
   return lines;
 }
 

@@ -1,6 +1,6 @@
 /**
  * Répartition (section 5.4) : score des candidats, sélection d'une vague et rayons de recherche successifs.
- * Fonctions pures : l'appelant filtre les candidats (statut, catégorie, documents, pack, solde, rayon), fournit les temps
+ * Fonctions pures : l'appelant filtre les candidats (statut, catégorie, documents, pack si exigé, solde, rayon), fournit les temps
  * d'arrivée (matrice) et charge les poids depuis `settings` (`dispatch.score_weights`). Plus le score est petit, meilleur
  * est le candidat.
  */
@@ -58,6 +58,11 @@ export interface DispatchCandidate {
   /** Autre chauffeur favori du client (« Mes chauffeurs »). */
   isClientFavourite: boolean;
   isUnlimited: boolean;
+  /**
+   * Pack de courses utilisable (ou renouvellement automatique en attente). Décision du fondateur du 3 octobre 2026 : un
+   * chauffeur sans pack reçoit quand même des courses, mais passe après ceux qui en ont un. Absent : traité comme avec pack.
+   */
+  hasActivePack?: boolean;
 }
 
 export interface DispatchContext {
@@ -96,9 +101,27 @@ export function scoreCandidate(candidate: DispatchCandidate, context: DispatchCo
   return { ...candidate, etaMinutes, score: Math.round(score * 1000) / 1000 };
 }
 
-/** Candidats classés du meilleur au moins bon (score, puis temps d'arrivée, puis identifiant pour un ordre stable). */
+/**
+ * Rang de priorité des packs (3 octobre 2026) : 0 pour un chauffeur avec pack, 1 pour un chauffeur sans pack, qui passe
+ * après. Le favori demandé par le client pour cette course garde sa place (choix explicite du client, D37).
+ */
+export function packPriorityTier(candidate: Pick<DispatchCandidate, 'hasActivePack' | 'isRequestedFavourite'>): 0 | 1 {
+  return candidate.hasActivePack === false && !candidate.isRequestedFavourite ? 1 : 0;
+}
+
+/** Sépare des candidats déjà classés : ceux avec pack d'abord, ceux sans pack ensuite (ordre conservé dans chaque groupe). */
+export function splitByPackPriority<T extends Pick<DispatchCandidate, 'hasActivePack' | 'isRequestedFavourite'>>(candidates: readonly T[]): { first: T[]; later: T[] } {
+  return { first: candidates.filter((c) => packPriorityTier(c) === 0), later: candidates.filter((c) => packPriorityTier(c) === 1) };
+}
+
+/**
+ * Candidats classés du meilleur au moins bon : chauffeurs avec pack d'abord (sans plafond pour les autres), puis score,
+ * temps d'arrivée et identifiant pour un ordre stable.
+ */
 export function scoreCandidates(candidates: readonly DispatchCandidate[], context: DispatchContext, weights: DispatchWeights = DEFAULT_DISPATCH_WEIGHTS): ScoredCandidate[] {
-  return candidates.map((c) => scoreCandidate(c, context, weights)).sort((a, b) => a.score - b.score || a.etaMinutes - b.etaMinutes || a.driverId.localeCompare(b.driverId));
+  return candidates
+    .map((c) => scoreCandidate(c, context, weights))
+    .sort((a, b) => packPriorityTier(a) - packPriorityTier(b) || a.score - b.score || a.etaMinutes - b.etaMinutes || a.driverId.localeCompare(b.driverId));
 }
 
 /** Les `waveSize` meilleurs candidats d'une vague. */
