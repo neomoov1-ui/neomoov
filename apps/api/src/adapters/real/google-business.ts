@@ -9,7 +9,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { CredentialStatus, PublishedRef, SocialComment, SocialMetrics, SocialPublishInput, SocialPublishResult, SocialPublisher } from '../marketing.types.js';
-import { OAuthSession, SocialApi, type OAuthTokenStore } from './oauth.js';
+import { OAuthSession, SocialApi, type OAuthTokenStore, storeBinding } from './oauth.js';
 
 export const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const API = 'https://mybusiness.googleapis.com/v4';
@@ -25,6 +25,8 @@ export interface GoogleBusinessOptions {
   accountId: string;
   locationId: string;
   store?: OAuthTokenStore | null;
+  storeOrigin?: string;
+  reloadBeforeRefresh?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }
@@ -77,7 +79,7 @@ export class GoogleBusinessPublisher implements SocialPublisher {
   constructor(private readonly options: GoogleBusinessOptions) {
     const session = new OAuthSession({
       provider: 'google-business', label: 'Fiche Google', tokenUrl: GOOGLE_TOKEN_URL, clientId: options.clientId, clientSecret: options.clientSecret, refreshToken: options.refreshToken,
-      clientAuth: 'body', store: options.store ?? null, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
+      clientAuth: 'body', ...storeBinding(options), ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
     this.api = new SocialApi({
  label: 'Fiche Google', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: googleErrorMessage });

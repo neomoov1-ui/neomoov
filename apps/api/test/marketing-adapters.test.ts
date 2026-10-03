@@ -1,7 +1,7 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { BrevoNewsletterPublisher, newsletterHtml } from '../src/adapters/real/brevo.js';
-import { NotConfiguredPublisher, realSearchConsole, realSocialPublishers, realTts, SPACE_VARIABLES } from '../src/adapters/real/marketing.js';
+import { NotConfiguredPublisher, realSearchConsole, realSocialPublishers, realTts, refreshPublishers, SPACE_VARIABLES } from '../src/adapters/real/marketing.js';
 import { MetaFacebookPublisher, MetaGraphClient, MetaInstagramPublisher } from '../src/adapters/real/meta-graph.js';
 import { GoogleSearchConsoleProvider, serviceAccountAssertion } from '../src/adapters/real/search-console.js';
 import { wavDurationSeconds } from '../src/adapters/real/tts.js';
@@ -186,23 +186,28 @@ describe('Search Console réelle', () => {
 });
 
 describe('choix des connecteurs réels et durée WAV', () => {
-  it('sans clés : onze connecteurs non configurés qui refusent clairement ; avec WordPress, Brevo et Meta : réels', () => {
+  it('sans clés : connecteurs non configurés qui refusent clairement (Snapchat et chaîne WhatsApp en relais manuel) ; avec WordPress, Brevo et Meta : réels', async () => {
     const none = loadEnv(base, { dotenv: false });
     const empty = realSocialPublishers(none);
-    expect(empty.size).toBe(11);
-    expect([...empty.values()].every((p) => p instanceof NotConfiguredPublisher && !p.configured)).toBe(true);
+    await refreshPublishers(empty);
+    expect(empty.size).toBe(13);
+    expect([...empty.values()].filter((p) => p.configured).map((p) => [p.space, p.name])).toEqual([['snapchat', 'manual'], ['whatsapp_channel', 'manual']]);
+    await expect(empty.get('linkedin')!.publish({} as never)).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501 });
+    await expect(empty.get('snapchat')!.publish({} as never)).rejects.toMatchObject({ code: 'SOCIAL_MANUAL_RELAY', status: 409 });
     expect(realTts(none).configured).toBe(false);
     expect(realSearchConsole(none).configured).toBe(false);
     const full = loadEnv({ ...base, WORDPRESS_URL: 'https://neomoov.net', WORDPRESS_USER: 'robot', WORDPRESS_APP_PASSWORD: 'x', BREVO_API_KEY: 'k', BREVO_NEWSLETTER_LIST_ID: '3', BREVO_SENDER_EMAIL: 'a@neomoov.net', META_PAGE_ID: 'P', META_PAGE_TOKEN: 'T', META_IG_USER_ID: 'I' }, { dotenv: false });
     const real = realSocialPublishers(full);
+    await refreshPublishers(real);
     expect(['site_blog', 'academy', 'newsletter', 'facebook', 'instagram'].every((s) => real.get(s as never)!.configured)).toBe(true);
+    expect(real.get('facebook')!.name).toBe('meta');
     expect(real.get('linkedin')!.configured).toBe(false);
     expect(SPACE_VARIABLES.x).toEqual(['X_CLIENT_ID', 'X_CLIENT_SECRET', 'X_REFRESH_TOKEN']);
   });
 
   it('NotConfiguredPublisher : 501 PROVIDER_NOT_CONFIGURED avec les variables attendues', async () => {
     await expect(new NotConfiguredPublisher('tiktok').publish()).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', status: 501, message: expect.stringContaining('TIKTOK_REFRESH_TOKEN') });
-    await expect(new NotConfiguredPublisher('snapchat').publish()).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', message: expect.stringContaining('SNAPCHAT_ACCESS_TOKEN') });
+    await expect(new NotConfiguredPublisher('snapchat').publish()).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED', message: expect.stringContaining('relais manuel') });
   });
 
   it('durée d\'un WAV PCM ; en-tête absent : null', () => {

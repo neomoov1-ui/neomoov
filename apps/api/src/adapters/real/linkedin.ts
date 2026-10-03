@@ -9,7 +9,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { CredentialStatus, PublishedRef, SocialComment, SocialMetrics, SocialPublishInput, SocialPublishResult, SocialPublisher } from '../marketing.types.js';
-import { cleanDetail, OAuthSession, SocialApi, type OAuthTokenStore } from './oauth.js';
+import { cleanDetail, OAuthSession, SocialApi, type OAuthTokenStore, storeBinding } from './oauth.js';
 
 const REST = 'https://api.linkedin.com/rest';
 export const LINKEDIN_TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
@@ -27,6 +27,8 @@ export interface LinkedInOptions {
   /** Version mensuelle de l'API (`AAAAMM`). */
   version: string;
   store?: OAuthTokenStore | null;
+  storeOrigin?: string;
+  reloadBeforeRefresh?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }
@@ -85,7 +87,7 @@ export class LinkedInPublisher implements SocialPublisher {
     this.#fetch = options.fetchImpl ?? ((input, init) => fetch(input, init));
     const session = new OAuthSession({
       provider: 'linkedin', label: 'LinkedIn', tokenUrl: LINKEDIN_TOKEN_URL, clientId: options.clientId, clientSecret: options.clientSecret, refreshToken: options.refreshToken,
-      accessToken: options.accessToken, accessExpiresAt: options.accessExpiresAt, clientAuth: 'body', store: options.store ?? null,
+      accessToken: options.accessToken, accessExpiresAt: options.accessExpiresAt, clientAuth: 'body', ...storeBinding(options),
       ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
     this.api = new SocialApi({
@@ -112,7 +114,23 @@ export class LinkedInPublisher implements SocialPublisher {
     return image;
   }
 
+  /**
+   * Publication refusée faute de droits (403 : produit Community Management API pas encore accordé à l'application, ou
+   * compte non administrateur de la page) : erreur `SOCIAL_APPROVAL_PENDING`, la diffusion passe la publication en
+   * relais manuel au lieu de la relancer.
+   */
   async publish(input: SocialPublishInput): Promise<SocialPublishResult> {
+    try {
+      return await this.post(input);
+    } catch (error) {
+      if (error instanceof AppError && error.code === 'SOCIAL_FORBIDDEN') {
+        throw new AppError('SOCIAL_APPROVAL_PENDING', `LinkedIn : droits de publication absents (Community Management API pas encore accordée par LinkedIn, ou compte non administrateur de la page) : publication à relayer à la main. Détail : ${error.message.slice(0, 200)}`, HttpStatus.CONFLICT, { reason: 'approval_pending' });
+      }
+      throw error;
+    }
+  }
+
+  private async post(input: SocialPublishInput): Promise<SocialPublishResult> {
     const commentary = linkedinCommentary(input.text);
     if (input.text.length > 3_000) throw new AppError('SOCIAL_VALIDATION_ERROR', `LinkedIn : ${input.text.length} caractères, 3 000 au plus`, HttpStatus.UNPROCESSABLE_ENTITY);
     // Vidéo : téléversement en plusieurs parties non livré ; la publication part en texte seul.

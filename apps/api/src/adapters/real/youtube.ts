@@ -9,7 +9,7 @@ import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { CredentialStatus, PublishedRef, SocialComment, SocialMetrics, SocialPublishInput, SocialPublishResult, SocialPublisher } from '../marketing.types.js';
 import { GOOGLE_TOKEN_URL, googleErrorMessage } from './google-business.js';
-import { OAuthSession, SocialApi, type OAuthTokenStore } from './oauth.js';
+import { OAuthSession, SocialApi, type OAuthTokenStore, storeBinding } from './oauth.js';
 
 const UPLOAD = 'https://www.googleapis.com/upload/youtube/v3/videos';
 const API = 'https://www.googleapis.com/youtube/v3';
@@ -26,10 +26,14 @@ export interface YouTubeOptions {
   clientSecret: string;
   refreshToken: string;
   privacyStatus: YouTubePrivacy;
+  /** Projet Google audité par YouTube (`YOUTUBE_API_AUDITED`) ; sinon toute vidéo part en privé, avec la mention. */
+  audited?: boolean;
   categoryId?: string;
   /** Taille des morceaux (tests) ; 8 Mio par défaut. */
   chunkSize?: number;
   store?: OAuthTokenStore | null;
+  storeOrigin?: string;
+  reloadBeforeRefresh?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }
@@ -86,7 +90,7 @@ export class YouTubePublisher implements SocialPublisher {
   constructor(private readonly options: YouTubeOptions) {
     const session = new OAuthSession({
       provider: 'youtube', label: 'YouTube', tokenUrl: GOOGLE_TOKEN_URL, clientId: options.clientId, clientSecret: options.clientSecret, refreshToken: options.refreshToken,
-      clientAuth: 'body', store: options.store ?? null, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
+      clientAuth: 'body', ...storeBinding(options), ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
     this.api = new SocialApi({
       label: 'YouTube', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: googleErrorMessage,
@@ -96,7 +100,7 @@ export class YouTubePublisher implements SocialPublisher {
   }
 
   toJSON() {
-    return { name: this.name, space: this.space, privacyStatus: this.options.privacyStatus, configured: true };
+    return { name: this.name, space: this.space, privacyStatus: this.options.privacyStatus, audited: Boolean(this.options.audited), configured: true };
   }
 
   /** Le délai d'un quota épuisé n'est pas donné par YouTube : il court jusqu'à minuit, heure du Pacifique. */
@@ -114,11 +118,12 @@ export class YouTubePublisher implements SocialPublisher {
   async publish(input: SocialPublishInput): Promise<SocialPublishResult> {
     const media = input.media;
     if (!media || !media.contentType.startsWith('video/')) throw new AppError('SOCIAL_MEDIA_REQUIRED', 'YouTube exige une vidéo MP4 (montage ffmpeg sur le serveur)', HttpStatus.UNPROCESSABLE_ENTITY);
-    const privacyStatus: YouTubePrivacy = input.draft ? 'private' : this.options.privacyStatus;
+    // Projet non audité : YouTube verrouille toute vidéo envoyée par l'API en privé ; on l'envoie privée d'emblée.
+    const requested: YouTubePrivacy = input.draft ? 'private' : this.options.audited ? this.options.privacyStatus : 'private';
     const language = input.language === 'en' ? 'en-CA' : 'fr-CA';
     const metadata = {
       snippet: { title: youtubeTitle(input), description: youtubeDescription(input.text, input.format), tags: youtubeTags(input.hashtags), categoryId: this.options.categoryId ?? DEFAULT_CATEGORY, defaultLanguage: language, defaultAudioLanguage: language },
-      status: { privacyStatus, selfDeclaredMadeForKids: false, embeddable: true },
+      status: { privacyStatus: requested, selfDeclaredMadeForKids: false, embeddable: true },
     };
     return this.guard(async () => {
       const init = await this.api.call(`${UPLOAD}?uploadType=resumable&part=snippet,status`, {
@@ -131,7 +136,11 @@ export class YouTubePublisher implements SocialPublisher {
         throw new AppError('SOCIAL_VALIDATION_ERROR', `YouTube : vidéo ${video.status.uploadStatus} (${video.status.rejectionReason ?? 'sans motif'})`, HttpStatus.UNPROCESSABLE_ENTITY);
       }
       const id = video.id!;
-      return { externalId: id, url: input.format === 'short' ? `https://www.youtube.com/shorts/${id}` : `https://www.youtube.com/watch?v=${id}`, draft: privacyStatus === 'private' };
+      const privacy = video.status?.privacyStatus ?? requested;
+      const notice = input.draft ? null
+        : !this.options.audited ? 'YouTube : vidéo téléversée en privé, projet Google pas encore audité par YouTube (la rendre publique dans YouTube Studio, ou attendre l\'audit)'
+        : privacy !== requested ? `YouTube : vidéo gardée en ${privacy} par YouTube (${requested} demandé) : vérifier l'audit du projet` : null;
+      return { externalId: id, url: input.format === 'short' ? `https://www.youtube.com/shorts/${id}` : `https://www.youtube.com/watch?v=${id}`, draft: privacy === 'private', notice };
     });
   }
 

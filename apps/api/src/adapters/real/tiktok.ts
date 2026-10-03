@@ -11,7 +11,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { CredentialStatus, PublishedRef, SocialComment, SocialMetrics, SocialPublishInput, SocialPublishResult, SocialPublisher } from '../marketing.types.js';
-import { chunkRanges, OAuthSession, SocialApi, type OAuthTokenStore } from './oauth.js';
+import { chunkRanges, OAuthSession, SocialApi, type OAuthTokenStore, storeBinding } from './oauth.js';
 
 const API = 'https://open.tiktokapis.com/v2';
 export const TIKTOK_TOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/';
@@ -27,9 +27,13 @@ export interface TikTokOptions {
   clientSecret: string;
   refreshToken: string;
   privacyLevel: TikTokPrivacy;
+  /** Application auditée par TikTok (`TIKTOK_APP_AUDITED`) ; sinon publication privée (`SELF_ONLY`), avec la mention. */
+  audited?: boolean;
   /** `file` : téléversement du fichier ; `url` : TikTok télécharge l'adresse signée (domaine vérifié chez TikTok). */
   uploadMode: 'file' | 'url';
   store?: OAuthTokenStore | null;
+  storeOrigin?: string;
+  reloadBeforeRefresh?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => number;
   /** Attente entre deux lectures de l'état (tests : 1 ms). */
@@ -65,7 +69,7 @@ export class TikTokPublisher implements SocialPublisher {
   constructor(private readonly options: TikTokOptions) {
     const session = new OAuthSession({
       provider: 'tiktok', label: 'TikTok', tokenUrl: TIKTOK_TOKEN_URL, clientId: options.clientKey, clientSecret: options.clientSecret, refreshToken: options.refreshToken, clientAuth: 'tiktok', rotates: true,
-      store: options.store ?? null, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
+      ...storeBinding(options), ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
     this.api = new SocialApi({
       label: 'TikTok', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: tiktokErrorMessage,
@@ -76,7 +80,7 @@ export class TikTokPublisher implements SocialPublisher {
   }
 
   toJSON() {
-    return { name: this.name, space: this.space, privacyLevel: this.options.privacyLevel, uploadMode: this.options.uploadMode, configured: true };
+    return { name: this.name, space: this.space, privacyLevel: this.options.privacyLevel, audited: Boolean(this.options.audited), uploadMode: this.options.uploadMode, configured: true };
   }
 
   /** Appel JSON de TikTok : une enveloppe `error.code` différente de `ok` est une erreur, même sous un statut 200. */
@@ -99,7 +103,7 @@ export class TikTokPublisher implements SocialPublisher {
     if (!media || !media.contentType.startsWith('video/')) throw new AppError('SOCIAL_MEDIA_REQUIRED', 'TikTok exige une vidéo MP4 (montage ffmpeg sur le serveur)', HttpStatus.UNPROCESSABLE_ENTITY);
     if (this.options.uploadMode === 'url' && !media.url) throw new AppError('SOCIAL_MEDIA_REQUIRED', 'TikTok : adresse signée de la vidéo absente (stockage)', HttpStatus.UNPROCESSABLE_ENTITY);
     const info = await this.post<CreatorInfo>('/post/publish/creator_info/query/', {});
-    let privacy = input.draft ? 'SELF_ONLY' : this.privacy(info);
+    let privacy: TikTokPrivacy = input.draft || !this.options.audited ? 'SELF_ONLY' : this.privacy(info);
     const plan = tiktokChunks(media.body.length, this.options.chunkSize);
     const init = (level: TikTokPrivacy) => this.post<{ publish_id?: string; upload_url?: string }>('/post/publish/video/init/', {
       post_info: {
@@ -126,7 +130,10 @@ export class TikTokPublisher implements SocialPublisher {
     }
     const status = await this.waitPublished(started.publish_id);
     const postId = status.publicaly_available_post_id?.[0];
-    return { externalId: postId ? String(postId) : `publish:${started.publish_id}`, url: postId ? `https://www.tiktok.com/video/${postId}` : null, draft: privacy === 'SELF_ONLY' };
+    const notice = input.draft || privacy !== 'SELF_ONLY' ? null
+      : !this.options.audited ? 'TikTok : publication privée (SELF_ONLY), application pas encore auditée par TikTok (la rendre publique dans l\'application TikTok, ou attendre l\'audit)'
+      : `TikTok : publication privée (SELF_ONLY) au lieu de ${this.options.privacyLevel} (refus de TikTok ou visibilité non offerte au compte)`;
+    return { externalId: postId ? String(postId) : `publish:${started.publish_id}`, url: postId ? `https://www.tiktok.com/video/${postId}` : null, draft: privacy === 'SELF_ONLY', notice };
   }
 
   /** Envoi des morceaux (`Content-Range`) vers l'adresse fournie par TikTok, sans le jeton (adresse déjà signée). */

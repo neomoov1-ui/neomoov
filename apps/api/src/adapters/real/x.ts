@@ -10,7 +10,7 @@ import { composeText } from '@neomoov/domain';
 import { HttpStatus } from '@nestjs/common';
 import { AppError } from '../../common/app-error.js';
 import type { CredentialStatus, PublishedRef, SocialComment, SocialMetrics, SocialPublishInput, SocialPublishResult, SocialPublisher } from '../marketing.types.js';
-import { OAuthSession, SocialApi, type OAuthTokenStore } from './oauth.js';
+import { OAuthSession, SocialApi, type OAuthTokenStore, storeBinding } from './oauth.js';
 
 const API = 'https://api.x.com/2';
 export const X_TOKEN_URL = 'https://api.x.com/2/oauth2/token';
@@ -23,6 +23,8 @@ export interface XOptions {
   clientSecret: string | null;
   refreshToken: string;
   store?: OAuthTokenStore | null;
+  storeOrigin?: string;
+  reloadBeforeRefresh?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }
@@ -74,7 +76,7 @@ export class XPublisher implements SocialPublisher {
   constructor(private readonly options: XOptions) {
     const session = new OAuthSession({
       provider: 'x', label: 'X', tokenUrl: X_TOKEN_URL, clientId: options.clientId, clientSecret: options.clientSecret, refreshToken: options.refreshToken, clientAuth: 'basic', rotates: true,
-      store: options.store ?? null, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
+      ...storeBinding(options), ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}),
     });
     this.api = new SocialApi({
  label: 'X', session, ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}), ...(options.now ? { now: options.now } : {}), errorMessage: xErrorMessage });

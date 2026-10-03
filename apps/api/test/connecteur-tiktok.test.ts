@@ -21,7 +21,7 @@ const input = (over: Partial<SocialPublishInput> = {}): SocialPublishInput => ({
 function setup(options: Partial<TikTokOptions> = {}, time = clock()) {
   const store = new MemoryTokenStore();
   const server = new SocialServer().on('POST', `${API}/oauth/token/`, tokenReplies(['act.tt-1', 'act.tt-2'], { expiresIn: 86_400, rotate: true, extra: { refresh_expires_in: 31_536_000, open_id: 'open-1', scope: 'video.publish,video.upload' } }));
-  const publisher = new TikTokPublisher({ clientKey: 'aw-client-key', clientSecret: 'tt-secret-client', refreshToken: 'rft.origine', privacyLevel: 'PUBLIC_TO_EVERYONE', uploadMode: 'file', store, fetchImpl: server.fetch, now: time.now, pollMs: 1, chunkSize: 400, ...options });
+  const publisher = new TikTokPublisher({ clientKey: 'aw-client-key', clientSecret: 'tt-secret-client', refreshToken: 'rft.origine', privacyLevel: 'PUBLIC_TO_EVERYONE', audited: true, uploadMode: 'file', store, fetchImpl: server.fetch, now: time.now, pollMs: 1, chunkSize: 400, ...options });
   return { server, publisher, store, time };
 }
 
@@ -39,7 +39,7 @@ describe('TikTok réel', () => {
 
     const result = await publisher.publish(input());
     // Identifiant int64 (19 chiffres) gardé exact, sans arrondi de JSON.parse.
-    expect(result).toEqual({ externalId: '7300000000000000001', url: 'https://www.tiktok.com/video/7300000000000000001', draft: false });
+    expect(result).toEqual({ externalId: '7300000000000000001', url: 'https://www.tiktok.com/video/7300000000000000001', draft: false, notice: null });
     const exchange = server.to('/oauth/token/')[0]!;
     expect(exchange.form).toEqual({ grant_type: 'refresh_token', refresh_token: 'rft.origine', client_key: 'aw-client-key', client_secret: 'tt-secret-client' });
     expect(await store.load('tiktok')).toMatchObject({ refreshToken: 'rt-tourne-1' });
@@ -63,6 +63,18 @@ describe('TikTok réel', () => {
     expect(JSON.stringify(publisher)).not.toMatch(/secret|act\.|rft/);
   });
 
+  it('application réglée comme non auditée : SELF_ONLY d\'emblée, avec la mention', async () => {
+    const { server, publisher } = setup({ audited: false });
+    server
+      .on('POST', '/post/publish/creator_info/query/', creator())
+      .on('POST', '/post/publish/video/init/', { json: { data: { publish_id: 'v_pub_9', upload_url: 'https://open-upload.tiktokapis.com/x' }, error: ok } })
+      .on('PUT', 'open-upload.tiktokapis.com', { status: 201 })
+      .on('POST', '/post/publish/status/fetch/', { json: { data: { status: 'PUBLISH_COMPLETE' }, error: ok } });
+    expect(await publisher.publish(input())).toEqual({ externalId: 'publish:v_pub_9', url: null, draft: true, notice: expect.stringContaining('application pas encore auditée par TikTok') });
+    expect(JSON.parse(server.to('/video/init/')[0]!.body!)).toMatchObject({ post_info: { privacy_level: 'SELF_ONLY' } });
+    expect(server.to('/video/init/')).toHaveLength(1);
+  });
+
   it('application non auditée : repli en SELF_ONLY, publication privée sans identifiant public ; mesures nulles', async () => {
     const { server, publisher } = setup({ uploadMode: 'url' });
     server
@@ -72,7 +84,7 @@ describe('TikTok réel', () => {
         { json: { data: { publish_id: 'v_pub_2' }, error: ok } })
       .on('POST', '/post/publish/status/fetch/', { json: { data: { status: 'PUBLISH_COMPLETE', publicaly_available_post_id: [] }, error: ok } });
     const result = await publisher.publish(input());
-    expect(result).toEqual({ externalId: 'publish:v_pub_2', url: null, draft: true });
+    expect(result).toEqual({ externalId: 'publish:v_pub_2', url: null, draft: true, notice: 'TikTok : publication privée (SELF_ONLY) au lieu de PUBLIC_TO_EVERYONE (refus de TikTok ou visibilité non offerte au compte)' });
     const [first, second] = server.to('/video/init/').map((c) => JSON.parse(c.body!) as { post_info: { privacy_level: string }; source_info: Record<string, unknown> });
     expect(first!.post_info.privacy_level).toBe('PUBLIC_TO_EVERYONE');
     expect(second!.post_info.privacy_level).toBe('SELF_ONLY');

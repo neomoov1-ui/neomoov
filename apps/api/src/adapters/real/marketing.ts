@@ -1,30 +1,34 @@
 /**
- * Choix des connecteurs réels du marketing (phase 1 « entreprise autonome ») selon les variables d'environnement.
- * `MARKETING_PROVIDER=real` : WordPress (site et Academy), Brevo (infolettre), Meta (Facebook, Instagram), et depuis le
- * 3 octobre 2026 Fiche Google, LinkedIn, YouTube, X et TikTok, chacun dès que ses clés sont présentes ; Snapchat est
- * reporté par décision. Un espace sans clés reçoit un connecteur « non configuré » qui refuse clairement et le
- * calendrier l'ignore. Jamais de simulation silencieuse en mode réel. Les jetons OAuth renouvelés (X, TikTok) sont
- * gardés par le magasin donné (base chiffrée en service, mémoire en test).
+ * Choix des connecteurs réels du marketing (phase 1 « entreprise autonome »). `MARKETING_PROVIDER=real` : chaque espace
+ * reçoit un connecteur tiré des identifiants de son compte (contrat `SOCIAL_CREDENTIALS` du 3 octobre 2026, variables
+ * d'environnement par défaut, table des comptes de My Hub ensuite) : WordPress (site et Academy), Brevo (infolettre),
+ * Meta (Facebook, Instagram), X, Telegram, LinkedIn, YouTube, TikTok et la Fiche Google, en connexion directe ;
+ * Snapchat et la chaîne WhatsApp en relais manuel (décision du fondateur : sans agrégateur). Un espace sans compte
+ * refuse clairement et le calendrier l'ignore ; jamais de simulation silencieuse en mode réel. Les jetons renouvelés
+ * (X, TikTok) sont écrits dans le compte, ou à défaut gardés par le magasin donné (base chiffrée, mémoire en test).
  */
 import { HttpStatus } from '@nestjs/common';
 import { CONTENT_SPACES, SPACE_RULES, type ContentSpace } from '@neomoov/domain';
 import { AppError } from '../../common/app-error.js';
 import type { AppEnv } from '../../config/env.js';
+import { EnvSocialCredentialsProvider, type SocialCredentials, type SocialCredentialsProvider } from '../../modules/marketing/social-credentials.js';
 import type { SearchConsoleProvider, SiteConnector, SocialPublisher, SocialPublishers, TtsProvider } from '../marketing.types.js';
 import { BrevoNewsletterPublisher } from './brevo.js';
+import { CredentialedPublisher, CredentialsTokenStore, type PublisherBuilder } from './credentialed.js';
 import { GoogleBusinessPublisher } from './google-business.js';
 import { LinkedInPublisher } from './linkedin.js';
 import { MetaFacebookPublisher, MetaGraphClient, MetaInstagramPublisher } from './meta-graph.js';
-import { MemoryTokenStore, type OAuthTokenStore } from './oauth.js';
-import { TikTokPublisher } from './tiktok.js';
+import { MemoryTokenStore, type OAuthTokenStore, type TokenStoreBinding } from './oauth.js';
+import { TelegramPublisher } from './telegram.js';
+import { TikTokPublisher, type TikTokPrivacy } from './tiktok.js';
 import { XPublisher } from './x.js';
-import { YouTubePublisher } from './youtube.js';
+import { YouTubePublisher, type YouTubePrivacy } from './youtube.js';
 import { GoogleSearchConsoleProvider } from './search-console.js';
 import { AzureTtsProvider, PiperTtsProvider } from './tts.js';
 import { NoSearchConsoleProvider, WordPressConnector } from './wordpress.js';
 
 /** Variables attendues par espace (clés à poser par le fondateur) ; documentées dans docs/marketing/connecteurs.md. */
-export const SPACE_VARIABLES: Readonly<Record<ContentSpace, readonly string[]>> = {
+export const SPACE_VARIABLES: Readonly<Record<string, readonly string[]>> = {
   site_blog: ['WORDPRESS_URL', 'WORDPRESS_USER', 'WORDPRESS_APP_PASSWORD'],
   academy: ['WORDPRESS_URL', 'WORDPRESS_USER', 'WORDPRESS_APP_PASSWORD'],
   google_business: ['GOOGLE_BUSINESS_CLIENT_ID', 'GOOGLE_BUSINESS_CLIENT_SECRET', 'GOOGLE_BUSINESS_REFRESH_TOKEN', 'GOOGLE_BUSINESS_ACCOUNT_ID', 'GOOGLE_BUSINESS_LOCATION_ID'],
@@ -34,9 +38,18 @@ export const SPACE_VARIABLES: Readonly<Record<ContentSpace, readonly string[]>> 
   tiktok: ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET', 'TIKTOK_REFRESH_TOKEN'],
   youtube: ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET', 'YOUTUBE_REFRESH_TOKEN'],
   x: ['X_CLIENT_ID', 'X_CLIENT_SECRET', 'X_REFRESH_TOKEN'],
-  snapchat: ['SNAPCHAT_ACCESS_TOKEN', 'SNAPCHAT_PROFILE_ID'],
+  snapchat: ['relais manuel seulement, décision du fondateur'],
   newsletter: ['BREVO_API_KEY', 'BREVO_NEWSLETTER_LIST_ID', 'BREVO_SENDER_EMAIL'],
+  telegram: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHANNEL_ID'],
+  whatsapp_channel: ['relais manuel seulement, aucune API de publication'],
 };
+
+/** Nom affiché d'un espace (règles du domaine ; repli pour un espace pas encore au domaine). */
+export const spaceLabel = (space: string): string =>
+  (SPACE_RULES as Readonly<Record<string, { name: string } | undefined>>)[space]?.name ?? (space === 'telegram' ? 'Telegram' : space === 'whatsapp_channel' ? 'Chaîne WhatsApp' : space);
+
+/** Espaces servis : ceux du domaine, plus Telegram et la chaîne WhatsApp (ajoutés au domaine par l'agent S2). */
+export const PUBLISHER_SPACES: readonly ContentSpace[] = [...new Set<string>([...CONTENT_SPACES, 'telegram', 'whatsapp_channel'])] as ContentSpace[];
 
 const notConfigured = (what: string, variables: readonly string[]) =>
   new AppError('PROVIDER_NOT_CONFIGURED', `${what} : connecteur non configuré ou non livré (${variables.join(', ')}).`, HttpStatus.NOT_IMPLEMENTED);
@@ -47,7 +60,7 @@ export class NotConfiguredPublisher implements SocialPublisher {
   readonly configured = false;
   constructor(readonly space: ContentSpace) {}
   private reject<T>(): Promise<T> {
-    return Promise.reject(notConfigured(SPACE_RULES[this.space].name, SPACE_VARIABLES[this.space]));
+    return Promise.reject(notConfigured(spaceLabel(this.space), SPACE_VARIABLES[this.space] ?? []));
   }
   publish(): Promise<never> { return this.reject(); }
   metrics(): Promise<never> { return this.reject(); }
@@ -60,7 +73,7 @@ export class NotConfiguredSite implements SiteConnector {
   readonly name = 'not_configured';
   readonly configured = false;
   private reject<T>(): Promise<T> {
-    return Promise.reject(notConfigured('Site WordPress', SPACE_VARIABLES.site_blog));
+    return Promise.reject(notConfigured('Site WordPress', SPACE_VARIABLES['site_blog'] ?? []));
   }
   pages(): Promise<never> { return this.reject(); }
   updateSeo(): Promise<never> { return this.reject(); }
@@ -88,7 +101,9 @@ function wordpress(env: AppEnv, space: 'site_blog' | 'academy'): WordPressConnec
 }
 
 export interface RealPublishersOptions {
-  /** Magasin des jetons OAuth renouvelés (X, TikTok) ; absent : en mémoire. */
+  /** Identifiants des comptes (contrat `SOCIAL_CREDENTIALS`) ; absent : variables d'environnement. */
+  credentials?: SocialCredentialsProvider;
+  /** Magasin des jetons OAuth renouvelés quand le fournisseur ne sait pas les écrire (`update`) ; absent : en mémoire. */
   tokenStore?: OAuthTokenStore | null;
   /** Serveur HTTP simulé des tests. */
   fetchImpl?: typeof fetch;
@@ -96,49 +111,68 @@ export interface RealPublishersOptions {
 
 /** Identifiant numérique seul, que le fondateur colle la ressource entière (`accounts/1/locations/2`) ou le nombre. */
 const lastSegment = (value: string) => value.split('/').filter(Boolean).at(-1) ?? value;
-
-export const realSocialPublishers = (env: AppEnv, options: RealPublishersOptions = {}): SocialPublishers => {
-  const map = new Map<ContentSpace, SocialPublisher>(CONTENT_SPACES.map((space) => [space, new NotConfiguredPublisher(space)]));
-  if (wordpressReady(env)) {
-    map.set('site_blog', wordpress(env, 'site_blog'));
-    map.set('academy', wordpress(env, 'academy'));
-  }
-  if (env.BREVO_API_KEY && env.BREVO_NEWSLETTER_LIST_ID && env.BREVO_SENDER_EMAIL) {
-    map.set('newsletter', new BrevoNewsletterPublisher({ apiKey: env.BREVO_API_KEY, listId: env.BREVO_NEWSLETTER_LIST_ID, senderEmail: env.BREVO_SENDER_EMAIL, senderName: env.BREVO_SENDER_NAME ?? 'Neomoov' }));
-  }
-  if (env.META_PAGE_ID && env.META_PAGE_TOKEN) {
-    const client = new MetaGraphClient({ pageId: env.META_PAGE_ID, pageToken: env.META_PAGE_TOKEN, igUserId: env.META_IG_USER_ID ?? null, version: env.META_GRAPH_VERSION });
-    map.set('facebook', new MetaFacebookPublisher(client));
-    if (env.META_IG_USER_ID) map.set('instagram', new MetaInstagramPublisher(client));
-  }
-  const common = { store: options.tokenStore ?? new MemoryTokenStore(), ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}) };
-  if (env.GOOGLE_BUSINESS_CLIENT_ID && env.GOOGLE_BUSINESS_CLIENT_SECRET && env.GOOGLE_BUSINESS_REFRESH_TOKEN && env.GOOGLE_BUSINESS_ACCOUNT_ID && env.GOOGLE_BUSINESS_LOCATION_ID) {
-    map.set('google_business', new GoogleBusinessPublisher({
-      clientId: env.GOOGLE_BUSINESS_CLIENT_ID, clientSecret: env.GOOGLE_BUSINESS_CLIENT_SECRET, refreshToken: env.GOOGLE_BUSINESS_REFRESH_TOKEN,
-      accountId: lastSegment(env.GOOGLE_BUSINESS_ACCOUNT_ID), locationId: lastSegment(env.GOOGLE_BUSINESS_LOCATION_ID), ...common,
-    }));
-  }
-  const linkedinRefresh = env.LINKEDIN_REFRESH_TOKEN && env.LINKEDIN_CLIENT_ID && env.LINKEDIN_CLIENT_SECRET ? env.LINKEDIN_REFRESH_TOKEN : null;
-  if (env.LINKEDIN_ORGANIZATION_ID && (env.LINKEDIN_ACCESS_TOKEN || linkedinRefresh)) {
-    map.set('linkedin', new LinkedInPublisher({
-      organizationId: lastSegment(env.LINKEDIN_ORGANIZATION_ID.replace(/^urn:li:organization:/, '')), accessToken: env.LINKEDIN_ACCESS_TOKEN ?? null,
-      accessExpiresAt: env.LINKEDIN_ACCESS_TOKEN_EXPIRES_AT ? Date.parse(env.LINKEDIN_ACCESS_TOKEN_EXPIRES_AT) : null, refreshToken: linkedinRefresh,
-      clientId: env.LINKEDIN_CLIENT_ID ?? null, clientSecret: env.LINKEDIN_CLIENT_SECRET ?? null, version: env.LINKEDIN_API_VERSION, ...common,
-    }));
-  }
-  if (env.YOUTUBE_CLIENT_ID && env.YOUTUBE_CLIENT_SECRET && env.YOUTUBE_REFRESH_TOKEN) {
-    map.set('youtube', new YouTubePublisher({ clientId: env.YOUTUBE_CLIENT_ID, clientSecret: env.YOUTUBE_CLIENT_SECRET, refreshToken: env.YOUTUBE_REFRESH_TOKEN, privacyStatus: env.YOUTUBE_PRIVACY_STATUS, ...common }));
-  }
-  if (env.X_CLIENT_ID && env.X_REFRESH_TOKEN) {
-    map.set('x', new XPublisher({ clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET ?? null, refreshToken: env.X_REFRESH_TOKEN, ...common }));
-  }
-  if (env.TIKTOK_CLIENT_KEY && env.TIKTOK_CLIENT_SECRET && env.TIKTOK_REFRESH_TOKEN) {
-    map.set('tiktok', new TikTokPublisher({
-      clientKey: env.TIKTOK_CLIENT_KEY, clientSecret: env.TIKTOK_CLIENT_SECRET, refreshToken: env.TIKTOK_REFRESH_TOKEN, privacyLevel: env.TIKTOK_PRIVACY_LEVEL, uploadMode: env.TIKTOK_UPLOAD_MODE, ...common,
-    }));
-  }
-  return map;
+const dateValue = (value: string | undefined): number | null => {
+  const at = value ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(at) ? at : null;
 };
+
+/**
+ * Adaptateurs de chaque espace, construits à partir des valeurs du compte (clés de `CREDENTIAL_FIELDS`) ; les réglages
+ * non secrets (catégories WordPress, version de l'API Graph ou de LinkedIn, visibilité YouTube et TikTok) restent dans
+ * l'environnement.
+ */
+function builders(env: AppEnv, credentials: SocialCredentialsProvider, options: RealPublishersOptions): Partial<Record<string, PublisherBuilder>> {
+  const fetchImpl = options.fetchImpl ? { fetchImpl: options.fetchImpl } : {};
+  const fallbackStore = options.tokenStore ?? new MemoryTokenStore();
+  // Jetons renouvelés écrits dans le compte quand le fournisseur le permet (relus avant chaque échange), sinon magasin chiffré.
+  const tokens = (space: string): TokenStoreBinding =>
+    credentials.update ? { store: new CredentialsTokenStore(credentials, space), storeOrigin: CredentialsTokenStore.ORIGIN, reloadBeforeRefresh: true } : { store: fallbackStore };
+  const wordpress = (space: 'site_blog' | 'academy') => ({ values: v }: SocialCredentials) => new WordPressConnector({
+    baseUrl: v['url']!, user: v['user']!, appPassword: v['appPassword']!, space,
+    category: (space === 'academy' ? env.WORDPRESS_ACADEMY_CATEGORY : env.WORDPRESS_BLOG_CATEGORY) ?? null, seoMeta: env.WORDPRESS_SEO_META, ...fetchImpl,
+  });
+  const meta = (v: Record<string, string>) => new MetaGraphClient({ pageId: v['pageId']!, pageToken: v['pageToken']!, igUserId: v['igUserId'] ?? null, version: env.META_GRAPH_VERSION, ...fetchImpl });
+  return {
+    site_blog: wordpress('site_blog'),
+    academy: wordpress('academy'),
+    newsletter: ({ values: v }) => new BrevoNewsletterPublisher({ apiKey: v['apiKey']!, listId: Number(v['listId']) || 0, senderEmail: v['senderEmail']!, senderName: env.BREVO_SENDER_NAME ?? 'Neomoov', ...fetchImpl }),
+    facebook: ({ values: v }) => new MetaFacebookPublisher(meta(v)),
+    instagram: ({ values: v }) => new MetaInstagramPublisher(meta(v)),
+    x: ({ values: v }) => new XPublisher({ clientId: v['clientId']!, clientSecret: v['clientSecret'] ?? null, refreshToken: v['refreshToken']!, ...tokens('x'), ...fetchImpl }),
+    telegram: ({ values: v }) => new TelegramPublisher({ botToken: v['botToken']!, channelId: v['channelId']!, discussionChatId: v['discussionChatId'] ?? null, ...fetchImpl }),
+    linkedin: ({ values: v, expiresAt }) => new LinkedInPublisher({
+      organizationId: lastSegment(v['organizationId']!.replace(/^urn:li:organization:/, '')), accessToken: v['accessToken'] ?? null,
+      accessExpiresAt: dateValue(v['accessTokenExpiresAt']) ?? expiresAt?.getTime() ?? null,
+      refreshToken: v['refreshToken'] && v['clientId'] && v['clientSecret'] ? v['refreshToken'] : null, clientId: v['clientId'] ?? null, clientSecret: v['clientSecret'] ?? null,
+      version: env.LINKEDIN_API_VERSION, ...tokens('linkedin'), ...fetchImpl,
+    }),
+    youtube: ({ values: v }) => new YouTubePublisher({
+      clientId: v['clientId']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyStatus: env.YOUTUBE_PRIVACY_STATUS as YouTubePrivacy, audited: env.YOUTUBE_API_AUDITED, ...tokens('youtube'), ...fetchImpl,
+    }),
+    tiktok: ({ values: v }) => new TikTokPublisher({
+      clientKey: v['clientKey']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyLevel: env.TIKTOK_PRIVACY_LEVEL as TikTokPrivacy, audited: env.TIKTOK_APP_AUDITED, uploadMode: env.TIKTOK_UPLOAD_MODE,
+      ...tokens('tiktok'), ...fetchImpl,
+    }),
+    google_business: ({ values: v }) => new GoogleBusinessPublisher({
+      clientId: v['clientId']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, accountId: lastSegment(v['accountId']!), locationId: lastSegment(v['locationId']!),
+      ...tokens('google-business'), ...fetchImpl,
+    }),
+  };
+}
+
+/** Un connecteur par espace, tiré des identifiants du compte à chaque usage. */
+export const realSocialPublishers = (env: AppEnv, options: RealPublishersOptions = {}): SocialPublishers => {
+  const credentials = options.credentials ?? new EnvSocialCredentialsProvider(env);
+  const build = builders(env, credentials, options);
+  return new Map<ContentSpace, SocialPublisher>(PUBLISHER_SPACES.map((space) => [space, new CredentialedPublisher(space, credentials, build[space] ?? null, {
+    label: spaceLabel(space), notConfigured: () => notConfigured(spaceLabel(space), SPACE_VARIABLES[space] ?? []),
+  })]));
+};
+
+/** Relit les identifiants de tous les connecteurs (démarrage, puis passe marketing) : état « configuré » à jour. */
+export async function refreshPublishers(publishers: SocialPublishers): Promise<void> {
+  await Promise.all([...publishers.values()].map((p) => (p instanceof CredentialedPublisher ? p.resolve().catch(() => null) : null)));
+}
 
 export const realSiteConnector = (env: AppEnv): SiteConnector => (wordpressReady(env) ? wordpress(env, 'site_blog') : new NotConfiguredSite());
 

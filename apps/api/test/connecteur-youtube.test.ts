@@ -17,7 +17,7 @@ const input = (over: Partial<SocialPublishInput> = {}): SocialPublishInput => ({
 
 function setup(time = clock()) {
   const server = new SocialServer().on('POST', 'oauth2.googleapis.com/token', tokenReplies(['ya29.yt-1', 'ya29.yt-2', 'ya29.yt-3']));
-  const publisher = new YouTubePublisher({ clientId: 'yt.apps.googleusercontent.com', clientSecret: 'GOCSPX-yt-secret', refreshToken: '1//yt-rafraichissement', privacyStatus: 'public', chunkSize: 400, fetchImpl: server.fetch, now: time.now });
+  const publisher = new YouTubePublisher({ clientId: 'yt.apps.googleusercontent.com', clientSecret: 'GOCSPX-yt-secret', refreshToken: '1//yt-rafraichissement', privacyStatus: 'public', audited: true, chunkSize: 400, fetchImpl: server.fetch, now: time.now });
   return { server, publisher, time };
 }
 
@@ -41,7 +41,7 @@ describe('YouTube réel', () => {
       .on('POST', '/youtube/v3/comments?part=snippet', { json: { id: 'c1.reponse' } })
       .on('GET', '/youtube/v3/videos?part=statistics', { json: { items: [{ statistics: { viewCount: '1500', likeCount: '40', commentCount: '6' } }] } });
 
-    expect(await publisher.publish(input())).toEqual({ externalId: 'vid123', url: 'https://www.youtube.com/shorts/vid123', draft: false });
+    expect(await publisher.publish(input())).toEqual({ externalId: 'vid123', url: 'https://www.youtube.com/shorts/vid123', draft: false, notice: null });
     const init = server.to('uploadType=resumable&part=')[0]!;
     expect(init.headers).toMatchObject({ authorization: 'Bearer ya29.yt-1', 'x-upload-content-length': '1000', 'x-upload-content-type': 'video/mp4' });
     expect(JSON.parse(init.body!)).toEqual({
@@ -66,8 +66,21 @@ describe('YouTube réel', () => {
     expect(server.calls).toHaveLength(0);
     server.on('POST', 'uploadType=resumable&part=', resumableInit).on('PUT', 'upload_id=session-1', { status: 201, json: { id: 'vid9', status: { uploadStatus: 'uploaded' } } });
     const draftPublisher = new YouTubePublisher({ clientId: 'c', clientSecret: 's', refreshToken: 'r', privacyStatus: 'unlisted', fetchImpl: server.fetch });
-    expect(await draftPublisher.publish(input({ format: 'video', draft: true }))).toEqual({ externalId: 'vid9', url: 'https://www.youtube.com/watch?v=vid9', draft: true });
+    expect(await draftPublisher.publish(input({ format: 'video', draft: true }))).toEqual({ externalId: 'vid9', url: 'https://www.youtube.com/watch?v=vid9', draft: true, notice: null });
     expect(JSON.parse(server.to('uploadType=resumable&part=')[0]!.body!)).toMatchObject({ status: { privacyStatus: 'private' } });
+  });
+
+  it('projet non audité : téléversement en privé avec la mention ; audité mais gardé privé par YouTube : mention aussi', async () => {
+    const server = new SocialServer()
+      .on('POST', 'oauth2.googleapis.com/token', tokenReplies(['ya29.a']))
+      .on('POST', 'uploadType=resumable&part=', resumableInit)
+      .on('PUT', 'upload_id=session-1', { status: 200, json: { id: 'vidP', status: { uploadStatus: 'uploaded', privacyStatus: 'private' } } });
+    const pending = new YouTubePublisher({ clientId: 'c', clientSecret: 's', refreshToken: 'r', privacyStatus: 'public', fetchImpl: server.fetch });
+    expect(await pending.publish(input())).toEqual({ externalId: 'vidP', url: 'https://www.youtube.com/shorts/vidP', draft: true, notice: expect.stringContaining('projet Google pas encore audité') });
+    expect(JSON.parse(server.to('uploadType=resumable&part=')[0]!.body!)).toMatchObject({ status: { privacyStatus: 'private' } });
+    const audited = new YouTubePublisher({ clientId: 'c', clientSecret: 's', refreshToken: 'r', privacyStatus: 'public', audited: true, fetchImpl: server.fetch });
+    expect(await audited.publish(input())).toMatchObject({ draft: true, notice: 'YouTube : vidéo gardée en private par YouTube (public demandé) : vérifier l\'audit du projet' });
+    expect(JSON.parse(server.to('uploadType=resumable&part=')[1]!.body!)).toMatchObject({ status: { privacyStatus: 'public' } });
   });
 
   it('jeton refusé (401) au milieu du téléversement : renouvelé, le morceau repart avec le nouveau jeton', async () => {

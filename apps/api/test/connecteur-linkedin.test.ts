@@ -103,6 +103,15 @@ describe('LinkedIn réel', () => {
     await expect(publisher.publish(input({ media: null }))).rejects.toMatchObject({ code: 'SOCIAL_VALIDATION_ERROR', status: 422, message: expect.stringContaining('is too long') });
   });
 
+  it('droits de publication absents (Community Management API pas encore accordée) : SOCIAL_APPROVAL_PENDING, relais manuel', async () => {
+    const { server, publisher } = setup();
+    server.on('POST', '/rest/posts', { status: 403, json: { status: 403, serviceErrorCode: 100, code: 'ACCESS_DENIED', message: 'Not enough permissions to access: partnerApiPostsExternal.CREATE.20260601' } });
+    const error = await publisher.publish(input({ media: null })).catch((e: Error) => e);
+    expect(error).toMatchObject({ code: 'SOCIAL_APPROVAL_PENDING', status: 409, details: { reason: 'approval_pending' } });
+    expect((error as Error).message).toContain('relayer à la main');
+    expect((error as Error).message).toContain('partnerApiPostsExternal');
+  });
+
   it('format « little text » et publication visée par un commentaire', () => {
     expect(linkedinCommentary('A_b (c) [d] {e} <f> @g *h* ~i \\ j | #tag C#')).toBe('A\\_b \\(c\\) \\[d\\] \\{e\\} \\<f\\> \\@g \\*h\\* \\~i \\\\ j \\| {hashtag|\\#|tag} C\\#');
     expect(commentParent('urn:li:comment:(urn:li:ugcPost:123,456)')).toBe('urn:li:ugcPost:123');

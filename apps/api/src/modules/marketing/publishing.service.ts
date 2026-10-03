@@ -14,7 +14,8 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
-import { SOCIAL_PUBLISHERS, type SocialComment, type SocialMedia, type SocialPublisher, type SocialPublishers } from '../../adapters/marketing.types.js';
+import { MANUAL_RELAY_ERRORS, SOCIAL_PUBLISHERS, type SocialComment, type SocialMedia, type SocialPublisher, type SocialPublishers } from '../../adapters/marketing.types.js';
+import { spaceLabel } from '../../adapters/real/marketing.js';
 import { STORAGE_PROVIDER, type StorageProvider } from '../../adapters/types.js';
 import { AppError } from '../../common/app-error.js';
 import { DomainEventsService } from '../../common/domain-events.js';
@@ -150,7 +151,7 @@ export class PublishingService {
         const started = Date.now();
         try {
           const result = await this.send(row, now);
-          ctx.recordToolCall({ tool: 'socialPublish', input: { itemId: id, space: row.space }, ok: true, result: { externalId: result.externalId, draft: result.draft }, approvalId: null, durationMs: Date.now() - started });
+          ctx.recordToolCall({ tool: 'socialPublish', input: { itemId: id, space: row.space }, ok: true, result: { externalId: result.externalId, draft: result.draft, notice: result.notice }, approvalId: null, durationMs: Date.now() - started });
           return result;
         } catch (error) {
           ctx.recordToolCall({ tool: 'socialPublish', input: { itemId: id, space: row.space }, ok: false, result: { message: error instanceof Error ? error.message.slice(0, 300) : String(error) }, approvalId: null, durationMs: Date.now() - started });
@@ -167,7 +168,7 @@ export class PublishingService {
     return this.content.view(id);
   }
 
-  private async send(row: ContentItemRow, now: Date): Promise<{ externalId: string; draft: boolean }> {
+  private async send(row: ContentItemRow, now: Date): Promise<{ externalId: string; draft: boolean; notice: string | null }> {
     const publisher = this.publisher(row.space);
     const { media, row: current } = await this.mediaFor(row);
     const rule = SPACE_RULES[current.space as ContentSpace];
@@ -186,14 +187,17 @@ export class PublishingService {
       .update(schema.contentItems)
       .set({ status: 'published', externalId: result.externalId, externalUrl: result.url, publishedAt: now, nextAttemptAt: null, lastError: null, measureDueAt: nextMeasureAt(now, measureDays, 0), measureCount: 0 })
       .where(eq(schema.contentItems.id, row.id));
-    await this.audit.recordSystem({ action: 'marketing.content_published', entity: 'content_items', entityId: row.id, after: { space: row.space, externalId: result.externalId, url: result.url, draft: result.draft } }, PUBLISHING);
-    return { externalId: result.externalId, draft: result.draft };
+    await this.audit.recordSystem({ action: 'marketing.content_published', entity: 'content_items', entityId: row.id, after: { space: row.space, externalId: result.externalId, url: result.url, draft: result.draft, notice: result.notice ?? null } }, PUBLISHING);
+    return { externalId: result.externalId, draft: result.draft, notice: result.notice ?? null };
   }
 
   private async recordFailure(row: ContentItemRow, attempt: number, error: unknown, now: Date): Promise<void> {
     const max = await this.settings.number('marketing.publish_max_attempts', 3);
     const message = error instanceof AppError ? `${error.code} : ${error.message}` : error instanceof Error ? error.message : String(error);
-    const definitive = attempt >= max;
+    // Relais manuel (compte en mode manuel, approbation en attente chez le réseau) : aucune nouvelle tentative, la
+    // publication attend un humain (état `failed`, `lastError` commençant par SOCIAL_MANUAL_RELAY ou SOCIAL_APPROVAL_PENDING).
+    const manualRelay = error instanceof AppError && MANUAL_RELAY_ERRORS.includes(error.code);
+    const definitive = manualRelay || attempt >= max;
     // Limite atteinte (429) : le nouvel essai attend au moins le délai demandé par le réseau (borné à 26 heures).
     const retryAfter = error instanceof AppError ? Number((error.details as { retryAfterSeconds?: unknown } | undefined)?.retryAfterSeconds ?? 0) || 0 : 0;
     const delay = Math.max(retryDelayMs(attempt), Math.min(retryAfter, 26 * 3_600) * 1_000);
@@ -201,8 +205,9 @@ export class PublishingService {
       .update(schema.contentItems)
       .set({ lastError: message.slice(0, 500), ...(definitive ? { status: 'failed', nextAttemptAt: null } : { nextAttemptAt: new Date(now.getTime() + delay) }) })
       .where(eq(schema.contentItems.id, row.id));
-    await this.audit.recordSystem({ action: definitive ? 'marketing.content_failed' : 'marketing.content_retry', entity: 'content_items', entityId: row.id, after: { space: row.space, attempt, error: message.slice(0, 300) } }, PUBLISHING);
-    if (definitive) await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'marketing_publish_failed', summary: `${SPACE_RULES[row.space as ContentSpace].name} : publication en échec après ${attempt} tentatives (${message.slice(0, 160)})`, contentItemId: row.id });
+    await this.audit.recordSystem({ action: manualRelay ? 'marketing.content_manual_relay' : definitive ? 'marketing.content_failed' : 'marketing.content_retry', entity: 'content_items', entityId: row.id, after: { space: row.space, attempt, error: message.slice(0, 300) } }, PUBLISHING);
+    if (manualRelay) await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'marketing_manual_relay', summary: `${spaceLabel(row.space)} : publication à relayer à la main (${(error as AppError).message.slice(0, 200)})`, contentItemId: row.id });
+    else if (definitive) await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'marketing_publish_failed', summary: `${spaceLabel(row.space)} : publication en échec après ${attempt} tentatives (${message.slice(0, 160)})`, contentItemId: row.id });
   }
 
   private async measureDays(): Promise<number[]> {
@@ -270,7 +275,7 @@ export class PublishingService {
       const expiring = status.renewBy !== null && status.renewBy.getTime() - now.getTime() < days * 86_400_000;
       if (!expiring && !status.problem) continue;
       this.credentialAlerts.add(key);
-      const name = SPACE_RULES[publisher.space].name;
+      const name = spaceLabel(publisher.space);
       const summary = status.problem
         ? `${name} : autorisation en échec (${status.problem.slice(0, 200)}). Refaire l'autorisation : docs/marketing/connecteurs.md`
         : `${name} : autorisation à refaire avant le ${status.renewBy!.toISOString().slice(0, 10)} (docs/marketing/connecteurs.md, commande oauth:jeton)`;

@@ -268,6 +268,8 @@ export const envSchema = z.object({
   YOUTUBE_REFRESH_TOKEN: optionalString,
   /** Visibilité des vidéos envoyées : `public` (défaut), `unlisted` ou `private` ; YouTube force `private` tant que le projet n'est pas audité. */
   YOUTUBE_PRIVACY_STATUS: z.enum(['public', 'unlisted', 'private']).default('public'),
+  /** Projet Google audité par YouTube (« API Services audit ») : `on` ; sinon les vidéos partent en privé, avec la mention. */
+  YOUTUBE_API_AUDITED: flag,
   X_CLIENT_ID: optionalString,
   /** Secret du client OAuth 2.0 de X (application « Web App, Automated App or Bot », client confidentiel). */
   X_CLIENT_SECRET: optionalString,
@@ -279,6 +281,8 @@ export const envSchema = z.object({
   TIKTOK_PRIVACY_LEVEL: z.enum(['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY']).default('PUBLIC_TO_EVERYONE'),
   /** Envoi de la vidéo : `file` (téléversement par morceaux, défaut) ou `url` (TikTok télécharge l'adresse signée ; domaine du stockage à vérifier chez TikTok). */
   TIKTOK_UPLOAD_MODE: z.enum(['file', 'url']).default('file'),
+  /** Application auditée par TikTok (Content Posting API, publication directe) : `on` ; sinon publications privées (SELF_ONLY), avec la mention. */
+  TIKTOK_APP_AUDITED: flag,
   /** Canal Telegram : jeton du bot (BotFather, administrateur du canal), canal (`@nom` ou `-100…`), groupe de discussion lié (facultatif). */
   TELEGRAM_BOT_TOKEN: optionalString,
   TELEGRAM_CHANNEL_ID: optionalString,

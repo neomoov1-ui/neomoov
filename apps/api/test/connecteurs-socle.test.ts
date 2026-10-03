@@ -4,7 +4,9 @@ import type { CredentialStatus, SocialPublisher, SocialPublishers } from '../src
 import { MockSocialPublisher } from '../src/adapters/mock/marketing.mock.js';
 import { GoogleBusinessPublisher } from '../src/adapters/real/google-business.js';
 import { LinkedInPublisher } from '../src/adapters/real/linkedin.js';
-import { NotConfiguredPublisher, realSocialPublishers } from '../src/adapters/real/marketing.js';
+import { CredentialedPublisher } from '../src/adapters/real/credentialed.js';
+import { realSocialPublishers, refreshPublishers } from '../src/adapters/real/marketing.js';
+import { TelegramPublisher } from '../src/adapters/real/telegram.js';
 import { OAuthSession, quoteBigIntegers, retryAfterSeconds, SocialApi, socialError, type OAuthTokenStore } from '../src/adapters/real/oauth.js';
 import { TikTokPublisher } from '../src/adapters/real/tiktok.js';
 import { XPublisher } from '../src/adapters/real/x.js';
@@ -69,29 +71,36 @@ describe('socle OAuth des connecteurs', () => {
 });
 
 describe('choix des connecteurs réels (3 octobre 2026)', () => {
-  it('chaque réseau devient réel dès que ses variables sont posées ; Snapchat reste non configuré', () => {
+  it('chaque réseau devient réel dès que ses variables sont posées ; Snapchat en relais manuel', async () => {
     const env = loadEnv({
       ...base,
       GOOGLE_BUSINESS_CLIENT_ID: 'g', GOOGLE_BUSINESS_CLIENT_SECRET: 'gs', GOOGLE_BUSINESS_REFRESH_TOKEN: 'gr', GOOGLE_BUSINESS_ACCOUNT_ID: 'accounts/111', GOOGLE_BUSINESS_LOCATION_ID: 'accounts/111/locations/222',
       LINKEDIN_ORGANIZATION_ID: 'urn:li:organization:4242', LINKEDIN_ACCESS_TOKEN: 'la', LINKEDIN_ACCESS_TOKEN_EXPIRES_AT: '2026-11-30',
       YOUTUBE_CLIENT_ID: 'y', YOUTUBE_CLIENT_SECRET: 'ys', YOUTUBE_REFRESH_TOKEN: 'yr', YOUTUBE_PRIVACY_STATUS: 'unlisted',
-      X_CLIENT_ID: 'x', X_REFRESH_TOKEN: 'xr',
-      TIKTOK_CLIENT_KEY: 't', TIKTOK_CLIENT_SECRET: 'ts', TIKTOK_REFRESH_TOKEN: 'tr', TIKTOK_PRIVACY_LEVEL: 'SELF_ONLY',
+      X_CLIENT_ID: 'x', X_REFRESH_TOKEN: 'xr', TELEGRAM_BOT_TOKEN: '123:abc', TELEGRAM_CHANNEL_ID: '@neomoov',
+      TIKTOK_CLIENT_KEY: 't', TIKTOK_CLIENT_SECRET: 'ts', TIKTOK_REFRESH_TOKEN: 'tr', TIKTOK_PRIVACY_LEVEL: 'SELF_ONLY', TIKTOK_APP_AUDITED: 'on',
       SNAPCHAT_ACCESS_TOKEN: 's', SNAPCHAT_PROFILE_ID: 'p',
     }, { dotenv: false });
     const publishers = realSocialPublishers(env);
-    expect(publishers.get('google_business')).toBeInstanceOf(GoogleBusinessPublisher);
-    expect(publishers.get('linkedin')).toBeInstanceOf(LinkedInPublisher);
-    expect(publishers.get('youtube')).toBeInstanceOf(YouTubePublisher);
-    expect(publishers.get('x')).toBeInstanceOf(XPublisher);
-    expect(publishers.get('tiktok')).toBeInstanceOf(TikTokPublisher);
-    expect(publishers.get('snapchat')).toBeInstanceOf(NotConfiguredPublisher);
-    expect(JSON.parse(JSON.stringify(publishers.get('google_business')))).toMatchObject({ locationId: '222' });
-    expect(JSON.parse(JSON.stringify(publishers.get('linkedin')))).toMatchObject({ organizationId: '4242', version: '202606' });
-    expect(JSON.parse(JSON.stringify(publishers.get('youtube')))).toMatchObject({ privacyStatus: 'unlisted' });
-    expect(JSON.parse(JSON.stringify(publishers.get('tiktok')))).toMatchObject({ privacyLevel: 'SELF_ONLY', uploadMode: 'file' });
+    const inner = async (space: string) => (publishers.get(space as never) as CredentialedPublisher).resolve();
+    expect(await inner('google_business')).toBeInstanceOf(GoogleBusinessPublisher);
+    expect(await inner('linkedin')).toBeInstanceOf(LinkedInPublisher);
+    expect(await inner('youtube')).toBeInstanceOf(YouTubePublisher);
+    expect(await inner('x')).toBeInstanceOf(XPublisher);
+    expect(await inner('tiktok')).toBeInstanceOf(TikTokPublisher);
+    expect(await inner('telegram')).toBeInstanceOf(TelegramPublisher);
+    expect(await inner('snapchat')).toBeNull();
+    expect(publishers.get('snapchat')!.name).toBe('manual');
+    // Adaptateur gardé tant que les valeurs ne changent pas (jetons d'accès en cache).
+    expect(await inner('x')).toBe(await inner('x'));
+    expect(JSON.parse(JSON.stringify(await inner('google_business')))).toMatchObject({ locationId: '222' });
+    expect(JSON.parse(JSON.stringify(await inner('linkedin')))).toMatchObject({ organizationId: '4242', version: '202606' });
+    expect(JSON.parse(JSON.stringify(await inner('youtube')))).toMatchObject({ privacyStatus: 'unlisted', audited: false });
+    expect(JSON.parse(JSON.stringify(await inner('tiktok')))).toMatchObject({ privacyLevel: 'SELF_ONLY', audited: true, uploadMode: 'file' });
+    expect(JSON.stringify(publishers.get('telegram'))).not.toContain('abc');
     // Variables incomplètes : connecteur non configuré (LinkedIn avec un jeton de rafraîchissement sans les identifiants de l'application).
     const partial = realSocialPublishers(loadEnv({ ...base, LINKEDIN_ORGANIZATION_ID: '1', LINKEDIN_REFRESH_TOKEN: 'r', GOOGLE_BUSINESS_CLIENT_ID: 'g' }, { dotenv: false }));
+    await refreshPublishers(partial);
     expect(partial.get('linkedin')!.configured).toBe(false);
     expect(partial.get('google_business')!.configured).toBe(false);
     expect(() => loadEnv({ ...base, LINKEDIN_ACCESS_TOKEN_EXPIRES_AT: 'bientôt' }, { dotenv: false })).toThrow(/LINKEDIN_ACCESS_TOKEN_EXPIRES_AT/);

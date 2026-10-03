@@ -12,7 +12,7 @@ import {
 import { BILLING_PROVIDER, type BillingProvider } from './billing.types.js';
 import { SEARCH_CONSOLE_PROVIDER, SITE_CONNECTOR, SOCIAL_PUBLISHERS, TTS_PROVIDER, type SearchConsoleProvider, type SiteConnector, type SocialPublishers, type TtsProvider } from './marketing.types.js';
 import { MockSearchConsoleProvider, MockSiteConnector, MockTtsProvider, mockSocialPublishers } from './mock/marketing.mock.js';
-import { realSearchConsole, realSiteConnector, realSocialPublishers, realTts } from './real/marketing.js';
+import { realSearchConsole, realSiteConnector, realSocialPublishers, realTts, refreshPublishers } from './real/marketing.js';
 import { oauthTokenStore } from './real/oauth-store.js';
 import { DB, type Database } from '../infra/db.module.js';
 import { EnvSocialCredentialsProvider, SOCIAL_CREDENTIALS, type SocialCredentialsProvider } from '../modules/marketing/social-credentials.js';
@@ -54,11 +54,17 @@ const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 
     // Identifiants des comptes des réseaux (contrat du 3 octobre 2026) : variables d'environnement par défaut ; S1 remplace
     // cette fabrique par la table `social_accounts` (repli sur les variables).
     { provide: SOCIAL_CREDENTIALS, inject: [APP_ENV], useFactory: (env: AppEnv): SocialCredentialsProvider => new EnvSocialCredentialsProvider(env) },
-    // Jetons OAuth renouvelés (X, TikTok) gardés chiffrés dans la base, partagés par l'API et le worker (sans base : en mémoire).
+    // Connecteurs tirés des identifiants des comptes, lus une première fois au démarrage (état « configuré » du calendrier).
+    // Jetons OAuth renouvelés écrits dans le compte, ou à défaut gardés chiffrés dans la base (sans base : en mémoire).
     {
       provide: SOCIAL_PUBLISHERS,
-      inject: [APP_ENV, { token: DB, optional: true }],
-      useFactory: (env: AppEnv, database?: Database): SocialPublishers => (env.MARKETING_PROVIDER === 'real' ? realSocialPublishers(env, { tokenStore: oauthTokenStore(env, database ?? null) }) : mockSocialPublishers()),
+      inject: [APP_ENV, SOCIAL_CREDENTIALS, { token: DB, optional: true }],
+      useFactory: async (env: AppEnv, credentials: SocialCredentialsProvider, database?: Database): Promise<SocialPublishers> => {
+        if (env.MARKETING_PROVIDER !== 'real') return mockSocialPublishers();
+        const publishers = realSocialPublishers(env, { credentials, tokenStore: oauthTokenStore(env, database ?? null) });
+        await refreshPublishers(publishers);
+        return publishers;
+      },
     },
     choose<SiteConnector>(SITE_CONNECTOR, 'MARKETING_PROVIDER', () => new MockSiteConnector(), realSiteConnector),
     choose<TtsProvider>(TTS_PROVIDER, 'MARKETING_PROVIDER', () => new MockTtsProvider(), realTts),

@@ -38,7 +38,16 @@ export interface SocialPublishResult {
   externalId: string;
   url: string | null;
   draft: boolean;
+  /** Mention pour le personnel (vidéo gardée privée tant que l'application n'est pas auditée par YouTube ou TikTok). */
+  notice?: string | null;
 }
+
+/**
+ * Erreurs de relais manuel (3 octobre 2026) : l'espace est en mode `manual` (`SOCIAL_MANUAL_RELAY` : Snapchat, chaîne
+ * WhatsApp, compte réglé ainsi) ou son approbation est en attente chez le réseau (`SOCIAL_APPROVAL_PENDING` : LinkedIn
+ * sans la Community Management API). La diffusion ne relance pas : la publication passe en relais manuel.
+ */
+export const MANUAL_RELAY_ERRORS: readonly string[] = ['SOCIAL_MANUAL_RELAY', 'SOCIAL_APPROVAL_PENDING'];
 
 export interface SocialMetrics {
   reach: number;

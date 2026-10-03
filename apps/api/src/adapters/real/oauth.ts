@@ -45,6 +45,18 @@ export class MemoryTokenStore implements OAuthTokenStore {
   }
 }
 
+/** Où un connecteur garde ses jetons renouvelés : magasin, origine imposée, relecture avant chaque échange. */
+export interface TokenStoreBinding {
+  store?: OAuthTokenStore | null;
+  storeOrigin?: string;
+  reloadBeforeRefresh?: boolean;
+}
+
+/** Options de session tirées des options d'un connecteur. */
+export function storeBinding(options: TokenStoreBinding): Pick<OAuthSessionOptions, 'store' | 'origin' | 'reloadBeforeRefresh'> {
+  return { store: options.store ?? null, ...(options.storeOrigin ? { origin: options.storeOrigin } : {}), ...(options.reloadBeforeRefresh ? { reloadBeforeRefresh: true } : {}) };
+}
+
 /** Empreinte courte (non réversible) d'un jeton, pour reconnaître l'autorisation d'origine sans la garder en clair. */
 export function tokenFingerprint(token: string): string {
   return createHash('sha256').update(token).digest('hex').slice(0, 16);
@@ -66,6 +78,13 @@ export interface OAuthSessionOptions {
   /** Jeton de rafraîchissement remplacé à chaque échange (X, TikTok) : le dernier est gardé dans le magasin. */
   rotates?: boolean;
   store?: OAuthTokenStore | null;
+  /**
+   * Origine imposée de l'état gardé (magasin des identifiants des comptes : toujours la même autorisation, tenue à jour
+   * par le fournisseur) ; absente : empreinte du jeton de rafraîchissement d'origine.
+   */
+  origin?: string;
+  /** Relecture du magasin avant chaque échange (compte relié de nouveau, jeton renouvelé ailleurs), même sans rotation. */
+  reloadBeforeRefresh?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => number;
   timeoutMs?: number;
@@ -114,7 +133,7 @@ export class OAuthSession {
     this.#fetch = options.fetchImpl ?? ((input, init) => fetch(input, init));
     this.#access = options.accessToken ? { value: options.accessToken, expiresAt: options.accessExpiresAt ?? null } : null;
     this.#refresh = options.refreshToken ? { value: options.refreshToken, expiresAt: null } : null;
-    this.#origin = options.refreshToken ? tokenFingerprint(options.refreshToken) : null;
+    this.#origin = options.origin ?? (options.refreshToken ? tokenFingerprint(options.refreshToken) : null);
   }
 
   get provider(): OAuthProvider {
@@ -189,8 +208,12 @@ export class OAuthSession {
     }
   }
 
+  private get reloads(): boolean {
+    return Boolean(this.#options.rotates || this.#options.reloadBeforeRefresh);
+  }
+
   private async refresh(retried: boolean): Promise<string> {
-    if (this.#options.rotates) {
+    if (this.reloads) {
       // Un autre processus (API ou worker) a pu renouveler le jeton : on part du dernier gardé.
       await this.adoptStored();
       if (this.#access && this.#access.expiresAt !== null && this.fresh(this.#access)) return this.#access.value;
@@ -198,7 +221,7 @@ export class OAuthSession {
     const used = this.#refresh!.value;
     const { ok, body, status } = await this.exchange(used);
     if (!ok || !body.access_token) {
-      if (!retried && this.#options.rotates && this.#options.store) {
+      if (!retried && this.reloads && this.#options.store) {
         // Jeton déjà consommé par l'autre processus : relecture du magasin, puis un seul nouvel essai.
         await this.adoptStored();
         if (this.#refresh && this.#refresh.value !== used) return this.refresh(true);
