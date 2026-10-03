@@ -260,6 +260,23 @@ export const envSchema = z.object({
   GBP_LOCATION_ID: optionalString,
   SNAPCHAT_ACCESS_TOKEN: optionalString,
   SNAPCHAT_PROFILE_ID: optionalString,
+  /**
+   * Réseaux sociaux (3 octobre 2026) : identifiants des applications créées par le fondateur chez chaque réseau, pour les
+   * parcours d'autorisation de My Hub (adresse de rappel `<APP_BASE_URL>/v1/social/oauth/callback/<espace>`). Les jetons
+   * obtenus sont chiffrés en base (`social_accounts`), jamais posés dans l'environnement. Procédures : docs/marketing/reseaux-connexion.md.
+   */
+  META_APP_ID: optionalString,
+  /** Clé secrète de l'application Meta (Paramètres, Général) : secret. */
+  META_APP_SECRET: optionalString,
+  LINKEDIN_CLIENT_ID: optionalString,
+  LINKEDIN_CLIENT_SECRET: optionalString,
+  X_CLIENT_ID: optionalString,
+  X_CLIENT_SECRET: optionalString,
+  TIKTOK_CLIENT_KEY: optionalString,
+  TIKTOK_CLIENT_SECRET: optionalString,
+  /** Client OAuth Google (type « Application Web ») de la chaîne YouTube ; vide : YOUTUBE_CLIENT_ID et YOUTUBE_CLIENT_SECRET. */
+  GOOGLE_SOCIAL_CLIENT_ID: optionalString,
+  GOOGLE_SOCIAL_CLIENT_SECRET: optionalString,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

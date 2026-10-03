@@ -13,6 +13,8 @@ import { BILLING_PROVIDER, type BillingProvider } from './billing.types.js';
 import { SEARCH_CONSOLE_PROVIDER, SITE_CONNECTOR, SOCIAL_PUBLISHERS, TTS_PROVIDER, type SearchConsoleProvider, type SiteConnector, type SocialPublishers, type TtsProvider } from './marketing.types.js';
 import { MockSearchConsoleProvider, MockSiteConnector, MockTtsProvider, mockSocialPublishers } from './mock/marketing.mock.js';
 import { realSearchConsole, realSiteConnector, realSocialPublishers, realTts } from './real/marketing.js';
+import { SocialAccountsRegistry, SocialHttp } from '../modules/marketing/social-accounts.registry.js';
+import { SOCIAL_CREDENTIALS } from '../modules/marketing/social-credentials.js';
 
 type Mode = 'mock' | 'real';
 const choose = <T>(token: symbol, key: keyof AppEnv, mock: (env: AppEnv) => T, real: (env: AppEnv) => T): Provider => ({
@@ -52,7 +54,11 @@ const mockWebhooks = (env: AppEnv) => ({ acceptTestSignatures: env.NODE_ENV !== 
     choose<SiteConnector>(SITE_CONNECTOR, 'MARKETING_PROVIDER', () => new MockSiteConnector(), realSiteConnector),
     choose<TtsProvider>(TTS_PROVIDER, 'MARKETING_PROVIDER', () => new MockTtsProvider(), realTts),
     choose<SearchConsoleProvider>(SEARCH_CONSOLE_PROVIDER, 'MARKETING_PROVIDER', () => new MockSearchConsoleProvider(), realSearchConsole),
+    // Identifiants des comptes des réseaux (contrat du 3 octobre 2026) : table `social_accounts` (valeurs chiffrées), repli sur les variables d'environnement.
+    SocialHttp,
+    SocialAccountsRegistry,
+    { provide: SOCIAL_CREDENTIALS, useExisting: SocialAccountsRegistry },
   ],
-  exports: [MAPS_PROVIDER, PAYMENT_PROVIDER, SMS_PROVIDER, EMAIL_PROVIDER, PUSH_PROVIDER, WHATSAPP_PROVIDER, VOICE_PROVIDER, SEV_PROVIDER, LLM_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, CRM_PROVIDER, BILLING_PROVIDER, MAILBOX_PROVIDER, SOCIAL_PROVIDER, PLACES_PROVIDER, CALENDAR_PROVIDER, SOCIAL_PUBLISHERS, SITE_CONNECTOR, TTS_PROVIDER, SEARCH_CONSOLE_PROVIDER],
+  exports: [MAPS_PROVIDER, PAYMENT_PROVIDER, SMS_PROVIDER, EMAIL_PROVIDER, PUSH_PROVIDER, WHATSAPP_PROVIDER, VOICE_PROVIDER, SEV_PROVIDER, LLM_PROVIDER, STORAGE_PROVIDER, VIRUS_SCANNER, CRM_PROVIDER, BILLING_PROVIDER, MAILBOX_PROVIDER, SOCIAL_PROVIDER, PLACES_PROVIDER, CALENDAR_PROVIDER, SOCIAL_PUBLISHERS, SITE_CONNECTOR, TTS_PROVIDER, SEARCH_CONSOLE_PROVIDER, SOCIAL_CREDENTIALS, SocialAccountsRegistry, SocialHttp],
 })
 export class AdaptersModule {}

@@ -16,6 +16,7 @@ import { ContentAgent } from './content.agent.js';
 import { PublishingService, type CommentsPassReport, type PublishPassReport } from './publishing.service.js';
 import { SeoAgent } from './seo.agent.js';
 import { SeoService } from './seo.service.js';
+import { SocialAccountsService } from './social-accounts.service.js';
 
 type MarketingJob = { kind: 'media'; itemId: string } | { kind: 'publish'; itemId: string } | { at?: string };
 
@@ -26,6 +27,8 @@ export interface MarketingTickReport {
   measured: number;
   comments: CommentsPassReport;
   seoMeasured: number;
+  /** Réseaux sociaux : comptes validés, refusés, autorisations proches de leur échéance (passe quotidienne). */
+  social: { validated: number; failed: number; expiring: number };
 }
 
 @Injectable()
@@ -41,6 +44,7 @@ export class MarketingJobsService implements OnModuleInit {
     private readonly seo: SeoAgent,
     private readonly seoService: SeoService,
     private readonly publishing: PublishingService,
+    private readonly social: SocialAccountsService,
   ) {}
 
   onModuleInit() {
@@ -70,7 +74,7 @@ export class MarketingJobsService implements OnModuleInit {
 
   /** Une passe complète ; chaque étape protège les autres (une erreur est journalisée, jamais propagée). */
   async tick(now = new Date()): Promise<MarketingTickReport> {
-    const report: MarketingTickReport = { content: null, seo: null, publishing: { published: 0, retried: 0, failed: 0 }, measured: 0, comments: { checked: 0, replied: 0, forwarded: 0, escalated: 0 }, seoMeasured: 0 };
+    const report: MarketingTickReport = { content: null, seo: null, publishing: { published: 0, retried: 0, failed: 0 }, measured: 0, comments: { checked: 0, replied: 0, forwarded: 0, escalated: 0 }, seoMeasured: 0, social: { validated: 0, failed: 0, expiring: 0 } };
     const guard = async (label: string, fn: () => Promise<void>) => {
       try {
         await fn();
@@ -84,6 +88,7 @@ export class MarketingJobsService implements OnModuleInit {
     await guard('measure', async () => { report.measured = await this.publishing.measureDue(now); });
     await guard('comments', async () => { report.comments = await this.publishing.commentsPass(now); });
     await guard('seo-measure', async () => { report.seoMeasured = await this.seoService.measureDue(now); });
+    await guard('social', async () => { report.social = await this.social.validateDue(now); });
     return report;
   }
 

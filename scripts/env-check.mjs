@@ -98,6 +98,11 @@ const SQUARE_SHAPES = [
   { key: 'TWILIO_ACCOUNT_SID', test: (v) => /^AC[0-9a-f]{32}$/.test(v), expected: 'Account SID (AC suivi de 32 caractères hexadécimaux)' },
   { key: 'TWILIO_AUTH_TOKEN', test: (v) => /^[0-9a-f]{32}$/.test(v), expected: 'Auth Token (32 caractères hexadécimaux)' },
   { key: 'TWILIO_FROM_NUMBER', test: (v) => /^\+1\d{10}$/.test(v), expected: 'numéro au format international sans espace, par exemple +15145550100' },
+  // Réseaux sociaux (3 octobre 2026) : identifiants des applications OAuth, même contrôle de forme.
+  { key: 'META_APP_ID', test: (v) => /^\d{10,20}$/.test(v), expected: 'identifiant d\'application Meta (10 à 20 chiffres)' },
+  { key: 'META_APP_SECRET', test: (v) => /^[0-9a-f]{32}$/.test(v), expected: 'clé secrète de l\'application Meta (32 caractères hexadécimaux)' },
+  { key: 'GOOGLE_SOCIAL_CLIENT_ID', test: (v) => /\.apps\.googleusercontent\.com$/.test(v), expected: 'ID client OAuth Google (se termine par .apps.googleusercontent.com)' },
+  { key: 'GOOGLE_SOCIAL_CLIENT_SECRET', test: (v) => /^GOCSPX-[A-Za-z0-9_-]{20,}$/.test(v), expected: 'code secret du client Google (commence par GOCSPX-)' },
 ];
 /** Ce que la valeur semble être quand elle n'a pas la forme attendue (sans la montrer). */
 function squareLooksLike(value) {
