@@ -189,11 +189,11 @@ describe('boîte de réception unifiée : courriel, réseaux sociaux, appels man
     const message = { messageId: `<imap-${rand()}@example.com>`, inReplyTo: null, references: [], from: `Paul Roy <${sender}>`, to: ['contact@neomoov.net'], subject: 'Siège enfant', text: 'Bonjour, avez-vous des sièges enfant ?', html: null, attachments: [], headers: {}, receivedAt: new Date() };
     mailbox.unseen.push(message);
     const jobs = app.get(InboxJobsService);
-    expect(await jobs.pollMailbox()).toEqual({ fetched: 1, byStatus: { queued: 1, automated: 0, duplicate: 0, ignored: 0 } });
+    expect(await jobs.pollMailbox()).toEqual({ fetched: 1, byStatus: { queued: 1, automated: 0, duplicate: 0, ignored: 0, prospect_reply: 0, opt_out: 0 } });
     const state = await until(() => conversationsOf({ address: sender }), (s) => s.messages.length === 3, 'réponse de l\'agent (IMAP)');
     expect(state.conversation).toMatchObject({ channel: 'email', subject: 'Siège enfant', displayName: 'Paul Roy' });
     mailbox.unseen.push(message, { ...message, messageId: null, from: 'sans adresse' });
-    expect(await jobs.pollMailbox()).toEqual({ fetched: 2, byStatus: { queued: 0, automated: 0, duplicate: 1, ignored: 1 } });
+    expect(await jobs.pollMailbox()).toEqual({ fetched: 2, byStatus: { queued: 0, automated: 0, duplicate: 1, ignored: 1, prospect_reply: 0, opt_out: 0 } });
   });
 
   it('Messenger : message privé → conversation social répondue par le connecteur ; commentaire Facebook négatif → escalade et réponse publique neutre', async ({ skip }) => {
