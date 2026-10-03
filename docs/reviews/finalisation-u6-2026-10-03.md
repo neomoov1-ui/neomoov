@@ -70,7 +70,7 @@ Branche `finalisation-u6-revue` (copie `neomoov-wt25b`), créée depuis `origin/
 | `pnpm --filter @neomoov/db test` | 6 fichiers, 28 tests verts (journal strictement croissant, un fichier inverse par migration) |
 | `pnpm --filter @neomoov/api typecheck` ; `build` puis `pnpm --filter @neomoov/worker typecheck` | Verts |
 | `db:migrate` sous le verrou | 0039 appliquée sur la base de développement (index et `audit_log_guard` présents) ; premier essai coupé par la panne de réseau (`ENOTFOUND`), relancé |
-| E2E sous le verrou : `revue-u6-taches`, `retention`, `compliance`, `invoicing`, `quotes`, `isolation-coverage` | Voir la section suivante |
+| `vitest run --no-file-parallelism` sous le verrou `u6-revue` : `revue-u6-taches`, `retention`, `compliance`, `invoicing`, `quotes`, `isolation-coverage` (`.e2e.test.ts`) | 6 fichiers, 31 tests verts au premier passage (816 s, après 21 minutes d’attente du verrou) |
 
 ## Ce qui reste ou demande une décision
 
