@@ -47,4 +47,4 @@ Règles en données (`promotions`) : type `percent`, `fixed`, `free_ride` ou `nt
 ## Reste à faire
 
 - Fait (vérifié le 3 octobre 2026, finalisation U3) : compensation des promotions, crédit de pack du parrainage et tarifs protégés sur le relevé hebdomadaire (`settlement/statements.service.ts`, essais `settlement.e2e`) ; avis de pack envoyés par push (cycle des packs, matrice, file des notifications ; essais `growth-packs-promotions.e2e`, `notifications.e2e`) ; avis de parrainage `referral.rewarded` et `referral.driver_rewarded` (essais `growth-credits-referral.e2e`).
-- Écrans clients : saisie d'un code promo et d'un code de parrainage, « Mes chauffeurs » dans l'application client (les routes sont prêtes).
+- Écrans clients : faits le 3 octobre 2026 (finalisation U4) dans l'application client : code promo à l'écran des prix (`options.promoCode` du devis, motif du refus traduit), parrainage dans le profil (code, partage, saisie du code d'un parrain), « Mes chauffeurs » (réserver avec un favori, retirer ; ajout proposé après une course notée). La réservation web a le code promo et le code de parrainage depuis la finalisation U1.

@@ -39,6 +39,7 @@ export const driverAttachmentSchema = z.object({
   previousOrganizationId: uuid.nullable(),
   closedStatements: count,
 });
+export type DriverAttachment = z.infer<typeof driverAttachmentSchema>;
 
 export const fleetDocumentSummarySchema = z.object({ approved: count, pending: count, rejected: count, expired: count, expiringSoon: count });
 

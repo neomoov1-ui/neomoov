@@ -68,6 +68,12 @@ const fr = {
     app: 'Ouvrez l\'application Neomoov sur votre téléphone : ce lien l\'ouvre directement. Sinon, installez-la, puis entrez le code dans Profil, « Rejoindre une organisation ».',
     book: 'Réserver une course sur le web',
   },
+  driverJoinCode: {
+    title: 'Conduire avec {{name}}', notFound: 'Ce code de rattachement ne correspond à aucune organisation.', code: 'Code de rattachement',
+    app: 'Ouvrez l\'application Neomoov Chauffeur sur votre téléphone : ce lien l\'ouvre directement. Sinon, installez-la, puis entrez le code dans Profil, « Rejoindre une organisation ».',
+    fleet: 'Le code affiche la marque de l\'organisation. Pour conduire pour sa flotte (courses, relevés), l\'organisation vous envoie aussi une invitation par texto.',
+    become: 'Devenir chauffeur Neomoov',
+  },
   rights: {
     title: 'Vos droits sur vos données',
     subtitle: 'Loi 25 : demandez l\'accès, la rectification ou la portabilité de vos données, retirez un consentement ou supprimez votre compte, puis suivez l\'état de vos demandes. Réponse sous 30 jours.',
@@ -186,6 +192,12 @@ const en: typeof fr = {
     title: 'Join {{name}}', notFound: 'This join code does not match any organization.', code: 'Join code',
     app: 'Open the Neomoov app on your phone: this link opens it directly. Otherwise, install it, then enter the code in Profile, "Join an organization".',
     book: 'Book a ride on the web',
+  },
+  driverJoinCode: {
+    title: 'Drive with {{name}}', notFound: 'This join code does not match any organization.', code: 'Join code',
+    app: 'Open the Neomoov Driver app on your phone: this link opens it directly. Otherwise, install it, then enter the code in Profile, "Join an organization".',
+    fleet: 'The code shows the organization\'s brand. To drive for its fleet (rides, statements), the organization also sends you an invitation by text.',
+    become: 'Become a Neomoov driver',
   },
   rights: {
     title: 'Your data rights',

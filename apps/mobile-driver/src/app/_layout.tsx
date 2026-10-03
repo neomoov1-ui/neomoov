@@ -16,7 +16,7 @@ import '@/lib/location';
 // Sortie de session complète sur refus du jeton (aussi depuis la tâche de localisation) : branchée au chargement.
 import '@/lib/session-end';
 import { initObservability, reportMobileError } from '@/lib/observability';
-import { usePendingJoin } from '@/lib/pending-join';
+import { usePendingFleetInvitation, usePendingJoin } from '@/lib/pending-join';
 import { usePreferences } from '@/lib/preferences';
 import { restorePresence } from '@/lib/presence';
 import { listenToNotificationTaps, registerForPush } from '@/lib/push';
@@ -76,6 +76,13 @@ export default function RootLayout() {
   // Code de rattachement reçu par un lien avant la connexion (étape 22) : l'écran « Rejoindre » reprend avec le code.
   useEffect(() => {
     if (status !== 'signedIn') return;
+    // Invitation de flotte reçue par un lien avant la connexion (étape 23) : l'écran d'acceptation reprend avec le jeton.
+    const pendingInvitation = usePendingFleetInvitation.getState().token;
+    if (pendingInvitation) {
+      usePendingFleetInvitation.getState().set(null);
+      router.push({ pathname: '/fleet-invitation', params: { token: pendingInvitation } });
+      return;
+    }
     const pendingCode = usePendingJoin.getState().code;
     if (!pendingCode) return;
     usePendingJoin.getState().set(null);

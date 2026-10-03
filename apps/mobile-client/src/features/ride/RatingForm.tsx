@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Choices, ErrorState, Notice, SectionTitle } from '@/components/ui';
+import { Choices, ErrorState, Notice, SectionTitle, ToggleChip } from '@/components/ui';
 import { errorMessage, offlineQueue } from '@/lib/api';
 import { formatMoney, type UiLanguage } from '@/lib/format';
 import { keys, queryClient, useAppConfig } from '@/lib/queries';
@@ -49,9 +49,9 @@ export function RatingForm({ ride }: { ride: RideView }) {
   return (
     <Card style={styles.card}>
       <SectionTitle>{t('ride.rate')}</SectionTitle>
-      <View style={styles.stars} accessibilityRole="adjustable" accessibilityValue={{ min: 1, max: 5, now: score }}>
+      <View style={styles.stars} accessibilityRole="radiogroup" accessibilityLabel={t('ride.rate')}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <Pressable key={n} accessibilityRole="button" accessibilityLabel={`${n} / 5`} onPress={() => setScore(n)} hitSlop={6}>
+          <Pressable key={n} accessibilityRole="radio" accessibilityState={{ checked: n === score }} accessibilityLabel={`${n} / 5`} onPress={() => setScore(n)} style={styles.star}>
             <Ionicons name={n <= score ? 'star' : 'star-outline'} size={36} color={n <= score ? colors.warning : colors.muted} />
           </Pressable>
         ))}
@@ -60,7 +60,7 @@ export function RatingForm({ ride }: { ride: RideView }) {
         {offered.map((tag) => {
           const on = tags.includes(tag);
           return (
-            <Choices key={tag} value={on ? tag : null} onChange={() => setTags((list) => (on ? list.filter((x) => x !== tag) : [...list, tag].slice(0, 5)))} options={[{ value: tag, label: t(`ride.tags.${tag}`) }]} />
+            <ToggleChip key={tag} label={t(`ride.tags.${tag}`)} checked={on} onToggle={() => setTags((list) => (on ? list.filter((x) => x !== tag) : [...list, tag].slice(0, 5)))} />
           );
         })}
       </View>
@@ -74,6 +74,7 @@ export function RatingForm({ ride }: { ride: RideView }) {
 
 const styles = StyleSheet.create({
   card: { gap: spacing.sm },
-  stars: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
+  stars: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs },
+  star: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
 });

@@ -5,6 +5,8 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AddressField } from '@/components/AddressField';
+import { MyDrivers } from '@/features/growth/MyDrivers';
+import { Referral } from '@/features/growth/Referral';
 import { Choices, ErrorState, Notice, Row, Screen, SectionTitle, ToggleRow } from '@/components/ui';
 import { api, errorMessage } from '@/lib/api';
 import { displayPhone } from '@/lib/phone';
@@ -13,8 +15,8 @@ import { useSession } from '@/lib/session';
 import { endSession } from '@/lib/session-end';
 
 /**
- * Profil : langue, préférences de confort, lieux enregistrés, consentements, droits (copie des données), moyens de paiement, factures,
- * assistance, déconnexion et suppression du compte dans l'application (exigence des magasins).
+ * Profil : langue, préférences de confort, lieux enregistrés, chauffeurs favoris, parrainage, consentements, droits (copie des
+ * données), moyens de paiement, factures, assistance, déconnexion et suppression du compte dans l'application (exigence des magasins).
  */
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -134,6 +136,7 @@ export default function ProfileScreen() {
           <Choices label={t('confirm.temperature')} value={preferences.temperature} onChange={(temperature) => setPreferences({ ...preferences, temperature })} options={(['cool', 'neutral', 'warm'] as const).map((v) => ({ value: v, label: t(`confirm.temperatureValues.${v}`) }))} />
           <ToggleRow label={t('confirm.luggageHelp')} value={preferences.luggageHelp} onChange={(luggageHelp) => setPreferences({ ...preferences, luggageHelp })} />
           <ToggleRow label={t('confirm.accessibility')} value={preferences.accessibility ?? false} onChange={(accessibility) => setPreferences({ ...preferences, accessibility })} />
+          <ToggleRow label={t('confirm.assistanceAnimal')} hint={t('confirm.assistanceAnimalHint')} value={preferences.assistanceAnimal ?? false} onChange={(assistanceAnimal) => setPreferences({ ...preferences, assistanceAnimal })} />
           <Button label={t('profile.save')} variant="ghost" onPress={() => void savePreferences()} disabled={busy} />
         </>
       ) : null}
@@ -154,7 +157,10 @@ export default function ProfileScreen() {
       <Button label={t('profile.addPlace')} variant="ghost" onPress={() => void addPlace()} disabled={busy || !placeValue || !placeLabel.trim()} />
 
       <SectionTitle>{t('profile.myDrivers')}</SectionTitle>
-      <Body muted>{t('profile.myDriversSoon')}</Body>
+      <MyDrivers />
+
+      <SectionTitle>{t('referral.title')}</SectionTitle>
+      <Referral />
 
       <SectionTitle>{t('profile.consents')}</SectionTitle>
       <ToggleRow label={t('consents.geolocation')} hint={t('consents.geolocationHint')} value={granted('geolocation')} onChange={(v) => void setConsent('geolocation', v)} />

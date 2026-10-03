@@ -6,7 +6,7 @@ import { AddressField } from '@/components/AddressField';
 import { PickupPicker } from '@/components/PickupPicker';
 import { RideMap } from '@/components/RideMap';
 import { ErrorState, Loading, Notice, Screen } from '@/components/ui';
-import { pickupProblem } from '@/features/booking/logic';
+import { pickupProblem, quoteRequestOf } from '@/features/booking/logic';
 import { useBooking } from '@/features/booking/store';
 import { api, errorMessage } from '@/lib/api';
 import { useAppConfig, usePlaces } from '@/lib/queries';
@@ -40,14 +40,10 @@ export default function BookScreen() {
     if (problem) return setError(t(problem === 'too_soon' ? 'book.tooSoon' : 'book.tooFar'));
     setBusy(true);
     try {
-      const quotes = await api.quotes.create({
-        origin: draft.origin,
-        destination: draft.destination,
-        stops: draft.stops,
-        requestedAt: draft.pickupAt,
-        options: { flex: draft.options.flex, priority: draft.options.priority, childSeat: draft.options.childSeat, luggage: draft.options.luggage, pet: draft.options.pet },
-      });
-      draft.update({ quotes, category: quotes.quotes[0]?.category ?? null, vehicleId: null });
+      // Même demande que les écrans suivants (chauffeur favori choisi dans « Mes chauffeurs », code promo) ; sans mode de
+      // paiement : le devis déduit les crédits comme pour une course prépayée, l'écran 3 le refait si le mode l'exige.
+      const quotes = await api.quotes.create(quoteRequestOf({ origin: draft.origin, destination: draft.destination, stops: draft.stops, pickupAt: draft.pickupAt, options: draft.options }));
+      draft.update({ quotes, quotedPaymentChoice: null, category: quotes.quotes[0]?.category ?? null, vehicleId: null });
       router.push('/book/category');
     } catch (e) {
       setError(errorMessage(e));
@@ -62,6 +58,12 @@ export default function BookScreen() {
       <AddressField label={t('book.from')} value={draft.origin} onChange={(origin) => draft.update({ origin, quotes: null })} savedPlaces={places.data ?? []} allowCurrentLocation testID="origin-input" />
       <AddressField label={t('book.to')} value={draft.destination} onChange={(destination) => draft.update({ destination, quotes: null })} savedPlaces={places.data ?? []} near={near} testID="destination-input" />
       <PickupPicker booking={booking} value={draft.pickupAt} onChange={(pickupAt) => draft.update({ pickupAt, quotes: null })} />
+      {draft.options.favouriteDriverId ? (
+        <>
+          <Notice>{t('book.favouriteRequested')}</Notice>
+          <Button label={t('book.favouriteClear')} variant="ghost" onPress={() => draft.update({ options: { ...draft.options, favouriteDriverId: undefined }, quotes: null })} testID="favourite-clear" />
+        </>
+      ) : null}
       <Field
         label={t('book.flight')}
         hint={t('book.flightHint')}

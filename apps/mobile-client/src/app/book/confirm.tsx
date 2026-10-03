@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
 import { Choices, ErrorState, Notice, Row, Screen, SectionTitle, ToggleRow } from '@/components/ui';
-import { effectivePaymentChoice, paymentOptions, quoteExpired, quoteRequestOf, samePrice } from '@/features/booking/logic';
+import { amountDueFor, effectivePaymentChoice, paymentOptions, quoteExpired, quoteFitsChoice, quoteRequestOf, samePrice } from '@/features/booking/logic';
 import { useBooking } from '@/features/booking/store';
 import { api, errorCode, errorMessage } from '@/lib/api';
 import { serverNow } from '@/lib/clock';
@@ -59,6 +59,8 @@ export default function ConfirmScreen() {
     ...(payment.payAfter.length > 0 ? [{ value: 'pay_driver_after' as const, label: t('confirm.payAfter') }] : []),
   ];
   const category = config.data?.categories.find((c) => c.code === quote.category);
+  // Montant à payer dans le mode choisi : payée au chauffeur, le total (les crédits ne valent qu'en prépaiement).
+  const amountDue = amountDueFor(quote, paymentChoice);
   const passengerPhone = draft.forSomeoneElse ? toE164(draft.passengerPhone) : null;
   const passenger = draft.forSomeoneElse && passengerPhone && draft.passengerName.trim().length >= 2 ? { name: draft.passengerName.trim(), phone: passengerPhone } : null;
   const passengerIncomplete = draft.forSomeoneElse && !passenger;
@@ -73,12 +75,14 @@ export default function ConfirmScreen() {
       // Devis expiré ou sur le point de l'être (revue du 2 octobre 2026, constat mobile 4) : nouveau devis d'abord. Même
       // prix : la réservation part avec lui ; prix changé : il est montré au client, qui confirme de nouveau. La clé
       // d'idempotence est gardée : si une tentative précédente a créé la course, l'API la renvoie au lieu d'en créer une autre.
+      // Même chemin quand le devis ne convient pas au mode de paiement choisi (revue du 2 octobre 2026, constat 2) : payée au
+      // chauffeur, la course part d'un devis demandé avec `paymentChoice` (aucun crédit déduit, montant affiché inchangé).
       let priced = quote;
-      if (quoteExpired(quote, serverNow())) {
+      if (quoteExpired(quote, serverNow()) || !quoteFitsChoice(quote, draft.quotedPaymentChoice, paymentChoice)) {
         const fresh = await api.quotes.create(quoteRequestOf(route, paymentChoice));
         const next = fresh.quotes.find((q) => q.category === quote.category);
-        draft.update({ quotes: fresh });
-        if (!next || !samePrice(quote, next)) {
+        draft.update({ quotes: fresh, quotedPaymentChoice: paymentChoice });
+        if (!next || !samePrice(quote, next, paymentChoice)) {
           setNotice(t('confirm.requoted'));
           return;
         }
@@ -112,7 +116,7 @@ export default function ConfirmScreen() {
         // Même demande que l'écran des catégories (chauffeur favori compris).
         const quotes = await api.quotes.create(quoteRequestOf(route, paymentChoice)).catch(() => null);
         if (quotes) {
-          draft.update({ quotes });
+          draft.update({ quotes, quotedPaymentChoice: paymentChoice });
           draft.renewKey();
           setNotice(errorMessage(e));
         } else setError(errorMessage(e));
@@ -142,6 +146,7 @@ export default function ConfirmScreen() {
       />
       <ToggleRow label={t('confirm.luggageHelp')} value={preferences.luggageHelp} onChange={(luggageHelp) => setPreference({ luggageHelp })} />
       <ToggleRow label={t('confirm.accessibility')} value={preferences.accessibility ?? false} onChange={(accessibility) => setPreference({ accessibility })} />
+      <ToggleRow label={t('confirm.assistanceAnimal')} hint={t('confirm.assistanceAnimalHint')} value={preferences.assistanceAnimal ?? false} onChange={(assistanceAnimal) => setPreference({ assistanceAnimal })} testID="assistance-animal" />
       <Field label={t('confirm.specialRequests')} hint={t('confirm.specialRequestsHint')} value={draft.specialRequests} onChangeText={(specialRequests) => draft.update({ specialRequests })} multiline maxLength={500} />
 
       <SectionTitle>{t('confirm.payment')}</SectionTitle>
@@ -168,6 +173,12 @@ export default function ConfirmScreen() {
         <Row label={t('confirm.category')} value={category?.name ?? quote.category} />
         {vehicle ? <Row label={t('confirm.vehicle')} value={`${vehicle.make} ${vehicle.model} ${vehicle.colour}`} /> : null}
         <Row label={t('confirm.price')} value={formatMoney(quote.totalCents, language)} strong />
+        {amountDue !== quote.totalCents ? (
+          <>
+            <Row label={t('confirm.creditsApplied')} value={formatMoney(amountDue - quote.totalCents, language)} />
+            <Row label={t('confirm.amountDue')} value={formatMoney(amountDue, language)} strong />
+          </>
+        ) : null}
         <Body muted>{t('confirm.maxConsented', { amount: formatMoney(quote.maxConsentedCents, language) })}</Body>
       </Card>
       {passengerIncomplete ? <Notice tone="warning">{t('category.passengerIncomplete')}</Notice> : null}

@@ -13,6 +13,9 @@ let socket: Socket | null = null;
 /** Socket connecté ou non : les écrans ne rafraîchissent par HTTP (toutes les 5 secondes) que s'il est coupé. */
 export const useRealtimeStatus = create<{ connected: boolean }>(() => ({ connected: false }));
 
+/** Offre affichée en plein écran (constat mobile 23) : une offre reçue pendant ce temps attend dans la file, sans nouvel écran empilé. */
+export const useOfferScreen = create<{ openId: string | null }>(() => ({ openId: null }));
+
 /** Socket de l'espace `/driver` (7.3) ; le jeton est relu à chaque connexion (après rotation). */
 function driverSocket(): Socket {
   socket ??= io(`${API_BASE_URL}/driver`, {
@@ -59,7 +62,7 @@ export function useDriverRealtime(enabled: boolean): { connected: boolean } {
       // Neomoov Pilote (étape 24) : une offre que Pilote accepte pour le chauffeur n'ouvre pas l'écran d'offre ; la course arrive par `ride.updated`.
       if (offer.pilotScore?.autoAccept) return;
       upsertOffer(offer);
-      router.push({ pathname: '/offer/[id]', params: { id: offer.id } });
+      if (!useOfferScreen.getState().openId) router.push({ pathname: '/offer/[id]', params: { id: offer.id } });
     };
     const onExpired = (event: { offerId?: string }) => {
       if (event?.offerId) removeOffer(event.offerId);
@@ -99,7 +102,10 @@ export function useDriverRealtime(enabled: boolean): { connected: boolean } {
   return { connected };
 }
 
-/** Abonnement aux événements d'une course (état, messages) pendant qu'elle est à l'écran. */
+/**
+ * Abonnement aux événements d'une course (état, messages) pendant qu'elle est à l'écran ; désabonnement en quittant
+ * l'écran (revue du 2 octobre 2026, constat mobile 24) : le socket ne reçoit plus les messages des courses passées.
+ */
 export function useRideSubscription(rideId: string, enabled: boolean): void {
   useEffect(() => {
     if (!enabled || !rideId) return;
@@ -109,6 +115,7 @@ export function useRideSubscription(rideId: string, enabled: boolean): void {
     if (s.connected) subscribe();
     return () => {
       s.off('connect', subscribe);
+      if (s.connected) s.emit('ride.unsubscribe', { rideId }, () => undefined);
     };
   }, [rideId, enabled]);
 }

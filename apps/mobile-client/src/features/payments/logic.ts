@@ -4,16 +4,15 @@
  * native n'est pas encore intégrée à l'application). Sans dépendance React Native : testée seule.
  */
 import type { PaymentMethodView, SetupIntentResponse } from '@neomoov/domain';
+import { withLanguage } from '@neomoov/mobile-core/format';
+
+/** Langue dans l'adresse de la page de saisie : fonction partagée avec l'application chauffeur (constat mobile 25). */
+export { withLanguage };
 
 /** Lien profond de retour de la page de saisie (fin du navigateur intégré). */
 export const CARD_RETURN_URL = 'neomoov://carte-enregistree';
 
 export type CardFlow = { kind: 'web'; url: string } | { kind: 'simulated'; setupIntentId: string } | { kind: 'unavailable' };
-
-/** Adresse de la page de saisie avec la langue de l'application (sans l'API `URL`, incomplète sous React Native). */
-export function withLanguage(url: string, language: 'fr-CA' | 'en'): string {
-  return `${url}${url.includes('?') ? '&' : '?'}lang=${language === 'en' ? 'en' : 'fr'}`;
-}
 
 export function cardFlowOf(setup: SetupIntentResponse, language: 'fr-CA' | 'en'): CardFlow {
   if (setup.provider === 'square' && setup.cardFormUrl) return { kind: 'web', url: withLanguage(setup.cardFormUrl, language) };

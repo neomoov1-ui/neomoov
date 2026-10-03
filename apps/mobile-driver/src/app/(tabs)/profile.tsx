@@ -156,6 +156,7 @@ export default function ProfileScreen() {
         <Body muted>{currentOrganization ? t('organization.current', { name: currentOrganization.name }) : t('organization.none')}</Body>
       )}
       <Button label={t('organization.joinButton')} variant="ghost" onPress={() => router.push('/join')} disabled={busy} testID="join-organization-link" />
+      <Button label={t('fleetInvite.open')} variant="ghost" onPress={() => router.push('/fleet-invitation')} disabled={busy} testID="fleet-invitation-link" />
 
       <SectionTitle>{t('profile.paymentModes')}</SectionTitle>
       <Body muted>{t('profile.card')}</Body>

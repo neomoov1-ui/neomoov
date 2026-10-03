@@ -29,5 +29,7 @@ Sur le poste de développement actuel (ni Maestro, ni SDK Android), le parcours 
 | `04-tiers.yaml` | 4 | Réservation pour un tiers (nom et téléphone du passager) |
 | `05-vehicule-precis.yaml` | 5 (partie « véhicule choisi » ; le choix parmi « Mes chauffeurs » arrive à l'étape 8) | Choix d'un véhicule libre sur le créneau |
 | `06-annulation.yaml` | 6 | Annulation gratuite avant l'attribution |
+| `07-code-promo-paiement.yaml` | Finalisation (3 octobre 2026) | Code promo refusé puis code de lancement, paiement au chauffeur sans « Reste à payer », animal d'assistance (sans confirmer) |
+| `08-mes-chauffeurs-parrainage.yaml` | Finalisation (3 octobre 2026) | « Mes chauffeurs », code et partage du parrainage, code de parrain inconnu refusé, animal d'assistance dans les préférences |
 
-Les parcours 3 à 6 supposent une session ouverte (lancer d'abord le parcours 1 sans `clearState`).
+Les parcours 3 à 8 supposent une session ouverte (lancer d'abord le parcours 1 sans `clearState`).

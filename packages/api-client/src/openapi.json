@@ -33827,6 +33827,9 @@
                         },
                         "cardPayments": {
                           "type": "boolean"
+                        },
+                        "driverCancelAfterArrival": {
+                          "type": "boolean"
                         }
                       },
                       "required": [

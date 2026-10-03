@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyBrandUpdate, attachOrganizationSchema, brandContrastIssues, brandSchema, brandSummary, brandTextsSchema, brandUpdateSchema, contrastRatio, dnsVerificationRecord, domainSchema,
+  applyBrandUpdate, attachOrganizationSchema, brandContrastIssues, brandSchema, brandSummary, brandTextsSchema, brandUpdateSchema, contrastRatio, dnsVerificationRecord, domainSchema, driverJoinLink,
   generateJoinCode, hexColorSchema, isHexColor, isJoinCode, JOIN_CODE_ALPHABET, joinCodeSchema, joinLink, NEOMOOV_BRAND, normalizeDomain, normalizeJoinCode, organizationDomainCreateSchema,
   PERMISSIONS, publicBrandQuerySchema, relativeLuminance, resolveBrand, SYSTEM_ROLES, systemRole,
 } from '../src/index.js';
@@ -27,6 +27,8 @@ describe('code de rattachement (étape 22)', () => {
     expect(joinCodeSchema.safeParse('').success).toBe(false);
     expect(isJoinCode('abcdef23')).toBe(false);
     expect(joinLink('https://neomoov.net/', 'abcd-ef23')).toBe('https://neomoov.net/c/ABCDEF23');
+    // Lien des chauffeurs (constat mobile 12) : `/d/`, ouvert par l'application chauffeur.
+    expect(driverJoinLink('https://neomoov.net//', 'abcd ef23')).toBe('https://neomoov.net/d/ABCDEF23');
     expect(attachOrganizationSchema.parse({ code: 'hjkm np23' })).toEqual({ code: 'HJKMNP23' });
   });
 });

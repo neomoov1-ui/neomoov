@@ -68,6 +68,11 @@ export function errorMessage(error: unknown): string {
   return i18n.t('errors.generic');
 }
 
+/** Code d'erreur de l'API, ou null pour une autre exception. */
+export function errorCode(error: unknown): string | null {
+  return error instanceof ApiError ? error.code : null;
+}
+
 /** Raisons d'un refus de passage en ligne (`DRIVER_NOT_ELIGIBLE`), pour les afficher une à une. */
 export function eligibilityReasons(error: unknown): string[] {
   if (!(error instanceof ApiError) || error.code !== 'DRIVER_NOT_ELIGIBLE') return [];

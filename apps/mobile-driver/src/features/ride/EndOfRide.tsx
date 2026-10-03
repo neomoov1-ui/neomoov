@@ -1,7 +1,7 @@
 import { CLIENT_RATING_TAGS, type DriverRideView } from '@neomoov/domain';
 import { Body, Button, Card, Field } from '@neomoov/mobile-core/components';
 import { colors, spacing } from '@neomoov/mobile-core/theme';
-import { Choices, ErrorState, Notice, Row, SectionTitle } from '@neomoov/mobile-core/ui';
+import { ErrorState, Notice, Row, SectionTitle, ToggleChip } from '@neomoov/mobile-core/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -80,7 +80,7 @@ export function EndOfRide({ ride }: { ride: DriverRideView }) {
           <View style={styles.tags}>
             {offered.map((tag) => {
               const on = tags.includes(tag);
-              return <Choices key={tag} value={on ? tag : null} onChange={() => setTags((list) => (on ? list.filter((x) => x !== tag) : [...list, tag].slice(0, 5)))} options={[{ value: tag, label: t(`ride.end.tags.${tag}`) }]} />;
+              return <ToggleChip key={tag} label={t(`ride.end.tags.${tag}`)} checked={on} onToggle={() => setTags((list) => (on ? list.filter((x) => x !== tag) : [...list, tag].slice(0, 5)))} />;
             })}
           </View>
           <Field label={t('ride.end.comment')} value={comment} onChangeText={setComment} multiline maxLength={500} />

@@ -22,6 +22,8 @@ describe('configuration publique et profil client (intégration)', () => {
     if (!app) return skip('DATABASE_URL absente');
     const res = await request(server()).get('/v1/config').expect(200);
     expect(res.body.features).toMatchObject({ negotiation: true, negotiationAboveMax: false, immediateRides: false, installments: false });
+    // Annulation du chauffeur une fois arrivé : réglage désactivé par défaut (décision du fondateur attendue).
+    expect(res.body.features.driverCancelAfterArrival).toBe(false);
     expect(res.body.booking).toMatchObject({ minLeadSeconds: 7200, maxLeadDays: 90, freeCancellationSeconds: 120, cancellationFeeCents: 500 });
     expect(res.body.negotiation.floorPpm).toBe(700_000);
     expect(res.body.tips).toEqual({ suggestedCents: [0, 200, 300, 500], maxCents: 10_000 });

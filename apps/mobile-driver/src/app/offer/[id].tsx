@@ -10,12 +10,13 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PilotBadge } from '@/components/PilotScore';
 import { PreferenceChips } from '@/components/Preferences';
-import { secondsUntil } from '@/features/ride/steps';
+import { nextOffer, secondsUntil } from '@/features/ride/steps';
 import { api, errorMessage } from '@/lib/api';
 import { offerDeadlineOf } from '@/lib/clock';
 import { formatDateTime, formatDistance, formatDuration, formatMoney, type UiLanguage } from '@/lib/format';
 import { startOfferAlert, stopOfferAlert } from '@/lib/offer-alert';
 import { keys, queryClient, refreshDriver, useAppConfig, useOffers } from '@/lib/queries';
+import { useOfferScreen } from '@/lib/realtime';
 
 /**
  * Offre de course plein écran (6.2) : catégorie, tarif, distance et temps jusqu'au client, trajet, destination,
@@ -45,15 +46,31 @@ export default function OfferScreen() {
   }, []);
 
   useEffect(() => {
-    void startOfferAlert();
-    return () => stopOfferAlert();
-  }, []);
+    void startOfferAlert(id);
+    return () => stopOfferAlert(id);
+  }, [id]);
+
+  // Un seul écran d'offre (constat mobile 23) : les offres reçues pendant qu'il est ouvert attendent dans la file.
+  useEffect(() => {
+    useOfferScreen.setState({ openId: id });
+    return () => {
+      if (useOfferScreen.getState().openId === id) useOfferScreen.setState({ openId: null });
+    };
+  }, [id]);
+
+  /** Sortie de l'écran : offre suivante de la file si elle est encore valable, sinon retour. */
+  function leave() {
+    const next = nextOffer(queryClient.getQueryData<DriverOfferView[]>(keys.offers) ?? [], id, offerDeadlineOf, Date.now());
+    if (next) router.replace({ pathname: '/offer/[id]', params: { id: next.id } });
+    else if (router.canGoBack()) router.back();
+    else router.replace('/home');
+  }
 
   // Expirée ou attribuée ailleurs : la sonnerie s'arrête et l'écran se ferme de lui-même.
   useEffect(() => {
     if (!gone) return;
     stopOfferAlert();
-    const timer = setTimeout(() => (router.canGoBack() ? router.back() : router.replace('/home')), 1500);
+    const timer = setTimeout(leave, 1500);
     return () => clearTimeout(timer);
   }, [gone]);
 
@@ -82,7 +99,7 @@ export default function OfferScreen() {
     respond(async () => {
       await api.driver.declineOffer(id);
       queryClient.setQueryData<DriverOfferView[]>(keys.offers, (list = []) => list.filter((o) => o.id !== id));
-      router.canGoBack() ? router.back() : router.replace('/home');
+      leave();
     });
 
   const sendCounter = () =>
@@ -90,7 +107,7 @@ export default function OfferScreen() {
       const cents = Math.round(Number.parseFloat(counter.replace(',', '.')) * 100);
       if (!Number.isFinite(cents) || cents <= 0) return;
       await api.driver.counterOffer(id, { proposedTotalCents: cents });
-      router.canGoBack() ? router.back() : router.replace('/home');
+      leave();
     });
 
   const negotiation = Boolean(config.data?.features.negotiation && offer?.type === 'client_proposal' && offer.proposedTotalCents !== null && offer.displayedTotalCents !== null);

@@ -68,3 +68,8 @@ export function errorMessage(error: unknown): string {
 export function errorCode(error: unknown): string | null {
   return error instanceof ApiError ? error.code : null;
 }
+
+/** Erreur de l'API (code et détails), ou null pour une autre exception. */
+export function apiErrorOf(error: unknown): ApiError | null {
+  return error instanceof ApiError ? error : null;
+}
