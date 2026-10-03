@@ -10,16 +10,16 @@ import { AddressField } from '@/components/AddressField';
 import { CategoryCard } from '@/components/CategoryCard';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { ErrorState, Notice, Screen, SectionTitle, ToggleRow } from '@/components/ui';
-import { categoryCards, quoteRequestOf } from '@/features/booking/logic';
+import { categoryCards, normalizePromoCode, promoRefusal, promoStatus, quoteRequestOf } from '@/features/booking/logic';
 import { useBooking, type BookingOptions } from '@/features/booking/store';
-import { api, errorMessage } from '@/lib/api';
+import { api, apiErrorOf, errorMessage } from '@/lib/api';
 import { toE164 } from '@/lib/phone';
 import { keys, useAppConfig, usePlaces } from '@/lib/queries';
 
 /**
  * Réservation, écran 2 sur 3 : catégories avec prix total de l'API, détail dépliable, options et arrêts qui redemandent
  * le devis (prix recalculé par l'API), réservation pour un tiers, et choix précis du véhicule parmi ceux libres sur le
- * créneau (D37).
+ * créneau (D37), code promo (5.9) : envoyé avec le devis, la remise apparaît dans le détail ou le motif du refus est donné.
  */
 export default function CategoryScreen() {
   const { t } = useTranslation();
@@ -29,6 +29,8 @@ export default function CategoryScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addingStop, setAddingStop] = useState(false);
+  const [promoInput, setPromoInput] = useState(draft.options.promoCode ?? '');
+  const [promoError, setPromoError] = useState<string | null>(null);
   const latestRequest = useRef(0);
   /** Options et arrêts que le devis affiché comprend : rétablis si un nouveau devis échoue. */
   const priced = useRef({ options: draft.options, stops: draft.stops });
@@ -45,34 +47,54 @@ export default function CategoryScreen() {
   /**
    * Nouveau devis avec les options et les arrêts donnés : le prix affiché est toujours celui de l'API. En cas d'échec,
    * les options et les arrêts reviennent à ceux du devis affiché (revue du 2 octobre 2026, constat mobile 4) : la
-   * réservation ne part jamais avec une option cochée que le prix ne comprend pas.
+   * réservation ne part jamais avec une option cochée que le prix ne comprend pas. Rend l'erreur (null si le devis est
+   * à jour) ; `quiet` : l'appelant affiche lui-même le motif (code promo).
    */
-  async function requote(patch: { options?: BookingOptions; stops?: Place[] }) {
+  async function requote(patch: { options?: BookingOptions; stops?: Place[] }, quiet = false): Promise<unknown> {
     const options = patch.options ?? draft.options;
     const stops = patch.stops ?? draft.stops;
     draft.update({ options, stops });
-    if (!draft.origin || !draft.destination || !draft.pickupAt) return;
+    if (!draft.origin || !draft.destination || !draft.pickupAt) return null;
     // Deux changements rapides : la réponse d'une demande dépassée n'écrase pas le prix des derniers choix.
     const request = ++latestRequest.current;
     setBusy(true);
     setError(null);
     try {
-      const quotes = await api.quotes.create(quoteRequestOf({ origin: draft.origin, destination: draft.destination, stops, pickupAt: draft.pickupAt, options }));
+      // Même mode de paiement que le devis affiché : le prix ne change pas de règle des crédits en cours de route.
+      const paymentChoice = draft.quotedPaymentChoice;
+      const quotes = await api.quotes.create(quoteRequestOf({ origin: draft.origin, destination: draft.destination, stops, pickupAt: draft.pickupAt, options }, paymentChoice));
       if (request === latestRequest.current) {
         priced.current = { options, stops };
-        draft.update({ quotes, vehicleId: null });
+        draft.update({ quotes, quotedPaymentChoice: paymentChoice, vehicleId: null });
       }
+      return null;
     } catch (e) {
       if (request === latestRequest.current) {
         draft.update(priced.current);
-        setError(t('category.requoteFailed', { reason: errorMessage(e) }));
+        if (!quiet) setError(t('category.requoteFailed', { reason: errorMessage(e) }));
       }
+      return e;
     } finally {
       if (request === latestRequest.current) setBusy(false);
     }
   }
 
-  const setOption = (name: keyof Omit<BookingOptions, 'favouriteDriverId'>, value: boolean) => requote({ options: { ...draft.options, [name]: value } });
+  const setOption = (name: keyof Omit<BookingOptions, 'favouriteDriverId' | 'promoCode'>, value: boolean) => requote({ options: { ...draft.options, [name]: value } });
+
+  /** Code promo appliqué (ou retiré avec un code vide) par un nouveau devis ; refusé : motif traduit, code retiré. */
+  async function applyPromo(input: string) {
+    const code = normalizePromoCode(input);
+    setPromoError(null);
+    const { promoCode: _previous, ...rest } = draft.options;
+    const failure = await requote({ options: code ? { ...rest, promoCode: code } : rest }, true);
+    if (!failure) {
+      setPromoInput(code);
+      return;
+    }
+    const refusal = promoRefusal(apiErrorOf(failure));
+    setPromoError(refusal ? t(`category.promoRefusals.${refusal}`) : t('category.requoteFailed', { reason: errorMessage(failure) }));
+  }
+  const promo = selected ? promoStatus(selected.quote, draft.options.promoCode) : null;
   const passengerPhoneInvalid = draft.forSomeoneElse && draft.passengerPhone.trim().length >= 10 && !toE164(draft.passengerPhone);
 
   return (
@@ -83,7 +105,7 @@ export default function CategoryScreen() {
           <CategoryCard key={card.code} card={card} selected={card.code === selected?.code} onSelect={() => draft.update({ category: card.code, vehicleId: null })} />
         ))}
       </View>
-      {selected ? <PriceBreakdown quote={selected.quote} /> : null}
+      {selected ? <PriceBreakdown quote={selected.quote} paymentChoice={draft.paymentChoice} /> : null}
       {busy ? <Notice>{t('category.recalculating')}</Notice> : null}
       {error ? <ErrorState message={error} /> : null}
 
@@ -94,6 +116,16 @@ export default function CategoryScreen() {
       {draft.options.pet ? <Notice>{t('category.petHint')}</Notice> : null}
       <ToggleRow label={t('category.flex')} value={draft.options.flex} onChange={(v) => void setOption('flex', v)} />
       <ToggleRow label={t('category.priority')} value={draft.options.priority} onChange={(v) => void setOption('priority', v)} />
+
+      <SectionTitle>{t('category.promoTitle')}</SectionTitle>
+      <Field label={t('category.promoLabel')} hint={t('category.promoHint')} value={promoInput} onChangeText={(v) => setPromoInput(normalizePromoCode(v))} autoCapitalize="characters" autoCorrect={false} maxLength={30} testID="promo-input" />
+      <View style={styles.promoButtons}>
+        <Button label={t('category.promoApply')} variant="secondary" onPress={() => void applyPromo(promoInput)} disabled={busy || !promoInput || promoInput === draft.options.promoCode} style={styles.flex} testID="promo-apply" />
+        {draft.options.promoCode ? <Button label={t('category.promoRemove')} variant="ghost" onPress={() => void applyPromo('')} disabled={busy} style={styles.flex} testID="promo-remove" /> : null}
+      </View>
+      {promo === 'applied' ? <Notice tone="success">{t('category.promoApplied', { code: draft.options.promoCode })}</Notice> : null}
+      {promo === 'not_for_category' ? <Notice tone="warning">{t('category.promoNotForCategory', { code: draft.options.promoCode })}</Notice> : null}
+      {promoError ? <Notice tone="warning">{promoError}</Notice> : null}
 
       <SectionTitle>{t('category.stops')}</SectionTitle>
       {draft.stops.map((stop, index) => (
@@ -174,6 +206,8 @@ function VehicleOption({ vehicle, label, selected, onPress }: { vehicle?: Availa
 
 const styles = StyleSheet.create({
   cards: { gap: spacing.sm },
+  promoButtons: { flexDirection: 'row', gap: spacing.sm },
+  flex: { flex: 1 },
   hint: { fontSize: typography.sizes.xs, color: colors.muted },
   link: { color: colors.blueDark, fontWeight: '700', paddingVertical: spacing.xs },
   stop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.sm },

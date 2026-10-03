@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 /** Écran standard : zone sûre, défilement, titre et retour facultatifs ; fond de la marque courante (étape 22). */
@@ -28,10 +28,13 @@ export function Screen({ title, subtitle, back, children, footer, onRefresh, ref
           </View>
         </View>
       ) : null}
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} /> : undefined}>
-        {children}
-      </ScrollView>
-      {footer ? <View style={[styles.footer, { backgroundColor: brand.mist }]}>{footer}</View> : null}
+      {/* Clavier ouvert (revue du 2 octobre 2026, constat mobile 18) : le champ et le bouton du bas restent visibles sur iPhone ; Android redimensionne la fenêtre. */}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} /> : undefined}>
+          {children}
+        </ScrollView>
+        {footer ? <View style={[styles.footer, { backgroundColor: brand.mist }]}>{footer}</View> : null}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -91,10 +94,10 @@ export function Choices<T extends string | number>({ options, value, onChange, l
 }
 
 /** Interrupteur avec son libellé et une aide facultative : toute la ligne se touche (cible large, un seul élément accessible). */
-export function ToggleRow({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (value: boolean) => void }) {
+export function ToggleRow({ label, hint, value, onChange, testID }: { label: string; hint?: string; value: boolean; onChange: (value: boolean) => void; testID?: string }) {
   const brand = useBrandColors();
   return (
-    <Pressable accessibilityRole="switch" accessibilityState={{ checked: value }} accessibilityLabel={label} accessibilityHint={hint} onPress={() => onChange(!value)} style={styles.toggle}>
+    <Pressable accessibilityRole="switch" accessibilityState={{ checked: value }} accessibilityLabel={label} accessibilityHint={hint} onPress={() => onChange(!value)} style={styles.toggle} testID={testID}>
       <View style={styles.toggleText}>
         <Text style={styles.toggleLabel}>{label}</Text>
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
@@ -127,6 +130,7 @@ export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.mist },
+  flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs, gap: spacing.xs },
   back: { padding: spacing.xs },
   headerText: { flex: 1 },
@@ -142,11 +146,11 @@ const styles = StyleSheet.create({
   choicesBlock: { gap: spacing.xs },
   choicesLabel: { fontSize: typography.sizes.sm, fontWeight: '700', color: colors.ink },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, minHeight: 40, justifyContent: 'center' },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, minHeight: 44, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.blue, borderColor: colors.blue },
   chipText: { fontSize: typography.sizes.sm, color: colors.ink, fontWeight: '600' },
   chipTextSelected: { color: colors.white },
-  toggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs },
+  toggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs, minHeight: 44 },
   toggleText: { flex: 1 },
   toggleLabel: { fontSize: typography.sizes.md, color: colors.ink, fontWeight: '600' },
   hint: { fontSize: typography.sizes.xs, color: colors.muted },

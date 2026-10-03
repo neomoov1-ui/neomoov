@@ -152,23 +152,83 @@ export interface QuoteDraft {
   destination: Place;
   stops: Place[];
   pickupAt: string;
-  options: { flex: boolean; priority: boolean; childSeat: boolean; luggage: boolean; pet: boolean; favouriteDriverId?: string | undefined };
+  options: { flex: boolean; priority: boolean; childSeat: boolean; luggage: boolean; pet: boolean; favouriteDriverId?: string | undefined; promoCode?: string | undefined };
 }
 
 /**
- * Demande de devis du brouillon, la même partout (choix des options, nouveau devis avant confirmation) : arrêts, heure,
- * options et chauffeur favori ; le mode de paiement choisi quand il est connu (les crédits ne valent qu'en prépaiement).
+ * Demande de devis du brouillon, la même partout (premier devis, choix des options, nouveau devis avant confirmation) :
+ * arrêts, heure, options, chauffeur favori et code promo ; le mode de paiement choisi quand il est connu (les crédits ne
+ * valent qu'en prépaiement).
  */
 export function quoteRequestOf(draft: QuoteDraft, paymentChoice?: PaymentChoice | null): QuoteRequest {
   const { flex, priority, childSeat, luggage, pet, favouriteDriverId } = draft.options;
+  const promoCode = normalizePromoCode(draft.options.promoCode ?? '');
   return {
     origin: draft.origin,
     destination: draft.destination,
     stops: draft.stops,
     requestedAt: draft.pickupAt,
-    options: { flex, priority, childSeat, luggage, pet, ...(favouriteDriverId ? { favouriteDriverId } : {}) },
+    options: { flex, priority, childSeat, luggage, pet, ...(favouriteDriverId ? { favouriteDriverId } : {}), ...(promoCode ? { promoCode } : {}) },
     ...(paymentChoice ? { paymentChoice } : {}),
   };
+}
+
+/**
+ * Montant à payer selon le mode choisi (revue du 2 octobre 2026, constat 2) : les crédits déduits par le devis ne valent
+ * qu'en prépaiement ; payée au chauffeur, la course est due en entier (`totalCents`) et les crédits restent au compte.
+ */
+export function amountDueFor(quote: Pick<QuoteView, 'totalCents' | 'amountDueCents' | 'creditsPrepaidOnly'>, choice: PaymentChoice | null): number {
+  return choice === 'pay_driver_after' && quote.creditsPrepaidOnly ? quote.totalCents : quote.amountDueCents;
+}
+
+/** Lignes du détail selon le mode : sans la ligne des crédits quand ils ne s'appliquent pas (leur somme reste le montant dû). */
+export function priceRowsFor(quote: Pick<QuoteView, 'lines' | 'creditsPrepaidOnly'>, choice: PaymentChoice | null): PriceRow[] {
+  const rows = priceRows(quote);
+  return choice === 'pay_driver_after' && quote.creditsPrepaidOnly ? rows.filter((row) => row.code !== 'credits') : rows;
+}
+
+/**
+ * Le devis convient-il au mode de paiement choisi ? Payée au chauffeur, une course ne part pas d'un devis qui déduit des
+ * crédits ; prépayée, elle ne part pas d'un devis fait pour le paiement au chauffeur (les crédits du compte n'y sont pas
+ * déduits). Sinon un nouveau devis est demandé avec le mode choisi (`paymentChoice`). `quotedFor` : mode envoyé avec le
+ * devis affiché (null : aucun, calculé comme une course prépayée).
+ */
+export function quoteFitsChoice(quote: Pick<QuoteView, 'creditsAppliedCents'>, quotedFor: PaymentChoice | null, choice: PaymentChoice): boolean {
+  if (choice === 'pay_driver_after') return quote.creditsAppliedCents === 0;
+  return quotedFor !== 'pay_driver_after';
+}
+
+/** Code promo saisi : majuscules, sans espaces (l'API compare le code en majuscules), 30 caractères au plus. */
+export function normalizePromoCode(input: string): string {
+  return input.toUpperCase().replace(/\s+/g, '').slice(0, 30);
+}
+
+/** Motifs de refus d'un code promo traduits par l'application (`category.promoRefusals.*`). */
+export const PROMO_REFUSAL_KEYS = [
+  'unknown_code', 'inactive', 'not_started', 'expired', 'budget_exhausted', 'global_limit', 'client_limit', 'max_clients', 'first_ride_only', 'wrong_rank', 'distance', 'zone', 'time_window',
+] as const;
+export type PromoRefusalKey = (typeof PROMO_REFUSAL_KEYS)[number];
+
+/**
+ * Motif d'un code promo refusé par le devis : code inconnu (`PROMO_CODE_UNKNOWN`) ou promotion non applicable
+ * (`PROMOTION_NOT_APPLICABLE`, motif stable dans `details.reason`) ; null pour toute autre erreur.
+ */
+export function promoRefusal(error: { code: string; details?: unknown } | null): PromoRefusalKey | null {
+  if (!error) return null;
+  if (error.code === 'PROMO_CODE_UNKNOWN') return 'unknown_code';
+  if (error.code !== 'PROMOTION_NOT_APPLICABLE') return null;
+  const reason = (error.details as { reason?: unknown } | undefined)?.reason;
+  return (PROMO_REFUSAL_KEYS as readonly unknown[]).includes(reason) ? (reason as PromoRefusalKey) : 'inactive';
+}
+
+/**
+ * Effet du code promo sur le devis de la catégorie choisie : appliqué (remise du devis), ou non applicable à cette
+ * catégorie (l'API garde le devis des autres catégories) ; null sans code.
+ */
+export function promoStatus(quote: Pick<QuoteView, 'promotionCode' | 'promotionDiscountCents'>, code: string | undefined): 'applied' | 'not_for_category' | null {
+  const wanted = normalizePromoCode(code ?? '');
+  if (!wanted) return null;
+  return quote.promotionCode === wanted && quote.promotionDiscountCents > 0 ? 'applied' : 'not_for_category';
 }
 
 /** Marge avant la fin de validité d'un devis : la création de la course doit arriver à l'API avant l'expiration. */
@@ -183,9 +243,14 @@ export function quoteExpired(quote: Pick<QuoteView, 'validUntil'>, now: number, 
   return !Number.isFinite(validUntil) || validUntil - now <= marginMs;
 }
 
-/** Même prix pour le client : total, montant dû et plafond consenti identiques (le nouveau devis peut partir sans nouvelle confirmation). */
-export function samePrice(a: Pick<QuoteView, 'totalCents' | 'amountDueCents' | 'maxConsentedCents'>, b: Pick<QuoteView, 'totalCents' | 'amountDueCents' | 'maxConsentedCents'>): boolean {
-  return a.totalCents === b.totalCents && a.amountDueCents === b.amountDueCents && a.maxConsentedCents === b.maxConsentedCents;
+type PricedQuote = Pick<QuoteView, 'totalCents' | 'amountDueCents' | 'maxConsentedCents' | 'creditsPrepaidOnly'>;
+
+/**
+ * Même prix pour le client : total, montant dû dans le mode choisi et plafond consenti identiques (le nouveau devis peut
+ * partir sans nouvelle confirmation). Payée au chauffeur, le montant dû est le total dans les deux devis.
+ */
+export function samePrice(a: PricedQuote, b: PricedQuote, choice: PaymentChoice | null = null): boolean {
+  return a.totalCents === b.totalCents && amountDueFor(a, choice) === amountDueFor(b, choice) && a.maxConsentedCents === b.maxConsentedCents;
 }
 
 /** Proposition de négociation (V1.1) : bornes du curseur, au dollar, entre le plancher et le prix affiché. */
