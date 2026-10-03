@@ -85,6 +85,33 @@
               }
             }
           },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
           "429": {
             "description": "Limite de débit atteinte (en-tête Retry-After)",
             "content": {
@@ -113,7 +140,7 @@
             }
           }
         },
-        "summary": "Envoie un code à 6 chiffres par texto (5 minutes, 5 tentatives, limité par numéro et par adresse)",
+        "summary": "Envoie un code à 6 chiffres par texto (5 minutes, 5 tentatives, limité par numéro et par adresse) ; depuis un navigateur, au-delà de quelques demandes par adresse, jeton Turnstile exigé (en-tête `x-turnstile-token`, 403 `TURNSTILE_REQUIRED`)",
         "tags": [
           "auth"
         ]
@@ -1779,6 +1806,33 @@
               }
             }
           },
+          "403": {
+            "description": "Rôle ou portée insuffisants, ou ressource d'un autre utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
           "423": {
             "description": "Compte verrouillé",
             "content": {
@@ -1834,7 +1888,7 @@
             }
           }
         },
-        "summary": "Première étape : courriel et mot de passe ; renvoie un jeton de passage pour le second facteur",
+        "summary": "Première étape : courriel et mot de passe ; renvoie un jeton de passage pour le second facteur. Après plusieurs mots de passe faux depuis une adresse, jeton Turnstile exigé (en-tête `x-turnstile-token`, 403 `TURNSTILE_REQUIRED`)",
         "tags": [
           "auth"
         ]
@@ -60186,7 +60240,7 @@
             "bearer": []
           }
         ],
-        "summary": "Devis sans compte (réservation web, WordPress) : mêmes règles et même détail que les applications ; affichage seulement",
+        "summary": "Devis sans compte (réservation web, WordPress) : mêmes règles et même détail que les applications ; affichage seulement. Depuis un navigateur (relais du web), au-delà d'un volume de devis par adresse, jeton Turnstile exigé (en-tête `x-turnstile-token`, 403 `TURNSTILE_REQUIRED`)",
         "tags": [
           "public"
         ]
@@ -63953,21 +64007,30 @@
         ]
       }
     },
-    "/v1/payment-methods/card-session": {
-      "get": {
+    "/v1/payment-methods/card-session/info": {
+      "post": {
         "operationId": "CardSessionController_info",
-        "parameters": [
-          {
-            "name": "session",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "minLength": 20,
-              "maxLength": 400
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "session": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 400
+                  }
+                },
+                "required": [
+                  "session"
+                ]
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "",
@@ -64138,7 +64201,7 @@
             }
           }
         },
-        "summary": "Session de saisie de carte : fournisseur, identifiants publics du Web Payments SDK, lien de retour ; 401 si la session est expirée ou altérée",
+        "summary": "Session de saisie de carte (dans le corps) : fournisseur, identifiants publics du Web Payments SDK, lien de retour ; 401 si la session est expirée, altérée ou déjà utilisée",
         "tags": [
           "payments"
         ]
@@ -64457,7 +64520,7 @@
             }
           }
         },
-        "summary": "Enregistre la carte du jeton de carte (Square) pour l'utilisateur de la session : carte du client ou méthode de prélèvement du chauffeur",
+        "summary": "Enregistre la carte du jeton de carte (Square) pour l'utilisateur de la session : carte du client ou méthode de prélèvement du chauffeur ; la session ne sert qu'une fois (401 `CARD_SESSION_USED` ensuite)",
         "tags": [
           "payments"
         ]
