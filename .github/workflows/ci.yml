@@ -7,6 +7,10 @@ on:
     branches: [main]
   pull_request:
 
+# Jeton de GitHub en lecture seule (revue du 2 octobre 2026, constat web 17) : la vérification n'écrit rien.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -52,22 +56,22 @@ jobs:
 
     steps:
       - name: Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           # Historique complet : la détection de secrets examine chaque commit.
           fetch-depth: 0
 
       - name: pnpm (version lue dans le champ packageManager de package.json)
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
 
       - name: Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 24
           cache: pnpm
 
       - name: Cache Turborepo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ github.sha }}
@@ -82,7 +86,7 @@ jobs:
 
       - name: Détection de secrets (historique complet, gitleaks)
         run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:v8.24.3             detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
+          docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:v8.24.3@sha256:e1b35e12a8c6fa8901f060459cfb6b2fc4c484d3afbe3b029733a3bbfab07055             detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
 
       - name: Migrations et données de départ
         run: |

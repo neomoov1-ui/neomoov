@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
       - name: Clé SSH
@@ -50,13 +50,19 @@ jobs:
           HOST: ${{ vars.STAGING_HOST }}
           USER_NAME: ${{ vars.DEPLOY_USER || 'root' }}
         run: git push "ssh://${USER_NAME}@${HOST}/opt/neomoov.git" "${GITHUB_SHA}:refs/heads/main" --force
-      - name: Santé
+      - name: Santé et version déployée
         env:
           URL: ${{ vars.STAGING_API_URL }}
         run: |
           [ -n "$URL" ] || { echo "STAGING_API_URL absente : santé non vérifiée"; exit 0; }
-          for i in $(seq 1 20); do curl -fsS "$URL/v1/health" && exit 0; sleep 6; done
-          exit 1
+          # Comme en production : vert seulement si la version servie est celle poussée (retour arrière du serveur = rouge).
+          expected="${GITHUB_SHA:0:12}"
+          for i in $(seq 1 30); do
+            version="$(curl -fsS "$URL/v1/health" | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' || true)"
+            if [ "$version" = "$expected" ]; then echo "version en ligne : $version"; exit 0; fi
+            echo "en attente (version servie : ${version:-aucune}, attendue : $expected)"; sleep 10
+          done
+          echo "La version $expected n'est pas servie après 5 minutes : déploiement refusé ou retour arrière"; exit 1
 
   production:
     name: Production
@@ -67,7 +73,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
       - name: Version de main, intégration continue verte
