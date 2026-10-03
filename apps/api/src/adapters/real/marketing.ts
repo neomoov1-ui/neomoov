@@ -105,8 +105,9 @@ export interface RealPublishersOptions {
   credentials?: SocialCredentialsProvider;
   /** Magasin des jetons OAuth renouvelés quand le fournisseur ne sait pas les écrire (`update`) ; absent : en mémoire. */
   tokenStore?: OAuthTokenStore | null;
-  /** Serveur HTTP simulé des tests. */
+  /** Serveur HTTP simulé et horloge des tests. */
   fetchImpl?: typeof fetch;
+  now?: () => number;
 }
 
 /** Identifiant numérique seul, que le fondateur colle la ressource entière (`accounts/1/locations/2`) ou le nombre. */
@@ -123,6 +124,7 @@ const dateValue = (value: string | undefined): number | null => {
  */
 function builders(env: AppEnv, credentials: SocialCredentialsProvider, options: RealPublishersOptions): Partial<Record<string, PublisherBuilder>> {
   const fetchImpl = options.fetchImpl ? { fetchImpl: options.fetchImpl } : {};
+  const clock = options.now ? { now: options.now } : {};
   const fallbackStore = options.tokenStore ?? new MemoryTokenStore();
   // Jetons renouvelés écrits dans le compte quand le fournisseur le permet (relus avant chaque échange), sinon magasin chiffré.
   const tokens = (space: string): TokenStoreBinding =>
@@ -138,24 +140,24 @@ function builders(env: AppEnv, credentials: SocialCredentialsProvider, options: 
     newsletter: ({ values: v }) => new BrevoNewsletterPublisher({ apiKey: v['apiKey']!, listId: Number(v['listId']) || 0, senderEmail: v['senderEmail']!, senderName: env.BREVO_SENDER_NAME ?? 'Neomoov', ...fetchImpl }),
     facebook: ({ values: v }) => new MetaFacebookPublisher(meta(v)),
     instagram: ({ values: v }) => new MetaInstagramPublisher(meta(v)),
-    x: ({ values: v }) => new XPublisher({ clientId: v['clientId']!, clientSecret: v['clientSecret'] ?? null, refreshToken: v['refreshToken']!, ...tokens('x'), ...fetchImpl }),
+    x: ({ values: v }) => new XPublisher({ clientId: v['clientId']!, clientSecret: v['clientSecret'] ?? null, refreshToken: v['refreshToken']!, ...tokens('x'), ...fetchImpl, ...clock }),
     telegram: ({ values: v }) => new TelegramPublisher({ botToken: v['botToken']!, channelId: v['channelId']!, discussionChatId: v['discussionChatId'] ?? null, ...fetchImpl }),
     linkedin: ({ values: v, expiresAt }) => new LinkedInPublisher({
       organizationId: lastSegment(v['organizationId']!.replace(/^urn:li:organization:/, '')), accessToken: v['accessToken'] ?? null,
       accessExpiresAt: dateValue(v['accessTokenExpiresAt']) ?? expiresAt?.getTime() ?? null,
       refreshToken: v['refreshToken'] && v['clientId'] && v['clientSecret'] ? v['refreshToken'] : null, clientId: v['clientId'] ?? null, clientSecret: v['clientSecret'] ?? null,
-      version: env.LINKEDIN_API_VERSION, ...tokens('linkedin'), ...fetchImpl,
+      version: env.LINKEDIN_API_VERSION, ...tokens('linkedin'), ...fetchImpl, ...clock,
     }),
     youtube: ({ values: v }) => new YouTubePublisher({
-      clientId: v['clientId']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyStatus: env.YOUTUBE_PRIVACY_STATUS as YouTubePrivacy, audited: env.YOUTUBE_API_AUDITED, ...tokens('youtube'), ...fetchImpl,
+      clientId: v['clientId']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyStatus: env.YOUTUBE_PRIVACY_STATUS as YouTubePrivacy, audited: env.YOUTUBE_API_AUDITED, ...tokens('youtube'), ...fetchImpl, ...clock,
     }),
     tiktok: ({ values: v }) => new TikTokPublisher({
       clientKey: v['clientKey']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, privacyLevel: env.TIKTOK_PRIVACY_LEVEL as TikTokPrivacy, audited: env.TIKTOK_APP_AUDITED, uploadMode: env.TIKTOK_UPLOAD_MODE,
-      ...tokens('tiktok'), ...fetchImpl,
+      ...tokens('tiktok'), ...fetchImpl, ...clock,
     }),
     google_business: ({ values: v }) => new GoogleBusinessPublisher({
       clientId: v['clientId']!, clientSecret: v['clientSecret']!, refreshToken: v['refreshToken']!, accountId: lastSegment(v['accountId']!), locationId: lastSegment(v['locationId']!),
-      ...tokens('google-business'), ...fetchImpl,
+      ...tokens('google-business'), ...fetchImpl, ...clock,
     }),
   };
 }
@@ -165,7 +167,7 @@ export const realSocialPublishers = (env: AppEnv, options: RealPublishersOptions
   const credentials = options.credentials ?? new EnvSocialCredentialsProvider(env);
   const build = builders(env, credentials, options);
   return new Map<ContentSpace, SocialPublisher>(PUBLISHER_SPACES.map((space) => [space, new CredentialedPublisher(space, credentials, build[space] ?? null, {
-    label: spaceLabel(space), notConfigured: () => notConfigured(spaceLabel(space), SPACE_VARIABLES[space] ?? []),
+    label: spaceLabel(space), notConfigured: () => notConfigured(spaceLabel(space), SPACE_VARIABLES[space] ?? []), ...(options.now ? { now: options.now } : {}),
   })]));
 };
 

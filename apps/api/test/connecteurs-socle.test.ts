@@ -97,7 +97,7 @@ describe('choix des connecteurs réels (3 octobre 2026)', () => {
     expect(JSON.parse(JSON.stringify(await inner('linkedin')))).toMatchObject({ organizationId: '4242', version: '202606' });
     expect(JSON.parse(JSON.stringify(await inner('youtube')))).toMatchObject({ privacyStatus: 'unlisted', audited: false });
     expect(JSON.parse(JSON.stringify(await inner('tiktok')))).toMatchObject({ privacyLevel: 'SELF_ONLY', audited: true, uploadMode: 'file' });
-    expect(JSON.stringify(publishers.get('telegram'))).not.toContain('abc');
+    expect(JSON.stringify(publishers.get('telegram' as never))).not.toContain('abc');
     // Variables incomplètes : connecteur non configuré (LinkedIn avec un jeton de rafraîchissement sans les identifiants de l'application).
     const partial = realSocialPublishers(loadEnv({ ...base, LINKEDIN_ORGANIZATION_ID: '1', LINKEDIN_REFRESH_TOKEN: 'r', GOOGLE_BUSINESS_CLIENT_ID: 'g' }, { dotenv: false }));
     await refreshPublishers(partial);
