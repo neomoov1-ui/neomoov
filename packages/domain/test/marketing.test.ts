@@ -7,7 +7,7 @@ import {
 import { CONTENT_SPACES } from '../src/marketing/index.js';
 
 const TZ = 'America/Toronto';
-const OPTIONS = { allowedPrices: ['48,20 $', '113,83 $'], ctaUrls: { reserve: 'https://neomoov.net/reserver', academy: 'https://neomoov.net/academy', preregister: 'https://neomoov.net/devenir-chauffeur' }, allowedPhones: ['+1 367 763-9063'], allowedEmailDomains: ['neomoov.net'] };
+const OPTIONS = { allowedPrices: ['48,20 $', '113,83 $'], ctaUrls: { reserve: 'https://neomoov.net/reserver', academy: 'https://neomoov.net/academy', preregister: 'https://neomoov.net/chauffeurs/#candidature' }, allowedPhones: ['+1 438 900 4990'], allowedEmailDomains: ['neomoov.net'] };
 const draft = (over: Partial<ContentDraft> = {}): ContentDraft => ({ space: 'facebook', format: 'post', language: 'fr', title: null, body: 'Réservez votre transfert vers l\'aéroport au prix tout compris, affiché avant de confirmer.', caption: null, hashtags: ['#Montréal'], cta: 'reserve', ...over });
 
 describe('marketing : espaces, formats et texte composé', () => {
@@ -61,7 +61,7 @@ describe('marketing : garde-fous des contenus', () => {
     expect(kinds('Le transfert aéroport coûte 48,20 $, prix fixe.')).not.toContain('undecided_price');
     expect(kinds('Formation à $113.83 tout compris.')).not.toContain('undecided_price');
     expect(kinds('Appelez-moi au 514 555 0199.')).toContain('personal_data');
-    expect(kinds('Écrivez-nous sur WhatsApp au +1 367 763-9063.')).not.toContain('personal_data');
+    expect(kinds('Écrivez-nous sur WhatsApp au +1 438 900 4990.')).not.toContain('personal_data');
     expect(kinds('Écrivez à jean@exemple.com.')).toContain('personal_data');
     expect(kinds('Écrivez à contact@neomoov.net.')).not.toContain('personal_data');
     expect(normalizePrice('$48.2')).toBe('48,20 $');

@@ -113,6 +113,8 @@ export const envSchema = z.object({
   TWILIO_ACCOUNT_SID: optionalString,
   TWILIO_AUTH_TOKEN: optionalString,
   TWILIO_FROM_NUMBER: optionalString,
+  /** Autres numéros Twilio de l'entreprise, séparés par des virgules (E.164) : ils reçoivent des textos et y répondent eux-mêmes. */
+  TWILIO_EXTRA_NUMBERS: optionalString,
   /** Cloudflare Turnstile (anti-robots des formulaires publics) ; absent en développement : jeton accepté sauf « fail ». */
   TURNSTILE_SECRET_KEY: optionalString,
   RESEND_API_KEY: optionalString,
