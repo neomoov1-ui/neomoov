@@ -1,0 +1,34 @@
+# Étape 23, finalisation du 3 octobre 2026 : invitation de flotte acceptée dans l'application (équivalent de la page
+# web /chauffeurs/rejoindre). Jeton d'essai : invitation créée dans My Hub (Flotte, « Inviter un chauffeur ») vers le
+# téléphone du compte de ce parcours, avec INVITATION_TOKEN_IN_RESPONSE=on sur l'API de développement.
+#   maestro test -e INVITE_TOKEN=drv_... maestro/13-invitation-flotte.yaml
+appId: com.neomoov.driver
+---
+- openLink: "neomoov-driver://chauffeurs/rejoindre?token=${INVITE_TOKEN}"
+- assertVisible: "Rejoindre une flotte"
+- assertVisible:
+    id: "fleet-invite-token"
+- tapOn:
+    id: "fleet-invite-accept"
+- assertVisible: "(Vous conduisez maintenant pour .*|Vous êtes rattaché à .*|Connectez-vous d'abord.*|Cette invitation .*|Invitation introuvable.*)"
+- runFlow:
+    when:
+      visible:
+        id: "fleet-invite-continue"
+    commands:
+      - tapOn:
+          id: "fleet-invite-continue"
+# Jeton collé à la main depuis le profil : le lien entier du texto est accepté.
+- launchApp
+- tapOn: "Profil"
+- scrollUntilVisible:
+    element:
+      id: "fleet-invitation-link"
+- tapOn:
+    id: "fleet-invitation-link"
+- tapOn:
+    id: "fleet-invite-token"
+- inputText: "https://hub.neomoov.net/chauffeurs/rejoindre?token=drv_invitation_essai_inconnue"
+- tapOn:
+    id: "fleet-invite-accept"
+- assertVisible: "Invitation introuvable ou retirée par la flotte."

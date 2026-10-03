@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Share, StyleSheet, Text, View } from 'react-native';
 import { RideMap } from '@/components/RideMap';
 import { ErrorState, Loading, Notice, Row, Screen } from '@/components/ui';
+import { canAddFavorite } from '@/features/growth/logic';
 import { MessagesPanel } from '@/features/ride/MessagesPanel';
 import { NegotiationPanel } from '@/features/ride/NegotiationPanel';
 import { RatingForm } from '@/features/ride/RatingForm';
@@ -14,7 +15,7 @@ import { sosCoordinates, type Coordinates } from '@/features/ride/sos';
 import { api, errorMessage } from '@/lib/api';
 import { devicePositionForAlert } from '@/lib/device-position';
 import { formatDateTime, formatMoney, type UiLanguage } from '@/lib/format';
-import { isClosed, keys, queryClient, useAppConfig, useRide } from '@/lib/queries';
+import { isClosed, keys, queryClient, useAppConfig, useFavorites, useRide } from '@/lib/queries';
 import { useRideLive } from '@/lib/realtime';
 
 const ACTIVE: ReadonlyArray<RideView['state']> = ['assigned', 'en_route', 'arrived', 'in_progress'];
@@ -34,6 +35,7 @@ export default function RideScreen() {
   const cached = queryClient.getQueryData<RideView>(keys.ride(rideId));
   const realtime = useRideLive(rideId, !(cached && isClosed(cached)));
   const query = useRide(rideId, !realtime.connected);
+  const favorites = useFavorites();
   const [sheet, setSheet] = useState<'cancel' | 'sos' | null>(null);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -68,6 +70,14 @@ export default function RideScreen() {
       setBusy(false);
     }
   }
+
+  // « Mes chauffeurs » (5.10) : ajout proposé une fois la course notée ; l'API vérifie la note minimale donnée au chauffeur.
+  const addFavorite = (driverId: string, name: string) =>
+    run(async () => {
+      await api.me.addFavorite(driverId);
+      await queryClient.invalidateQueries({ queryKey: keys.favorites });
+      setNotice(t('favorites.added', { name }));
+    });
 
   const cancel = () =>
     run(async () => {
@@ -137,6 +147,9 @@ export default function RideScreen() {
 
       {ride.state === 'completed' ? <RatingForm ride={ride} /> : null}
       {ride.state === 'rated' ? <Notice tone="success">{t('ride.thanks')}</Notice> : null}
+      {ride.state === 'rated' && ride.driver && favorites.data && canAddFavorite(ride, favorites.data) ? (
+        <Button label={t('favorites.add', { name: ride.driver.firstName })} variant="ghost" onPress={() => void addFavorite(ride.driver!.id, ride.driver!.firstName)} disabled={busy} testID="favorite-add" />
+      ) : null}
       {error ? <ErrorState message={error} /> : null}
 
       <Sheet visible={sheet === 'cancel'} onClose={() => setSheet(null)} title={t('ride.cancel')} closeLabel={t('core:close')}>

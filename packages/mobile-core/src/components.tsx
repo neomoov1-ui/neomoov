@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View, type PressableProps, type TextInputProps, type ViewProps } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, type PressableProps, type TextInputProps, type ViewProps } from 'react-native';
 import { useBrandColors } from './brand';
 import { colors, radius, shadows, spacing, typography, type ThemeColors } from './theme';
 
@@ -55,12 +55,15 @@ export function Card({ children, style, ...props }: ViewProps & { children: Reac
 export function Sheet({ visible, onClose, title, closeLabel, children }: { visible: boolean; onClose: () => void; title?: string; closeLabel: string; children: ReactNode }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel={closeLabel} />
-      <View style={styles.sheet}>
-        <View style={styles.grip} />
-        {title ? <Text style={styles.sheetTitle}>{title}</Text> : null}
-        {children}
-      </View>
+      {/* Clavier ouvert (revue du 2 octobre 2026, constat mobile 18) : la feuille remonte au-dessus du clavier sur iPhone ; Android redimensionne la fenêtre. */}
+      <KeyboardAvoidingView style={styles.sheetFrame} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel={closeLabel} />
+        <View style={styles.sheet}>
+          <View style={styles.grip} />
+          {title ? <Text style={styles.sheetTitle}>{title}</Text> : null}
+          {children}
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -85,6 +88,7 @@ const styles = StyleSheet.create({
   hint: { fontSize: typography.sizes.xs, color: colors.muted },
   error: { fontSize: typography.sizes.xs, color: colors.danger },
   card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, ...shadows.card },
+  sheetFrame: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(16,23,31,0.45)' },
   sheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
   grip: { alignSelf: 'center', width: 44, height: 5, borderRadius: radius.pill, backgroundColor: colors.border, marginBottom: spacing.sm },

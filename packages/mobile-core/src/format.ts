@@ -45,3 +45,19 @@ export function formatDistance(meters: number, language: UiLanguage): string {
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${new Intl.NumberFormat(locale(language), { maximumFractionDigits: 1 }).format(meters / 1000)} km`;
 }
+
+/**
+ * Langue ajoutée à l'adresse d'une page web ouverte depuis une application (page de carte, versements) : `lang=fr` ou
+ * `lang=en`, avant un éventuel fragment (`#…`) ; un paramètre `lang` déjà présent est remplacé (revue du 2 octobre 2026,
+ * constat mobile 25 : plus de concaténation fragile dans les écrans).
+ */
+export function withLanguage(url: string, language: UiLanguage): string {
+  const hashAt = url.indexOf('#');
+  const base = hashAt >= 0 ? url.slice(0, hashAt) : url;
+  const hash = hashAt >= 0 ? url.slice(hashAt) : '';
+  const queryAt = base.indexOf('?');
+  const path = queryAt >= 0 ? base.slice(0, queryAt) : base;
+  const params = (queryAt >= 0 ? base.slice(queryAt + 1) : '').split('&').filter((part) => part !== '' && !part.startsWith('lang='));
+  params.push(`lang=${language === 'en' ? 'en' : 'fr'}`);
+  return `${path}?${params.join('&')}${hash}`;
+}

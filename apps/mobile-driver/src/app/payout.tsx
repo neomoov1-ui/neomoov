@@ -1,4 +1,5 @@
 import { Body, Button, Card } from '@neomoov/mobile-core/components';
+import { withLanguage } from '@neomoov/mobile-core/format';
 import { ErrorState, Loading, Notice, Screen, SectionTitle } from '@neomoov/mobile-core/ui';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
@@ -51,7 +52,7 @@ export default function PayoutScreen() {
     run(async () => {
       const setup = await api.payments.debitSetupIntent();
       if (setup.provider === 'square' && setup.cardFormUrl) {
-        await WebBrowser.openAuthSessionAsync(`${setup.cardFormUrl}&lang=${i18n.language === 'en' ? 'en' : 'fr'}`, RETURN_URL);
+        await WebBrowser.openAuthSessionAsync(withLanguage(setup.cardFormUrl, i18n.language === 'en' ? 'en' : 'fr-CA'), RETURN_URL);
       } else if (setup.provider === 'mock' && setup.setupIntentId) {
         await api.payments.confirmDebit(setup.setupIntentId);
         setNotice(t('payout.debitSimulated'));

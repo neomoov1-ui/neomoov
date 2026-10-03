@@ -38,7 +38,15 @@ export const joinCodeSchema = z
   .transform(normalizeJoinCode)
   .pipe(z.string().regex(JOIN_CODE, 'Code de rattachement de 8 lettres et chiffres attendu'));
 
-/** Lien de rattachement porté par le code QR et les invitations : `<site>/c/<code>`. */
+/** Lien de rattachement porté par le code QR et les invitations des clients : `<site>/c/<code>` (application client). */
 export function joinLink(webBaseUrl: string, code: string): string {
   return `${webBaseUrl.replace(/\/+$/, '')}/c/${normalizeJoinCode(code)}`;
+}
+
+/**
+ * Lien de rattachement à remettre aux chauffeurs : `<site>/d/<code>`, revendiqué par l'application chauffeur (revue du
+ * 2 octobre 2026, constat mobile 12) ; `/c/<code>` reste à l'application client quand les deux sont installées.
+ */
+export function driverJoinLink(webBaseUrl: string, code: string): string {
+  return `${webBaseUrl.replace(/\/+$/, '')}/d/${normalizeJoinCode(code)}`;
 }

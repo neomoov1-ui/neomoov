@@ -2,9 +2,10 @@ import type { PerformanceLogInput, PerformanceLogView, PerformancePeriod } from 
 import { Body, Button, Card, Field } from '@neomoov/mobile-core/components';
 import { colors, spacing, typography } from '@neomoov/mobile-core/theme';
 import { Choices, Empty, ErrorState, Loading, Notice, Row, Screen, SectionTitle } from '@neomoov/mobile-core/ui';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, StyleSheet, Text, View } from 'react-native';
+import { BOOSTER_ASYNC_ANALYSIS, isAnalysisPending, waitForAnalysis } from '@/features/booster/analysis';
 import { pickBoosterPhoto, screenshotsForm } from '@/features/booster/photos';
 import { api, errorMessage } from '@/lib/api';
 import { formatMoney, type UiLanguage } from '@/lib/format';
@@ -50,6 +51,14 @@ export default function PerformanceScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /** Écran quitté : la relecture d'une lecture en cours (analyse asynchrone, finalisation U3) s'arrête. */
+  const left = useRef(false);
+  useEffect(() => {
+    left.current = false;
+    return () => {
+      left.current = true;
+    };
+  }, []);
   const sessions = useBoosterPerformance({ pageSize: 20 });
   const recap = useBoosterRecap(period);
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }));
@@ -82,7 +91,19 @@ export default function PerformanceScreen() {
       const current = await ensureDraft();
       if (!current) return;
       await api.driver.addPerformanceScreenshots(current.id, await screenshotsForm(picked));
-      const read = await api.driver.analysePerformance(current.id);
+      let read = await api.driver.analysePerformance(current.id, { async: BOOSTER_ASYNC_ANALYSIS });
+      // Lecture confiée à la file (état `pending`) : session relue jusqu'au résultat, au plus 3 minutes.
+      if (isAnalysisPending(read.reading)) {
+        setNotice(t('booster.performance.readingPending'));
+        const waited = await waitForAnalysis(read, () => api.driver.performanceLog(current.id), (l) => isAnalysisPending(l.reading), { cancelled: () => left.current });
+        if (waited.outcome === 'cancelled') return;
+        read = waited.result;
+        if (waited.outcome === 'timeout') {
+          setDraft(read);
+          setNotice(t('booster.performance.readingSlow'));
+          return;
+        }
+      }
       setDraft(read);
       setForm(formOf(read));
       setNotice(read.reading.status === 'done' ? t('booster.performance.read', { percent: Math.round((read.reading.confidence ?? 0) * 100), app: read.reading.app ?? '' }) : t('booster.performance.readFailed'));

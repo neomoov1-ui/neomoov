@@ -31,6 +31,12 @@ export const appConfigSchema = z.object({
      * Stripe réel. Les écrans hors devis (ajout de carte, moyens du profil) ne proposent la carte que s'il est vrai.
      */
     cardPayments: z.boolean(),
+    /**
+     * Annulation par le chauffeur une fois arrivé sur place (revue du 2 octobre 2026 B, sanction comme après « en route ») :
+     * proposée par l'application chauffeur seulement si le réglage `drivers.cancel_after_arrival_enabled` est vrai
+     * (décision du fondateur attendue, faux par défaut) ; absent d'une API antérieure.
+     */
+    driverCancelAfterArrival: z.boolean().optional(),
   }),
   booking: z.object({
     /** Préavis minimal (D32), en secondes : 7 200 en V1. */

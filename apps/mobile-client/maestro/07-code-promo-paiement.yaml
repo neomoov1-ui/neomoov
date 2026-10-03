@@ -1,0 +1,76 @@
+# Finalisation du 3 octobre 2026 (session ouverte) : code promo à l'écran des prix (refus traduit, puis code de
+# lancement appliqué ou motif de refus), paiement au chauffeur (montant dû = total, crédits gardés pour le prépaiement),
+# animal d'assistance dans les commodités. La réservation n'est pas confirmée : le parcours s'arrête au récapitulatif.
+appId: com.neomoov.client
+---
+- launchApp
+- tapOn: "Réserver"
+- assertVisible: "Où allons-nous ?"
+- tapOn:
+    id: "origin-input"
+- inputText: "4500 rue Saint-Denis"
+- tapOn:
+    id: "suggestion-0"
+- tapOn:
+    id: "destination-input"
+- inputText: "1000 rue De La Gauchetière Ouest"
+- tapOn:
+    id: "suggestion-0"
+- scrollUntilVisible:
+    element:
+      id: "pickup-day-1"
+- tapOn:
+    id: "pickup-day-1"
+- scrollUntilVisible:
+    element:
+      id: "pickup-hour-10"
+    direction: RIGHT
+- tapOn:
+    id: "pickup-hour-10"
+- tapOn:
+    id: "pickup-slot-0"
+- tapOn: "Voir les prix"
+- assertVisible: "Catégorie et prix"
+- tapOn:
+    id: "category-neo_premium"
+# Code inconnu : motif traduit, aucun code gardé.
+- scrollUntilVisible:
+    element:
+      id: "promo-input"
+- tapOn:
+    id: "promo-input"
+- inputText: "INCONNU99"
+- tapOn:
+    id: "promo-apply"
+- assertVisible: "Ce code promo est inconnu ou n'est plus valide."
+# Code de lancement (données de départ) : remise dans le détail, ou motif du refus selon l'historique du compte d'essai.
+- tapOn:
+    id: "promo-input"
+- eraseText: 20
+- inputText: "LANCEMENT30"
+- tapOn:
+    id: "promo-apply"
+- assertVisible: "(Code LANCEMENT30 appliqué.*|Le code LANCEMENT30 ne s'applique pas.*|Vous avez déjà utilisé ce code.*|Cette promotion.*)"
+- runFlow:
+    when:
+      visible:
+        id: "promo-remove"
+    commands:
+      - tapOn:
+          id: "promo-remove"
+- tapOn: "Continuer"
+- assertVisible: "Choisissez toutes les commodités de votre voyage, et indiquez-nous vos demandes spéciales"
+- scrollUntilVisible:
+    element:
+      id: "assistance-animal"
+- tapOn:
+    id: "assistance-animal"
+- assertVisible: "Chien guide ou d'assistance : toujours accepté, sans frais.*"
+- scrollUntilVisible:
+    element: "Payer le chauffeur après la course"
+- tapOn: "Payer le chauffeur après la course"
+- scrollUntilVisible:
+    element: "Récapitulatif"
+- assertVisible: "Prix fixe tout compris"
+# Payée au chauffeur : aucune ligne « Reste à payer » (le montant dû est le prix total).
+- assertNotVisible: "Reste à payer"

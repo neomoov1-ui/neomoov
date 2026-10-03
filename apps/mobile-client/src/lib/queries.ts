@@ -34,6 +34,8 @@ export const keys = {
   invoices: ['invoice'] as const,
   paymentMethods: ['payment-methods'] as const,
   invoice: (rideId: string) => ['invoice', rideId] as const,
+  favorites: ['favorites'] as const,
+  referral: ['referral'] as const,
 };
 
 /** Configuration publique (drapeaux distants, préavis, catégories), relue au plus toutes les 5 minutes. */
@@ -56,6 +58,16 @@ export function usePlaces() {
 /** Cartes enregistrées chez le fournisseur actif (étape 26 : relues au retour de la page de saisie). */
 export function usePaymentMethods() {
   return useQuery({ queryKey: keys.paymentMethods, queryFn: () => api.payments.methods(), enabled: useSignedIn() });
+}
+
+/** Chauffeurs favoris (« Mes chauffeurs », 5.10). */
+export function useFavorites() {
+  return useQuery({ queryKey: keys.favorites, queryFn: () => api.me.favorites(), enabled: useSignedIn() });
+}
+
+/** Parrainage du client : code personnel (créé au premier appel), lien, montants des réglages, parrain du compte. */
+export function useReferral() {
+  return useQuery({ queryKey: keys.referral, queryFn: () => api.me.referral('client'), enabled: useSignedIn(), staleTime: 5 * 60_000 });
 }
 
 export function useConsents() {

@@ -17,6 +17,7 @@ import type { ConversationView, MembershipView, SupportMessageInput } from '@neo
 import type { DriverSanctionView, SanctionAppealInput } from '@neomoov/domain';
 import type { DriverAgendaView, DriverCostsInput, DriverCostsView, DriverProfitabilityView, PilotDecisionPage, PilotSettingsUpdate, PilotSettingsView } from '@neomoov/domain';
 import type { AlertTestInput, DriverAlertSettingsUpdate, DriverAlertSettingsView, InspectionConfirm, InspectionDownloadView, InspectionListQuery, InspectionUpdate, Page, PerformanceListQuery, PerformanceLogInput, PerformanceLogView, PerformanceRecapQuery, PerformanceRecapView, VehicleInspectionView } from '@neomoov/domain';
+import type { DriverAttachment } from '@neomoov/domain';
 import type { RequestOptions } from './client.js';
 
 /** Ce dont les ressources ont besoin : les verbes HTTP du client. */
@@ -153,6 +154,8 @@ export function driverResource(t: Transport) {
   return {
     /** Candidature d'un compte connecté ; renouveler ensuite le jeton (`auth.refresh`) pour obtenir le rôle chauffeur. */
     apply: (body: DriverApply) => t.post<DriverProfileView>('/driver/apply', body),
+    /** Étape 23 : invitation de flotte acceptée par la personne invitée (même téléphone) ; renouveler ensuite le jeton pour le rôle chauffeur. */
+    acceptFleetInvitation: (token: string) => t.post<DriverAttachment>('/driver-invitations/accept', { token }),
     home: () => t.get<DriverHomeView>('/driver/home'),
     profile: () => t.get<DriverProfileView>('/driver/profile'),
     updateProfile: (body: DriverProfileUpdate) => t.patch<DriverProfileView>('/driver/profile', body),
@@ -178,7 +181,8 @@ export function driverResource(t: Transport) {
     /** Charte d'équité (D7) : mes sanctions, ma réponse ou mon appel (réponse d'une personne sous 4 heures ouvrables). */
     sanctions: () => t.get<DriverSanctionView[]>('/driver/sanctions'),
     appealSanction: (sanctionId: string, body: SanctionAppealInput) => t.post<DriverSanctionView>(`/driver/sanctions/${id(sanctionId)}/appeals`, body),
-    startShift: (photoBase64: string) => t.post<ShiftStartResult>('/driver/shifts/start', { photoBase64 }),
+    // Photo du visage en base64 : envoi plus long qu'une requête ordinaire sur un réseau mobile (constat mobile 17).
+    startShift: (photoBase64: string) => t.post<ShiftStartResult>('/driver/shifts/start', { photoBase64 }, { timeoutMs: 60_000 }),
     // Présence et positions (secours au socket `/driver`).
     status: () => t.get<DriverStatusView>('/driver/status'),
     setStatus: (body: DriverStatusInput) => t.post<DriverStatusView>('/driver/status', body),
@@ -219,8 +223,12 @@ export function driverResource(t: Transport) {
     // Neomoov Booster (phase 1, agent G) : vérification sommaire, rapport de performance, alertes.
     createInspection: (form: FormData) => t.post<VehicleInspectionView>('/driver/booster/inspections', form, { timeoutMs: 120_000 }),
     addInspectionPhotos: (inspectionId: string, form: FormData) => t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/photos`, form, { timeoutMs: 120_000 }),
-    /** Analyse des photos par le modèle : jusqu'à deux minutes. */
-    analyseInspection: (inspectionId: string) => t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/analyse`, undefined, { timeoutMs: 180_000 }),
+    /**
+     * Analyse des photos par le modèle : jusqu'à deux minutes ; `async` (API de la finalisation U3) : réponse immédiate à
+     * l'état `pending`, résultat à relire par `inspection` (une API antérieure ignore le paramètre et répond comme avant).
+     */
+    analyseInspection: (inspectionId: string, options: { async?: boolean } = {}) =>
+      t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/analyse`, undefined, { timeoutMs: 180_000, ...(options.async ? { query: { async: 'true' } } : {}) }),
     updateInspection: (inspectionId: string, body: InspectionUpdate) => t.patch<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}`, body),
     confirmInspection: (inspectionId: string, body: InspectionConfirm) => t.post<VehicleInspectionView>(`/driver/booster/inspections/${id(inspectionId)}/confirm`, body, { timeoutMs: 60_000 }),
     inspections: (query: Partial<InspectionListQuery> = {}) => t.get<Page<VehicleInspectionView>>('/driver/booster/inspections', { query }),
@@ -230,7 +238,9 @@ export function driverResource(t: Transport) {
     createPerformance: (body: PerformanceLogInput) => t.post<PerformanceLogView>('/driver/booster/performance', body),
     updatePerformance: (logId: string, body: PerformanceLogInput) => t.patch<PerformanceLogView>(`/driver/booster/performance/${id(logId)}`, body),
     addPerformanceScreenshots: (logId: string, form: FormData) => t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/screenshots`, form, { timeoutMs: 120_000 }),
-    analysePerformance: (logId: string) => t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/analyse`, undefined, { timeoutMs: 180_000 }),
+    /** Lecture des captures : comme `analyseInspection`, `async` répond à l'état `pending`, résultat à relire par `performanceLog`. */
+    analysePerformance: (logId: string, options: { async?: boolean } = {}) =>
+      t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/analyse`, undefined, { timeoutMs: 180_000, ...(options.async ? { query: { async: 'true' } } : {}) }),
     confirmPerformance: (logId: string, body: PerformanceLogInput) => t.post<PerformanceLogView>(`/driver/booster/performance/${id(logId)}/confirm`, body, { timeoutMs: 60_000 }),
     performanceLogs: (query: Partial<PerformanceListQuery> = {}) => t.get<Page<PerformanceLogView>>('/driver/booster/performance', { query }),
     performanceLog: (logId: string) => t.get<PerformanceLogView>(`/driver/booster/performance/${id(logId)}`),

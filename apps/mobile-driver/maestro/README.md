@@ -30,5 +30,8 @@ Sur le poste de développement actuel (ni Maestro, ni SDK Android), le parcours 
 | `08-annulation-chauffeur.yaml` | 8 | Annulation par le chauffeur en route, avec motif (réattribution automatique vérifiée par les tests de l'API) |
 | `11-document-expire.yaml` | 11 | Suspension visible avec la marche à suivre, dépôt du nouveau document (la réactivation suit la validation humaine) |
 | `12-pack.yaml` | 12 | Activation d'un pack, renouvellement automatique, changement programmé (consommation et report : étape 8) |
+| `13-invitation-flotte.yaml` | Étape 23 (finalisation) | Invitation de flotte ouverte par le lien `neomoov-driver://chauffeurs/rejoindre?token=…` (variable `INVITE_TOKEN`), puis jeton collé depuis le profil (lien entier accepté, invitation inconnue refusée) |
+| `14-booster-schema.yaml` | Booster (finalisation) | Conseils et schéma de chaque photo, rapport à la main, zone de carrosserie choisie puis retirée (rien n'est archivé) |
+| `15-annulation-arrive.yaml` | Revue du 2 octobre B (finalisation) | « Annuler la course » présent en route, absent une fois arrivé avec le réglage par défaut |
 
-Les parcours 2, 8, 11 et 12 supposent une session ouverte d'un chauffeur validé (lancer d'abord le parcours 10 sans `clearState`, puis valider le dossier).
+Les parcours 2, 8, 11, 12, 14 et 15 supposent une session ouverte d'un chauffeur validé (lancer d'abord le parcours 10 sans `clearState`, puis valider le dossier).

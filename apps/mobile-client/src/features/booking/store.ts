@@ -9,6 +9,8 @@ export interface BookingOptions {
   flex: boolean;
   priority: boolean;
   favouriteDriverId?: string;
+  /** Code promo saisi à l'écran des prix (5.9) : envoyé avec chaque devis tant qu'il n'est pas retiré. */
+  promoCode?: string;
 }
 
 /** Brouillon de réservation partagé par les trois écrans (carte, catégorie et prix, commodités et confirmation). */
@@ -25,6 +27,8 @@ interface BookingDraft {
   pickupAt: string | null;
   flightNumber: string;
   quotes: QuotesResponse | null;
+  /** Mode de paiement envoyé avec ces devis (null : aucun, calculés comme une course prépayée, crédits déduits). */
+  quotedPaymentChoice: PaymentChoice | null;
   category: VehicleCategory | null;
   vehicleId: string | null;
   options: BookingOptions;
@@ -51,6 +55,7 @@ const initial = () => ({
   pickupAt: null,
   flightNumber: '',
   quotes: null,
+  quotedPaymentChoice: null as PaymentChoice | null,
   category: null,
   vehicleId: null,
   options: { childSeat: false, luggage: false, pet: false, flex: false, priority: false },

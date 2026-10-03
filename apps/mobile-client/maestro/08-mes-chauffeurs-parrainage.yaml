@@ -1,0 +1,32 @@
+# Finalisation du 3 octobre 2026 (session ouverte) : « Mes chauffeurs » et parrainage dans le profil, animal
+# d'assistance dans les préférences de confort. Un compte neuf n'a ni favori ni parrain : liste vide, saisie d'un code
+# inconnu refusée avec un message traduit.
+appId: com.neomoov.client
+---
+- launchApp
+- tapOn: "Profil"
+- scrollUntilVisible:
+    element: "Mes chauffeurs"
+- assertVisible: "(Vos chauffeurs favoris apparaîtront ici après vos courses.|Réserver avec ce chauffeur)"
+- scrollUntilVisible:
+    element:
+      id: "referral-code"
+- assertVisible:
+    id: "referral-share"
+- runFlow:
+    when:
+      visible:
+        id: "referral-input"
+    commands:
+      - tapOn:
+          id: "referral-input"
+      - inputText: "ZZZZ9999"
+      - tapOn:
+          id: "referral-apply"
+      - assertVisible: "(Code de parrainage inconnu.|Vous ne pouvez pas utiliser votre propre code.|Le code de parrainage se saisit avant votre première course.|Le délai pour saisir un code.*)"
+- scrollUntilVisible:
+    element: "Animal d'assistance"
+    direction: UP
+- tapOn: "Animal d'assistance"
+- tapOn: "Enregistrer"
+- assertVisible: "Préférences enregistrées."

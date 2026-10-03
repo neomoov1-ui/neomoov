@@ -156,6 +156,37 @@ describe('temps réel Socket.IO (intégration)', () => {
     expect(badLocation).toMatchObject({ ok: false, code: 'VALIDATION_ERROR' });
   });
 
+  it('chauffeur : ride.unsubscribe quitte la salle de la course, ride.subscribe y revient (constat mobile 24)', { timeout: 120_000 }, async ({ skip }) => {
+    if (!app) return skip('DATABASE_URL absente');
+    const client = await loginByOtp(app);
+    const driver = await createDriver(app);
+    const admin = await createStaffAndLogin(app, ['operator']);
+    const quote = (await request(server()).post('/v1/quotes').set(bearer(client)).send({ category: 'neo_premium', origin: PLATEAU, destination: CENTRE, requestedAt: inThreeHours() }).expect(201)).body.quotes[0];
+    const ride = (await request(server()).post('/v1/rides').set(bearer(client)).set('Idempotency-Key', `rt-unsub-${Date.now()}`).send({ quoteId: quote.id, type: 'scheduled', requestedAt: inThreeHours(), paymentMethod: 'card_app', maxConsentedCents: quote.maxConsentedCents }).expect(201)).body;
+    await request(server()).post(`/v1/admin/rides/${ride.id}/assign`).set(bearer(admin.tokens)).send({ driverId: driver.driverId }).expect(200);
+    const { socket: clientSocket } = await connect('/client', client.accessToken);
+    const { socket: driverSocket } = await connect('/driver', driver.tokens.accessToken);
+    expect((await emitAck<{ ok: boolean }>(clientSocket, 'ride.subscribe', { rideId: ride.id })).ok).toBe(true);
+    expect((await emitAck<{ ok: boolean }>(driverSocket, 'ride.subscribe', { rideId: ride.id })).ok).toBe(true);
+
+    // Le chauffeur quitte l'écran de la course : plus aucun message de cette course ; le client reçoit toujours.
+    expect(await emitAck<{ ok: boolean }>(driverSocket, 'ride.unsubscribe', { rideId: ride.id })).toEqual({ ok: true });
+    const driverGotMessage = new Promise<boolean>((resolve) => {
+      driverSocket.once('message.received', () => resolve(true));
+      setTimeout(() => resolve(false), 3000);
+    });
+    const clientGotMessage = waitFor<{ body: string }>(clientSocket, 'message.received', 20_000);
+    await request(server()).post(`/v1/rides/${ride.id}/messages`).set(bearer(client)).send({ body: 'Je suis devant la porte' }).expect(201);
+    expect((await clientGotMessage).body).toBe('Je suis devant la porte');
+    expect(await driverGotMessage).toBe(false);
+
+    // Nouvel abonnement : les messages de la course reviennent.
+    expect((await emitAck<{ ok: boolean }>(driverSocket, 'ride.subscribe', { rideId: ride.id })).ok).toBe(true);
+    const driverMessageAgain = waitFor<{ body: string }>(driverSocket, 'message.received', 20_000);
+    await request(server()).post(`/v1/rides/${ride.id}/messages`).set(bearer(client)).send({ body: 'Merci' }).expect(201);
+    expect((await driverMessageAgain).body).toBe('Merci');
+  });
+
   it('charge légère : plusieurs chauffeurs envoient des positions en continu sans perte', { timeout: 180_000 }, async ({ skip }) => {
     if (!app) return skip('DATABASE_URL absente');
     const load = process.env['LOAD_TEST'] === '1';
