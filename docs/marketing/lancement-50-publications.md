@@ -1,8 +1,8 @@
 # Lancement de Neomoov : les 50 premières publications (10 espaces)
 
-Document généré par `node scripts/construire-publications.mjs` à partir des lots `scripts/publications-lancement/lot-*.mjs` ; vérifié par `node scripts/verifier-publications.mjs`. Données complètes : `docs/marketing/lancement-50-publications.json`. Rédaction du 2026-10-03, à valider par le fondateur avant toute programmation.
+Document généré par `node scripts/construire-publications.mjs` à partir des lots `scripts/publications-lancement/lot-*.mjs`, vérifié par `node scripts/verifier-publications.mjs`. Fichier à importer dans My Hub (Marketing, Publier, « Importer des publications ») : `docs/marketing/lancement-50-publications.json`, au format `docs/marketing/lancement-50-publications.schema.json` (campagne `lancement-2026-10`). Rédaction du 3 octobre 2026, à valider par le fondateur avant toute programmation.
 
-Période proposée : du mardi 6 octobre 2026 au lundi 2 novembre 2026 (4 semaines, heure de Montréal), 1 à 3 publications par jour. Chaque publication a un texte propre à chaque réseau, un titre d'image différent par réseau et une indication de photo réelle (règle D46). Le blogue ne reçoit que 4 articles (un ou deux par semaine, comme le prévoient les lignes éditoriales).
+Période proposée : du mardi 6 octobre 2026 au lundi 2 novembre 2026 (4 semaines, heure de Montréal), 1 à 3 publications par jour ; changer `startDate` dans le fichier décale tout le calendrier (les textes ne citent aucun jour de semaine). Chaque publication a un texte propre à chaque réseau, un titre d'image différent par réseau (et pour chaque version anglaise) et une indication de photo réelle (règle D46, `photoHints` et `notes`). Le blogue ne reçoit que 4 articles (un ou deux par semaine, comme le prévoient les lignes éditoriales) ; les autres publications visent les neuf autres espaces.
 
 Règles appliquées : lignes éditoriales v1.1 (vouvoiement, français du Québec d'abord, anglais seulement sur LinkedIn et X après le français, aucun tiret long, emoji seulement sur Instagram, TikTok et Snapchat, au plus un sur Telegram et la chaîne WhatsApp) ; seuls prix : 48,20 $ (forfait aéroport Neo Premium depuis le centre-ville) et 113,83 $ (Neomoov Chauffeur Pro) ; aucune promesse de revenu, aucun concurrent, aucune donnée personnelle, rien sur la commission ; numéros publics +1 438 900 4990 et +1 438 805-7974 seulement.
 
@@ -10,11 +10,11 @@ Règles appliquées : lignes éditoriales v1.1 (vouvoiement, français du Québe
 
 | N° | Date proposée | Thème | Sujet | Réseaux | Photo réelle | Approbation |
 |---|---|---|---|---|---|---|
-| P01 | mardi 6 octobre 2026 | Lancement de la marque et slogan | Neomoov arrive à Montréal | les 10 (blogue compris) | Ville | standard |
+| P01 | mardi 6 octobre 2026 | Lancement de la marque et slogan | Neomoov arrive à Montréal : avancez vers demain | les 10 (blogue compris) | Ville | standard |
 | P02 | mardi 6 octobre 2026 | Lancement de la marque et slogan | La signature « Avancez vers demain. » | 9 (sans le blogue) | Véhicule électrique | standard |
 | P03 | mercredi 7 octobre 2026 | Service aéroport Montréal-Trudeau | Forfait aéroport Neo Premium depuis le centre-ville | 9 (sans le blogue) | Aéroport | humaine requise |
 | P04 | mercredi 7 octobre 2026 | Véhicules 100 % électriques | Une flotte 100 % électrique | 9 (sans le blogue) | Véhicule électrique | standard |
-| P05 | jeudi 8 octobre 2026 | Service aéroport Montréal-Trudeau | Le transfert aéroport, étape par étape | les 10 (blogue compris) | Aéroport | humaine requise |
+| P05 | jeudi 8 octobre 2026 | Service aéroport Montréal-Trudeau | Aller à l'aéroport Montréal-Trudeau avec Neomoov : le guide | les 10 (blogue compris) | Aéroport | humaine requise |
 | P06 | jeudi 8 octobre 2026 | Réservation 2 heures à l'avance | Pourquoi réserver au moins 2 heures à l'avance | 9 (sans le blogue) | Client | standard |
 | P07 | vendredi 9 octobre 2026 | Prix tout compris affiché avant | Le prix affiché est le prix payé | 9 (sans le blogue) | Client | standard |
 | P08 | vendredi 9 octobre 2026 | Devenir chauffeur | Neomoov recrute des chauffeurs professionnels | 9 (sans le blogue) | Chauffeur | standard |
@@ -23,17 +23,17 @@ Règles appliquées : lignes éditoriales v1.1 (vouvoiement, français du Québe
 | P11 | dimanche 11 octobre 2026 | Quartiers et saisons de Montréal | Le mont Royal aux couleurs d'automne | 9 (sans le blogue) | Ville | standard |
 | P12 | lundi 12 octobre 2026 | Lancement de la marque et slogan | Trois façons de réserver | 9 (sans le blogue) | Client | standard |
 | P13 | lundi 12 octobre 2026 | Sécurité et chauffeurs vérifiés | Des chauffeurs vérifiés avant leur première course | 9 (sans le blogue) | Chauffeur | humaine requise |
-| P14 | mardi 13 octobre 2026 | Réservation 2 heures à l'avance | Deux heures d'avance, trois garanties | les 10 (blogue compris) | Chauffeur | standard |
+| P14 | mardi 13 octobre 2026 | Réservation 2 heures à l'avance | Pourquoi réserver au moins 2 heures à l'avance avec Neomoov | les 10 (blogue compris) | Chauffeur | standard |
 | P15 | mardi 13 octobre 2026 | Entreprises et comptes d'affaires | Le compte entreprise et la facture mensuelle | 9 (sans le blogue) | Client | standard |
 | P16 | mercredi 14 octobre 2026 | Neomoov Academy et Chauffeur Pro | Neomoov Chauffeur Pro, la formation complémentaire | 9 (sans le blogue) | Chauffeur | humaine requise |
 | P17 | mercredi 14 octobre 2026 | Véhicules 100 % électriques | Le calme d'un trajet électrique | 9 (sans le blogue) | Véhicule électrique | standard |
-| P18 | jeudi 15 octobre 2026 | Prix tout compris affiché avant | Comment se calcule le prix d'une course | les 10 (blogue compris) | Ville | humaine requise |
+| P18 | jeudi 15 octobre 2026 | Prix tout compris affiché avant | Comment Neomoov calcule le prix de votre course | les 10 (blogue compris) | Ville | humaine requise |
 | P19 | jeudi 15 octobre 2026 | Commodités à bord | Vos préférences transmises au chauffeur | 9 (sans le blogue) | Client | standard |
 | P20 | vendredi 16 octobre 2026 | Service aéroport Montréal-Trudeau | Vol en retard : la prise en charge s'adapte | 9 (sans le blogue) | Aéroport | standard |
 
-## Créneaux utilisés (heure de Montréal)
+## Créneaux (heure de Montréal)
 
-Réglage `marketing.slots` (packages/db/src/seed/data.ts) : heure du créneau du jour de la publication, sinon heure du premier créneau de l'espace (débordement du calendrier) ; la deuxième publication du même jour sur un espace part 3 heures plus tard. Telegram (8 h) et la chaîne WhatsApp (17 h 30) n'ont pas encore de créneau dans le réglage : heures proposées, à confirmer.
+Réglage `marketing.slots` (packages/db/src/seed/data.ts ; Telegram et chaîne WhatsApp : défauts de la branche publication-multireseau). L'import place chaque réseau à l'heure de son créneau du jour de semaine, sinon à l'une de ses autres heures, avec 30 minutes d'écart au moins entre deux publications d'un même réseau le même jour. Les heures ci-dessous suivent ce calcul.
 
 | Espace | Créneaux |
 |---|---|
@@ -44,13 +44,13 @@ Réglage `marketing.slots` (packages/db/src/seed/data.ts) : heure du créneau du
 | X | lundi 09 h 00, mercredi 09 h 00, vendredi 09 h 00 |
 | TikTok | mercredi 18 h 00, samedi 18 h 00 |
 | Snapchat | vendredi 19 h 00, dimanche 19 h 00 |
-| Telegram | lundi 08 h 00 |
+| Telegram | mardi 17 h 30, jeudi 17 h 30 |
 | YouTube (Short) | vendredi 16 h 00 |
-| Chaîne WhatsApp | lundi 17 h 30 |
+| Chaîne WhatsApp | lundi 18 h 00, jeudi 18 h 00 |
 
 ## Publications
 
-### P01 · mardi 6 octobre 2026 · Lancement de la marque et slogan · Neomoov arrive à Montréal
+### P01 · mardi 6 octobre 2026 · Lancement de la marque et slogan · Neomoov arrive à Montréal : avancez vers demain
 
 - Photo réelle (ville) : Photo réelle du centre-ville de Montréal au lever du jour, vue depuis le belvédère du mont Royal (médiathèque, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
@@ -160,6 +160,12 @@ Extrait : Neomoov lance à Montréal un service de transport de personnes en vé
 >
 > Avancez vers demain.
 >
+> https://neomoov.net/reserver
+>
+> #Neomoov #Montréal #MobilitéDurable
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Now live in Montréal »
+
 > Neomoov is now live in Montréal. A Groupe NSK inc. brand, Neomoov offers passenger transportation in recent 100% electric vehicles, with vetted professional drivers: an all-inclusive price shown before you confirm, bookings at least 2 hours ahead, live trip tracking and certified invoices by email.
 >
 > Businesses, hotels, clinics and event organizers: let's talk about your travel needs.
@@ -176,7 +182,7 @@ Extrait : Neomoov lance à Montréal un service de transport de personnes en vé
 >
 > #Montréal
 
-Version anglaise (194 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Neomoov is live »
 
 > Neomoov is now live in Montréal: 100% electric vehicles, vetted drivers and an all-inclusive price shown before you confirm. Book at least 2 hours ahead.
 >
@@ -187,7 +193,7 @@ Version anglaise (194 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Voici Neomoov »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Montréal, voici Neomoov.
 2. Des véhicules 100 % électriques récents.
@@ -204,7 +210,7 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Nouveau à Montréal »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Nouveau à Montréal : Neomoov.
 2. 100 % électrique.
@@ -216,7 +222,7 @@ Légende :
 >
 > #Neomoov #Montréal
 
-#### Telegram · 08 h 00 · titre d'image : « Le premier jour »
+#### Telegram · 17 h 30 · titre d'image : « Le premier jour »
 
 > Neomoov arrive à Montréal. Véhicules 100 % électriques, chauffeurs vérifiés, prix tout compris affiché avant de confirmer. Réservez au moins 2 heures à l'avance :
 >
@@ -226,7 +232,7 @@ Légende :
 
 Titre : Neomoov arrive à Montréal | Avancez vers demain
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Montréal, voici Neomoov.
 2. Des véhicules 100 % électriques récents et des chauffeurs professionnels vérifiés.
@@ -241,7 +247,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Neomoov démarre »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Neomoov démarre »
 
 > Bonjour ! Neomoov est lancé à Montréal. Réservez votre course au moins 2 heures à l'avance, en ligne ou par message WhatsApp au +1 438 900 4990. Le prix tout compris s'affiche avant de confirmer.
 >
@@ -252,7 +258,7 @@ Description :
 - Photo réelle (véhicule électrique) : Photo réelle d'un véhicule électrique récent de catégorie Neo Premium dans une rue du Vieux-Montréal, en lumière de fin de journée (médiathèque, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
 
-#### Facebook · 15 h 00 · titre d'image : « Notre signature »
+#### Facebook · 17 h 00 · titre d'image : « Notre signature »
 
 > Avancez vers demain.
 >
@@ -264,7 +270,7 @@ Description :
 >
 > #Neomoov
 
-#### Instagram · 15 h 00 · titre d'image : « Avancez vers demain. »
+#### Instagram · 11 h 00 · titre d'image : « Avancez vers demain. »
 
 > Avancez vers demain. 🚗
 >
@@ -274,19 +280,25 @@ Description :
 >
 > #Neomoov #AvancezVersDemain #Montréal #MTL #MobilitéÉlectrique #VéhiculeÉlectrique
 
-#### LinkedIn · 11 h 30 · titre d'image : « Trois mots, un engagement »
+#### LinkedIn · 09 h 00 · titre d'image : « Trois mots, un engagement »
 
 > « Avancez vers demain. »
 >
 > Notre signature résume notre engagement : faire du transport de personnes à Montréal une expérience plus juste pour le client, plus juste pour le chauffeur et plus respectueuse de la ville. Concrètement : des véhicules 100 % électriques, des chauffeurs vérifiés et un prix tout compris affiché avant de confirmer.
 >
+> https://neomoov.net/reserver
+>
+> #Neomoov #Montréal #MobilitéDurable
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Three words, one commitment »
+
 > Our signature, « Avancez vers demain. », sums up our commitment: passenger transportation in Montréal that is fairer for riders, fairer for drivers and kinder to the city. In practice: 100% electric vehicles, vetted drivers and an all-inclusive price shown before you confirm.
 >
 > https://neomoov.net/reserver
 >
 > #Neomoov #Montréal #MobilitéDurable
 
-#### X · 12 h 00 · titre d'image : « Une promesse simple »
+#### X · 09 h 30 · titre d'image : « Une promesse simple »
 
 > « Avancez vers demain. » Notre signature, notre engagement : un trajet serein, 100 % électrique, à un prix tout compris connu avant de confirmer.
 >
@@ -294,7 +306,7 @@ Description :
 >
 > #Neomoov
 
-Version anglaise (176 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « A simple promise »
 
 > Our signature, « Avancez vers demain. », says it all: a calm ride, 100% electric, at an all-inclusive price you know before you confirm.
 >
@@ -302,10 +314,10 @@ Version anglaise (176 caractères) :
 >
 > #Neomoov
 
-#### TikTok · 21 h 00 · titre d'image : « Une signature en vidéo »
+#### TikTok · 18 h 30 · titre d'image : « Une signature en vidéo »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Trois mots, une promesse.
 2. Avancez : un véhicule 100 % électrique vous attend.
@@ -318,14 +330,14 @@ Légende :
 >
 > #Neomoov #AvancezVersDemain #Montréal
 
-#### Snapchat · 22 h 00 · titre d'image : « Trois mots »
+#### Snapchat · 19 h 30 · titre d'image : « Trois mots »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
-1. Avancez
-2. vers
-3. demain.
+1. Avancez vers demain.
+2. Notre signature à Montréal.
+3. Votre trajet, en électrique.
 
 Légende :
 
@@ -333,17 +345,17 @@ Légende :
 >
 > #Neomoov #Montréal
 
-#### Telegram · 11 h 00 · titre d'image : « Notre promesse »
+#### Telegram · 18 h 00 · titre d'image : « Notre promesse »
 
 > Avancez vers demain. C'est la signature de Neomoov : véhicules 100 % électriques, chauffeurs vérifiés, prix tout compris connu avant de confirmer.
 >
 > https://neomoov.net/reserver
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « La signature Neomoov »
+#### YouTube (Short) · 16 h 30 · titre d'image : « La signature Neomoov »
 
 Titre : Avancez vers demain : la signature de Neomoov
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Neomoov, c'est une signature : Avancez vers demain.
 2. Des véhicules 100 % électriques récents.
@@ -358,7 +370,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Votre trajet, demain »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Votre trajet, demain »
 
 > Avancez vers demain. Notre signature, et notre promesse pour chacun de vos trajets à Montréal. Réservez au moins 2 heures à l'avance :
 >
@@ -382,7 +394,7 @@ Description :
 >
 > #YUL
 
-#### Instagram · 12 h 00 · titre d'image : « Direction l'aéroport »
+#### Instagram · 11 h 00 · titre d'image : « Direction l'aéroport »
 
 > Direction YUL ✈️
 >
@@ -398,6 +410,12 @@ Description :
 >
 > Depuis le centre-ville, le forfait Neo Premium est de 48,20 $, taxes comprises. Réservation avec numéro de vol jusqu'à 90 jours à l'avance, chauffeur confirmé la veille, facture certifiée par courriel.
 >
+> https://neomoov.net/reserver
+>
+> #YUL #VoyageDAffaires #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Business trips to YUL »
+
 > Business travel to Montréal-Trudeau airport, with the price known upfront. From downtown, the Neo Premium airport flat rate is $48.20, taxes included. Book with your flight number up to 90 days ahead; your driver is confirmed the day before and a certified invoice is emailed to you.
 >
 > https://neomoov.net/reserver
@@ -412,7 +430,7 @@ Description :
 >
 > #YUL
 
-Version anglaise (165 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Airport flat rate »
 
 > Montréal-Trudeau airport: Neo Premium flat rate of $48.20 from downtown, taxes included. Your driver is confirmed the day before.
 >
@@ -423,7 +441,7 @@ Version anglaise (165 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Bientôt dans les airs ? »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Vous prenez l'avion bientôt ?
 2. Depuis le centre-ville : 48,20 $ en Neo Premium, taxes comprises.
@@ -439,7 +457,7 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Cap sur YUL »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Direction l'aéroport ?
 2. 48,20 $ depuis le centre-ville.
@@ -451,7 +469,7 @@ Légende :
 >
 > #YUL #Montréal
 
-#### Telegram · 08 h 00 · titre d'image : « Montréal-Trudeau, prix fixe »
+#### Telegram · 17 h 30 · titre d'image : « Montréal-Trudeau, prix fixe »
 
 > Aéroport Montréal-Trudeau : forfait Neo Premium à 48,20 $ depuis le centre-ville, taxes comprises. Chauffeur confirmé la veille.
 >
@@ -461,7 +479,7 @@ Légende :
 
 Titre : Aéroport Montréal-Trudeau : 48,20 $ depuis le centre-ville
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Vous prenez l'avion à Montréal-Trudeau ?
 2. Depuis le centre-ville, le forfait Neo Premium est de 48,20 $, taxes comprises.
@@ -476,7 +494,7 @@ Description :
 >
 > #YUL #Montréal #Neomoov #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Avant votre vol »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Avant votre vol »
 
 > Vous prenez l'avion bientôt ? Depuis le centre-ville, le forfait Neo Premium vers l'aéroport Montréal-Trudeau est de 48,20 $, taxes comprises. Réservez :
 >
@@ -487,7 +505,7 @@ Description :
 - Photo réelle (véhicule électrique) : Photo réelle d'un véhicule électrique récent branché à une borne de recharge publique à Montréal (médiathèque, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
 
-#### Facebook · 15 h 00 · titre d'image : « Une flotte électrique »
+#### Facebook · 17 h 00 · titre d'image : « Une flotte électrique »
 
 > Chez Neomoov, toute la flotte est électrique.
 >
@@ -499,7 +517,7 @@ Description :
 >
 > #VéhiculeÉlectrique
 
-#### Instagram · 15 h 00 · titre d'image : « 100 % électrique »
+#### Instagram · 12 h 00 · titre d'image : « 100 % électrique »
 
 > 100 % électrique, sur chaque trajet ⚡
 >
@@ -509,19 +527,25 @@ Description :
 >
 > #Neomoov #VéhiculeÉlectrique #VoitureÉlectrique #Montréal #MobilitéDurable #MTL
 
-#### LinkedIn · 11 h 30 · titre d'image : « Mobilité durable au travail »
+#### LinkedIn · 09 h 00 · titre d'image : « Mobilité durable au travail »
 
 > Une flotte 100 % électrique, sans exception.
 >
 > Pour vos déplacements professionnels à Montréal, Neomoov propose trois catégories de véhicules électriques récents (cinq ans ou moins) : Neo Premium, Neo Prestige et Neo XL. Chaque véhicule est inspecté à l'inscription, puis chaque trimestre. Des véhicules récents, sans émission, pour des déplacements cohérents avec vos engagements de mobilité durable.
 >
+> https://neomoov.net/reserver
+>
+> #MobilitéDurable #VéhiculeÉlectrique #Montréal
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Sustainable business travel »
+
 > A 100% electric fleet, no exceptions. Neomoov offers three categories of recent electric vehicles (five years old or less) in Montréal: Neo Premium, Neo Prestige and Neo XL, each inspected at registration and every quarter. Zero-emission vehicles for business travel that matches your sustainability commitments.
 >
 > https://neomoov.net/reserver
 >
 > #MobilitéDurable #VéhiculeÉlectrique #Montréal
 
-#### X · 12 h 00 · titre d'image : « Zéro essence »
+#### X · 09 h 30 · titre d'image : « Zéro essence »
 
 > Toute la flotte Neomoov est 100 % électrique : véhicules de cinq ans ou moins, inspectés chaque trimestre. Le véhicule réservé est celui qui arrive.
 >
@@ -529,7 +553,7 @@ Description :
 >
 > #VéhiculeÉlectrique
 
-Version anglaise (180 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « No gas, ever »
 
 > Neomoov's entire fleet is 100% electric: vehicles five years old or less, inspected every quarter. The vehicle you book is the one that shows up.
 >
@@ -537,10 +561,10 @@ Version anglaise (180 caractères) :
 >
 > #EV
 
-#### TikTok · 21 h 00 · titre d'image : « Pas de moteur à essence »
+#### TikTok · 18 h 30 · titre d'image : « Pas de moteur à essence »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chez Neomoov, pas de moteur à essence.
 2. Toute la flotte est 100 % électrique.
@@ -554,10 +578,10 @@ Légende :
 >
 > #VoitureÉlectrique #Montréal #Neomoov #MTL
 
-#### Snapchat · 22 h 00 · titre d'image : « Électrique, toujours »
+#### Snapchat · 19 h 30 · titre d'image : « Électrique, toujours »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. 100 % électrique.
 2. Cinq ans ou moins.
@@ -569,17 +593,17 @@ Légende :
 >
 > #Neomoov #Électrique
 
-#### Telegram · 11 h 00 · titre d'image : « La flotte Neomoov »
+#### Telegram · 18 h 00 · titre d'image : « La flotte Neomoov »
 
 > Toute la flotte Neomoov est 100 % électrique : véhicules de cinq ans ou moins, inspectés chaque trimestre, en trois catégories.
 >
 > https://neomoov.net/reserver
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « Trois catégories électriques »
+#### YouTube (Short) · 16 h 30 · titre d'image : « Trois catégories électriques »
 
 Titre : Une flotte 100 % électrique à Montréal
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chez Neomoov, toute la flotte est électrique.
 2. Des véhicules récents, de cinq ans ou moins.
@@ -594,13 +618,13 @@ Description :
 >
 > #VoitureÉlectrique #Montréal #Neomoov #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Bon à savoir »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Bon à savoir »
 
 > Bon à savoir : chez Neomoov, chaque véhicule est 100 % électrique, récent et inspecté chaque trimestre. Réservez votre prochaine course :
 >
 > https://neomoov.net/reserver
 
-### P05 · jeudi 8 octobre 2026 · Service aéroport Montréal-Trudeau · Le transfert aéroport, étape par étape
+### P05 · jeudi 8 octobre 2026 · Service aéroport Montréal-Trudeau · Aller à l'aéroport Montréal-Trudeau avec Neomoov : le guide
 
 - Photo réelle (aéroport) : Photo réelle du hall des arrivées de l'aéroport Montréal-Trudeau, voyageurs de dos avec leurs valises, aucun visage reconnaissable (médiathèque, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
@@ -704,6 +728,12 @@ Extrait : Forfait depuis le centre-ville, numéro de vol, chauffeur confirmé la
 >
 > Le transfert aéroport Neomoov suit un déroulement précis : réservation avec numéro de vol jusqu'à 90 jours à l'avance, chauffeur confirmé la veille, texto quand il est en route, point de rencontre précisé aux arrivées et facture certifiée par courriel pour vos notes de frais.
 >
+> https://neomoov.net/reserver
+>
+> #YUL #VoyageDAffaires #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Airport trips for your team »
+
 > Does your team travel often? Neomoov airport transfers follow a clear process: booking with flight number up to 90 days ahead, driver confirmed the day before, a text when the driver is on the way, a set meeting point at arrivals and a certified invoice by email for expense reports.
 >
 > https://neomoov.net/reserver
@@ -718,7 +748,7 @@ Extrait : Forfait depuis le centre-ville, numéro de vol, chauffeur confirmé la
 >
 > #YUL
 
-Version anglaise (185 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Flight delayed? No problem »
 
 > Airport transfer to YUL: book with your flight number and get your driver's name the day before. Delay reported? Pickup is adjusted at no extra cost.
 >
@@ -729,7 +759,7 @@ Version anglaise (185 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Sans stress jusqu'à YUL »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Le transfert aéroport sans stress, en quatre étapes.
 2. Un : réservez avec votre numéro de vol.
@@ -746,7 +776,7 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Votre chauffeur aussi »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Votre vol est réservé ?
 2. Votre chauffeur aussi.
@@ -758,7 +788,7 @@ Légende :
 >
 > #YUL #Montréal
 
-#### Telegram · 08 h 00 · titre d'image : « Transfert aéroport »
+#### Telegram · 17 h 30 · titre d'image : « Transfert aéroport »
 
 > Transfert aéroport : réservez avec votre numéro de vol, recevez le nom de votre chauffeur la veille, et l'attente est ajustée sans frais si votre retard est annoncé.
 >
@@ -768,7 +798,7 @@ Légende :
 
 Titre : Transfert aéroport Montréal-Trudeau : comment ça se passe
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Vous prenez l'avion à Montréal-Trudeau ?
 2. Réservez avec votre numéro de vol, jusqu'à 90 jours à l'avance.
@@ -783,7 +813,7 @@ Description :
 >
 > #YUL #Montréal #Neomoov #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Avant le décollage »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Avant le décollage »
 
 > Votre transfert vers ou depuis Montréal-Trudeau, étape par étape : numéro de vol à la réservation, chauffeur confirmé la veille, point de rencontre précisé. Réservez :
 >
@@ -794,7 +824,7 @@ Description :
 - Photo réelle (client) : Photo réelle d'une cliente qui consulte son téléphone dans un café de Montréal (modèle, licence commerciale, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
 
-#### Facebook · 15 h 00 · titre d'image : « Pourquoi 2 heures ? »
+#### Facebook · 17 h 00 · titre d'image : « Pourquoi 2 heures ? »
 
 > Pourquoi réserver au moins 2 heures à l'avance ?
 >
@@ -802,7 +832,7 @@ Description :
 >
 > https://neomoov.net/reserver
 
-#### Instagram · 15 h 00 · titre d'image : « Planifier, c'est arriver à l'heure »
+#### Instagram · 11 h 00 · titre d'image : « Planifier, c'est arriver à l'heure »
 
 > Planifier, c'est déjà arriver à l'heure 📱
 >
@@ -812,19 +842,25 @@ Description :
 >
 > #Neomoov #Montréal #MTL #Réservation #TransportDePersonnes
 
-#### LinkedIn · 11 h 30 · titre d'image : « Un choix de fiabilité »
+#### LinkedIn · 09 h 00 · titre d'image : « Un choix de fiabilité »
 
 > Réservation au moins 2 heures à l'avance : un choix de fiabilité.
 >
 > Pour vos rendez-vous professionnels, Neomoov confirme un chauffeur et le véhicule choisi avant le départ, plutôt que d'envoyer le premier véhicule disponible. Les courses se planifient jusqu'à 90 jours à l'avance.
 >
+> https://neomoov.net/reserver
+>
+> #Montréal #Mobilité
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « A reliability choice »
+
 > Booking at least 2 hours ahead: a reliability choice. For your business appointments, Neomoov confirms a driver and the vehicle you chose before departure, instead of sending the first available car. Rides can be scheduled up to 90 days ahead.
 >
 > https://neomoov.net/reserver
 >
 > #Montréal #Mobilité
 
-#### X · 12 h 00 · titre d'image : « 2 h à l'avance »
+#### X · 09 h 30 · titre d'image : « 2 h à l'avance »
 
 > Chez Neomoov, chaque course se réserve au moins 2 h à l'avance, jusqu'à 90 jours : de quoi vous confirmer chauffeur et véhicule avant le départ.
 >
@@ -832,7 +868,7 @@ Description :
 >
 > #Montréal
 
-Version anglaise (177 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « Book 2 hours ahead »
 
 > At Neomoov, every ride is booked at least 2 hours ahead, up to 90 days: enough time to confirm your driver and vehicle before departure.
 >
@@ -840,10 +876,10 @@ Version anglaise (177 caractères) :
 >
 > #Montreal
 
-#### TikTok · 21 h 00 · titre d'image : « Pourquoi deux heures d'avance ? »
+#### TikTok · 18 h 30 · titre d'image : « Pourquoi deux heures d'avance ? »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Pourquoi réserver 2 heures à l'avance ?
 2. Pour confirmer votre chauffeur.
@@ -856,10 +892,10 @@ Légende :
 >
 > #Neomoov #Montréal #MTL
 
-#### Snapchat · 22 h 00 · titre d'image : « Chauffeur confirmé »
+#### Snapchat · 19 h 30 · titre d'image : « Chauffeur confirmé »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. 2 heures avant.
 2. Chauffeur confirmé.
@@ -871,17 +907,17 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 11 h 00 · titre d'image : « Rappel de réservation »
+#### Telegram · 18 h 00 · titre d'image : « Rappel de réservation »
 
 > Rappel : chaque course Neomoov se réserve au moins 2 heures à l'avance, et jusqu'à 90 jours. Ce délai nous permet de confirmer votre chauffeur et votre véhicule.
 >
 > https://neomoov.net/reserver
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « Réserver à l'avance »
+#### YouTube (Short) · 16 h 30 · titre d'image : « Réserver à l'avance »
 
 Titre : Pourquoi réserver 2 heures à l'avance avec Neomoov
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chez Neomoov, chaque course se réserve au moins 2 heures à l'avance.
 2. Ce délai permet de confirmer un chauffeur avant le départ.
@@ -896,7 +932,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Une course demain ? »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Une course demain ? »
 
 > Une course demain matin ? Réservez-la dès aujourd'hui : au moins 2 heures à l'avance, jusqu'à 90 jours. Sur notre site ou par message au +1 438 900 4990.
 >
@@ -915,7 +951,7 @@ Description :
 >
 > https://neomoov.net/reserver
 
-#### Instagram · 12 h 00 · titre d'image : « Tout est compris »
+#### Instagram · 11 h 00 · titre d'image : « Tout est compris »
 
 > Le prix affiché est le prix payé 🧾
 >
@@ -931,6 +967,12 @@ Description :
 >
 > Chaque course Neomoov est proposée à un prix tout compris (tarif du chauffeur, frais de service, péages, redevance et taxes), calculé avec le trafic prévu et garanti une fois confirmé. Aucune majoration liée à la demande : une prévisibilité appréciable pour les budgets de déplacement.
 >
+> https://neomoov.net/reserver
+>
+> #Transparence #Montréal #Mobilité
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Price transparency »
+
 > Price transparency: what we show is what you pay. Every Neomoov ride comes with an all-inclusive price (driver fare, service fee, tolls, government fee and taxes), based on expected traffic and guaranteed once confirmed. No demand-based pricing, for predictable travel budgets.
 >
 > https://neomoov.net/reserver
@@ -943,7 +985,7 @@ Description :
 >
 > https://neomoov.net/reserver
 
-Version anglaise (182 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « No demand-based pricing »
 
 > The price you see is the price you pay: tolls, fees and taxes included, based on expected traffic, guaranteed once confirmed. No demand-based surcharge.
 >
@@ -952,7 +994,7 @@ Version anglaise (182 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Le prix change ? Pas ici »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Le prix change pendant la course ? Pas chez Neomoov.
 2. Avant de confirmer, vous voyez le prix total.
@@ -968,7 +1010,7 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Aucune surprise »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Prix total affiché.
 2. Avant de confirmer.
@@ -980,7 +1022,7 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 08 h 00 · titre d'image : « Prix garanti »
+#### Telegram · 17 h 30 · titre d'image : « Prix garanti »
 
 > Le prix affiché est le prix payé : péages, redevance et taxes compris, garanti une fois la course confirmée.
 >
@@ -990,7 +1032,7 @@ Légende :
 
 Titre : Le prix affiché est le prix payé
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chez Neomoov, vous voyez le prix total avant de confirmer.
 2. Il comprend le tarif du chauffeur, les frais de service, les péages, la redevance et les taxes.
@@ -1005,7 +1047,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Le prix total, avant »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Le prix total, avant »
 
 > Bon à savoir : avant de confirmer votre course, vous voyez le prix total, tout compris. Il ne change plus ensuite.
 >
@@ -1016,7 +1058,7 @@ Description :
 - Photo réelle (chauffeur) : Photo réelle d'un chauffeur professionnel souriant, en tenue soignée, près d'un véhicule électrique (modèle, licence commerciale, crédit indiqué).
 - Appel à l'action : https://neomoov.net/chauffeurs/#candidature
 
-#### Facebook · 20 h 00 · titre d'image : « Neomoov recrute »
+#### Facebook · 12 h 00 · titre d'image : « Neomoov recrute »
 
 > Chauffeurs professionnels de Montréal : Neomoov recrute.
 >
@@ -1026,7 +1068,7 @@ Description :
 >
 > https://neomoov.net/chauffeurs/#candidature
 
-#### Instagram · 15 h 00 · titre d'image : « Chauffeurs, à vous »
+#### Instagram · 12 h 00 · titre d'image : « Chauffeurs, à vous »
 
 > Chauffeurs professionnels, Neomoov vous attend 🚗
 >
@@ -1036,7 +1078,7 @@ Description :
 >
 > #Neomoov #ChauffeurMontréal #Chauffeur #Montréal #VoitureÉlectrique #TransportDePersonnes
 
-#### LinkedIn · 11 h 30 · titre d'image : « Ce que nous demandons »
+#### LinkedIn · 09 h 00 · titre d'image : « Ce que nous demandons »
 
 > Neomoov recrute des chauffeurs professionnels à Montréal.
 >
@@ -1044,28 +1086,34 @@ Description :
 >
 > Ce que nous offrons : des courses planifiées au moins 2 heures à l'avance, la liberté de choisir vos heures, une clientèle qui vous appartient et des décisions toujours prises par une personne.
 >
+> https://neomoov.net/chauffeurs/#candidature
+>
+> #Recrutement #Chauffeur #Montréal
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « What we ask, what we offer »
+
 > Neomoov is recruiting professional drivers in Montréal. Requirements: a valid Québec licence of the required class, a paid passenger transportation authorization (we help with the process), a background check, proper insurance and an approved 100% electric vehicle. In return: rides scheduled at least 2 hours ahead, freedom to choose your hours, a clientele that is yours, and decisions always made by a person.
 >
 > https://neomoov.net/chauffeurs/#candidature
 >
 > #Recrutement #Chauffeur #Montréal
 
-#### X · 12 h 00 · titre d'image : « Recrutement chauffeurs »
+#### X · 09 h 30 · titre d'image : « Recrutement chauffeurs »
 
 > Chauffeurs professionnels de Montréal : Neomoov recrute. Courses planifiées 2 h à l'avance, vos heures, votre clientèle. Candidature en deux minutes.
 >
 > https://neomoov.net/chauffeurs/#candidature
 
-Version anglaise (182 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « Drivers wanted »
 
 > Professional drivers in Montréal: Neomoov is recruiting. Rides scheduled 2 hours ahead, your hours, your clientele. Apply in two minutes.
 >
 > https://neomoov.net/chauffeurs/#candidature
 
-#### TikTok · 21 h 00 · titre d'image : « Chauffeur à Montréal ? »
+#### TikTok · 18 h 30 · titre d'image : « Chauffeur à Montréal ? »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Vous êtes chauffeur professionnel à Montréal ?
 2. Avec Neomoov, vous choisissez vos heures.
@@ -1079,14 +1127,14 @@ Légende :
 >
 > #ChauffeurMontréal #Neomoov #Montréal #VoitureÉlectrique
 
-#### Snapchat · 22 h 00 · titre d'image : « Vos heures, votre clientèle »
+#### Snapchat · 19 h 30 · titre d'image : « Vos heures, votre clientèle »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chauffeur à Montréal ?
-2. Vos heures.
-3. Votre clientèle.
+2. Vous choisissez vos heures.
+3. Votre clientèle vous appartient.
 
 Légende :
 
@@ -1094,17 +1142,17 @@ Légende :
 >
 > #Chauffeur #MTL
 
-#### Telegram · 11 h 00 · titre d'image : « Candidatures ouvertes »
+#### Telegram · 18 h 00 · titre d'image : « Candidatures ouvertes »
 
 > Chauffeurs professionnels de Montréal : Neomoov recrute. Vos heures, votre clientèle, des courses planifiées. Candidature :
 >
 > https://neomoov.net/chauffeurs/#candidature
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « Devenir chauffeur Neomoov »
+#### YouTube (Short) · 16 h 30 · titre d'image : « Devenir chauffeur Neomoov »
 
 Titre : Devenir chauffeur Neomoov à Montréal
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Neomoov recrute des chauffeurs professionnels à Montréal.
 2. Il faut un permis valide, l'autorisation de transport rémunéré et un véhicule électrique admis.
@@ -1119,7 +1167,7 @@ Description :
 >
 > #ChauffeurMontréal #Neomoov #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Un chauffeur à recommander ? »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Un chauffeur à recommander ? »
 
 > Vous connaissez un chauffeur professionnel qui roule en véhicule électrique ? Neomoov recrute à Montréal. Candidature en deux minutes :
 >
@@ -1158,6 +1206,12 @@ Description :
 >
 > Hôtels, conciergeries, organisateurs : Neomoov transporte jusqu'à six passagers en Neo XL et permet de réserver pour une autre personne, qui reçoit le suivi de sa course par texto.
 >
+> https://neomoov.net/reserver
+>
+> #Montréal #Hôtellerie
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Think of your guests »
+
 > Thanksgiving long weekend: think of your guests. Hotels, concierges and event organizers: Neomoov carries up to six passengers in Neo XL and lets you book for someone else, who receives ride tracking by text.
 >
 > https://neomoov.net/reserver
@@ -1172,7 +1226,7 @@ Description :
 >
 > #ActionDeGrâce
 
-Version anglaise (176 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Six seats in Neo XL »
 
 > Thanksgiving weekend: travel together, up to six passengers in Neo XL, luggage included within trunk capacity. Book your trips now.
 >
@@ -1183,7 +1237,7 @@ Version anglaise (176 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Toute la famille vient ? »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Action de grâce : toute la famille vient ?
 2. Neo XL : jusqu'à six passagers.
@@ -1199,7 +1253,7 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Toute la famille à bord »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Toute la famille ?
 2. Six places en Neo XL.
@@ -1211,7 +1265,7 @@ Légende :
 >
 > #ActionDeGrâce #MTL
 
-#### Telegram · 08 h 00 · titre d'image : « Longue fin de semaine »
+#### Telegram · 17 h 30 · titre d'image : « Longue fin de semaine »
 
 > Bonne Action de grâce ! Pour vos visites en famille, Neo XL accueille jusqu'à six passagers et leurs bagages.
 >
@@ -1221,7 +1275,7 @@ Légende :
 
 Titre : Action de grâce : voyager en famille avec Neo XL
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Longue fin de semaine de l'Action de grâce ?
 2. Neo XL accueille jusqu'à six passagers et leurs bagages.
@@ -1236,7 +1290,7 @@ Description :
 >
 > #ActionDeGrâce #Montréal #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Visites en famille »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Visites en famille »
 
 > Bonne longue fin de semaine de l'Action de grâce 🍁 En famille ? Neo XL accueille jusqu'à six passagers. Réservez :
 >
@@ -1247,7 +1301,7 @@ Description :
 - Photo réelle (véhicule électrique) : Photo réelle de l'intérieur d'un véhicule électrique récent : banquette arrière propre, bouteille d'eau et câble de recharge à disposition (médiathèque, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
 
-#### Facebook · 15 h 00 · titre d'image : « Tout est à bord »
+#### Facebook · 17 h 00 · titre d'image : « Tout est à bord »
 
 > À bord de chaque véhicule Neomoov : de l'eau, des chargeurs, le Wi-Fi et un parapluie à disposition.
 >
@@ -1255,7 +1309,7 @@ Description :
 >
 > https://neomoov.net/reserver
 
-#### Instagram · 14 h 00 · titre d'image : « Ce qui vous attend »
+#### Instagram · 12 h 00 · titre d'image : « Ce qui vous attend »
 
 > Ce qui vous attend à bord 💧
 >
@@ -1265,39 +1319,45 @@ Description :
 >
 > #Neomoov #Confort #Montréal #MTL #VoitureÉlectrique #TransportDePersonnes
 
-#### LinkedIn · 11 h 30 · titre d'image : « Arriver prêt »
+#### LinkedIn · 09 h 00 · titre d'image : « Arriver prêt »
 
 > Le confort d'un déplacement professionnel tient aux détails.
 >
 > Dans chaque véhicule Neomoov : eau, chargeurs, Wi-Fi et parapluie. À la réservation : ambiance silencieuse pour préparer une réunion, langue du chauffeur, température. De quoi arriver prêt.
 >
+> https://neomoov.net/reserver
+>
+> #VoyageDAffaires #Montréal
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Arrive ready »
+
 > Comfort on a business trip comes down to details. In every Neomoov vehicle: water, chargers, Wi-Fi and an umbrella. When booking: a quiet ride to prepare for a meeting, driver language, temperature. Arrive ready.
 >
 > https://neomoov.net/reserver
 >
 > #VoyageDAffaires #Montréal
 
-#### X · 12 h 00 · titre d'image : « Votre trajet, votre façon »
+#### X · 09 h 30 · titre d'image : « Votre trajet, votre façon »
 
 > Dans chaque véhicule Neomoov : eau, chargeurs, Wi-Fi et parapluie. Silence, musique, température : vous choisissez à la réservation.
 >
 > https://neomoov.net/reserver
 
-Version anglaise (152 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « Your ride, your way »
 
 > In every Neomoov vehicle: water, chargers, Wi-Fi and an umbrella. Quiet ride, music, temperature: you choose when booking.
 >
 > https://neomoov.net/reserver
 
-#### TikTok · 21 h 00 · titre d'image : « Ce qu'il y a à bord »
+#### TikTok · 18 h 30 · titre d'image : « Ce qu'il y a à bord »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Ce qu'il y a à bord d'un véhicule Neomoov :
-2. De l'eau.
+2. De l'eau à disposition.
 3. Des chargeurs et le Wi-Fi.
-4. Un parapluie, au cas où.
+4. Un parapluie, si le temps tourne.
 5. Et l'ambiance que vous choisissez.
 
 Légende :
@@ -1306,14 +1366,14 @@ Légende :
 >
 > #Neomoov #Montréal #Confort
 
-#### Snapchat · 22 h 00 · titre d'image : « Eau, chargeurs, Wi-Fi »
+#### Snapchat · 19 h 30 · titre d'image : « Eau, chargeurs, Wi-Fi »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
-1. Eau.
-2. Chargeurs. Wi-Fi.
-3. Parapluie.
+1. De l'eau à bord.
+2. Des chargeurs et le Wi-Fi.
+3. Un parapluie, au cas où.
 
 Légende :
 
@@ -1321,17 +1381,17 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 11 h 00 · titre d'image : « Les commodités »
+#### Telegram · 18 h 00 · titre d'image : « Les commodités »
 
 > À bord de chaque véhicule Neomoov : eau, chargeurs, Wi-Fi et parapluie. Vos préférences (silence, musique, température) s'indiquent à la réservation.
 >
 > https://neomoov.net/reserver
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « À bord d'un véhicule Neomoov »
+#### YouTube (Short) · 16 h 30 · titre d'image : « À bord d'un véhicule Neomoov »
 
 Titre : À bord d'un véhicule Neomoov
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Dans chaque véhicule Neomoov, de l'eau vous attend.
 2. Des chargeurs et le Wi-Fi, pour rester connecté.
@@ -1346,7 +1406,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Petit rappel »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Petit rappel »
 
 > Petit rappel : eau, chargeurs, Wi-Fi et parapluie sont à disposition dans tous nos véhicules. Réservez votre prochaine course :
 >
@@ -1369,7 +1429,7 @@ Description :
 >
 > #MontRoyal #Montréal
 
-#### Instagram · 12 h 00 · titre d'image : « Le mont Royal en couleurs »
+#### Instagram · 11 h 00 · titre d'image : « Le mont Royal en couleurs »
 
 > Le mont Royal en couleurs 🍂
 >
@@ -1385,6 +1445,12 @@ Description :
 >
 > Montréal leur offre ses couleurs, du mont Royal au Vieux-Port. Avec Neomoov, vous réservez pour eux : ils reçoivent le suivi de leur course par texto, vous recevez le reçu.
 >
+> https://neomoov.net/reserver
+>
+> #Montréal #Tourisme
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Montréal in full colour »
+
 > Hosting business visitors this fall? Montréal shows its colours, from Mount Royal to the Old Port. With Neomoov, you book for them: they get ride tracking by text, you get the receipt.
 >
 > https://neomoov.net/reserver
@@ -1399,7 +1465,7 @@ Description :
 >
 > #MontRoyal
 
-Version anglaise (151 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « A fall outing »
 
 > Fall colours are out on Mount Royal. Book your round trip at least 2 hours ahead, with no parking to look for.
 >
@@ -1410,7 +1476,7 @@ Version anglaise (151 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Version automne »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Le mont Royal, version automne.
 2. Pas de stationnement à chercher.
@@ -1419,14 +1485,14 @@ Séquences de la vidéo :
 
 Légende :
 
-> Un dimanche en couleurs 🍂 Réservez sur neomoov.net/reserver
+> Une sortie en couleurs 🍂 Réservez sur neomoov.net/reserver
 >
 > #MontRoyal #Montréal #Automne #Neomoov
 
 #### Snapchat · 19 h 00 · titre d'image : « Une sortie d'automne »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Le mont Royal.
 2. En couleurs.
@@ -1438,7 +1504,7 @@ Légende :
 >
 > #MontRoyal #MTL
 
-#### Telegram · 08 h 00 · titre d'image : « Dimanche sur la montagne »
+#### Telegram · 17 h 30 · titre d'image : « Une sortie sur la montagne »
 
 > Les couleurs d'automne sont au rendez-vous sur le mont Royal. Réservez votre aller et votre retour à l'avance :
 >
@@ -1448,7 +1514,7 @@ Légende :
 
 Titre : Le mont Royal en automne, sans chercher de stationnement
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Une promenade sur le mont Royal cet automne ?
 2. Réservez votre aller et votre retour au moins 2 heures à l'avance.
@@ -1463,9 +1529,9 @@ Description :
 >
 > #MontRoyal #Montréal #Automne #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Bon dimanche »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Bonne fin de semaine »
 
-> Bon dimanche ! Une promenade sur le mont Royal ? Réservez votre aller et votre retour au moins 2 heures à l'avance :
+> Bonne fin de semaine ! Une promenade sur le mont Royal ? Réservez votre aller et votre retour au moins 2 heures à l'avance :
 >
 > https://neomoov.net/reserver
 
@@ -1486,7 +1552,7 @@ Description :
 >
 > https://neomoov.net/reserver
 
-#### Instagram · 12 h 00 · titre d'image : « Comme vous préférez »
+#### Instagram · 11 h 00 · titre d'image : « Comme vous préférez »
 
 > Réserver, comme vous préférez 📱
 >
@@ -1502,6 +1568,12 @@ Description :
 >
 > Avec Neomoov : en ligne sans compte, par WhatsApp au +1 438 900 4990 ou dans l'application. Même prix tout compris et même suivi, quel que soit le canal.
 >
+> https://neomoov.net/reserver
+>
+> #Montréal #Mobilité
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Simple for your team »
+
 > Booking a ride should be simple, for you and your assistants. With Neomoov: online with no account needed, by WhatsApp at +1 438 900 4990 or in the app. Same all-inclusive price and same tracking, whatever the channel.
 >
 > https://neomoov.net/reserver
@@ -1514,7 +1586,7 @@ Description :
 >
 > https://neomoov.net/reserver
 
-Version anglaise (145 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Online, WhatsApp or app »
 
 > Book online with no account, by WhatsApp at +1 438 900 4990 or in the app: same all-inclusive price, same tracking.
 >
@@ -1523,7 +1595,7 @@ Version anglaise (145 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Un, deux, trois »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Trois façons de réserver Neomoov.
 2. Un : en ligne, sans créer de compte.
@@ -1540,11 +1612,11 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Réservez à votre façon »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
-1. En ligne.
-2. WhatsApp.
-3. Application.
+1. Réservez en ligne.
+2. Ou par WhatsApp.
+3. Ou dans l'application.
 
 Légende :
 
@@ -1552,7 +1624,7 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 08 h 00 · titre d'image : « Les canaux de réservation »
+#### Telegram · 17 h 30 · titre d'image : « Les canaux de réservation »
 
 > Trois façons de réserver : en ligne sans compte, par WhatsApp au +1 438 900 4990, ou dans l'application Neomoov.
 >
@@ -1562,7 +1634,7 @@ Légende :
 
 Titre : Trois façons de réserver une course Neomoov
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Première façon : en ligne, sans créer de compte.
 2. Deuxième façon : par WhatsApp, au +1 438 900 4990.
@@ -1577,7 +1649,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Réserver par message »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Réserver par message »
 
 > Saviez-vous que vous pouvez réserver par message WhatsApp au +1 438 900 4990 ? Indiquez votre départ, votre destination et l'heure souhaitée. Ou en ligne :
 >
@@ -1589,7 +1661,7 @@ Description :
 - Appel à l'action : https://neomoov.net/reserver
 - Approbation humaine requise : Sujet « sécurité » : approbation humaine obligatoire selon les lignes éditoriales.
 
-#### Facebook · 15 h 00 · titre d'image : « Qui conduit votre véhicule ? »
+#### Facebook · 17 h 00 · titre d'image : « Qui conduit votre véhicule ? »
 
 > Qui conduit votre véhicule Neomoov ?
 >
@@ -1597,7 +1669,7 @@ Description :
 >
 > https://neomoov.net/reserver
 
-#### Instagram · 15 h 00 · titre d'image : « Des chauffeurs vérifiés »
+#### Instagram · 12 h 00 · titre d'image : « Des chauffeurs vérifiés »
 
 > Des chauffeurs vérifiés, avant leur première course 🚗
 >
@@ -1607,34 +1679,40 @@ Description :
 >
 > #Neomoov #Montréal #MTL #ChauffeursVérifiés #TransportDePersonnes
 
-#### LinkedIn · 11 h 30 · titre d'image : « La confiance, avant tout »
+#### LinkedIn · 09 h 00 · titre d'image : « La confiance, avant tout »
 
 > La confiance se construit avant la première course.
 >
 > Chaque chauffeur Neomoov est autorisé pour le transport rémunéré de personnes au Québec et passe une vérification des antécédents judiciaires, un contrôle de ses documents (permis, assurance, immatriculation, vérification mécanique), un entretien et la formation Neomoov.
 >
+> https://neomoov.net/reserver
+>
+> #Confiance #Montréal
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Trust comes first »
+
 > Trust is built before the first ride. Every Neomoov driver holds a Québec paid passenger transportation authorization and goes through a criminal background check, a document review (licence, insurance, registration, mechanical inspection), an interview and Neomoov training.
 >
 > https://neomoov.net/reserver
 >
 > #Confiance #Montréal
 
-#### X · 12 h 00 · titre d'image : « Autorisé, vérifié, formé »
+#### X · 09 h 30 · titre d'image : « Autorisé, vérifié, formé »
 
 > Chaque chauffeur Neomoov : autorisation de transport rémunéré au Québec, antécédents vérifiés, permis et assurance contrôlés, entretien et formation.
 >
 > https://neomoov.net/reserver
 
-Version anglaise (162 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « Authorized, checked, trained »
 
 > Every Neomoov driver: Québec paid transport authorization, background check, licence and insurance verified, interview and training.
 >
 > https://neomoov.net/reserver
 
-#### TikTok · 21 h 00 · titre d'image : « Votre chauffeur, en détail »
+#### TikTok · 18 h 30 · titre d'image : « Votre chauffeur, en détail »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Qui conduit votre véhicule Neomoov ?
 2. Un chauffeur autorisé au Québec.
@@ -1648,13 +1726,13 @@ Légende :
 >
 > #Neomoov #Montréal #Confiance
 
-#### Snapchat · 22 h 00 · titre d'image : « Vérifié et formé »
+#### Snapchat · 19 h 30 · titre d'image : « Vérifié et formé »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
-1. Vérifié.
-2. Formé.
+1. Chauffeur vérifié.
+2. Chauffeur formé.
 3. Contrôlé à chaque échéance.
 
 Légende :
@@ -1663,17 +1741,17 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 11 h 00 · titre d'image : « Chauffeurs contrôlés »
+#### Telegram · 18 h 00 · titre d'image : « Chauffeurs contrôlés »
 
 > Chaque chauffeur Neomoov est autorisé au Québec, vérifié (antécédents, permis, assurance) et formé avant sa première course.
 >
 > https://neomoov.net/reserver
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « Nos vérifications »
+#### YouTube (Short) · 16 h 30 · titre d'image : « Nos vérifications »
 
 Titre : Comment Neomoov vérifie ses chauffeurs
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chaque chauffeur est autorisé pour le transport rémunéré de personnes au Québec.
 2. Ses antécédents judiciaires sont vérifiés.
@@ -1688,13 +1766,13 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Votre tranquillité »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Votre tranquillité »
 
 > Votre tranquillité compte : chaque chauffeur Neomoov est vérifié et formé avant sa première course. Réservez :
 >
 > https://neomoov.net/reserver
 
-### P14 · mardi 13 octobre 2026 · Réservation 2 heures à l'avance · Deux heures d'avance, trois garanties
+### P14 · mardi 13 octobre 2026 · Réservation 2 heures à l'avance · Pourquoi réserver au moins 2 heures à l'avance avec Neomoov
 
 - Photo réelle (chauffeur) : Photo réelle d'un chauffeur qui consulte son planning de courses sur une tablette, à bord d'un véhicule électrique à l'arrêt (modèle, licence commerciale, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
@@ -1788,6 +1866,12 @@ Extrait : Un chauffeur confirmé, le véhicule choisi et un prix fixé d'avance 
 >
 > Rendez-vous clients, vols, événements : planifiez jusqu'à 90 jours à l'avance.
 >
+> https://neomoov.net/reserver
+>
+> #Planification #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Plan your business travel »
+
 > Booking at least 2 hours ahead: three guarantees for your business travel. A driver confirmed before departure, rather than the first available car. The vehicle category you chose. An all-inclusive price set in advance, useful for budgets. Client meetings, flights, events: plan up to 90 days ahead.
 >
 > https://neomoov.net/reserver
@@ -1800,7 +1884,7 @@ Extrait : Un chauffeur confirmé, le véhicule choisi et un prix fixé d'avance 
 >
 > https://neomoov.net/reserver
 
-Version anglaise (190 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Book once you know the time »
 
 > Booking 2 hours ahead means a confirmed driver, the vehicle you chose and a price set in advance. Meeting, flight, night out: book as soon as you know the time.
 >
@@ -1809,7 +1893,7 @@ Version anglaise (190 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Deux heures d'avance »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Deux heures d'avance, trois garanties.
 2. Un chauffeur confirmé avant le départ.
@@ -1826,11 +1910,11 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Chauffeur, véhicule, prix »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chauffeur confirmé.
 2. Véhicule choisi.
-3. Prix fixé.
+3. Prix fixé d'avance.
 
 Légende :
 
@@ -1838,7 +1922,7 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 08 h 00 · titre d'image : « Rappel : 2 heures »
+#### Telegram · 17 h 30 · titre d'image : « Rappel : 2 heures »
 
 > Réserver au moins 2 heures à l'avance : un chauffeur confirmé, le véhicule choisi et un prix fixé d'avance.
 >
@@ -1848,7 +1932,7 @@ Légende :
 
 Titre : Réserver 2 heures à l'avance : ce que ça change
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chez Neomoov, chaque course se réserve au moins 2 heures à l'avance.
 2. Résultat : un chauffeur confirmé avant le départ.
@@ -1863,7 +1947,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Une course cette semaine ? »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Une course cette semaine ? »
 
 > Un rendez-vous ou un vol cette semaine ? Réservez votre course dès que vous connaissez l'heure, jusqu'à 90 jours à l'avance :
 >
@@ -1874,7 +1958,7 @@ Description :
 - Photo réelle (client) : Photo réelle d'une professionnelle en tenue d'affaires qui sort d'un immeuble de bureaux du centre-ville (modèle, licence commerciale, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
 
-#### Facebook · 15 h 00 · titre d'image : « Un compte pour votre entreprise »
+#### Facebook · 17 h 00 · titre d'image : « Un compte pour votre entreprise »
 
 > Entreprises de Montréal : un compte Neomoov pour vos déplacements.
 >
@@ -1886,7 +1970,7 @@ Description :
 >
 > #Entreprises
 
-#### Instagram · 15 h 00 · titre d'image : « Déplacements d'affaires simplifiés »
+#### Instagram · 11 h 00 · titre d'image : « Déplacements d'affaires simplifiés »
 
 > Vos déplacements d'affaires, simplifiés 💼
 >
@@ -1896,7 +1980,7 @@ Description :
 >
 > #Neomoov #Entreprises #Montréal #VoyageDAffaires #MTL
 
-#### LinkedIn · 11 h 30 · titre d'image : « Une seule facture »
+#### LinkedIn · 09 h 00 · titre d'image : « Une seule facture »
 
 > Compte entreprise Neomoov : vos déplacements professionnels à Montréal, sur une seule facture.
 >
@@ -1907,28 +1991,34 @@ Description :
 >
 > Cliniques, hôtels, cabinets professionnels, organisateurs d'événements : demandez votre proposition sur la page Entreprises de neomoov.net, réponse sous deux jours ouvrables.
 >
+> https://neomoov.net/reserver
+>
+> #Entreprises #VoyageDAffaires #Montréal
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « One single invoice »
+
 > Neomoov business accounts: your company's travel in Montréal on a single invoice. Monthly billing with one certified invoice per cost centre, bookings for your clients, patients and guests (who get tracking by text), rides scheduled up to 90 days ahead with the driver confirmed the day before, and automatic receipts ready for accounting. Request a proposal on the Entreprises page at neomoov.net; we reply within two business days.
 >
 > https://neomoov.net/reserver
 >
 > #Entreprises #VoyageDAffaires #Montréal
 
-#### X · 12 h 00 · titre d'image : « Compte entreprise »
+#### X · 09 h 30 · titre d'image : « Compte entreprise »
 
 > Compte entreprise Neomoov : une facture certifiée par mois et par centre de coûts, reçus automatiques, réservations pour vos invités. Proposition sous deux jours ouvrables.
 >
 > https://neomoov.net/reserver
 
-Version anglaise (186 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « Business accounts »
 
 > Neomoov business accounts: one certified invoice per month and cost centre, automatic receipts, bookings for your guests. Proposal within two business days.
 >
 > https://neomoov.net/reserver
 
-#### TikTok · 21 h 00 · titre d'image : « Les déplacements de votre équipe »
+#### TikTok · 18 h 30 · titre d'image : « Les déplacements de votre équipe »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Vous gérez les déplacements de votre entreprise ?
 2. Un compte Neomoov, une facture par mois.
@@ -1941,10 +2031,10 @@ Légende :
 >
 > #Entreprises #Montréal #Neomoov
 
-#### Snapchat · 22 h 00 · titre d'image : « Une facture par mois »
+#### Snapchat · 19 h 30 · titre d'image : « Une facture par mois »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Une entreprise ?
 2. Une facture par mois.
@@ -1956,17 +2046,17 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 11 h 00 · titre d'image : « Pour les entreprises »
+#### Telegram · 18 h 00 · titre d'image : « Pour les entreprises »
 
 > Entreprises : un compte Neomoov, une facture certifiée par mois et par centre de coûts, des reçus automatiques. Demande sur la page Entreprises de neomoov.net.
 >
 > https://neomoov.net/reserver
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « En 30 secondes »
+#### YouTube (Short) · 16 h 30 · titre d'image : « En 30 secondes »
 
 Titre : Le compte entreprise Neomoov en 30 secondes
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Un compte entreprise pour vos équipes, vos clients et vos invités.
 2. Une facture certifiée par mois et par centre de coûts.
@@ -1981,7 +2071,7 @@ Description :
 >
 > #Entreprises #Montréal #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Votre équipe en déplacement »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Votre équipe en déplacement »
 
 > Vous organisez les déplacements de votre équipe ? Le compte entreprise Neomoov regroupe vos courses sur une facture mensuelle. Demande sur la page Entreprises de neomoov.net.
 >
@@ -2005,7 +2095,7 @@ Description :
 >
 > #NeomoovAcademy
 
-#### Instagram · 12 h 00 · titre d'image : « Formation en ligne »
+#### Instagram · 11 h 00 · titre d'image : « Formation en ligne »
 
 > Neomoov Chauffeur Pro 🎓
 >
@@ -2023,6 +2113,12 @@ Description :
 >
 > Quiz par module, attestation de suivi vérifiable, accès de douze mois. 113,83 $ tout compris.
 >
+> https://neomoov.net/academy
+>
+> #Formation #NeomoovAcademy #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Seven modules for pros »
+
 > Neomoov Academy offers Neomoov Chauffeur Pro, a practical complementary training course in French for taxi and rideshare drivers: seven online modules covering compliance, daily organization, real costs and vehicle choice, customer experience, risk prevention, digital tools and payments, and client loyalty. A quiz per module, a verifiable completion certificate and twelve months of access. $113.83, taxes included.
 >
 > https://neomoov.net/academy
@@ -2037,7 +2133,7 @@ Description :
 >
 > #NeomoovAcademy
 
-Version anglaise (219 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Driver training »
 
 > Neomoov Chauffeur Pro: seven online modules, eight practical sheets, a quiz per module and a verifiable certificate, for taxi and rideshare drivers. $113.83, taxes included.
 >
@@ -2048,7 +2144,7 @@ Version anglaise (219 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Taxi ou VTC ? »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Chauffeur de taxi ou de VTC ?
 2. Neomoov Chauffeur Pro : sept modules en ligne.
@@ -2065,11 +2161,11 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Sept modules, sept quiz »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
-1. Sept modules.
-2. Sept quiz.
-3. Une attestation.
+1. Sept modules en ligne.
+2. Un quiz par module.
+3. Une attestation de suivi.
 
 Légende :
 
@@ -2077,7 +2173,7 @@ Légende :
 >
 > #NeomoovAcademy #Formation
 
-#### Telegram · 08 h 00 · titre d'image : « Inscriptions ouvertes »
+#### Telegram · 17 h 30 · titre d'image : « Inscriptions ouvertes »
 
 > Neomoov Chauffeur Pro : sept modules en ligne, quiz, attestation de suivi vérifiable. 113,83 $ tout compris.
 >
@@ -2087,7 +2183,7 @@ Légende :
 
 Titre : Neomoov Chauffeur Pro : la formation des chauffeurs de taxi et de VTC
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Neomoov Chauffeur Pro, c'est une formation pratique complémentaire en français.
 2. Sept modules en ligne et huit fiches pratiques.
@@ -2102,7 +2198,7 @@ Description :
 >
 > #NeomoovAcademy #ChauffeurPro #Formation #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Perfectionnez votre service »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Perfectionnez votre service »
 
 > Chauffeurs de taxi et de VTC : la formation Neomoov Chauffeur Pro est ouverte. Sept modules en ligne, quiz et attestation, 113,83 $ tout compris :
 >
@@ -2113,7 +2209,7 @@ Description :
 - Photo réelle (véhicule électrique) : Photo réelle d'une berline électrique récente roulant de nuit sur un boulevard de Montréal (médiathèque, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
 
-#### Facebook · 15 h 00 · titre d'image : « Le saviez-vous ? »
+#### Facebook · 17 h 00 · titre d'image : « Le saviez-vous ? »
 
 > Le saviez-vous ? Un véhicule électrique, c'est aussi un trajet plus calme : pas de bruit de moteur, pas d'odeur de carburant.
 >
@@ -2123,7 +2219,7 @@ Description :
 >
 > #VéhiculeÉlectrique
 
-#### Instagram · 15 h 00 · titre d'image : « Le calme de l'électrique »
+#### Instagram · 12 h 00 · titre d'image : « Le calme de l'électrique »
 
 > Le calme d'un trajet électrique 🌙
 >
@@ -2133,19 +2229,25 @@ Description :
 >
 > #Neomoov #VoitureÉlectrique #Montréal #MTL #Calme #MontréalLaNuit
 
-#### LinkedIn · 11 h 30 · titre d'image : « Le trajet, un temps utile »
+#### LinkedIn · 09 h 00 · titre d'image : « Le trajet, un temps utile »
 
 > Le trajet comme temps utile.
 >
 > Dans un véhicule 100 % électrique, sans bruit de moteur, avec l'ambiance silencieuse demandée à la réservation et le Wi-Fi à bord, vos collaborateurs peuvent préparer une réunion ou simplement souffler entre deux rendez-vous.
 >
+> https://neomoov.net/reserver
+>
+> #Productivité #Montréal
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Travel time, well used »
+
 > Travel time as useful time. In a 100% electric vehicle, with no engine noise, a quiet ride requested at booking and Wi-Fi on board, your team can prepare for a meeting or simply recharge between appointments.
 >
 > https://neomoov.net/reserver
 >
 > #Productivité #Montréal
 
-#### X · 12 h 00 · titre d'image : « Sans bruit de moteur »
+#### X · 09 h 30 · titre d'image : « Sans bruit de moteur »
 
 > Un trajet électrique, c'est aussi un trajet calme : pas de bruit de moteur. Demandez l'ambiance silencieuse à la réservation.
 >
@@ -2153,7 +2255,7 @@ Description :
 >
 > #VéhiculeÉlectrique
 
-Version anglaise (126 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « No engine noise »
 
 > An electric ride is also a quiet ride: no engine noise. Request a quiet ride when you book.
 >
@@ -2161,10 +2263,10 @@ Version anglaise (126 caractères) :
 >
 > #EV
 
-#### TikTok · 21 h 00 · titre d'image : « Écoutez bien »
+#### TikTok · 18 h 30 · titre d'image : « Écoutez bien »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Écoutez bien.
 2. Pas de bruit de moteur.
@@ -2177,13 +2279,13 @@ Légende :
 >
 > #VoitureÉlectrique #Montréal #Neomoov
 
-#### Snapchat · 22 h 00 · titre d'image : « Chut »
+#### Snapchat · 19 h 30 · titre d'image : « Chut »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
-1. Chut.
-2. Pas de moteur.
+1. Chut, écoutez bien.
+2. Pas de bruit de moteur.
 3. Juste la route.
 
 Légende :
@@ -2192,17 +2294,17 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 11 h 00 · titre d'image : « Ambiance silencieuse »
+#### Telegram · 18 h 00 · titre d'image : « Ambiance silencieuse »
 
 > Un trajet électrique est un trajet calme. Demandez l'ambiance silencieuse à la réservation :
 >
 > https://neomoov.net/reserver
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « Un trajet tout en calme »
+#### YouTube (Short) · 16 h 30 · titre d'image : « Un trajet tout en calme »
 
 Titre : Le calme d'un trajet en véhicule électrique
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Dans un véhicule électrique, pas de bruit de moteur.
 2. À la réservation, choisissez l'ambiance silencieuse.
@@ -2217,13 +2319,13 @@ Description :
 >
 > #VoitureÉlectrique #Montréal #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Un moment de calme »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Un moment de calme »
 
 > Besoin d'un moment de calme entre deux rendez-vous ? Choisissez l'ambiance silencieuse à la réservation de votre course :
 >
 > https://neomoov.net/reserver
 
-### P18 · jeudi 15 octobre 2026 · Prix tout compris affiché avant · Comment se calcule le prix d'une course
+### P18 · jeudi 15 octobre 2026 · Prix tout compris affiché avant · Comment Neomoov calcule le prix de votre course
 
 - Photo réelle (ville) : Photo réelle d'un boulevard de Montréal à l'heure de pointe, vu depuis une passerelle (médiathèque, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
@@ -2327,6 +2429,12 @@ Extrait : Calculé avant la réservation, tout compris, sans majoration liée à
 >
 > Une fois confirmé, le prix est garanti, même si l'itinéraire change.
 >
+> https://neomoov.net/reserver
+>
+> #Transparence #Montréal
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « How we price a ride »
+
 > How Neomoov sets a ride price: calculated before booking, using expected traffic at departure time; a total price including driver fare, service fee, tolls, government fee and taxes; fixed supplements already included; no demand-based surcharge. Once confirmed, the price is guaranteed, even if the route changes.
 >
 > https://neomoov.net/reserver
@@ -2339,7 +2447,7 @@ Extrait : Calculé avant la réservation, tout compris, sans majoration liée à
 >
 > https://neomoov.net/reserver
 
-Version anglaise (184 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Set before, guaranteed after »
 
 > Your Neomoov price is calculated before booking, using expected traffic. Fixed supplements included, no demand-based surcharge, guaranteed once confirmed.
 >
@@ -2348,7 +2456,7 @@ Version anglaise (184 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Le prix expliqué »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. D'où vient le prix de votre course ?
 2. Il est calculé avant la réservation.
@@ -2365,11 +2473,11 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Calculé, compris, garanti »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
-1. Calculé avant.
+1. Calculé avant la course.
 2. Tout compris.
-3. Garanti.
+3. Garanti une fois confirmé.
 
 Légende :
 
@@ -2377,7 +2485,7 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 08 h 00 · titre d'image : « Votre prix en bref »
+#### Telegram · 17 h 30 · titre d'image : « Votre prix en bref »
 
 > Comment se calcule votre prix : avant la réservation, avec le trafic prévu, tout compris. Une fois confirmé, il ne change plus.
 >
@@ -2387,7 +2495,7 @@ Légende :
 
 Titre : Comment Neomoov calcule le prix de votre course
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Le prix de votre course est calculé avant la réservation.
 2. Il tient compte du trafic prévu à l'heure de votre départ.
@@ -2402,7 +2510,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « Une question sur nos prix ? »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « Une question sur nos prix ? »
 
 > Une question sur nos prix ? Le prix total s'affiche avant de confirmer, suppléments compris, et il ne change plus ensuite.
 >
@@ -2413,7 +2521,7 @@ Description :
 - Photo réelle (client) : Photo réelle d'une passagère détendue avec des écouteurs, à l'arrière d'un véhicule (modèle, licence commerciale, crédit indiqué).
 - Appel à l'action : https://neomoov.net/reserver
 
-#### Facebook · 15 h 00 · titre d'image : « Silence ou discussion ? »
+#### Facebook · 17 h 00 · titre d'image : « Silence ou discussion ? »
 
 > Silence ou discussion ? Musique de votre choix ? Température fraîche ou chaude ? Langue du chauffeur ?
 >
@@ -2421,7 +2529,7 @@ Description :
 >
 > https://neomoov.net/reserver
 
-#### Instagram · 15 h 00 · titre d'image : « Vos préférences »
+#### Instagram · 11 h 00 · titre d'image : « Vos préférences »
 
 > Votre trajet, vos préférences 🎧
 >
@@ -2431,34 +2539,40 @@ Description :
 >
 > #Neomoov #Montréal #MTL #Confort #ÀVotreFaçon
 
-#### LinkedIn · 11 h 30 · titre d'image : « Le service sur mesure »
+#### LinkedIn · 09 h 00 · titre d'image : « Le service sur mesure »
 
 > Le service sur mesure, dès la réservation.
 >
 > Vos invités ou vos collaborateurs voyagent selon leurs préférences : ambiance silencieuse ou discussion, musique, température, langue du chauffeur (selon les disponibilités), aide aux bagages. Tout est transmis au chauffeur avant la course.
 >
+> https://neomoov.net/reserver
+>
+> #ServiceClient #Montréal
+
+#### LinkedIn (version anglaise) · 09 h 00 · titre d'image : « Tailored service »
+
 > Tailored service from the moment you book. Your guests or team travel the way they like: quiet or conversation, music, temperature, driver language (subject to availability), help with luggage. Everything is passed on to the driver before the ride.
 >
 > https://neomoov.net/reserver
 >
 > #ServiceClient #Montréal
 
-#### X · 12 h 00 · titre d'image : « À vous de choisir »
+#### X · 09 h 30 · titre d'image : « À vous de choisir »
 
 > Silence ou discussion, musique, température, langue du chauffeur : indiquez vos préférences à la réservation, elles sont transmises avant la course.
 >
 > https://neomoov.net/reserver
 
-Version anglaise (157 caractères) :
+#### X (version anglaise) · 09 h 30 · titre d'image : « Your choice »
 
 > Quiet or chatty, music, temperature, driver language: set your preferences when booking, and they're passed on before the ride.
 >
 > https://neomoov.net/reserver
 
-#### TikTok · 21 h 00 · titre d'image : « Vous préférez le silence ? »
+#### TikTok · 18 h 30 · titre d'image : « Vous préférez le silence ? »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Vous préférez le silence ?
 2. Ou discuter pendant le trajet ?
@@ -2471,14 +2585,14 @@ Légende :
 >
 > #Neomoov #Montréal #Confort
 
-#### Snapchat · 22 h 00 · titre d'image : « Musique, température »
+#### Snapchat · 19 h 30 · titre d'image : « Musique, température »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
-1. Silence ?
-2. Musique ?
-3. Température ?
+1. Silence ou discussion ?
+2. Votre musique ?
+3. Votre température ?
 
 Légende :
 
@@ -2486,17 +2600,17 @@ Légende :
 >
 > #Neomoov #MTL
 
-#### Telegram · 11 h 00 · titre d'image : « Vos choix transmis »
+#### Telegram · 18 h 00 · titre d'image : « Vos choix transmis »
 
 > Silence, musique, température, langue du chauffeur : vos préférences s'indiquent à la réservation et sont transmises au chauffeur.
 >
 > https://neomoov.net/reserver
 
-#### YouTube (Short) · 19 h 00 · titre d'image : « Préférences à bord »
+#### YouTube (Short) · 16 h 30 · titre d'image : « Préférences à bord »
 
 Titre : Vos préférences à bord, dès la réservation
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Avec Neomoov, vous choisissez l'ambiance : silence ou discussion.
 2. Vous choisissez aussi la musique et la température.
@@ -2511,7 +2625,7 @@ Description :
 >
 > #Neomoov #Montréal #Shorts
 
-#### Chaîne WhatsApp · 20 h 30 · titre d'image : « Un trajet silencieux ? »
+#### Chaîne WhatsApp · 18 h 30 · titre d'image : « Un trajet silencieux ? »
 
 > Vous préférez un trajet silencieux ? Indiquez-le à la réservation, avec vos autres préférences :
 >
@@ -2532,7 +2646,7 @@ Description :
 >
 > #YUL
 
-#### Instagram · 12 h 00 · titre d'image : « Votre chauffeur s'adapte »
+#### Instagram · 11 h 00 · titre d'image : « Votre chauffeur s'adapte »
 
 > Vol en retard ? Votre chauffeur s'adapte 🛬
 >
@@ -2548,6 +2662,12 @@ Description :
 >
 > Avec le numéro de vol indiqué à la réservation, Neomoov ajuste l'heure de prise en charge sans frais pour un retard annoncé, et le point de rencontre aux arrivées est précisé dans la confirmation.
 >
+> https://neomoov.net/reserver
+>
+> #YUL #VoyageDAffaires
+
+#### LinkedIn (version anglaise) · 08 h 30 · titre d'image : « Back from a business trip »
+
 > Returning from a business trip: a flight delay shouldn't become a ground transport problem. With the flight number given at booking, Neomoov adjusts the pickup time at no charge for a reported delay, and the arrivals meeting point is set out in your confirmation.
 >
 > https://neomoov.net/reserver
@@ -2562,7 +2682,7 @@ Description :
 >
 > #YUL
 
-Version anglaise (150 caractères) :
+#### X (version anglaise) · 09 h 00 · titre d'image : « Flight delays »
 
 > Flight delayed on arrival? With your flight number, the pickup time is adjusted at no charge for a reported delay.
 >
@@ -2573,7 +2693,7 @@ Version anglaise (150 caractères) :
 #### TikTok · 18 h 00 · titre d'image : « Le vol a du retard ? »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Votre vol a du retard ?
 2. Vous avez indiqué votre numéro de vol.
@@ -2589,7 +2709,7 @@ Légende :
 #### Snapchat · 19 h 00 · titre d'image : « Bon retour à Montréal »
 
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Vol en retard ?
 2. Prise en charge ajustée.
@@ -2601,7 +2721,7 @@ Légende :
 >
 > #YUL #MTL
 
-#### Telegram · 08 h 00 · titre d'image : « Prise en charge ajustée »
+#### Telegram · 17 h 30 · titre d'image : « Prise en charge ajustée »
 
 > Vol en retard ? Avec votre numéro de vol, la prise en charge est ajustée sans frais pour un retard annoncé.
 >
@@ -2611,7 +2731,7 @@ Légende :
 
 Titre : Vol en retard : que se passe-t-il avec votre chauffeur ?
 
-Séquences de la vidéo :
+Séquences de la vidéo (une diapositive et une phrase de narration chacune) :
 
 1. Votre vol de retour a du retard ?
 2. Si vous avez indiqué votre numéro de vol à la réservation,
@@ -2626,7 +2746,7 @@ Description :
 >
 > #YUL #Montréal #Shorts
 
-#### Chaîne WhatsApp · 17 h 30 · titre d'image : « De retour de voyage ? »
+#### Chaîne WhatsApp · 18 h 00 · titre d'image : « De retour de voyage ? »
 
 > Vous revenez de voyage ? Indiquez votre numéro de vol à la réservation : en cas de retard annoncé, la prise en charge est ajustée sans frais.
 >

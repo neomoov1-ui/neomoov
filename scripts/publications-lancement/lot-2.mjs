@@ -3,7 +3,8 @@ export default [
   {
     n: 11, jour: 5, theme: 'quartiers', sujet: 'Le mont Royal aux couleurs d\'automne', cta: 'reserve',
     photo: ['ville', 'Photo réelle du mont Royal aux couleurs d\'automne, avec le centre-ville en arrière-plan (médiathèque, crédit indiqué).'],
-    img: { facebook: 'Les couleurs de la montagne', instagram: 'Le mont Royal en couleurs', linkedin: 'Montréal, saison des couleurs', x: 'Promenade d\'automne', tiktok: 'Version automne', snapchat: 'Une sortie d\'automne', youtube: 'Sans chercher de stationnement', telegram: 'Dimanche sur la montagne', whatsapp_channel: 'Bon dimanche' },
+    img: { facebook: 'Les couleurs de la montagne', instagram: 'Le mont Royal en couleurs', linkedin: 'Montréal, saison des couleurs', x: 'Promenade d\'automne', tiktok: 'Version automne', snapchat: 'Une sortie d\'automne', youtube: 'Sans chercher de stationnement', telegram: 'Une sortie sur la montagne', whatsapp_channel: 'Bonne fin de semaine' },
+    imgEn: { linkedin: 'Montréal in full colour', x: 'A fall outing' },
     fb: [`Les couleurs d'automne sont au rendez-vous sur le mont Royal.
 
 Une promenade en famille ou entre amis cette fin de semaine ? Réservez votre aller et votre retour au moins 2 heures à l'avance : pas de stationnement à chercher, et le prix tout compris est connu avant de confirmer.
@@ -18,16 +19,17 @@ Lien dans la bio.`, ['#MontRoyal', '#Montréal', '#MTL', '#Automne', '#AutomneÀ
 
 Montréal leur offre ses couleurs, du mont Royal au Vieux-Port. Avec Neomoov, vous réservez pour eux : ils reçoivent le suivi de leur course par texto, vous recevez le reçu.`, `Hosting business visitors this fall? Montréal shows its colours, from Mount Royal to the Old Port. With Neomoov, you book for them: they get ride tracking by text, you get the receipt.`, ['#Montréal', '#Tourisme']],
     x: [`Les couleurs d'automne sont au rendez-vous sur le mont Royal. Réservez votre aller et votre retour au moins 2 h à l'avance, sans chercher de stationnement.`, `Fall colours are out on Mount Royal. Book your round trip at least 2 hours ahead, with no parking to look for.`, ['#MontRoyal'], ['#Montreal']],
-    tt: [[`Le mont Royal, version automne.`, `Pas de stationnement à chercher.`, `Votre aller et votre retour, réservés à l'avance.`, `Il ne vous reste qu'à profiter des couleurs.`], `Un dimanche en couleurs 🍂 Réservez sur neomoov.net/reserver`, ['#MontRoyal', '#Montréal', '#Automne', '#Neomoov']],
+    tt: [[`Le mont Royal, version automne.`, `Pas de stationnement à chercher.`, `Votre aller et votre retour, réservés à l'avance.`, `Il ne vous reste qu'à profiter des couleurs.`], `Une sortie en couleurs 🍂 Réservez sur neomoov.net/reserver`, ['#MontRoyal', '#Montréal', '#Automne', '#Neomoov']],
     sc: [[`Le mont Royal.`, `En couleurs.`, `Sans stationnement.`], `Une sortie d'automne 🍂 neomoov.net/reserver`, ['#MontRoyal', '#MTL']],
     yt: [`Le mont Royal en automne, sans chercher de stationnement`, [`Une promenade sur le mont Royal cet automne ?`, `Réservez votre aller et votre retour au moins 2 heures à l'avance.`, `Le prix tout compris est connu avant de confirmer.`, `Il ne vous reste qu'à profiter des couleurs.`], `Pour une sortie d'automne sur le mont Royal, à Montréal : réservez votre aller et votre retour avec Neomoov, en véhicule 100 % électrique.`, ['#MontRoyal', '#Montréal', '#Automne', '#Shorts']],
     tg: `Les couleurs d'automne sont au rendez-vous sur le mont Royal. Réservez votre aller et votre retour à l'avance :`,
-    wa: `Bon dimanche ! Une promenade sur le mont Royal ? Réservez votre aller et votre retour au moins 2 heures à l'avance :`,
+    wa: `Bonne fin de semaine ! Une promenade sur le mont Royal ? Réservez votre aller et votre retour au moins 2 heures à l'avance :`,
   },
   {
     n: 12, jour: 6, theme: 'lancement', sujet: 'Trois façons de réserver', cta: 'reserve',
     photo: ['client', 'Photo réelle d\'un client qui écrit un message sur son téléphone devant un immeuble de Montréal (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Trois façons de réserver', instagram: 'Comme vous préférez', linkedin: 'Simple pour vos équipes', x: 'En ligne, WhatsApp, appli', tiktok: 'Un, deux, trois', snapchat: 'Réservez à votre façon', youtube: 'Réserver une course', telegram: 'Les canaux de réservation', whatsapp_channel: 'Réserver par message' },
+    imgEn: { linkedin: 'Simple for your team', x: 'Online, WhatsApp or app' },
     fb: [`Trois façons de réserver votre course Neomoov :
 
 1. Sur neomoov.net/reserver, sans créer de compte.
@@ -45,7 +47,7 @@ Lien dans la bio.`, ['#Neomoov', '#Montréal', '#MTL', '#Réservation', '#Transp
 Avec Neomoov : en ligne sans compte, par WhatsApp au +1 438 900 4990 ou dans l'application. Même prix tout compris et même suivi, quel que soit le canal.`, `Booking a ride should be simple, for you and your assistants. With Neomoov: online with no account needed, by WhatsApp at +1 438 900 4990 or in the app. Same all-inclusive price and same tracking, whatever the channel.`, ['#Montréal', '#Mobilité']],
     x: [`Réservez en ligne sans compte, par WhatsApp au +1 438 900 4990 ou dans l'application : même prix tout compris, même suivi.`, `Book online with no account, by WhatsApp at +1 438 900 4990 or in the app: same all-inclusive price, same tracking.`, []],
     tt: [[`Trois façons de réserver Neomoov.`, `Un : en ligne, sans créer de compte.`, `Deux : par WhatsApp.`, `Trois : dans l'application.`, `Même prix, même suivi.`], `Comme vous préférez 📱 WhatsApp : +1 438 900 4990`, ['#Neomoov', '#Montréal', '#MTL']],
-    sc: [[`En ligne.`, `WhatsApp.`, `Application.`], `Réservez comme vous voulez 📱 +1 438 900 4990`, ['#Neomoov', '#MTL']],
+    sc: [[`Réservez en ligne.`, `Ou par WhatsApp.`, `Ou dans l'application.`], `Réservez comme vous voulez 📱 +1 438 900 4990`, ['#Neomoov', '#MTL']],
     yt: [`Trois façons de réserver une course Neomoov`, [`Première façon : en ligne, sans créer de compte.`, `Deuxième façon : par WhatsApp, au +1 438 900 4990.`, `Troisième façon : dans l'application Neomoov.`, `Le prix tout compris et le suivi sont les mêmes partout.`], `Réservez votre course Neomoov à Montréal en ligne sans compte, par WhatsApp au +1 438 900 4990 ou dans l'application. Au moins 2 heures à l'avance, jusqu'à 90 jours.`, ['#Neomoov', '#Montréal', '#Shorts']],
     tg: `Trois façons de réserver : en ligne sans compte, par WhatsApp au +1 438 900 4990, ou dans l'application Neomoov.`,
     wa: `Saviez-vous que vous pouvez réserver par message WhatsApp au +1 438 900 4990 ? Indiquez votre départ, votre destination et l'heure souhaitée. Ou en ligne :`,
@@ -55,6 +57,7 @@ Avec Neomoov : en ligne sans compte, par WhatsApp au +1 438 900 4990 ou dans l'a
     sensible: 'Sujet « sécurité » : approbation humaine obligatoire selon les lignes éditoriales.',
     photo: ['chauffeur', 'Photo réelle d\'une chauffeuse professionnelle souriante au volant d\'un véhicule électrique (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Qui conduit votre véhicule ?', instagram: 'Des chauffeurs vérifiés', linkedin: 'La confiance, avant tout', x: 'Autorisé, vérifié, formé', tiktok: 'Votre chauffeur, en détail', snapchat: 'Vérifié et formé', youtube: 'Nos vérifications', telegram: 'Chauffeurs contrôlés', whatsapp_channel: 'Votre tranquillité' },
+    imgEn: { linkedin: 'Trust comes first', x: 'Authorized, checked, trained' },
     fb: [`Qui conduit votre véhicule Neomoov ?
 
 Un chauffeur professionnel autorisé pour le transport rémunéré de personnes au Québec, dont nous avons vérifié les antécédents judiciaires, le permis, l'assurance et le véhicule. Il a passé un entretien et suivi la formation Neomoov. Ces contrôles sont renouvelés à chaque échéance.`, []],
@@ -68,7 +71,7 @@ Lien dans la bio.`, ['#Neomoov', '#Montréal', '#MTL', '#ChauffeursVérifiés', 
 Chaque chauffeur Neomoov est autorisé pour le transport rémunéré de personnes au Québec et passe une vérification des antécédents judiciaires, un contrôle de ses documents (permis, assurance, immatriculation, vérification mécanique), un entretien et la formation Neomoov.`, `Trust is built before the first ride. Every Neomoov driver holds a Québec paid passenger transportation authorization and goes through a criminal background check, a document review (licence, insurance, registration, mechanical inspection), an interview and Neomoov training.`, ['#Confiance', '#Montréal']],
     x: [`Chaque chauffeur Neomoov : autorisation de transport rémunéré au Québec, antécédents vérifiés, permis et assurance contrôlés, entretien et formation.`, `Every Neomoov driver: Québec paid transport authorization, background check, licence and insurance verified, interview and training.`, []],
     tt: [[`Qui conduit votre véhicule Neomoov ?`, `Un chauffeur autorisé au Québec.`, `Antécédents vérifiés, permis et assurance contrôlés.`, `Un entretien et la formation Neomoov.`, `Des contrôles renouvelés à chaque échéance.`], `Des chauffeurs vérifiés 🚗 neomoov.net/reserver`, ['#Neomoov', '#Montréal', '#Confiance']],
-    sc: [[`Vérifié.`, `Formé.`, `Contrôlé à chaque échéance.`], `Votre chauffeur Neomoov 🚗 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
+    sc: [[`Chauffeur vérifié.`, `Chauffeur formé.`, `Contrôlé à chaque échéance.`], `Votre chauffeur Neomoov 🚗 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
     yt: [`Comment Neomoov vérifie ses chauffeurs`, [`Chaque chauffeur est autorisé pour le transport rémunéré de personnes au Québec.`, `Ses antécédents judiciaires sont vérifiés.`, `Son permis, son assurance et son véhicule sont contrôlés.`, `Puis il passe un entretien et suit la formation Neomoov.`], `Les vérifications réalisées avant la première course de chaque chauffeur Neomoov : autorisation, antécédents judiciaires, documents, entretien et formation.`, ['#Neomoov', '#Montréal', '#Shorts']],
     tg: `Chaque chauffeur Neomoov est autorisé au Québec, vérifié (antécédents, permis, assurance) et formé avant sa première course.`,
     wa: `Votre tranquillité compte : chaque chauffeur Neomoov est vérifié et formé avant sa première course. Réservez :`,
@@ -77,6 +80,7 @@ Chaque chauffeur Neomoov est autorisé pour le transport rémunéré de personne
     n: 14, jour: 7, theme: 'reservation', sujet: 'Deux heures d\'avance, trois garanties', cta: 'reserve',
     photo: ['chauffeur', 'Photo réelle d\'un chauffeur qui consulte son planning de courses sur une tablette, à bord d\'un véhicule électrique à l\'arrêt (modèle, licence commerciale, crédit indiqué).'],
     img: { site_blog: 'Deux heures, trois garanties', facebook: 'Pourquoi à l\'avance ?', instagram: 'Trois garanties', linkedin: 'Planifier vos déplacements', x: 'Dès que l\'heure est connue', tiktok: 'Deux heures d\'avance', snapchat: 'Chauffeur, véhicule, prix', youtube: 'Ce que ça change', telegram: 'Rappel : 2 heures', whatsapp_channel: 'Une course cette semaine ?' },
+    imgEn: { linkedin: 'Plan your business travel', x: 'Book once you know the time' },
     blog: {
       titre: 'Pourquoi réserver au moins 2 heures à l\'avance avec Neomoov',
       extrait: 'Un chauffeur confirmé, le véhicule choisi et un prix fixé d\'avance : ce que changent les deux heures de réservation préalable chez Neomoov.',
@@ -152,7 +156,7 @@ Un chauffeur confirmé avant le départ, plutôt que le premier véhicule dispon
 Rendez-vous clients, vols, événements : planifiez jusqu'à 90 jours à l'avance.`, `Booking at least 2 hours ahead: three guarantees for your business travel. A driver confirmed before departure, rather than the first available car. The vehicle category you chose. An all-inclusive price set in advance, useful for budgets. Client meetings, flights, events: plan up to 90 days ahead.`, ['#Planification', '#Montréal']],
     x: [`Réserver 2 h à l'avance, c'est obtenir un chauffeur confirmé, le véhicule choisi et un prix fixé d'avance. Rendez-vous, vol, sortie : réservez dès que l'heure est connue.`, `Booking 2 hours ahead means a confirmed driver, the vehicle you chose and a price set in advance. Meeting, flight, night out: book as soon as you know the time.`, []],
     tt: [[`Deux heures d'avance, trois garanties.`, `Un chauffeur confirmé avant le départ.`, `Le véhicule que vous avez choisi.`, `Un prix fixé d'avance.`, `Réservez dès que vous connaissez votre heure.`], `Planifiez l'esprit tranquille ⏱️ neomoov.net/reserver`, ['#Neomoov', '#Montréal', '#Planifier']],
-    sc: [[`Chauffeur confirmé.`, `Véhicule choisi.`, `Prix fixé.`], `Deux heures d'avance ⏱️ neomoov.net/reserver`, ['#Neomoov', '#MTL']],
+    sc: [[`Chauffeur confirmé.`, `Véhicule choisi.`, `Prix fixé d'avance.`], `Deux heures d'avance ⏱️ neomoov.net/reserver`, ['#Neomoov', '#MTL']],
     yt: [`Réserver 2 heures à l'avance : ce que ça change`, [`Chez Neomoov, chaque course se réserve au moins 2 heures à l'avance.`, `Résultat : un chauffeur confirmé avant le départ.`, `Le véhicule que vous avez choisi, garanti.`, `Et un prix tout compris fixé d'avance.`], `Les trois raisons de la réservation au moins 2 heures à l'avance chez Neomoov : chauffeur confirmé, véhicule garanti, prix fixé d'avance.`, ['#Neomoov', '#Montréal', '#Shorts']],
     tg: `Réserver au moins 2 heures à l'avance : un chauffeur confirmé, le véhicule choisi et un prix fixé d'avance.`,
     wa: `Un rendez-vous ou un vol cette semaine ? Réservez votre course dès que vous connaissez l'heure, jusqu'à 90 jours à l'avance :`,
@@ -161,6 +165,7 @@ Rendez-vous clients, vols, événements : planifiez jusqu'à 90 jours à l'avanc
     n: 15, jour: 7, theme: 'entreprises', sujet: 'Le compte entreprise et la facture mensuelle', cta: 'reserve',
     photo: ['client', 'Photo réelle d\'une professionnelle en tenue d\'affaires qui sort d\'un immeuble de bureaux du centre-ville (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Un compte pour votre entreprise', instagram: 'Déplacements d\'affaires simplifiés', linkedin: 'Une seule facture', x: 'Compte entreprise', tiktok: 'Les déplacements de votre équipe', snapchat: 'Une facture par mois', youtube: 'En 30 secondes', telegram: 'Pour les entreprises', whatsapp_channel: 'Votre équipe en déplacement' },
+    imgEn: { linkedin: 'One single invoice', x: 'Business accounts' },
     fb: [`Entreprises de Montréal : un compte Neomoov pour vos déplacements.
 
 Vos équipes, vos clients et vos invités voyagent en véhicule électrique, avec des chauffeurs identifiés. Une facture certifiée par mois et par centre de coûts, des reçus automatiques pour chaque course, des réservations jusqu'à 90 jours à l'avance.
@@ -191,6 +196,7 @@ Cliniques, hôtels, cabinets professionnels, organisateurs d'événements : dema
     sensible: 'Prix publié (113,83 $) : sujet « argent », approbation humaine prévue par les lignes éditoriales.',
     photo: ['chauffeur', 'Photo réelle d\'un chauffeur qui suit une leçon en ligne sur un ordinateur portable, à une table de cuisine (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Neomoov Chauffeur Pro', instagram: 'Formation en ligne', linkedin: 'Sept modules pour les pros', x: 'Formation des chauffeurs', tiktok: 'Taxi ou VTC ?', snapchat: 'Sept modules, sept quiz', youtube: 'La formation en vidéo', telegram: 'Inscriptions ouvertes', whatsapp_channel: 'Perfectionnez votre service' },
+    imgEn: { linkedin: 'Seven modules for pros', x: 'Driver training' },
     fb: [`Chauffeurs de taxi et de VTC : découvrez Neomoov Chauffeur Pro.
 
 Une formation pratique complémentaire, en français et en ligne : sept modules, huit fiches pratiques, un quiz par module et une attestation de suivi vérifiable. L'accès comprend aussi l'application web Neomoov Booster. 113,83 $ tout compris.
@@ -208,7 +214,7 @@ Au programme, en sept modules : cadre et conformité de l'activité, organisatio
 Quiz par module, attestation de suivi vérifiable, accès de douze mois. 113,83 $ tout compris.`, `Neomoov Academy offers Neomoov Chauffeur Pro, a practical complementary training course in French for taxi and rideshare drivers: seven online modules covering compliance, daily organization, real costs and vehicle choice, customer experience, risk prevention, digital tools and payments, and client loyalty. A quiz per module, a verifiable completion certificate and twelve months of access. $113.83, taxes included.`, ['#Formation', '#NeomoovAcademy', '#Montréal']],
     x: [`Neomoov Chauffeur Pro : sept modules en ligne, huit fiches, un quiz par module et une attestation vérifiable, pour chauffeurs de taxi et de VTC. 113,83 $ tout compris.`, `Neomoov Chauffeur Pro: seven online modules, eight practical sheets, a quiz per module and a verifiable certificate, for taxi and rideshare drivers. $113.83, taxes included.`, ['#NeomoovAcademy']],
     tt: [[`Chauffeur de taxi ou de VTC ?`, `Neomoov Chauffeur Pro : sept modules en ligne.`, `Un quiz à la fin de chaque module.`, `Une attestation de suivi vérifiable.`, `113,83 $ tout compris.`], `Perfectionnez votre service 🎓 neomoov.net/academy`, ['#NeomoovAcademy', '#ChauffeurPro', '#Taxi', '#VTC', '#Formation']],
-    sc: [[`Sept modules.`, `Sept quiz.`, `Une attestation.`], `Neomoov Chauffeur Pro 🎓 neomoov.net/academy`, ['#NeomoovAcademy', '#Formation']],
+    sc: [[`Sept modules en ligne.`, `Un quiz par module.`, `Une attestation de suivi.`], `Neomoov Chauffeur Pro 🎓 neomoov.net/academy`, ['#NeomoovAcademy', '#Formation']],
     yt: [`Neomoov Chauffeur Pro : la formation des chauffeurs de taxi et de VTC`, [`Neomoov Chauffeur Pro, c'est une formation pratique complémentaire en français.`, `Sept modules en ligne et huit fiches pratiques.`, `Un quiz par module et une attestation de suivi vérifiable.`, `113,83 $ tout compris, avec un accès de douze mois.`], `Neomoov Chauffeur Pro, par Neomoov Academy : formation pratique complémentaire pour les chauffeurs de taxi et de VTC, sept modules, quiz, attestation de suivi vérifiable et application web Neomoov Booster. 113,83 $ tout compris.`, ['#NeomoovAcademy', '#ChauffeurPro', '#Formation', '#Shorts']],
     tg: `Neomoov Chauffeur Pro : sept modules en ligne, quiz, attestation de suivi vérifiable. 113,83 $ tout compris.`,
     wa: `Chauffeurs de taxi et de VTC : la formation Neomoov Chauffeur Pro est ouverte. Sept modules en ligne, quiz et attestation, 113,83 $ tout compris :`,
@@ -217,6 +223,7 @@ Quiz par module, attestation de suivi vérifiable, accès de douze mois. 113,83 
     n: 17, jour: 8, theme: 'electrique', sujet: 'Le calme d\'un trajet électrique', cta: 'reserve',
     photo: ['vehicule', 'Photo réelle d\'une berline électrique récente roulant de nuit sur un boulevard de Montréal (médiathèque, crédit indiqué).'],
     img: { facebook: 'Le saviez-vous ?', instagram: 'Le calme de l\'électrique', linkedin: 'Le trajet, un temps utile', x: 'Sans bruit de moteur', tiktok: 'Écoutez bien', snapchat: 'Chut', youtube: 'Un trajet tout en calme', telegram: 'Ambiance silencieuse', whatsapp_channel: 'Un moment de calme' },
+    imgEn: { linkedin: 'Travel time, well used', x: 'No engine noise' },
     fb: [`Le saviez-vous ? Un véhicule électrique, c'est aussi un trajet plus calme : pas de bruit de moteur, pas d'odeur de carburant.
 
 Choisissez l'ambiance silencieuse à la réservation, et profitez du trajet pour vous reposer ou pour travailler.`, ['#VéhiculeÉlectrique']],
@@ -230,7 +237,7 @@ Lien dans la bio.`, ['#Neomoov', '#VoitureÉlectrique', '#Montréal', '#MTL', '#
 Dans un véhicule 100 % électrique, sans bruit de moteur, avec l'ambiance silencieuse demandée à la réservation et le Wi-Fi à bord, vos collaborateurs peuvent préparer une réunion ou simplement souffler entre deux rendez-vous.`, `Travel time as useful time. In a 100% electric vehicle, with no engine noise, a quiet ride requested at booking and Wi-Fi on board, your team can prepare for a meeting or simply recharge between appointments.`, ['#Productivité', '#Montréal']],
     x: [`Un trajet électrique, c'est aussi un trajet calme : pas de bruit de moteur. Demandez l'ambiance silencieuse à la réservation.`, `An electric ride is also a quiet ride: no engine noise. Request a quiet ride when you book.`, ['#VéhiculeÉlectrique'], ['#EV']],
     tt: [[`Écoutez bien.`, `Pas de bruit de moteur.`, `Ambiance silencieuse, sur demande.`, `Le trajet devient une pause.`], `Le calme de l'électrique 🌙 neomoov.net/reserver`, ['#VoitureÉlectrique', '#Montréal', '#Neomoov']],
-    sc: [[`Chut.`, `Pas de moteur.`, `Juste la route.`], `Un trajet tout en calme 🌙 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
+    sc: [[`Chut, écoutez bien.`, `Pas de bruit de moteur.`, `Juste la route.`], `Un trajet tout en calme 🌙 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
     yt: [`Le calme d'un trajet en véhicule électrique`, [`Dans un véhicule électrique, pas de bruit de moteur.`, `À la réservation, choisissez l'ambiance silencieuse.`, `Le Wi-Fi est à bord si vous devez travailler.`, `Ou profitez simplement du trajet.`], `Pourquoi un trajet Neomoov en véhicule 100 % électrique est plus calme, et comment demander une ambiance silencieuse à la réservation.`, ['#VoitureÉlectrique', '#Montréal', '#Shorts']],
     tg: `Un trajet électrique est un trajet calme. Demandez l'ambiance silencieuse à la réservation :`,
     wa: `Besoin d'un moment de calme entre deux rendez-vous ? Choisissez l'ambiance silencieuse à la réservation de votre course :`,
@@ -240,6 +247,7 @@ Dans un véhicule 100 % électrique, sans bruit de moteur, avec l'ambiance silen
     sensible: 'Article sur le prix, avec un montant publié (48,20 $) : sujet « argent », approbation humaine prévue par les lignes éditoriales.',
     photo: ['ville', 'Photo réelle d\'un boulevard de Montréal à l\'heure de pointe, vu depuis une passerelle (médiathèque, crédit indiqué).'],
     img: { site_blog: 'Comment se calcule votre prix', facebook: 'Le prix, étape par étape', instagram: 'D\'où vient votre prix ?', linkedin: 'Notre méthode de prix', x: 'Calculé avant, garanti après', tiktok: 'Le prix expliqué', snapchat: 'Calculé, compris, garanti', youtube: 'Le calcul du prix', telegram: 'Votre prix en bref', whatsapp_channel: 'Une question sur nos prix ?' },
+    imgEn: { linkedin: 'How we price a ride', x: 'Set before, guaranteed after' },
     blog: {
       titre: 'Comment Neomoov calcule le prix de votre course',
       extrait: 'Calculé avant la réservation, tout compris, sans majoration liée à la demande et garanti une fois confirmé : le prix Neomoov, expliqué.',
@@ -324,7 +332,7 @@ Lien dans la bio.`, ['#Neomoov', '#PrixTransparent', '#Montréal', '#MTL', '#Tra
 Une fois confirmé, le prix est garanti, même si l'itinéraire change.`, `How Neomoov sets a ride price: calculated before booking, using expected traffic at departure time; a total price including driver fare, service fee, tolls, government fee and taxes; fixed supplements already included; no demand-based surcharge. Once confirmed, the price is guaranteed, even if the route changes.`, ['#Transparence', '#Montréal']],
     x: [`Votre prix Neomoov est calculé avant la réservation, avec le trafic prévu. Suppléments fixes déjà inclus, aucune majoration liée à la demande, garanti une fois confirmé.`, `Your Neomoov price is calculated before booking, using expected traffic. Fixed supplements included, no demand-based surcharge, guaranteed once confirmed.`, []],
     tt: [[`D'où vient le prix de votre course ?`, `Il est calculé avant la réservation.`, `Avec le trafic prévu à l'heure du départ.`, `Tout est compris, même les suppléments.`, `Et il ne change plus.`], `Le prix, expliqué 🧮 neomoov.net/reserver`, ['#Neomoov', '#Montréal', '#MTL']],
-    sc: [[`Calculé avant.`, `Tout compris.`, `Garanti.`], `Votre prix, expliqué 🧮 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
+    sc: [[`Calculé avant la course.`, `Tout compris.`, `Garanti une fois confirmé.`], `Votre prix, expliqué 🧮 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
     yt: [`Comment Neomoov calcule le prix de votre course`, [`Le prix de votre course est calculé avant la réservation.`, `Il tient compte du trafic prévu à l'heure de votre départ.`, `Il comprend le tarif du chauffeur, les frais, les péages, la redevance et les taxes.`, `Une fois confirmé, il est garanti.`], `Le calcul du prix Neomoov expliqué : prix total affiché avant de confirmer, suppléments fixes inclus, aucune majoration liée à la demande.`, ['#Neomoov', '#Montréal', '#Shorts']],
     tg: `Comment se calcule votre prix : avant la réservation, avec le trafic prévu, tout compris. Une fois confirmé, il ne change plus.`,
     wa: `Une question sur nos prix ? Le prix total s'affiche avant de confirmer, suppléments compris, et il ne change plus ensuite.`,
@@ -333,6 +341,7 @@ Une fois confirmé, le prix est garanti, même si l'itinéraire change.`, `How N
     n: 19, jour: 9, theme: 'commodites', sujet: 'Vos préférences transmises au chauffeur', cta: 'reserve',
     photo: ['client', 'Photo réelle d\'une passagère détendue avec des écouteurs, à l\'arrière d\'un véhicule (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Silence ou discussion ?', instagram: 'Vos préférences', linkedin: 'Le service sur mesure', x: 'À vous de choisir', tiktok: 'Vous préférez le silence ?', snapchat: 'Musique, température', youtube: 'Préférences à bord', telegram: 'Vos choix transmis', whatsapp_channel: 'Un trajet silencieux ?' },
+    imgEn: { linkedin: 'Tailored service', x: 'Your choice' },
     fb: [`Silence ou discussion ? Musique de votre choix ? Température fraîche ou chaude ? Langue du chauffeur ?
 
 Chez Neomoov, vous indiquez vos préférences à la réservation, et elles sont transmises au chauffeur avant la course. Pour la langue, nous vous attribuons, selon les disponibilités, un chauffeur qui la parle.`, []],
@@ -346,7 +355,7 @@ Lien dans la bio.`, ['#Neomoov', '#Montréal', '#MTL', '#Confort', '#ÀVotreFaç
 Vos invités ou vos collaborateurs voyagent selon leurs préférences : ambiance silencieuse ou discussion, musique, température, langue du chauffeur (selon les disponibilités), aide aux bagages. Tout est transmis au chauffeur avant la course.`, `Tailored service from the moment you book. Your guests or team travel the way they like: quiet or conversation, music, temperature, driver language (subject to availability), help with luggage. Everything is passed on to the driver before the ride.`, ['#ServiceClient', '#Montréal']],
     x: [`Silence ou discussion, musique, température, langue du chauffeur : indiquez vos préférences à la réservation, elles sont transmises avant la course.`, `Quiet or chatty, music, temperature, driver language: set your preferences when booking, and they're passed on before the ride.`, []],
     tt: [[`Vous préférez le silence ?`, `Ou discuter pendant le trajet ?`, `Votre musique, votre température.`, `Indiquez-le à la réservation.`], `Votre trajet, vos préférences 🎧 neomoov.net/reserver`, ['#Neomoov', '#Montréal', '#Confort']],
-    sc: [[`Silence ?`, `Musique ?`, `Température ?`], `C'est vous qui choisissez 🎧 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
+    sc: [[`Silence ou discussion ?`, `Votre musique ?`, `Votre température ?`], `C'est vous qui choisissez 🎧 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
     yt: [`Vos préférences à bord, dès la réservation`, [`Avec Neomoov, vous choisissez l'ambiance : silence ou discussion.`, `Vous choisissez aussi la musique et la température.`, `Et la langue du chauffeur, selon les disponibilités.`, `Vos préférences sont transmises au chauffeur avant la course.`], `Comment indiquer vos préférences de trajet (ambiance, musique, température, langue, bagages) à la réservation d'une course Neomoov.`, ['#Neomoov', '#Montréal', '#Shorts']],
     tg: `Silence, musique, température, langue du chauffeur : vos préférences s'indiquent à la réservation et sont transmises au chauffeur.`,
     wa: `Vous préférez un trajet silencieux ? Indiquez-le à la réservation, avec vos autres préférences :`,
@@ -355,6 +364,7 @@ Vos invités ou vos collaborateurs voyagent selon leurs préférences : ambiance
     n: 20, jour: 10, theme: 'aeroport', sujet: 'Vol en retard : la prise en charge s\'adapte', cta: 'reserve',
     photo: ['aeroport', 'Photo réelle du tableau des arrivées dans l\'aérogare de Montréal-Trudeau (médiathèque, crédit indiqué).'],
     img: { facebook: 'Pas d\'inquiétude', instagram: 'Votre chauffeur s\'adapte', linkedin: 'Retour de voyage d\'affaires', x: 'Retard de vol', tiktok: 'Le vol a du retard ?', snapchat: 'Bon retour à Montréal', youtube: 'Et si le vol est en retard ?', telegram: 'Prise en charge ajustée', whatsapp_channel: 'De retour de voyage ?' },
+    imgEn: { linkedin: 'Back from a business trip', x: 'Flight delays' },
     fb: [`Votre vol de retour a du retard ? Pas d'inquiétude.
 
 Indiquez votre numéro de vol à la réservation. En cas de retard annoncé, l'heure de prise en charge est ajustée sans frais supplémentaires. Votre chauffeur vous retrouve au point de rencontre précisé dans votre confirmation.`, ['#YUL']],

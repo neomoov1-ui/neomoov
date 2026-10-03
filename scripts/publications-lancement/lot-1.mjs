@@ -11,6 +11,7 @@ export default [
     n: 1, jour: 0, theme: 'lancement', sujet: 'Neomoov arrive à Montréal', cta: 'reserve',
     photo: ['ville', 'Photo réelle du centre-ville de Montréal au lever du jour, vue depuis le belvédère du mont Royal (médiathèque, crédit indiqué).'],
     img: { site_blog: 'Neomoov arrive à Montréal', facebook: 'Bienvenue à bord', instagram: 'Montréal, en électrique', linkedin: 'Un nouveau service à Montréal', x: 'Neomoov est lancé', tiktok: 'Voici Neomoov', snapchat: 'Nouveau à Montréal', youtube: 'Le lancement en vidéo', telegram: 'Le premier jour', whatsapp_channel: 'Neomoov démarre' },
+    imgEn: { linkedin: 'Now live in Montréal', x: 'Neomoov is live' },
     blog: {
       titre: 'Neomoov arrive à Montréal : avancez vers demain',
       extrait: 'Neomoov lance à Montréal un service de transport de personnes en véhicules 100 % électriques, au prix tout compris affiché avant de confirmer.',
@@ -111,6 +112,7 @@ Businesses, hotels, clinics and event organizers: let's talk about your travel n
     n: 2, jour: 0, theme: 'lancement', sujet: 'La signature « Avancez vers demain. »', cta: 'reserve',
     photo: ['vehicule', 'Photo réelle d\'un véhicule électrique récent de catégorie Neo Premium dans une rue du Vieux-Montréal, en lumière de fin de journée (médiathèque, crédit indiqué).'],
     img: { facebook: 'Notre signature', instagram: 'Avancez vers demain.', linkedin: 'Trois mots, un engagement', x: 'Une promesse simple', tiktok: 'Une signature en vidéo', snapchat: 'Trois mots', youtube: 'La signature Neomoov', telegram: 'Notre promesse', whatsapp_channel: 'Votre trajet, demain' },
+    imgEn: { linkedin: 'Three words, one commitment', x: 'A simple promise' },
     fb: [`Avancez vers demain.
 
 C'est notre signature, et c'est une promesse simple : des trajets plus sereins, en véhicule 100 % électrique, avec un prix tout compris connu avant de confirmer.
@@ -126,7 +128,7 @@ Réservez au moins 2 heures à l'avance, lien dans la bio.`, ['#Neomoov', '#Avan
 Notre signature résume notre engagement : faire du transport de personnes à Montréal une expérience plus juste pour le client, plus juste pour le chauffeur et plus respectueuse de la ville. Concrètement : des véhicules 100 % électriques, des chauffeurs vérifiés et un prix tout compris affiché avant de confirmer.`, `Our signature, « Avancez vers demain. », sums up our commitment: passenger transportation in Montréal that is fairer for riders, fairer for drivers and kinder to the city. In practice: 100% electric vehicles, vetted drivers and an all-inclusive price shown before you confirm.`, ['#Neomoov', '#Montréal', '#MobilitéDurable']],
     x: [`« Avancez vers demain. » Notre signature, notre engagement : un trajet serein, 100 % électrique, à un prix tout compris connu avant de confirmer.`, `Our signature, « Avancez vers demain. », says it all: a calm ride, 100% electric, at an all-inclusive price you know before you confirm.`, ['#Neomoov']],
     tt: [[`Trois mots, une promesse.`, `Avancez : un véhicule 100 % électrique vous attend.`, `Vers : un chauffeur vérifié, un trajet suivi en direct.`, `Demain : un prix connu avant de confirmer.`], `Avancez vers demain. 🚗 Réservez au moins 2 h à l'avance : lien dans la bio.`, ['#Neomoov', '#AvancezVersDemain', '#Montréal']],
-    sc: [[`Avancez`, `vers`, `demain.`], `Notre signature, notre promesse 🚗 neomoov.net/reserver`, ['#Neomoov', '#Montréal']],
+    sc: [[`Avancez vers demain.`, `Notre signature à Montréal.`, `Votre trajet, en électrique.`], `Notre signature, notre promesse 🚗 neomoov.net/reserver`, ['#Neomoov', '#Montréal']],
     yt: [`Avancez vers demain : la signature de Neomoov`, [`Neomoov, c'est une signature : Avancez vers demain.`, `Des véhicules 100 % électriques récents.`, `Des chauffeurs vérifiés et un trajet suivi en direct.`, `Un prix tout compris, connu avant de confirmer.`], `Avancez vers demain. C'est la signature de Neomoov, service de transport de personnes à Montréal en véhicules 100 % électriques. Réservez au moins 2 heures à l'avance.`, ['#Neomoov', '#Montréal', '#Shorts']],
     tg: `Avancez vers demain. C'est la signature de Neomoov : véhicules 100 % électriques, chauffeurs vérifiés, prix tout compris connu avant de confirmer.`,
     wa: `Avancez vers demain. Notre signature, et notre promesse pour chacun de vos trajets à Montréal. Réservez au moins 2 heures à l'avance :`,
@@ -136,6 +138,7 @@ Notre signature résume notre engagement : faire du transport de personnes à Mo
     sensible: 'Prix publié (48,20 $) : sujet « argent », approbation humaine prévue par les lignes éditoriales.',
     photo: ['aeroport', 'Photo réelle du débarcadère des départs de l\'aéroport Montréal-Trudeau, sans personne identifiable (médiathèque, crédit indiqué).'],
     img: { facebook: 'Votre prix pour YUL', instagram: 'Direction l\'aéroport', linkedin: 'Voyages d\'affaires vers YUL', x: 'Forfait aéroport', tiktok: 'Bientôt dans les airs ?', snapchat: 'Cap sur YUL', youtube: '48,20 $ depuis le centre-ville', telegram: 'Montréal-Trudeau, prix fixe', whatsapp_channel: 'Avant votre vol' },
+    imgEn: { linkedin: 'Business trips to YUL', x: 'Airport flat rate' },
     fb: [`Aéroport Montréal-Trudeau : connaissez votre prix avant de partir.
 
 Le forfait Neo Premium depuis le centre-ville est de 48,20 $, taxes comprises. Réservez avec votre numéro de vol, au moins 2 heures à l'avance et jusqu'à 90 jours : votre chauffeur est confirmé la veille.
@@ -160,6 +163,7 @@ Depuis le centre-ville, le forfait Neo Premium est de 48,20 $, taxes comprises. 
     n: 4, jour: 1, theme: 'electrique', sujet: 'Une flotte 100 % électrique', cta: 'reserve',
     photo: ['vehicule', 'Photo réelle d\'un véhicule électrique récent branché à une borne de recharge publique à Montréal (médiathèque, crédit indiqué).'],
     img: { facebook: 'Une flotte électrique', instagram: '100 % électrique', linkedin: 'Mobilité durable au travail', x: 'Zéro essence', tiktok: 'Pas de moteur à essence', snapchat: 'Électrique, toujours', youtube: 'Trois catégories électriques', telegram: 'La flotte Neomoov', whatsapp_channel: 'Bon à savoir' },
+    imgEn: { linkedin: 'Sustainable business travel', x: 'No gas, ever' },
     fb: [`Chez Neomoov, toute la flotte est électrique.
 
 Des véhicules récents, de cinq ans ou moins, inspectés à l'inscription puis chaque trimestre. Trois catégories : Neo Premium pour tous les jours, Neo Prestige pour les rendez-vous qui comptent, Neo XL jusqu'à six passagers.
@@ -185,6 +189,7 @@ Pour vos déplacements professionnels à Montréal, Neomoov propose trois catég
     sensible: 'Prix publié (48,20 $) dans l\'article : sujet « argent », approbation humaine prévue par les lignes éditoriales.',
     photo: ['aeroport', 'Photo réelle du hall des arrivées de l\'aéroport Montréal-Trudeau, voyageurs de dos avec leurs valises, aucun visage reconnaissable (médiathèque, crédit indiqué).'],
     img: { site_blog: 'Le guide de l\'aéroport', facebook: 'Votre transfert, étape par étape', instagram: 'Quatre étapes vers YUL', linkedin: 'Les voyages de vos équipes', x: 'Retard de vol ? Pas de souci', tiktok: 'Sans stress jusqu\'à YUL', snapchat: 'Votre chauffeur aussi', youtube: 'Comment ça se passe', telegram: 'Transfert aéroport', whatsapp_channel: 'Avant le décollage' },
+    imgEn: { linkedin: 'Airport trips for your team', x: 'Flight delayed? No problem' },
     blog: {
       titre: 'Aller à l\'aéroport Montréal-Trudeau avec Neomoov : le guide',
       extrait: 'Forfait depuis le centre-ville, numéro de vol, chauffeur confirmé la veille, retard de vol : tout pour un trajet vers ou depuis YUL sans surprise.',
@@ -276,6 +281,7 @@ Le transfert aéroport Neomoov suit un déroulement précis : réservation avec 
     n: 6, jour: 2, theme: 'reservation', sujet: 'Pourquoi réserver au moins 2 heures à l\'avance', cta: 'reserve',
     photo: ['client', 'Photo réelle d\'une cliente qui consulte son téléphone dans un café de Montréal (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Pourquoi 2 heures ?', instagram: 'Planifier, c\'est arriver à l\'heure', linkedin: 'Un choix de fiabilité', x: '2 h à l\'avance', tiktok: 'Pourquoi deux heures d\'avance ?', snapchat: 'Chauffeur confirmé', youtube: 'Réserver à l\'avance', telegram: 'Rappel de réservation', whatsapp_channel: 'Une course demain ?' },
+    imgEn: { linkedin: 'A reliability choice', x: 'Book 2 hours ahead' },
     fb: [`Pourquoi réserver au moins 2 heures à l'avance ?
 
 Parce que ce délai nous permet de vous confirmer un chauffeur et le véhicule que vous avez choisi, plutôt que de vous envoyer le premier véhicule disponible. Vous pouvez réserver jusqu'à 90 jours à l'avance, sur notre site, par WhatsApp au +1 438 900 4990 ou dans l'application.`, []],
@@ -298,6 +304,7 @@ Pour vos rendez-vous professionnels, Neomoov confirme un chauffeur et le véhicu
     n: 7, jour: 3, theme: 'prix', sujet: 'Le prix affiché est le prix payé', cta: 'reserve',
     photo: ['client', 'Photo réelle d\'un passager souriant à l\'arrière d\'un véhicule électrique, téléphone en main (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Le prix affiché, le prix payé', instagram: 'Tout est compris', linkedin: 'Transparence du prix', x: 'Aucune majoration', tiktok: 'Le prix change ? Pas ici', snapchat: 'Aucune surprise', youtube: 'Le vrai prix, d\'avance', telegram: 'Prix garanti', whatsapp_channel: 'Le prix total, avant' },
+    imgEn: { linkedin: 'Price transparency', x: 'No demand-based pricing' },
     fb: [`Le prix affiché est le prix payé.
 
 Avant de confirmer votre course, vous voyez le prix total : tarif du chauffeur, frais de service, péages, redevance et taxes compris. Il est calculé avec le trafic prévu à l'heure de votre départ et ne change plus une fois confirmé. Aucune majoration liée à la demande.`, []],
@@ -320,6 +327,7 @@ Chaque course Neomoov est proposée à un prix tout compris (tarif du chauffeur,
     n: 8, jour: 3, theme: 'chauffeurs', sujet: 'Neomoov recrute des chauffeurs professionnels', cta: 'preregister',
     photo: ['chauffeur', 'Photo réelle d\'un chauffeur professionnel souriant, en tenue soignée, près d\'un véhicule électrique (modèle, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Neomoov recrute', instagram: 'Chauffeurs, à vous', linkedin: 'Ce que nous demandons', x: 'Recrutement chauffeurs', tiktok: 'Chauffeur à Montréal ?', snapchat: 'Vos heures, votre clientèle', youtube: 'Devenir chauffeur Neomoov', telegram: 'Candidatures ouvertes', whatsapp_channel: 'Un chauffeur à recommander ?' },
+    imgEn: { linkedin: 'What we ask, what we offer', x: 'Drivers wanted' },
     fb: [`Chauffeurs professionnels de Montréal : Neomoov recrute.
 
 Vous avez un permis valide, l'autorisation de transport rémunéré de personnes (ou vous souhaitez être accompagné pour l'obtenir) et un véhicule électrique récent ? Vous choisissez vos heures, et la clientèle que vous vous constituez vous appartient.
@@ -337,7 +345,7 @@ Ce que nous demandons : un permis valide de la classe requise au Québec, l'auto
 Ce que nous offrons : des courses planifiées au moins 2 heures à l'avance, la liberté de choisir vos heures, une clientèle qui vous appartient et des décisions toujours prises par une personne.`, `Neomoov is recruiting professional drivers in Montréal. Requirements: a valid Québec licence of the required class, a paid passenger transportation authorization (we help with the process), a background check, proper insurance and an approved 100% electric vehicle. In return: rides scheduled at least 2 hours ahead, freedom to choose your hours, a clientele that is yours, and decisions always made by a person.`, ['#Recrutement', '#Chauffeur', '#Montréal']],
     x: [`Chauffeurs professionnels de Montréal : Neomoov recrute. Courses planifiées 2 h à l'avance, vos heures, votre clientèle. Candidature en deux minutes.`, `Professional drivers in Montréal: Neomoov is recruiting. Rides scheduled 2 hours ahead, your hours, your clientele. Apply in two minutes.`, []],
     tt: [[`Vous êtes chauffeur professionnel à Montréal ?`, `Avec Neomoov, vous choisissez vos heures.`, `Les courses sont planifiées au moins 2 heures à l'avance.`, `Votre clientèle vous appartient.`, `Candidature en deux minutes.`], `Chauffeurs, Neomoov recrute 🚗 Candidature sur neomoov.net/chauffeurs/#candidature`, ['#ChauffeurMontréal', '#Neomoov', '#Montréal', '#VoitureÉlectrique']],
-    sc: [[`Chauffeur à Montréal ?`, `Vos heures.`, `Votre clientèle.`], `Neomoov recrute 🚗 neomoov.net/chauffeurs/#candidature`, ['#Chauffeur', '#MTL']],
+    sc: [[`Chauffeur à Montréal ?`, `Vous choisissez vos heures.`, `Votre clientèle vous appartient.`], `Neomoov recrute 🚗 neomoov.net/chauffeurs/#candidature`, ['#Chauffeur', '#MTL']],
     yt: [`Devenir chauffeur Neomoov à Montréal`, [`Neomoov recrute des chauffeurs professionnels à Montréal.`, `Il faut un permis valide, l'autorisation de transport rémunéré et un véhicule électrique admis.`, `Vous choisissez vos heures, sans exclusivité.`, `Candidature en deux minutes, vérification sous 48 heures.`], `Conditions et étapes pour devenir chauffeur Neomoov : formulaire, documents, entretien, vérification sous 48 heures validée par une personne, formation en ligne.`, ['#ChauffeurMontréal', '#Neomoov', '#Shorts']],
     tg: `Chauffeurs professionnels de Montréal : Neomoov recrute. Vos heures, votre clientèle, des courses planifiées. Candidature :`,
     wa: `Vous connaissez un chauffeur professionnel qui roule en véhicule électrique ? Neomoov recrute à Montréal. Candidature en deux minutes :`,
@@ -346,6 +354,7 @@ Ce que nous offrons : des courses planifiées au moins 2 heures à l'avance, la 
     n: 9, jour: 4, theme: 'quartiers', sujet: 'Action de grâce : se déplacer en famille', cta: 'reserve',
     photo: ['client', 'Photo réelle d\'une famille qui range ses bagages dans un VUS électrique, feuillage d\'automne en arrière-plan (modèles, licence commerciale, crédit indiqué).'],
     img: { facebook: 'Bonne Action de grâce', instagram: 'En famille cet automne', linkedin: 'Pensez à vos invités', x: 'Six places en Neo XL', tiktok: 'Toute la famille vient ?', snapchat: 'Toute la famille à bord', youtube: 'Voyager en famille', telegram: 'Longue fin de semaine', whatsapp_channel: 'Visites en famille' },
+    imgEn: { linkedin: 'Think of your guests', x: 'Six seats in Neo XL' },
     fb: [`Longue fin de semaine de l'Action de grâce : vous rendez visite à la famille ?
 
 Avec Neo XL, jusqu'à six passagers voyagent ensemble avec leurs bagages. Siège d'enfant sur demande. Réservez au moins 2 heures à l'avance pour vos allers et retours.
@@ -370,6 +379,7 @@ Hôtels, conciergeries, organisateurs : Neomoov transporte jusqu'à six passager
     n: 10, jour: 4, theme: 'commodites', sujet: 'Ce qui vous attend à bord', cta: 'reserve',
     photo: ['vehicule', 'Photo réelle de l\'intérieur d\'un véhicule électrique récent : banquette arrière propre, bouteille d\'eau et câble de recharge à disposition (médiathèque, crédit indiqué).'],
     img: { facebook: 'Tout est à bord', instagram: 'Ce qui vous attend', linkedin: 'Arriver prêt', x: 'Votre trajet, votre façon', tiktok: 'Ce qu\'il y a à bord', snapchat: 'Eau, chargeurs, Wi-Fi', youtube: 'À bord d\'un véhicule Neomoov', telegram: 'Les commodités', whatsapp_channel: 'Petit rappel' },
+    imgEn: { linkedin: 'Arrive ready', x: 'Your ride, your way' },
     fb: [`À bord de chaque véhicule Neomoov : de l'eau, des chargeurs, le Wi-Fi et un parapluie à disposition.
 
 Et à la réservation, vous choisissez le reste : silence ou discussion, musique, température, langue du chauffeur. Votre trajet, à votre façon.`, []],
@@ -382,8 +392,8 @@ Réservez au moins 2 heures à l'avance, lien dans la bio.`, ['#Neomoov', '#Conf
 
 Dans chaque véhicule Neomoov : eau, chargeurs, Wi-Fi et parapluie. À la réservation : ambiance silencieuse pour préparer une réunion, langue du chauffeur, température. De quoi arriver prêt.`, `Comfort on a business trip comes down to details. In every Neomoov vehicle: water, chargers, Wi-Fi and an umbrella. When booking: a quiet ride to prepare for a meeting, driver language, temperature. Arrive ready.`, ['#VoyageDAffaires', '#Montréal']],
     x: [`Dans chaque véhicule Neomoov : eau, chargeurs, Wi-Fi et parapluie. Silence, musique, température : vous choisissez à la réservation.`, `In every Neomoov vehicle: water, chargers, Wi-Fi and an umbrella. Quiet ride, music, temperature: you choose when booking.`, []],
-    tt: [[`Ce qu'il y a à bord d'un véhicule Neomoov :`, `De l'eau.`, `Des chargeurs et le Wi-Fi.`, `Un parapluie, au cas où.`, `Et l'ambiance que vous choisissez.`], `Votre trajet, à votre façon 💧 neomoov.net/reserver`, ['#Neomoov', '#Montréal', '#Confort']],
-    sc: [[`Eau.`, `Chargeurs. Wi-Fi.`, `Parapluie.`], `Tout est à bord 💧 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
+    tt: [[`Ce qu'il y a à bord d'un véhicule Neomoov :`, `De l'eau à disposition.`, `Des chargeurs et le Wi-Fi.`, `Un parapluie, si le temps tourne.`, `Et l'ambiance que vous choisissez.`], `Votre trajet, à votre façon 💧 neomoov.net/reserver`, ['#Neomoov', '#Montréal', '#Confort']],
+    sc: [[`De l'eau à bord.`, `Des chargeurs et le Wi-Fi.`, `Un parapluie, au cas où.`], `Tout est à bord 💧 neomoov.net/reserver`, ['#Neomoov', '#MTL']],
     yt: [`À bord d'un véhicule Neomoov`, [`Dans chaque véhicule Neomoov, de l'eau vous attend.`, `Des chargeurs et le Wi-Fi, pour rester connecté.`, `Un parapluie à disposition.`, `Et à la réservation, vous choisissez l'ambiance, la musique et la température.`], `Les commodités comprises dans tous les véhicules Neomoov, et les préférences que vous indiquez à la réservation.`, ['#Neomoov', '#Montréal', '#Shorts']],
     tg: `À bord de chaque véhicule Neomoov : eau, chargeurs, Wi-Fi et parapluie. Vos préférences (silence, musique, température) s'indiquent à la réservation.`,
     wa: `Petit rappel : eau, chargeurs, Wi-Fi et parapluie sont à disposition dans tous nos véhicules. Réservez votre prochaine course :`,
