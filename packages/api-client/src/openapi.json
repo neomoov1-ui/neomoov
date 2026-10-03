@@ -94359,6 +94359,8 @@
                       "over_limit",
                       "out_of_scope",
                       "client_request",
+                      "account",
+                      "payment",
                       "other"
                     ]
                   },
@@ -114829,6 +114831,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -115769,6 +115772,7 @@
                                 "type": "string",
                                 "enum": [
                                   "none",
+                                  "pending",
                                   "done",
                                   "failed"
                                 ]
@@ -116576,6 +116580,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -116997,6 +117002,18 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "async",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
             }
           }
         ],
@@ -117468,6 +117485,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -117792,7 +117810,7 @@
             "bearer": []
           }
         ],
-        "summary": "Analyse des photos par le modèle (aide à la saisie : odomètre, énergie, plaque, voyants, défauts, éléments visibles) ; le chauffeur confirme ou corrige ensuite",
+        "summary": "Analyse des photos par le modèle (aide à la saisie : odomètre, énergie, plaque, voyants, défauts, éléments visibles) ; le chauffeur confirme ou corrige ensuite. `async=true` (ou réglage booster.analysis_async) : réponse immédiate, état `pending` jusqu'au résultat, à relire par GET",
         "tags": [
           "driver"
         ]
@@ -118677,6 +118695,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -119486,6 +119505,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -120647,6 +120667,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -122152,6 +122173,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -122736,6 +122758,7 @@
                                 "type": "string",
                                 "enum": [
                                   "none",
+                                  "pending",
                                   "done",
                                   "failed"
                                 ]
@@ -123375,6 +123398,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -123936,6 +123960,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -124467,6 +124492,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -124944,6 +124970,18 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "async",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
           }
         ],
         "responses": {
@@ -125111,6 +125149,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -125490,7 +125529,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lecture des captures par le modèle : montants, courses, temps en ligne, heures (aide à la saisie, à confirmer)",
+        "summary": "Lecture des captures par le modèle : montants, courses, temps en ligne, heures (aide à la saisie, à confirmer). `async=true` (ou réglage booster.analysis_async) : réponse immédiate, état `pending` jusqu'au résultat, à relire par GET",
         "tags": [
           "driver"
         ]
@@ -125780,6 +125819,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -126449,6 +126489,7 @@
                                 "type": "string",
                                 "enum": [
                                   "none",
+                                  "pending",
                                   "done",
                                   "failed"
                                 ]
@@ -129524,6 +129565,7 @@
                                 "type": "string",
                                 "enum": [
                                   "none",
+                                  "pending",
                                   "done",
                                   "failed"
                                 ]
@@ -130619,6 +130661,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -131820,6 +131863,7 @@
                                 "type": "string",
                                 "enum": [
                                   "none",
+                                  "pending",
                                   "done",
                                   "failed"
                                 ]
@@ -132485,6 +132529,7 @@
                                 "type": "string",
                                 "enum": [
                                   "none",
+                                  "pending",
                                   "done",
                                   "failed"
                                 ]
@@ -133159,6 +133204,7 @@
                           "type": "string",
                           "enum": [
                             "none",
+                            "pending",
                             "done",
                             "failed"
                           ]
@@ -133852,6 +133898,116 @@
         "summary": "Copie JPEG du rapport de performance confirmé (consultation journalisée)",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/v1/webhooks/tidio": {
+      "post": {
+        "operationId": "InboxWebhooksController_tidioWebhook",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "queued": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "escalated": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "duplicates": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "ignored": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "received",
+                    "queued",
+                    "escalated",
+                    "duplicates",
+                    "ignored"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrée invalide (VALIDATION_ERROR) ou règle métier refusée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de débit atteinte (en-tête Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "details": {},
+                    "correlationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "correlationId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Messages des visiteurs de la discussion du site (Tidio) : secret partagé vérifié ; visiteur avec courriel confié à l'agent relation client (réponse par courriel), sans courriel remis au personnel (réponse dans Tidio)",
+        "tags": [
+          "webhooks"
         ]
       }
     },
