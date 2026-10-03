@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { schema } from '@neomoov/db';
-import { VISUAL_SIZES } from '@neomoov/domain';
+import { VISUAL_SIZES, zonedInstant } from '@neomoov/domain';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { and, eq, inArray, like } from 'drizzle-orm';
 import request from 'supertest';
@@ -8,6 +8,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { MockSocialPublisher } from '../src/adapters/mock/index.js';
 import { SOCIAL_PUBLISHERS, type SocialPublishers } from '../src/adapters/marketing.types.js';
 import { SettingsService } from '../src/common/settings.service.js';
+import { PublicationsService } from '../src/modules/marketing/publications.service.js';
 import { PublishingService } from '../src/modules/marketing/publishing.service.js';
 import { bearer, cleanupTestData, createStaffAndLogin, db, resetHttpLimits, startTestApp, type StaffSession } from './helpers.js';
 
@@ -110,6 +111,10 @@ describe('publication multiréseau (agent S2) : composer, visuels par réseau, r
     expect(status('facebook').externalId).toBeTruthy();
     expect(status('whatsapp_channel')).toMatchObject({ status: 'scheduled', delivery: 'manual', externalId: null });
     expect((publishers.get('x') as MockSocialPublisher).published.get(status('x').externalId!)?.text).toContain(SHORT);
+    // Récapitulatif du jour au personnel (une fois par jour) : la tâche de la chaîne WhatsApp y est comptée.
+    const evening = zonedInstant(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }), '23:00', 'America/Toronto');
+    expect(await app.get(PublicationsService).relayDigest(evening)).toBeGreaterThanOrEqual(1);
+    expect(await app.get(PublicationsService).relayDigest(evening)).toBe(0);
     // Publication directe d'un contenu en relais manuel : refusée.
     await request(server()).post(`/v1/admin/marketing/content/${status('whatsapp_channel').id}/publish`).set(bearer(operator.tokens)).send({}).expect(409);
   });

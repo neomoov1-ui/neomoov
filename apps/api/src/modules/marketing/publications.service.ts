@@ -33,6 +33,7 @@ import { QueueService } from '../../infra/queue.module.js';
 import { AgentRunnerService } from '../agents/agent-runner.service.js';
 import { ConversationsService } from '../agents/conversations.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { NotificationsOutbox } from '../rides/notifications-outbox.js';
 import { CONTENT } from './content.agent.js';
 import { ContentService, type ContentItemRow } from './content.service.js';
 import { EditorialLinesService } from './editorial.js';
@@ -81,7 +82,11 @@ export class PublicationsService {
     private readonly runner: AgentRunnerService,
     private readonly editorial: EditorialLinesService,
     private readonly conversations: ConversationsService,
+    private readonly outbox: NotificationsOutbox,
   ) {}
+
+  /** Récapitulatifs du relais manuel déjà envoyés (date locale) : un seul par jour et par processus. */
+  private readonly digests = new Set<string>();
 
   private get db() {
     return this.database.db;
@@ -415,6 +420,25 @@ export class PublicationsService {
     for (const row of rows) tasks.push(await this.relayTask(row, groups.find((g) => g.id === row.groupId) ?? null, now, ctaUrls));
     const [done] = await this.db.select({ n: sql<number>`count(*)::int` }).from(schema.contentItems).where(and(gte(schema.contentItems.relayedAt, start), lt(schema.contentItems.relayedAt, end)));
     return { date: day, tasks, doneToday: Number(done?.n ?? 0) };
+  }
+
+  /**
+   * Récapitulatif quotidien du relais manuel : à partir de l'heure réglée (`marketing.relay_digest_hour`, 8 h, heure de
+   * Montréal ; -1 le coupe), une alerte au personnel avec le nombre de publications à relayer aujourd'hui, retards compris.
+   */
+  async relayDigest(now = new Date()): Promise<number> {
+    const tz = await this.timeZone();
+    const clock = localClock(now, tz);
+    const hour = await this.settings.number('marketing.relay_digest_hour', 8);
+    if (hour < 0 || clock.hour < hour || this.digests.has(clock.date)) return 0;
+    this.digests.add(clock.date);
+    const { tasks } = await this.relayList(clock.date, now);
+    if (!tasks.length) return 0;
+    const bySpace = new Map<string, number>();
+    for (const task of tasks) bySpace.set(task.item.space, (bySpace.get(task.item.space) ?? 0) + 1);
+    const detail = [...bySpace.entries()].map(([space, n]) => `${SPACE_RULES[space as ContentSpace].name} ${n}`).join(', ');
+    await this.outbox.queueForStaff('alert.agent_escalation', { reason: 'marketing_relay_digest', summary: `${tasks.length} publication(s) à relayer à la main aujourd'hui (${detail}) : My Hub, Marketing, Publier, À relayer` });
+    return tasks.length;
   }
 
   /** Relais fait : le contenu est publié (lien de la publication facultatif). Aucune mesure ni lecture des commentaires sans connecteur. */
