@@ -236,7 +236,11 @@ export const activePackSummarySchema = z.object({
   autoRenew: z.boolean(),
 });
 
-export const earningsTotalsSchema = z.object({ fareCents: cents, tipsCents: cents, totalCents: cents, rides: count });
+/**
+ * Totaux des revenus. `platformFeeCents` : redevance Neomoov des courses de la période (3 octobre 2026) ; `netCents` :
+ * total moins cette redevance.
+ */
+export const earningsTotalsSchema = z.object({ fareCents: cents, tipsCents: cents, totalCents: cents, platformFeeCents: cents, netCents: cents, rides: count });
 
 /** `GET /driver/home` : tout l'écran d'accueil en une requête. */
 export const driverHomeSchema = z.object({
@@ -274,6 +278,9 @@ export const earningsSchema = z.object({
     at: isoDate,
     fareCents: cents,
     tipCents: cents,
+    /** Redevance Neomoov retenue sur cette course (0 si aucune) et son taux en points de base (null si aucune). */
+    platformFeeCents: cents,
+    platformFeeBps: z.number().int().nullable(),
     paymentMethod: z.enum(PAYMENT_METHODS),
     collectedBy: z.enum(['platform', 'driver']),
   })),

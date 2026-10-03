@@ -183,7 +183,8 @@ export class DriverActivityService {
   /**
    * Revenus d'une période (heure de Montréal) : tarif du chauffeur et pourboires des courses terminées, frais
    * d'annulation et de non-présentation qui lui reviennent. `collectedDirectCents` : ce que les clients lui ont payé
-   * directement (il reverse les frais de service au relevé).
+   * directement (il reverse les frais de service au relevé). Redevance Neomoov (3 octobre 2026) : celle de chaque course
+   * terminée, figée à la fin de course, retenue au relevé ; `netCents` = total moins la redevance.
    */
   private async earningsOf(driver: DriverRow, period: Period, date: string): Promise<EarningsView> {
     const tz = await this.profiles.timeZone();
@@ -193,9 +194,11 @@ export class DriverActivityService {
       .select({
         id: schema.rides.id, publicNumber: schema.rides.publicNumber, state: schema.rides.state, fareCents: schema.rides.fareCents, tipCents: schema.rides.tipCents,
         cancellationFeeCents: schema.rides.cancellationFeeCents, finalPriceCents: schema.rides.finalPriceCents, paymentMethod: schema.rides.paymentMethod, paymentChoice: schema.rides.paymentChoice,
+        platformFeeCents: schema.platformFees.amountCents, platformFeeBps: schema.platformFees.rateBps,
         at: sql<string>`${at}`,
       })
       .from(schema.rides)
+      .leftJoin(schema.platformFees, eq(schema.platformFees.rideId, schema.rides.id))
       .where(and(
         eq(schema.rides.driverId, driver.id),
         sql`(${schema.rides.state} IN ('completed', 'rated', 'disputed') OR (${schema.rides.state} IN ('no_show', 'cancelled_by_client') AND ${schema.rides.cancellationFeeCents} > 0))`,
@@ -207,6 +210,7 @@ export class DriverActivityService {
     let tipsCents = 0;
     let rides = 0;
     let collectedDirectCents = 0;
+    let platformFeeCents = 0;
     const items = rows.map((r) => {
       const completed = ['completed', 'rated', 'disputed'].includes(r.state);
       const direct = r.paymentChoice === 'pay_driver_after';
@@ -215,12 +219,14 @@ export class DriverActivityService {
       tipsCents += r.tipCents;
       if (completed) rides += 1;
       if (completed && direct) collectedDirectCents += r.finalPriceCents ?? 0;
+      const fee = completed ? (r.platformFeeCents ?? 0) : 0;
+      platformFeeCents += fee;
       return {
         rideId: r.id, publicNumber: r.publicNumber, kind: completed ? ('ride' as const) : ('cancellation_fee' as const), at: new Date(r.at).toISOString(),
-        fareCents: fare, tipCents: r.tipCents, paymentMethod: r.paymentMethod as PaymentMethod, collectedBy: completed && direct ? ('driver' as const) : ('platform' as const),
+        fareCents: fare, tipCents: r.tipCents, platformFeeCents: fee, platformFeeBps: completed ? (r.platformFeeBps ?? null) : null, paymentMethod: r.paymentMethod as PaymentMethod, collectedBy: completed && direct ? ('driver' as const) : ('platform' as const),
       };
     });
-    return { period, from, to, totals: { fareCents, tipsCents, totalCents: fareCents + tipsCents, rides }, collectedDirectCents, items };
+    return { period, from, to, totals: { fareCents, tipsCents, totalCents: fareCents + tipsCents, platformFeeCents, netCents: Math.max(0, fareCents + tipsCents - platformFeeCents), rides }, collectedDirectCents, items };
   }
 
   // Relevés ----------------------------------------------------------------------------------------------------------

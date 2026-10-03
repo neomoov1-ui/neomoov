@@ -139,3 +139,14 @@ Avec Square, `capabilities.connect` est faux :
 ### Bascule
 
 Square vers Stripe : `docs/runbooks/square.md`, section 5. Les cartes Square cessent d'être proposées, les clients en ajoutent une chez Stripe ; les paiements Square se remboursent dans Square Dashboard ou en crédit ; les relevés encore à verser hors plateforme restent listés.
+
+## Redevance Neomoov des chauffeurs (3 octobre 2026)
+
+Décision du fondateur : tous les chauffeurs (Pilote et flotte compris) versent une **redevance Neomoov**, frais de plateforme prélevés sur le tarif de chaque course terminée. À ne pas confondre avec la **redevance gouvernementale** par course (`regulatory_fee_cents`, registre `redevance_ledger`, exports pour Revenu Québec), inchangée. Rapport complet : `docs/reviews/redevance-chauffeurs-2026-10-03.md`.
+
+- **Taux** : `drivers.platform_fee_bps`, de 500 (5 %) à 1000 (10 %), 10 % par défaut ; réglé chauffeur par chauffeur dans My Hub (`PUT /v1/admin/drivers/{id}/platform-fee`, permission `statements.manage`, ancien et nouveau taux au journal d'audit). Nouveaux chauffeurs : réglage `drivers.platform_fee_default_bps`. Bornes vérifiées par le schéma, le domaine et la base.
+- **Assiette** : le tarif du chauffeur (`fare_cents`, avant la remise de promotion que Neomoov lui compense). Jamais les taxes, la redevance gouvernementale, les frais de service, les péages ni le pourboire. Arrondi au cent (demi-cent vers le haut).
+- **Écriture** : une ligne `platform_fees` par course terminée, dans la transaction de la fin de course, au taux du moment (un changement de taux ne touche pas les courses déjà terminées) ; index unique par course, contrôle du montant par la base.
+- **Règlement** : ligne de relevé `platform_fee` « Redevance Neomoov (x %) », un débit. Course payée par carte : retenue sur le versement du vendredi. Course payée au chauffeur (espèces, Interac, terminal) : ajoutée à ce qu'il doit, avec les frais de service et la redevance gouvernementale perçus en direct ; un relevé négatif est prélevé sur sa carte, la suspension pour dette s'applique comme avant.
+- **Garantie modèle validée** (chauffeur en faute, tarif repris) : la redevance de la course est remise (`adjustment_positive` lié à la course), aussi après l'émission du relevé.
+- **Lecture** : revenus du chauffeur (`GET /v1/driver/earnings` : par course et `totals.platformFeeCents`, `totals.netCents`), rentabilité Pilote (`costs.platformFeesCents`), finances (`GET /v1/admin/platform-fees?from&to`, My Hub, Relevés).

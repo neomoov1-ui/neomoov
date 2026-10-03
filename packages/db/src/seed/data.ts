@@ -126,6 +126,8 @@ export const SETTINGS: { key: string; value: unknown; description: string }[] = 
   { key: 'rides.share_link_ttl_hours', value: 24, description: 'Validité du lien public de suivi d\'une course' },
   { key: 'drivers.required_documents', value: ['licence', 'insurance', 'registration'], description: 'Documents approuvés et non expirés exigés pour passer en ligne' },
   { key: 'drivers.require_active_pack', value: false, description: 'Exiger un pack actif pour passer en ligne (activé à l\'étape 8, packs)' },
+  { key: 'drivers.platform_fee_default_bps', value: 1000, description: 'Redevance Neomoov des nouveaux chauffeurs, en points de base (1000 = 10 %), bornée de 500 à 1000 (décision du fondateur, 3 octobre 2026)' },
+  { key: 'dispatch.pack_priority_seconds', value: 120, description: 'Réservation planifiée : délai pendant lequel seuls les chauffeurs avec pack reçoivent l\'offre, avant ceux sans pack (3 octobre 2026)' },
   // Espace chauffeur (prompt 11) : inscription, documents, formation, tableau de conduite.
   { key: 'drivers.onboarding_documents', value: ['profile_photo', 'licence', 'training', 'background_check', 'insurance', 'registration', 'mechanical_check'], description: 'Documents demandés à l\'inscription, dans l\'ordre de l\'assistant' },
   { key: 'drivers.expiring_documents', value: ['licence', 'training', 'background_check', 'insurance', 'registration', 'mechanical_check'], description: 'Documents qui portent une date d\'échéance (exigée au dépôt)' },

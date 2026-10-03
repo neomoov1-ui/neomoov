@@ -20,7 +20,7 @@
  */
 import { schema } from '@neomoov/db';
 import {
-  agreedPrice, clampProposal, experimentGroupFor, negotiationIneligibility, nextRadius, parseDispatchWeights, parseSearchRadii, scoreCandidates, selectWave, subtotalForTotal,
+  agreedPrice, clampProposal, experimentGroupFor, negotiationIneligibility, nextRadius, packPriorityTier, parseDispatchWeights, parseSearchRadii, scoreCandidates, selectWave, splitByPackPriority, subtotalForTotal,
   validateCounter, type ClientOfferView, type DispatchCandidate, type DispatchSummary, type DispatchTickReport, type DriverOfferView, type NegotiationMode, type OfferCounterInput,
   type AvailableVehicle, type PaymentMethod, type RideView, type SearchRadius, type VehicleCategory,
 } from '@neomoov/domain';
@@ -43,7 +43,7 @@ import type { UserActor } from '../auth/actor.js';
 import { PricingRulesService } from '../pricing/pricing-rules.service.js';
 import { ZonesService } from '../pricing/zones.service.js';
 import { DISPATCH_QUEUE, DISPATCH_START_JOB, type DispatchStartJob } from './dispatch-job.js';
-import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, organizationAllows, paymentAccepted, scheduledSlotFree } from './eligibility.js';
+import { categoryAtLeast, currentVehicleJoin, documentTypes, driverEligible, hasUsablePack, organizationAllows, paymentAccepted, scheduledSlotFree } from './eligibility.js';
 import { NotificationsOutbox } from './notifications-outbox.js';
 import { PilotHook } from './pilot-hook.js';
 import { PresenceService } from './presence.service.js';
@@ -82,6 +82,8 @@ interface DispatchConfig {
   ceilingPpm: number;
   requiredDocuments: string[];
   requireActivePack: boolean;
+  /** Réservation planifiée : les chauffeurs avec pack seuls pendant ce délai, avant ceux sans pack (3 octobre 2026). */
+  packPrioritySeconds: number;
 }
 
 /** Candidat lu en base (une requête ensembliste), avant score. */
@@ -98,6 +100,7 @@ type CandidateRow = {
   shift_started_at: string | null;
   is_unlimited: boolean;
   is_client_favourite: boolean;
+  has_active_pack: boolean;
 };
 
 interface Candidate {
@@ -110,6 +113,8 @@ interface Candidate {
   isUnlimited: boolean;
   isRequestedFavourite: boolean;
   isClientFavourite: boolean;
+  /** Pack utilisable : priorité de répartition (3 octobre 2026). */
+  hasActivePack: boolean;
   position: GeoPoint | null;
 }
 
@@ -283,10 +288,11 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       s.number('negotiation.window_seconds', 600), s.number('negotiation.immediate_window_seconds', 60), s.number('negotiation.candidates', 5), s.number('pricing.negotiation_floor_ppm', 700_000),
       s.number('pricing.negotiation_ceiling_ppm', 1_300_000), s.get<unknown>('drivers.required_documents', ['licence', 'insurance', 'registration']), s.get<boolean>('drivers.require_active_pack', false),
     ]);
+    const packPrioritySeconds = Math.max(0, await s.number('dispatch.pack_priority_seconds', 120));
     return {
       radii: parseSearchRadii(radii), waveSeconds, offerSeconds, candidatesPerWave, chainMaxSeconds, noMovementSeconds, noMovementMeters, weights: parseDispatchWeights(weights), etaCandidates, fallbackSpeedMps, emptySweepsMax,
       scheduledWindowSeconds, scheduledCandidatesMax, favouriteExclusiveSeconds, scheduledConflictMinutes, negotiationWindowSeconds, negotiationImmediateWindowSeconds, negotiationCandidates, floorPpm, ceilingPpm,
-      requiredDocuments: documentTypes(requiredDocuments), requireActivePack: requireActivePack === true,
+      requiredDocuments: documentTypes(requiredDocuments), requireActivePack: requireActivePack === true, packPrioritySeconds,
     };
   }
 
@@ -626,7 +632,9 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         return;
       }
       const end = new Date(now.getTime() + cfg.scheduledWindowSeconds * 1000);
-      const favourite = found.find((c) => c.isRequestedFavourite) ?? found.find((c) => c.isClientFavourite);
+      // `found` est classé chauffeurs avec pack d'abord : un autre favori du client sans pack n'a l'exclusivité que si
+      // personne n'a de pack (le favori demandé pour cette course la garde toujours, D37).
+      const favourite = found.find((c) => c.isRequestedFavourite) ?? found.find((c) => c.isClientFavourite && packPriorityTier(c) <= packPriorityTier(found[0]!));
       if (favourite && cfg.favouriteExclusiveSeconds > 0) {
         const exclusiveEnd = new Date(Math.min(end.getTime(), now.getTime() + cfg.favouriteExclusiveSeconds * 1000));
         await this.sendOffer(ride, favourite, { wave: 1, type: 'fixed', expiresAt: exclusiveEnd, now });
@@ -635,24 +643,46 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         await this.save(d.rideId, { status: 'offering', wave: 1, negotiationEndsAt: end, candidateIds: rest, candidateCursor: 0, offeredDriverIds: [...offered], offersSent: sql`${schema.rideDispatches.offersSent} + 1`, nextActionAt: exclusiveEnd });
         return;
       }
-      const sent = await this.broadcast(ride, found, { wave: 1, type: 'fixed', expiresAt: end, now });
+      const { send, deferred } = this.packWave(found, cfg);
+      const sent = await this.broadcast(ride, send, { wave: 1, type: 'fixed', expiresAt: end, now });
       for (const id of sent) offered.add(id);
-      await this.save(d.rideId, { status: 'offering', wave: 1, negotiationEndsAt: end, candidateIds: [], candidateCursor: 0, offeredDriverIds: [...offered], offersSent: sql`${schema.rideDispatches.offersSent} + ${sent.length}`, nextActionAt: end });
+      await this.save(d.rideId, { status: 'offering', wave: 1, negotiationEndsAt: end, candidateIds: deferred, candidateCursor: 0, offeredDriverIds: [...offered], offersSent: sql`${schema.rideDispatches.offersSent} + ${sent.length}`, nextActionAt: this.packWaveEnd(deferred, cfg, now, end) });
       return;
     }
     const remaining = (d.candidateIds as CandidateRef[]).filter((c) => !offered.has(c.driverId));
     const pending = await this.pendingOffers(ride.id);
     const livePending = pending.filter((o) => o.expiresAt.getTime() > now.getTime());
-    if (remaining.length && !livePending.length) {
-      // Le favori n'a pas répondu dans son délai : les autres reçoivent l'offre jusqu'à la fin de la fenêtre.
-      for (const offer of pending) await this.closeOffer(offer, 'timeout', now);
+    // Les candidats restants reçoivent l'offre quand plus aucune offre n'attend (le favori n'a pas répondu dans son délai),
+    // ou à la fin du délai réservé aux chauffeurs avec pack (3 octobre 2026), dont les offres restent ouvertes.
+    const due = !livePending.length || (d.nextActionAt !== null && now.getTime() >= d.nextActionAt.getTime());
+    if (remaining.length && due) {
+      for (const offer of pending) if (offer.expiresAt.getTime() <= now.getTime()) await this.closeOffer(offer, 'timeout', now);
       const found = (await this.searchScheduledCandidates(ride, [...(d.excludedDriverIds as string[]), ...offered], cfg)).filter((c) => remaining.some((r) => r.driverId === c.driverId));
-      const sent = await this.broadcast(ride, found, { wave: 2, type: 'fixed', expiresAt: windowEnd, now });
+      const { send, deferred } = this.packWave(found, cfg);
+      const wave = d.wave + 1;
+      const sent = await this.broadcast(ride, send, { wave, type: 'fixed', expiresAt: windowEnd, now });
       for (const id of sent) offered.add(id);
-      await this.save(d.rideId, { wave: 2, candidateIds: [], candidateCursor: 0, offeredDriverIds: [...offered], offersSent: sql`${schema.rideDispatches.offersSent} + ${sent.length}`, nextActionAt: windowEnd });
+      await this.save(d.rideId, { wave, candidateIds: deferred, candidateCursor: 0, offeredDriverIds: [...offered], offersSent: sql`${schema.rideDispatches.offersSent} + ${sent.length}`, nextActionAt: this.packWaveEnd(deferred, cfg, now, windowEnd) });
       return;
     }
-    await this.save(d.rideId, { nextActionAt: livePending.length ? new Date(Math.min(windowEnd.getTime(), ...livePending.map((o) => o.expiresAt.getTime()))) : windowEnd });
+    const deadlines = livePending.map((o) => o.expiresAt.getTime());
+    if (remaining.length && d.nextActionAt) deadlines.push(d.nextActionAt.getTime());
+    await this.save(d.rideId, { nextActionAt: deadlines.length ? new Date(Math.min(windowEnd.getTime(), ...deadlines)) : windowEnd });
+  }
+
+  /**
+   * Priorité des packs (3 octobre 2026) pour une diffusion simultanée : les chauffeurs avec pack reçoivent l'offre d'abord,
+   * ceux sans pack sont gardés pour après `dispatch.pack_priority_seconds`. Si personne n'a de pack, tous la reçoivent.
+   */
+  private packWave(found: Candidate[], cfg: DispatchConfig): { send: Candidate[]; deferred: Candidate[] } {
+    if (cfg.packPrioritySeconds <= 0) return { send: found, deferred: [] };
+    const { first, later } = splitByPackPriority(found);
+    return first.length ? { send: first, deferred: later } : { send: later, deferred: [] };
+  }
+
+  /** Prochaine action après une diffusion : fin du délai des chauffeurs avec pack s'il en reste à solliciter, sinon fin de fenêtre. */
+  private packWaveEnd(deferred: Candidate[], cfg: DispatchConfig, now: Date, windowEnd: Date): Date {
+    return deferred.length ? new Date(Math.min(windowEnd.getTime(), now.getTime() + cfg.packPrioritySeconds * 1000)) : windowEnd;
   }
 
   /** Négociation : diffusion simultanée de P' et P aux meilleurs candidats, puis repli au mode fixe à la fin de la fenêtre. */
@@ -752,12 +782,12 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     const cfg = await this.config();
     const rows = await this.db.execute<VehicleRow>(sql`
       SELECT v.id AS vehicle_id, v.category, v.make, v.model, v.year, v.colour, v.seats, d.id AS driver_id, u.first_name, d.rating_average AS rating, d.ride_count,
-             d.accepts_cash, d.accepts_interac, d.accepts_terminal, ${this.clientFavouriteSql(quote.clientId)} AS is_favourite
+             d.accepts_cash, d.accepts_interac, d.accepts_terminal, ${this.clientFavouriteSql(quote.clientId)} AS is_favourite, ${hasUsablePack} AS has_active_pack
       FROM drivers d
       JOIN users u ON u.id = d.user_id
       ${currentVehicleJoin}
       WHERE ${driverEligible(cfg)} AND ${categoryAtLeast(quote.category)} AND ${scheduledSlotFree(cfg, quote.requestedAt)}
-      ORDER BY is_favourite DESC, d.rating_average DESC, d.ride_count DESC
+      ORDER BY is_favourite DESC, has_active_pack DESC, d.rating_average DESC, d.ride_count DESC
       LIMIT ${cfg.scheduledCandidatesMax}::int`);
     return rows.map((r) => ({
       vehicleId: r.vehicle_id, category: r.category, make: r.make, model: r.model, year: Number(r.year), colour: r.colour, seats: Number(r.seats), photoUrl: null, isFavourite: r.is_favourite,
@@ -773,6 +803,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       return {
         driverId: r.driver_id, userId: r.user_id, position: r.position ? parseGeoPoint(r.position) : null, distanceMeters: r.distance_m === null ? null : Math.round(Number(r.distance_m)), etaSeconds: null,
         rating: Number(r.rating), idleMinutes, isUnlimited: r.is_unlimited, isRequestedFavourite: favouriteRequested === r.driver_id, isClientFavourite: r.is_client_favourite,
+        hasActivePack: r.has_active_pack,
       };
     });
   }
@@ -794,7 +825,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
              (SELECT max(r.updated_at) FROM rides r WHERE r.driver_id = d.id AND r.state IN ('completed', 'rated')) AS last_ride_at,
              (SELECT s.started_at FROM driver_shifts s WHERE s.driver_id = d.id AND s.ended_at IS NULL ORDER BY s.started_at DESC LIMIT 1) AS shift_started_at,
              EXISTS (SELECT 1 FROM pack_purchases pp WHERE pp.driver_id = d.id AND pp.status = 'active' AND pp.pack_code = 'unlimited') AS is_unlimited,
-             ${clientFavourite} AS is_client_favourite
+             ${clientFavourite} AS is_client_favourite, ${hasUsablePack} AS has_active_pack
       FROM driver_presence p
       JOIN drivers d ON d.id = p.driver_id
       JOIN vehicle_categories vc ON vc.code = p.category
@@ -811,7 +842,8 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
                 AND NOT (ar.state = 'in_progress' AND ST_DWithin(ar.destination_position::geography, ${point}, ${chainMeters}::float)))
         ${radiusFilter} ${excludedFilter} ${onlyFilter} AND ${paymentAccepted(ride.paymentChoice, ride.paymentMethod)}
         AND ${organizationAllows(ride)}
-      ORDER BY distance_m ASC
+      -- Priorité des packs (3 octobre 2026) : les chauffeurs avec pack d'abord, pour qu'ils ne soient jamais coupés par la limite.
+      ORDER BY has_active_pack DESC, distance_m ASC
       LIMIT 60`;
     return this.db.execute<CandidateRow>(query);
   }
@@ -882,7 +914,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
              (SELECT max(r.updated_at) FROM rides r WHERE r.driver_id = d.id AND r.state IN ('completed', 'rated')) AS last_ride_at,
              NULL::timestamptz AS shift_started_at,
              EXISTS (SELECT 1 FROM pack_purchases pp WHERE pp.driver_id = d.id AND pp.status = 'active' AND pp.pack_code = 'unlimited') AS is_unlimited,
-             ${clientFavourite} AS is_client_favourite
+             ${clientFavourite} AS is_client_favourite, ${hasUsablePack} AS has_active_pack
       FROM drivers d
       ${currentVehicleJoin}
       LEFT JOIN driver_presence p ON p.driver_id = d.id
@@ -891,7 +923,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         AND ${scheduledSlotFree(cfg, ride.requestedAt ?? new Date(), ride.id)}
         ${excludedFilter} AND ${paymentAccepted(ride.paymentChoice, ride.paymentMethod)}
         AND ${organizationAllows(ride)}
-      ORDER BY (d.id = ${requested ?? NIL_UUID}::uuid) DESC, is_client_favourite DESC, d.rating_average DESC, d.ride_count ASC
+      ORDER BY (d.id = ${requested ?? NIL_UUID}::uuid) DESC, has_active_pack DESC, is_client_favourite DESC, d.rating_average DESC, d.ride_count ASC
       LIMIT ${cfg.scheduledCandidatesMax}::int`;
     const rows = await this.db.execute<CandidateRow>(query);
     const candidates = this.toCandidates(rows, requested, new Date());

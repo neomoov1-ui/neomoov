@@ -10,7 +10,7 @@ import type {
   ZoneGeometry, ZoneUpdate, SimulateQuote, SimulateResponse, PaymentView, RefundInput, RefundView,
 } from '@neomoov/domain';
 import type { GuaranteeDecision, GuaranteeResult } from '@neomoov/domain';
-import type { AdminBalance, AdminStatementDetail, OfflinePayout, OrganizationStatementView, StatementAdjust, StatementGenerate, StatementGeneration, StatementReconcile, StatementSettleOffline } from '@neomoov/domain';
+import type { AdminBalance, AdminStatementDetail, DriverPlatformFeeInput, OfflinePayout, PlatformFeeSummary, OrganizationStatementView, StatementAdjust, StatementGenerate, StatementGeneration, StatementReconcile, StatementSettleOffline } from '@neomoov/domain';
 import type { AgentReportView, AgentRunListQuery, AgentRunView, AgentUpdate, ConversationReplyInput, ConversationView, QualityReviewView, QualityRunResult } from '@neomoov/domain';
 import type { AdminMetrics } from '@neomoov/domain';
 import type { AdminSanctionAppealView, AppealStatus, SanctionAppealDecision } from '@neomoov/domain';
@@ -106,6 +106,8 @@ export function adminResource(t: Transport) {
     suspendDriver: (driverId: string, reason: string) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/suspend`, { reason }),
     reactivateDriver: (driverId: string) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/reactivate`),
     setDriverPrograms: (driverId: string, body: DriverPrograms) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/programs`, body),
+    /** Redevance Neomoov du chauffeur (3 octobre 2026) : taux de 500 à 1000 points de base (finances). */
+    setDriverPlatformFee: (driverId: string, body: DriverPlatformFeeInput) => t.put<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/platform-fee`, body),
     sanctionDriver: (driverId: string, body: SanctionInput) => t.post<AdminDriverDetail>(`/admin/drivers/${id(driverId)}/sanctions`, body),
     noteDriver: (driverId: string, body: string) => t.post<StaffNote>(`/admin/drivers/${id(driverId)}/notes`, { body }),
     documents: (query: ListQuery = {}) => t.get<Page<AdminDocument>>('/admin/documents', { query }),
@@ -157,6 +159,8 @@ export function adminResource(t: Transport) {
     adjustStatement: (statementId: string, body: StatementAdjust) => t.post<AdminStatementDetail>(`/admin/statements/${id(statementId)}/adjust`, body),
     statementPdfPath: (statementId: string) => `/admin/statements/${id(statementId)}/pdf`,
     balances: () => t.get<AdminBalance[]>('/admin/balances'),
+    /** Redevance Neomoov d'une période (jours locaux inclus) : total, par mode de paiement et par taux. */
+    platformFees: (query: { from: string; to: string }) => t.get<PlatformFeeSummary>('/admin/platform-fees', { query }),
     /** Étape 26 : versements à faire hors plateforme (Square sans Connect, ou versements en échec) et leur export CSV. */
     offlinePayouts: () => t.get<OfflinePayout[]>('/admin/payouts/offline'),
     offlinePayoutsCsvPath: () => '/admin/payouts/offline/export',

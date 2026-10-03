@@ -31,13 +31,15 @@ const NO_STATEMENT = '00000000-0000-4000-8000-000000000000';
 const ADJUSTMENTS = new Set(['adjustment_positive', 'adjustment_negative']);
 /**
  * Éléments d'une course qui peuvent arriver après l'émission de son relevé : pourboire laissé plus tard, garantie modèle
- * validée plus tard (reprise du tarif). Seule la différence avec ce que portent déjà les relevés émis passe au relevé
- * suivant (revue 17.B) ; les autres natures d'une course réglée ne sont jamais recalculées.
+ * validée plus tard (reprise du tarif, et remise de la redevance Neomoov de la course). Seule la différence avec ce que
+ * portent déjà les relevés émis passe au relevé suivant (revue 17.B) ; les autres natures d'une course réglée ne sont
+ * jamais recalculées.
  */
-const LATE_KINDS = ['tip_platform', 'adjustment_negative'] as const;
+const LATE_KINDS = ['tip_platform', 'adjustment_negative', 'adjustment_positive'] as const;
 const LATE_LABELS: Record<(typeof LATE_KINDS)[number], string> = {
   tip_platform: 'Pourboire reçu après le relevé',
   adjustment_negative: 'Garantie modèle validée après le relevé, course remboursée',
+  adjustment_positive: 'Garantie modèle validée après le relevé, redevance Neomoov remise',
 };
 
 type RideRow = {
@@ -56,6 +58,9 @@ type RideRow = {
   cancellation_fee_cents: number;
   guarantee_outcome: string | null;
   driver_fare_protected: boolean;
+  /** Redevance Neomoov enregistrée à la fin de la course (3 octobre 2026), sinon null. */
+  platform_fee_cents: number | null;
+  platform_fee_bps: number | null;
   at: string;
   /** La course figure déjà sur un relevé émis (seuls ses éléments arrivés en retard peuvent encore passer). */
   on_issued: boolean;
@@ -211,9 +216,11 @@ export class StatementsService {
     const rides = await tx.execute<RideRow>(sql`
       SELECT r.id, r.public_number, r.state, r.payment_choice, r.fare_cents, r.service_fee_cents, r.regulatory_fee_cents, r.gst_cents, r.qst_cents, r.tip_cents,
         r.promotion_discount_cents, r.tolls_cents, r.cancellation_fee_cents, r.guarantee_outcome, r.driver_fare_protected,
+        pf.amount_cents AS platform_fee_cents, pf.rate_bps AS platform_fee_bps,
         COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client') AS at,
         EXISTS (SELECT 1 FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id WHERE sl.ride_id = r.id AND sl.statement_id <> ${self}::uuid AND ws.status <> 'draft') AS on_issued
       FROM rides r
+      LEFT JOIN platform_fees pf ON pf.ride_id = r.id
       WHERE r.driver_id = ${driver.id}::uuid
         AND (r.state IN ('completed', 'rated', 'disputed') OR (r.state IN ('no_show', 'cancelled_by_client') AND r.cancellation_fee_cents > 0))
         AND COALESCE(r.state_timestamps->>'completed', r.state_timestamps->>'no_show', r.state_timestamps->>'cancelled_by_client')::timestamptz < (${end}::date::timestamp AT TIME ZONE ${period.timeZone})
@@ -226,7 +233,7 @@ export class StatementsService {
       const rows = await tx.execute<{ ride_id: string; kind: string; total: number }>(sql`
         SELECT sl.ride_id, sl.kind, sum(sl.amount_cents)::int AS total FROM statement_lines sl JOIN weekly_statements ws ON ws.id = sl.statement_id
         WHERE sl.ride_id IN (${sql.join(settled.map((id) => sql`${id}::uuid`), sql`, `)}) AND sl.statement_id <> ${self}::uuid AND ws.status <> 'draft'
-          AND sl.kind IN ('tip_platform', 'adjustment_negative')
+          AND sl.kind IN ('tip_platform', 'adjustment_negative', 'adjustment_positive')
         GROUP BY sl.ride_id, sl.kind`);
       for (const row of rows) recorded.set(`${row.ride_id}:${row.kind}`, Number(row.total));
     }
@@ -240,6 +247,9 @@ export class StatementsService {
       if (ride.status === 'completed' && r.guarantee_outcome === 'validated' && !r.driver_fare_protected) {
         const amount = ride.fareCents + splitTaxes(ride, rates).fareTaxesCents;
         if (amount > 0) rideLines.push({ kind: 'adjustment_negative', amountCents: amount, rideId: r.id, occurredAt: ride.completedAt, label: `Garantie modèle, course remboursée · ${r.public_number}` });
+        // Le tarif n'étant pas dû, la redevance Neomoov de la course est remise (ligne visible, même montant).
+        const fee = ride.platformFee?.amountCents ?? 0;
+        if (fee > 0) rideLines.push({ kind: 'adjustment_positive', amountCents: fee, rideId: r.id, occurredAt: ride.completedAt, label: `Garantie modèle, redevance Neomoov remise · ${r.public_number}` });
       }
       if (!r.on_issued) {
         lines.push(...rideLines);
@@ -307,6 +317,7 @@ export class StatementsService {
       promotionCompensationCents: r.promotion_discount_cents,
       tollCents: r.tolls_cents,
       cancellationFeeCents: r.cancellation_fee_cents,
+      platformFee: r.platform_fee_cents === null || r.platform_fee_bps === null ? null : { amountCents: Number(r.platform_fee_cents), rateBps: Number(r.platform_fee_bps) },
     };
   }
 

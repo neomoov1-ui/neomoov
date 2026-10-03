@@ -27,6 +27,14 @@ export function documentTypes(value: unknown): string[] {
 }
 
 /**
+ * Même règle que `canReceiveOffers` (domaine) : un pack actif non échu avec des courses (ou Illimité), ou un
+ * renouvellement automatique en attente. Sert au filtre (`drivers.require_active_pack`) et, depuis le 3 octobre 2026, à la
+ * priorité de répartition : un chauffeur sans pack reçoit des courses, mais après ceux qui en ont un. Alias `d` (drivers).
+ */
+export const hasUsablePack = sql`EXISTS (SELECT 1 FROM pack_purchases pp WHERE pp.driver_id = d.id AND pp.status <> 'cancelled' AND (pp.auto_renew
+    OR (pp.status = 'active' AND pp.expires_at > now() AND (pp.rides_included IS NULL OR coalesce(pp.rides_remaining, 0) + pp.carried_over_remaining > 0))))`;
+
+/**
  * Chauffeur actif, documents exigés approuvés et valides, pack actif si exigé, solde non bloquant, aucune suspension ;
  * avec `pendingOffersExcept`, aucune offre en attente pour une autre course que celle-ci.
  */
@@ -35,12 +43,7 @@ export function driverEligible(rules: Pick<EligibilityRules, 'requiredDocuments'
     ? sql`AND NOT EXISTS (SELECT 1 FROM unnest(${sql.raw(`ARRAY[${rules.requiredDocuments.map((t) => `'${t}'`).join(',')}]::text[]`)}) AS req(type)
            WHERE NOT EXISTS (SELECT 1 FROM driver_documents dd WHERE dd.driver_id = d.id AND dd.type::text = req.type AND dd.status = 'approved' AND (dd.expires_on IS NULL OR dd.expires_on >= current_date)))`
     : sql``;
-  // Même règle que `canReceiveOffers` (domaine) : un pack actif non échu avec des courses (ou Illimité), ou un
-  // renouvellement automatique en attente.
-  const pack = rules.requireActivePack
-    ? sql`AND EXISTS (SELECT 1 FROM pack_purchases pp WHERE pp.driver_id = d.id AND pp.status <> 'cancelled' AND (pp.auto_renew
-        OR (pp.status = 'active' AND pp.expires_at > now() AND (pp.rides_included IS NULL OR coalesce(pp.rides_remaining, 0) + pp.carried_over_remaining > 0))))`
-    : sql``;
+  const pack = rules.requireActivePack ? sql`AND ${hasUsablePack}` : sql``;
   const pending = pendingOffersExcept
     ? sql`AND NOT EXISTS (SELECT 1 FROM ride_offers o WHERE o.driver_id = d.id AND o.state = 'sent' AND o.expires_at > now() AND o.ride_id <> ${pendingOffersExcept}::uuid)`
     : sql``;

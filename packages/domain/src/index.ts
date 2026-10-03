@@ -8,6 +8,7 @@ export * from './pricing/benchmark.js';
 export * from './packs/packs.js';
 export * from './settlement/settlement.js';
 export * from './settlement/ledgers.js';
+export * from './settlement/platform-fee.js';
 export * from './rides/state-machine.js';
 export * from './rides/cancellation.js';
 export * from './rides/punctuality.js';

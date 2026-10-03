@@ -258,6 +258,8 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
       await tx.execute(sql`DELETE FROM invoices WHERE ride_id IN ${rideIds}`);
       await tx.delete(schema.redevanceLedger).where(inArray(schema.redevanceLedger.rideId, rideIds));
       await tx.delete(schema.taxLedger).where(inArray(schema.taxLedger.rideId, rideIds));
+      // Redevance Neomoov (3 octobre 2026) : une ligne par course terminée, écrite avec la fin de course.
+      await tx.delete(schema.platformFees).where(inArray(schema.platformFees.rideId, rideIds));
       await tx.execute(sql`ALTER TABLE ride_events DISABLE TRIGGER ride_events_append_only`);
       await tx.delete(schema.rides).where(inArray(schema.rides.id, rideIds));
       await tx.execute(sql`ALTER TABLE ride_events ENABLE TRIGGER ride_events_append_only`);
@@ -271,6 +273,7 @@ export async function cleanupTestData(app: NestExpressApplication): Promise<void
     await database.execute(sql`DELETE FROM ride_offers WHERE driver_id IN ${driverIds}`);
     await database.execute(sql`DELETE FROM scheduled_assignments WHERE driver_id IN ${driverIds}`);
     await database.delete(schema.packPurchases).where(inArray(schema.packPurchases.driverId, driverIds));
+    await database.delete(schema.platformFees).where(inArray(schema.platformFees.driverId, driverIds));
     await database.delete(schema.weeklyStatements).where(inArray(schema.weeklyStatements.driverId, driverIds));
     await database.delete(schema.sanctionAppeals).where(inArray(schema.sanctionAppeals.driverId, driverIds));
     await database.delete(schema.sanctions).where(inArray(schema.sanctions.driverId, driverIds));

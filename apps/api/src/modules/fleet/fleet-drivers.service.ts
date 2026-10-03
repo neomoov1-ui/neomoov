@@ -6,7 +6,7 @@
  * revue des documents par l'organisation (une recommandation : l'approbation finale reste à la plateforme).
  */
 import { schema } from '@neomoov/db';
-import type { AdminListQuery, DriverInvitationCreate, FleetDocument, FleetDriver, Page } from '@neomoov/domain';
+import { platformFeeBpsOrDefault, PLATFORM_FEE_DEFAULT_BPS, type AdminListQuery, type DriverInvitationCreate, type FleetDocument, type FleetDriver, type Page } from '@neomoov/domain';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
@@ -96,6 +96,8 @@ export class FleetDriversService {
     const rootId = await this.orgScope.rootOrganizationId();
     const timeZone = await this.settings.string('service.time_zone', 'America/Toronto');
     const day = today(timeZone, now);
+    // Redevance Neomoov (3 octobre 2026) : un chauffeur de flotte la verse aussi, au taux des nouveaux chauffeurs.
+    const platformFeeBps = platformFeeBpsOrDefault(await this.settings.get<unknown>('drivers.platform_fee_default_bps', PLATFORM_FEE_DEFAULT_BPS));
     const result = await this.db.transaction(async (tx) => {
       const [inv] = await tx.select().from(schema.invitations).where(eq(schema.invitations.tokenHash, sha256Hex(token))).for('update').limit(1);
       if (!inv || inv.revokedAt || inv.roleId !== roleId) throw AppError.notFound('INVITATION_NOT_FOUND', 'Invitation introuvable');
@@ -110,7 +112,7 @@ export class FleetDriversService {
       let created = false;
       if (!driver) {
         const [numberRow] = await tx.execute<{ n: string }>(sql`SELECT next_driver_public_number() AS n`);
-        [driver] = await tx.insert(schema.drivers).values({ userId: actor.userId, publicNumber: numberRow!.n, status: 'pending', organizationId: org.id }).returning({ id: schema.drivers.id, organizationId: schema.drivers.organizationId, currentVehicleId: schema.drivers.currentVehicleId });
+        [driver] = await tx.insert(schema.drivers).values({ userId: actor.userId, publicNumber: numberRow!.n, status: 'pending', organizationId: org.id, platformFeeBps }).returning({ id: schema.drivers.id, organizationId: schema.drivers.organizationId, currentVehicleId: schema.drivers.currentVehicleId });
         await tx.insert(schema.driverBalances).values({ driverId: driver!.id }).onConflictDoNothing();
         created = true;
       }

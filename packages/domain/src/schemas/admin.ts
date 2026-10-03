@@ -11,6 +11,7 @@ import { cents, isoDate, localDateString, phoneE164, uuid } from './common.js';
 import { INVOICE_KINDS } from '../invoicing/invoice.js';
 import { SAFETY_HOLD_OUTCOMES, SAFETY_HOLD_STATES } from '../drivers/safety.js';
 import { MANUAL_INCIDENT_TYPES, privacyBreachInputSchema } from '../privacy/breach.js';
+import { PLATFORM_FEE_MAX_BPS, PLATFORM_FEE_MIN_BPS } from '../settlement/platform-fee.js';
 
 const count = z.number().int().min(0);
 
@@ -197,6 +198,8 @@ export const adminDriverDetailSchema = z.object({
     activatedAt: isoDate.nullable(),
     /** Locataire d'un véhicule R-LuxeEV : pack Découverte offert (5.7). */
     rLuxeEvTenant: z.boolean(),
+    /** Redevance Neomoov du chauffeur, en points de base (500 à 1000), 3 octobre 2026. */
+    platformFeeBps: z.number().int().min(PLATFORM_FEE_MIN_BPS).max(PLATFORM_FEE_MAX_BPS),
   }),
   vehicles: z.array(adminVehicleSchema),
   documents: z.array(adminDocumentSchema),
@@ -209,6 +212,9 @@ export const driverSuspendSchema = z.object({ reason: z.string().trim().min(3).m
 /** Programmes du chauffeur modifiables par le personnel. */
 export const driverProgramsSchema = z.object({ rLuxeEvTenant: z.boolean() });
 export type DriverPrograms = z.infer<typeof driverProgramsSchema>;
+/** Redevance Neomoov d'un chauffeur (My Hub, finances) : taux en points de base, de 500 (5 %) à 1000 (10 %). */
+export const driverPlatformFeeSchema = z.object({ rateBps: z.number().int().min(PLATFORM_FEE_MIN_BPS).max(PLATFORM_FEE_MAX_BPS) });
+export type DriverPlatformFeeInput = z.infer<typeof driverPlatformFeeSchema>;
 
 // Clients ------------------------------------------------------------------------------------------------------------
 

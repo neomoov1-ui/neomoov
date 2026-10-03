@@ -19,7 +19,9 @@ Réglages utiles en exploitation :
 | Clé | Valeur de départ | Pour |
 |---|---|---|
 | `rides.min_lead_seconds` | 7200 | Préavis minimal des réservations (D32) |
-| `drivers.require_active_pack` | `false` | Exiger un pack actif pour recevoir des offres |
+| `drivers.require_active_pack` | `false` | Exiger un pack actif pour recevoir des offres (sinon, un chauffeur sans pack reçoit des courses, après ceux qui en ont un : décision du 3 octobre 2026) |
+| `drivers.platform_fee_default_bps` | 1000 (10 %) | Redevance Neomoov des **nouveaux** chauffeurs, de 500 à 1000 ; une valeur hors bornes est ignorée (10 %). Le taux d'un chauffeur se règle sur sa fiche (My Hub, Chauffeurs, finances). Ne jamais le publier |
+| `dispatch.pack_priority_seconds` | 120 | Réservation planifiée : délai pendant lequel seuls les chauffeurs avec pack reçoivent l'offre ; 0 : tous en même temps (l'ordre reste « avec pack d'abord » pour les courses immédiates) |
 | `drivers.require_payout_account` | `false` | Exiger le compte de versement Stripe pour passer en ligne (à activer avec Stripe réel) |
 | `drivers.require_training` | `true` | Exiger la formation Neomoov pour passer en ligne |
 | `alerts.founder_phone` | vide | Numéro appelé par l'agent vocal lors d'un SOS (avec `voice.sos_assistant_id`) |

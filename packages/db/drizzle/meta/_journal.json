@@ -253,6 +253,13 @@
       "when": 1790975268089,
       "tag": "0035_marketing",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790993630407,
+      "tag": "0036_platform-fee",
+      "breakpoints": true
     }
   ]
 }

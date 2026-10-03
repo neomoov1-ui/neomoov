@@ -152,7 +152,7 @@ describe('espace chauffeur (intégration)', () => {
     expect(online.body.status).toBe('online');
     const home = await request(server()).get('/v1/driver/home').set(bearer(driver)).expect(200);
     expect(home.body).toMatchObject({ presence: { status: 'online' }, blockers: [], onboarding: { complete: true, next: null }, profile: { firstName: 'Awa', status: 'active' }, features: { faceCheck: false } });
-    expect(home.body.earnings.today).toEqual({ fareCents: 0, tipsCents: 0, totalCents: 0, rides: 0 });
+    expect(home.body.earnings.today).toEqual({ fareCents: 0, tipsCents: 0, totalCents: 0, platformFeeCents: 0, netCents: 0, rides: 0 });
     await request(server()).post('/v1/driver/status').set(bearer(driver)).send({ status: 'offline' }).expect(200);
   });
 

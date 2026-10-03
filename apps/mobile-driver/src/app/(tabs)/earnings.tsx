@@ -12,7 +12,7 @@ import { useEarnings, useStatements } from '@/lib/queries';
 
 /**
  * Revenus et relevés (6.2) : jour, semaine (lundi au dimanche, heure de Montréal) ou mois ; tarifs, pourboires, total ;
- * chaque ligne renvoie à sa course. Relevés hebdomadaires émis, chacun avec son détail. Tout est calculé par l'API.
+ * redevance Neomoov retenue par course et net (3 octobre 2026) ; chaque ligne renvoie à sa course. Relevés hebdomadaires émis, chacun avec son détail. Tout est calculé par l'API.
  */
 export default function EarningsScreen() {
   const { t, i18n } = useTranslation();
@@ -21,6 +21,7 @@ export default function EarningsScreen() {
   const earnings = useEarnings({ period });
   const statements = useStatements();
   const money = (cents: number) => formatMoney(cents, language);
+  const rate = (bps: number | null) => (bps === null ? '' : `${(bps / 100).toLocaleString(language === 'en' ? 'en-CA' : 'fr-CA')}${language === 'en' ? '%' : ' %'}`);
   const data = earnings.data;
 
   return (
@@ -34,6 +35,13 @@ export default function EarningsScreen() {
           <Row label={t('earnings.fare')} value={money(data.totals.fareCents)} />
           <Row label={t('earnings.tips')} value={money(data.totals.tipsCents)} />
           <Row label={t('earnings.rides')} value={String(data.totals.rides)} />
+          {data.totals.platformFeeCents > 0 ? (
+            <>
+              <Row label={t('earnings.platformFee')} value={money(-data.totals.platformFeeCents)} />
+              <Row label={t('earnings.net')} value={money(data.totals.netCents)} strong />
+              <Body muted>{t('earnings.platformFeeHint')}</Body>
+            </>
+          ) : null}
           {data.collectedDirectCents > 0 ? (
             <>
               <Row label={t('earnings.collectedDirect')} value={money(data.collectedDirectCents)} />
@@ -49,6 +57,7 @@ export default function EarningsScreen() {
             <Row label={formatDateTime(item.at, language)} value={money(item.fareCents + item.tipCents)} strong />
             <Body muted>{item.kind === 'cancellation_fee' ? t('earnings.cancellationFee') : `${item.publicNumber} · ${t(`methods.${item.paymentMethod}`)}`}</Body>
             {item.tipCents > 0 ? <Body muted>{`${t('earnings.tips')} : ${money(item.tipCents)}`}</Body> : null}
+            {item.platformFeeCents > 0 ? <Body muted>{t('earnings.platformFeeItem', { rate: rate(item.platformFeeBps), amount: money(-item.platformFeeCents) })}</Body> : null}
           </Card>
         </Pressable>
       ))}

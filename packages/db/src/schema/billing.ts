@@ -82,6 +82,33 @@ export const taxLedger = pgTable('tax_ledger', {
   createdAt: createdAt(),
 }, (t) => [uniqueIndex('tax_ledger_ride_unique').on(t.rideId), index('tax_ledger_period_idx').on(t.period), index('tax_ledger_driver_period_idx').on(t.driverId, t.period), check('tax_ledger_positive', sql`${t.fareGstCents} >= 0 AND ${t.fareQstCents} >= 0 AND ${t.feeGstCents} >= 0 AND ${t.feeQstCents} >= 0`)]);
 
+/**
+ * Redevance Neomoov (3 octobre 2026) : une ligne par course terminée, écrite dans la transaction de fin de course, taux et
+ * montant figés à ce moment (un changement de taux ne touche jamais une course déjà terminée). Le relevé hebdomadaire en
+ * tire la ligne `platform_fee` (retenue sur le versement par carte, ajoutée à la dette en paiement direct). Distincte du
+ * registre de la redevance gouvernementale (`redevance_ledger`). Montant = arrondi(assiette × taux / 10 000), vérifié par
+ * la base.
+ */
+export const platformFees = pgTable('platform_fees', {
+  id: id(),
+  rideId: uuid('ride_id').notNull().references(() => rides.id),
+  driverId: uuid('driver_id').notNull().references(() => drivers.id),
+  /** Assiette : tarif complet du chauffeur (hors taxes, redevance gouvernementale, frais de service, péages et pourboire). */
+  baseCents: cents('base_cents').notNull(),
+  rateBps: integer('rate_bps').notNull(),
+  amountCents: cents('amount_cents').notNull(),
+  /** `platform` : payée par carte (retenue sur le versement) ; `direct` : payée au chauffeur (ajoutée à sa dette). */
+  paymentChannel: varchar('payment_channel', { length: 10 }).notNull(),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex('platform_fees_ride_unique').on(t.rideId),
+  index('platform_fees_driver_idx').on(t.driverId, t.createdAt),
+  index('platform_fees_created_idx').on(t.createdAt),
+  check('platform_fees_rate_range', sql`${t.rateBps} BETWEEN 500 AND 1000`),
+  check('platform_fees_amounts', sql`${t.baseCents} >= 0 AND ${t.amountCents} >= 0 AND ${t.amountCents} = (${t.baseCents}::bigint * ${t.rateBps} + 5000) / 10000`),
+  check('platform_fees_channel', sql`${t.paymentChannel} IN ('platform', 'direct')`),
+]);
+
 export const geolocationExports = pgTable('geolocation_exports', {
   id: id(),
   periodStart: date('period_start').notNull(),
