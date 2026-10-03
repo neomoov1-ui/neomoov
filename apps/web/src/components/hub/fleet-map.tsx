@@ -1,9 +1,10 @@
 'use client';
 
-/** Carte de la flotte (Leaflet, tuiles OpenStreetMap) : un cercle par chauffeur, couleur selon l'état. Client seulement. */
+/** Carte de la flotte (Leaflet, tuiles du fournisseur configuré, `MAP_TILES`) : un cercle par chauffeur, couleur selon l'état. Client seulement. */
 import type { FleetPosition } from '@neomoov/domain';
 import 'leaflet/dist/leaflet.css';
 import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet';
+import { MAP_TILES } from '@/lib/map-tiles';
 
 export const MONTREAL: [number, number] = [45.5019, -73.5674];
 
@@ -17,7 +18,7 @@ export interface FleetMapLabels {
 export default function FleetMap({ positions, labels }: { positions: FleetPosition[]; labels: FleetMapLabels }) {
   return (
     <MapContainer center={MONTREAL} zoom={11} scrollWheelZoom className="h-[420px] w-full rounded-md" aria-label="Carte">
-      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer attribution={MAP_TILES.attribution} url={MAP_TILES.url} />
       {positions.map((p) => {
         const color = p.status === 'paused' ? '#b45309' : p.currentRideId ? '#0b5fb5' : '#15803d';
         return (

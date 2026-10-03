@@ -57,5 +57,7 @@ jobs:
             NEXT_PUBLIC_APP_VERSION=${{ github.sha }}
             NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
             BOOKING_FRAME_ANCESTORS=${{ vars.BOOKING_FRAME_ANCESTORS }}
+            NEXT_PUBLIC_MAP_TILE_URL=${{ vars.NEXT_PUBLIC_MAP_TILE_URL }}
+            NEXT_PUBLIC_MAP_TILE_ATTRIBUTION=${{ vars.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}

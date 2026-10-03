@@ -6,6 +6,7 @@
  */
 import 'leaflet/dist/leaflet.css';
 import { CircleMarker, MapContainer, Polygon, Polyline, TileLayer, Tooltip, useMapEvents } from 'react-leaflet';
+import { MAP_TILES } from '@/lib/map-tiles';
 import { MONTREAL } from './fleet-map';
 
 export interface ZoneShape {
@@ -23,7 +24,7 @@ export default function ZoneMap({ zones, selected, draft, onAddPoint }: { zones:
   const toLatLng = (ring: [number, number][]) => ring.map(([lng, lat]) => [lat, lng] as [number, number]);
   return (
     <MapContainer center={MONTREAL} zoom={10} className="h-[480px] w-full rounded-md" aria-label="Carte des zones">
-      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer attribution={MAP_TILES.attribution} url={MAP_TILES.url} />
       {zones.map((z) => (
         <Polygon key={z.code} positions={toLatLng(z.ring)} pathOptions={{ color: z.code === selected ? '#0b5fb5' : '#475569', weight: z.code === selected ? 3 : 1, fillOpacity: z.code === selected ? 0.15 : 0.05 }}>
           <Tooltip sticky>{z.name}</Tooltip>

@@ -2,19 +2,21 @@
 
 /**
  * Visionneuse d'un document de chauffeur : le fichier est lu par la passerelle (jeton du personnel), converti en URL
- * `blob:` locale et affiché (image ou PDF). Jamais de lien public vers le stockage.
+ * `blob:` locale et affiché (image, ou PDF vérifié par ses premiers octets : `documentKind`), sinon proposé au
+ * téléchargement. Jamais de lien public vers le stockage.
  */
 import type { AdminDocument, DocumentReview } from '@neomoov/domain';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Action, Dialog, Field, Input, Notice, Textarea } from '@/components/ui/kit';
+import { documentKind, type DocumentKind } from '@/lib/document-kind';
 import { formatDate } from '@/lib/format';
 import { useLang } from './common';
 
 export function DocumentViewer({ document, onClose, onReview, canReview, busy, error }: { document: AdminDocument | null; onClose: () => void; onReview?: (review: DocumentReview) => void; canReview: boolean; busy?: boolean; error?: string | null }) {
   const { t } = useTranslation();
   const lang = useLang();
-  const [file, setFile] = useState<{ url: string; type: string } | null>(null);
+  const [file, setFile] = useState<{ url: string; kind: DocumentKind } | null>(null);
   const [failed, setFailed] = useState(false);
   const [reason, setReason] = useState('');
   const [expiresOn, setExpiresOn] = useState('');
@@ -32,8 +34,10 @@ export function DocumentViewer({ document, onClose, onReview, canReview, busy, e
       .then(async (res) => {
         if (!res.ok) throw new Error(String(res.status));
         const blob = await res.blob();
-        url = URL.createObjectURL(blob);
-        setFile({ url, type: blob.type });
+        const kind = documentKind(blob.type, new Uint8Array(await blob.slice(0, 8).arrayBuffer()));
+        // Contenu non reconnu : téléchargé comme fichier brut, jamais interprété par le navigateur.
+        url = URL.createObjectURL(kind === 'download' ? new Blob([blob], { type: 'application/octet-stream' }) : blob);
+        setFile({ url, kind });
       })
       .catch(() => setFailed(true));
     return () => {
@@ -46,11 +50,12 @@ export function DocumentViewer({ document, onClose, onReview, canReview, busy, e
       {document ? (
         <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="min-h-64 rounded-md bg-slate-100 p-2">
-            {failed ? <Notice tone="warning">{t('hub.documents.unreadable')}</Notice> : !file ? <p role="status" className="p-4 text-sm">{t('hub.common.loading')}</p> : file.type.startsWith('image/') ? (
+            {failed ? <Notice tone="warning">{t('hub.documents.unreadable')}</Notice> : !file ? <p role="status" className="p-4 text-sm">{t('hub.common.loading')}</p> : file.kind === 'image' ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={file.url} alt={t(`enum.documentType.${document.type}`)} className="mx-auto max-h-[60vh] w-auto" />
-            ) : file.type === 'application/pdf' ? (
-              <iframe src={file.url} title={t(`enum.documentType.${document.type}`)} className="h-[60vh] w-full" />
+            ) : file.kind === 'pdf' ? (
+              // Sans `sandbox` : Chrome et Edge n'affichent pas un PDF dans un cadre restreint ; seul un vrai PDF arrive ici.
+              <iframe src={file.url} title={t(`enum.documentType.${document.type}`)} referrerPolicy="no-referrer" className="h-[60vh] w-full" />
             ) : (
               <a href={file.url} download className="text-brand-blue-dark underline">{t('hub.documents.download')}</a>
             )}

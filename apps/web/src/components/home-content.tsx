@@ -15,13 +15,9 @@ export function HomeContent() {
   const api = useMemo(() => createApiClient({ baseUrl: API_BASE, language: () => i18n.language as Language }), [i18n.language]);
   const health = useQuery<HealthReport>({ queryKey: ['health', API_BASE], queryFn: ({ signal }) => api.health.get({ signal, auth: false }) });
 
-  const summary = (report: HealthReport) =>
-    [
-      `${t('status.api')} ${t(`status.${report.status}`)}`,
-      `${t('status.database')} ${t(`status.${report.checks.database.status}`)}`,
-      `${t('status.redis')} ${t(`status.${report.checks.redis.status}`)}`,
-      `${t('status.queues')} ${report.checks.queues.mode === 'memory' ? t('status.memory') : t(`status.${report.checks.queues.status}`)}`,
-    ].join(' · ');
+  // Page publique : seulement l'état global de la plateforme. Le détail (base, Redis, files, disjoncteurs) reste dans
+  // My Hub et dans la surveillance, jamais affiché aux visiteurs (revue du 2 octobre 2026, constat web 24).
+  const summary = (report: HealthReport) => t(`status.${report.status}`);
 
   return (
     <section className="flex flex-col gap-8 py-12">

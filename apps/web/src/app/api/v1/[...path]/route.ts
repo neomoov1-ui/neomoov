@@ -3,20 +3,20 @@
  * Écritures : en-tête anti-CSRF exigé. Jeton expiré : renouvellement une fois, puis nouvel essai. Seules les routes
  * du personnel sont relayées (`admin/*`, `auth/logout`, `me`) : le relais n'élargit jamais ce que le jeton permet.
  * Étape 21 : aussi les routes d'organisation (`org/<identifiant>/*`) et le sélecteur (`me/organizations`) de My Hub côté
- * organisation ; l'API y juge l'adhésion et les permissions dans l'organisation.
+ * organisation ; l'API y juge l'adhésion et les permissions dans l'organisation. Liste blanche et contrôle des segments
+ * décodés (`..`, barre oblique encodée) : `relayTarget` (revue du 2 octobre 2026, constat web 19).
  */
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { ACCESS_COOKIE, API_URL, CSRF_HEADER, REFRESH_COOKIE, clearSession, forwardHeaders, refreshTokens, relay, setSession } from '@/lib/server/gateway';
+import { relayTarget } from '@/lib/server/relay-path';
 
 export const dynamic = 'force-dynamic';
 
-const ALLOWED = /^(admin\/.+|me|me\/consents|me\/organizations|org\/[0-9a-f-]{36}(\/.+)?|quotes|places\/(autocomplete|details))$/;
-
 async function handle(req: NextRequest, context: { params: Promise<{ path: string[] }> }): Promise<NextResponse> {
   const { path } = await context.params;
-  const target = path.join('/');
-  if (!ALLOWED.test(target)) return NextResponse.json({ code: 'NOT_RELAYED', message: 'Route non relayée' }, { status: 404 });
+  const target = relayTarget(path);
+  if (!target) return NextResponse.json({ code: 'NOT_RELAYED', message: 'Route non relayée' }, { status: 404 });
   if (req.method !== 'GET' && req.method !== 'HEAD' && req.headers.get(CSRF_HEADER) !== '1') return NextResponse.json({ code: 'CSRF', message: 'En-tête de sécurité manquant' }, { status: 403 });
   const body = req.method === 'GET' || req.method === 'HEAD' ? undefined : await req.arrayBuffer();
   const url = `${API_URL}/v1/${target}${req.nextUrl.search}`;
